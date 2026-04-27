@@ -1,0 +1,20 @@
+package gd.app.musicplayer.ui.common.viewholder
+
+import androidx.room.util.ViewInfo
+import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.model.ListItem
+import gd.app.musicplayer.databinding.FragmentAlbumGridItemBinding
+
+class MusicSetGridViewHolder(
+    private val binding: FragmentAlbumGridItemBinding
+) : BaseViewHolder(binding.root) {
+
+    override fun onBind(item: ListItem, selected: Boolean, viewInfo: String) {
+        val musicSet: MusicSet = (item as ListItem.MusicSetItem).musicSet
+        binding.musicItemTitle.text = musicSet.name
+        musicSet.toDisplayInfo(binding.root.resources)?.let { info ->
+            binding.musicItemAlbum.setImageResource(info.iconRes)
+            binding.musicItemArtist.text = info.subtitle
+        }
+    }
+}

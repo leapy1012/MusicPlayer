@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.appcompat.widget.AppCompatEditText xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/dialog_edit_normal"
+    android:lineSpacingMultiplier="1.2"
+    android:maxLines="@integer/dialog_edit_max_lines"
+    android:scrollbars="vertical"
+    android:selectAllOnFocus="true"
+    android:tag="dialogEditText"
+    android:textColor="#666666"
+    android:textColorHint="#999999"
+    android:textCursorDrawable="@null"
+    android:textSize="16sp" />

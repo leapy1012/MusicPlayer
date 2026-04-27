@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:minHeight="48dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/b_popup_left_icon"
+        android:visibility="gone"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:scaleType="fitCenter"
+        android:layout_marginEnd="16dp"/>
+    <androidx.appcompat.widget.AppCompatTextView
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:gravity="center_vertical"
+        android:id="@+id/b_popup_text"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:minHeight="48dp"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:layout_weight="1"
+        android:textAlignment="viewStart"/>
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/b_popup_right_icon"
+        android:visibility="gone"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:scaleType="fitCenter"
+        android:layout_marginStart="8dp"
+        app:srcCompat="@drawable/b_vector_menu_single_selected"/>
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/b_popup_arrow"
+        android:visibility="gone"
+        android:layout_width="5dp"
+        android:layout_height="10dp"
+        android:scaleType="fitCenter"
+        android:layout_marginStart="8dp"
+        app:srcCompat="@drawable/b_menu_arrow_right"/>
+</LinearLayout>
+

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@android:id/background"
+        android:drawable="@drawable/equalizer_progress_bg_vertical" />
+
+    <item android:id="@android:id/progress">
+        <selector>
+            <item
+                android:state_enabled="false"
+                android:drawable="@drawable/equalizer_progress_bg_vertical_disable" />
+            <item
+                android:state_enabled="true"
+                android:drawable="@drawable/equalizer_progress_bg_vertical_select" />
+        </selector>
+    </item>
+</layer-list>

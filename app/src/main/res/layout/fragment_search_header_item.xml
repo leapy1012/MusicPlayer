@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="48dp">
+    <TextView
+        android:textSize="16sp"
+        android:textColor="@color/item_artist_color"
+        android:id="@+id/music_item_title"
+        android:tag="itemTextExtraColor"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:layout_weight="1"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"/>
+    <gd.app.musicplayer.ui.common.view.SelectBox
+        android:id="@+id/music_item_expanded"
+        android:tag="itemTextExtraColor"
+        android:padding="8dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="8dp"
+        app:srcCompat="@drawable/vector_arrow_selector"/>
+</LinearLayout>

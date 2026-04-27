@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sheetContent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/common_title_height"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:singleLine="true"
+        android:tag="dialogTitle"
+        android:text="@string/dlg_manage_artwork"
+        android:textAlignment="viewStart"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/album_from_reset"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:singleLine="true"
+        android:tag="dialogItemBackground"
+        android:text="@string/reset"
+        android:textAlignment="viewStart"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/album_from_gallery"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:singleLine="true"
+        android:tag="dialogItemBackground"
+        android:text="@string/album_from_gallery"
+        android:textAlignment="viewStart"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/album_from_album_artwork"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:singleLine="true"
+        android:tag="dialogItemBackground"
+        android:text="@string/album_from_album_artwork"
+        android:textAlignment="viewStart"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/album_apply_all"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/apply_all_checkbox"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="8dp"
+            android:clickable="false"
+            android:scaleType="centerInside"
+            android:tag="dialogSelectBox"
+            android:src="@drawable/vector_multi_check_w_selector" />
+
+        <TextView
+            android:id="@+id/album_apply_all_type"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:alpha="0.5"
+            android:gravity="center_vertical"
+            android:paddingEnd="16dp"
+            android:singleLine="true"
+            android:tag="dialogItemBackground"
+            android:text="@string/album_apply_all_album"
+            android:textAlignment="viewStart"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+</LinearLayout>

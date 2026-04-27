@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="seekCalculateMethod">
+        <enum name="movementDistance" value="0" />
+        <enum name="fingerPosition" value="1" />
+    </attr>
+    <declare-styleable name="SeekBar">
+        <attr name="seekCalculateMethod" />
+        <attr name="seekClickDirectly" format="boolean" />
+        <attr name="seekDrawGraduation" format="reference|boolean" />
+        <attr name="seekEnable" format="boolean" />
+        <attr name="seekIsVertical" format="boolean" />
+        <attr name="seekMax" format="integer" />
+        <attr name="seekOverlayTextSize" format="dimension" />
+        <attr name="seekProgress" format="integer" />
+        <attr name="seekProgressDrawable" format="reference" />
+        <attr name="seekProgressHeight" format="dimension" />
+        <attr name="seekRtlEnable" format="boolean" />
+        <attr name="seekThumb" format="reference" />
+        <attr name="seekThumbOverlay" format="reference" />
+        <attr name="seekThumbOverlayPadding" format="dimension" />
+    </declare-styleable>
+
+    <declare-styleable name="PreferenceItemView">
+        <attr name="preference_item_check_drawable" format="reference" />
+        <attr name="preference_item_default" format="boolean" />
+        <attr name="preference_item_file_name" format="reference|string" />
+        <attr name="preference_item_key" format="reference|string" />
+        <attr name="preference_item_summary_off" format="reference|string" />
+        <attr name="preference_item_summary_on" format="reference|string" />
+        <attr name="preference_item_title" format="reference|string" />
+    </declare-styleable>
+
+    <declare-styleable name="RotateStepBar">
+        <attr name="rotateStep" format="reference|integer" />
+        <attr name="rotateStepBackgroundColor" format="color" />
+        <attr name="rotateStepDegreesRange" format="reference|integer" />
+        <attr name="rotateStepDisableColor" format="color" />
+        <attr name="rotateStepExtraGraduationDrawable" format="reference" />
+        <attr name="rotateStepExtraGraduationSize" format="reference|dimension" />
+        <attr name="rotateStepGraduationCount" format="reference|integer" />
+        <attr name="rotateStepGraduationStyle" format="reference" />
+        <attr name="rotateStepIndicatorDrawable" format="reference" />
+        <attr name="rotateStepIndicatorOverlayDrawable" format="reference" />
+        <attr name="rotateStepMainGraduationDrawable" format="reference" />
+        <attr name="rotateStepMax" format="reference|integer" />
+        <attr name="rotateStepPlugDrawable" format="reference" />
+        <attr name="rotateStepPlugPadding" format="reference|dimension" />
+        <attr name="rotateStepProgress" format="reference|integer" />
+        <attr name="rotateStepProgressColor" format="color" />
+        <attr name="rotateStepProgressWidth" format="reference|dimension" />
+    </declare-styleable>
+</resources>

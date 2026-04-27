@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gd.app.musicplayer.ui.common.view.EqualizerSingleGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/equalizer_reverb_layout_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/Equalizer.SelectItem"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="@string/equalizer_reverb_small_room" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/Equalizer.SelectItem"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="@string/equalizer_reverb_middle_room" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/Equalizer.SelectItem"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/equalizer_reverb_large_room" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/equalizer_reverb_layout_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/equalizer_reverb_margin"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/Equalizer.SelectItem"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="@string/equalizer_reverb_middle_hall" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/Equalizer.SelectItem"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="@string/equalizer_reverb_large_hall" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            style="@style/Equalizer.SelectItem"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/equalizer_reverb_plate" />
+    </LinearLayout>
+</gd.app.musicplayer.ui.common.view.EqualizerSingleGroup>

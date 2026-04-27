@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        >
+
+        <View
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/common_title_height"
+            android:minHeight="@dimen/common_title_height"
+            android:tag="toolbar"
+            app:navigationIcon="@drawable/vector_menu_back"
+            app:theme="@style/AppToolbar"
+            app:titleTextAppearance="@style/AppToolbarTitle" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/shape_search_bg"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:gravity="center_vertical"
+            android:tag="editTextBackground">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="18dp"
+                android:layout_marginEnd="8dp"
+                android:alpha="0.5"
+                android:scaleType="fitCenter"
+                android:tag="titleColor"
+                app:srcCompat="@drawable/vector_menu_search" />
+
+            <EditText
+                android:id="@+id/search_edit_text"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:gravity="center_vertical"
+                android:hint="@string/search_library"
+                android:selectAllOnFocus="true"
+                android:singleLine="true"
+                android:tag="titleColor"
+                android:textColor="#ffffff"
+                android:textColorHint="#80ffffff"
+                android:textCursorDrawable="@null"
+                android:textSize="14sp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/search_edit_clear"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:alpha="0.5"
+                android:background="@drawable/b_selector_image_bg_aw"
+                android:focusable="true"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:tag="titleColor"
+                android:visibility="gone"
+                app:srcCompat="@drawable/vector_search_clear" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <include
+        layout="@layout/layout_recyclerview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:tag="bottomDivider" />
+
+    <LinearLayout
+        android:id="@+id/music_edit_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/main_actionbar"
+        android:baselineAligned="false"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        >
+
+        <include
+            layout="@layout/activity_music_edit_menu_item"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <include
+            layout="@layout/activity_music_edit_menu_item"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <include
+            layout="@layout/activity_music_edit_menu_item"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <include
+            layout="@layout/activity_music_edit_menu_item"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <include
+            layout="@layout/activity_music_edit_menu_item"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

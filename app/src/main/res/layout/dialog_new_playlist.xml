@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/new_playlist_title"
+        style="@style/DialogTitle"
+        android:text="@string/create_playlist" />
+
+    <EditText
+        android:id="@+id/new_playlist_edittext"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="24dp"
+        android:background="@drawable/dialog_edit_selector"
+        android:cursorVisible="true"
+        android:hint="@string/create_playlist_hint"
+        android:maxLines="@integer/dialog_edit_max_lines"
+        android:scrollbars="vertical"
+        android:selectAllOnFocus="true"
+        android:tag="dialogEditText"
+        android:textColorHint="#61000000"
+        android:textCursorDrawable="@null"
+        android:textSize="16sp" />
+
+    <LinearLayout style="@style/DialogButtonLayout"
+        android:id="@+id/dialog_bottom_layout">
+
+        <TextView
+            android:id="@+id/dialog_button_cancel"
+            style="@style/DialogButton.Cancel"
+            android:text="@string/cancel" />
+
+        <TextView
+            android:id="@+id/dialog_button_ok"
+            style="@style/DialogButton.Confirm"
+            android:text="@string/ok" />
+    </LinearLayout>
+
+</LinearLayout>

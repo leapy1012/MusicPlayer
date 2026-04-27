@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/main_actionbar"
+        android:orientation="vertical">
+
+        <View
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:minHeight="?attr/actionBarSize"
+            android:tag="toolbar"
+            app:menu="@menu/menu_fragment_main"
+            app:navigationIcon="@drawable/vector_menu_left"
+            app:theme="@style/AppToolbar"
+            app:title="@string/music_player"
+            app:titleTextAppearance="@style/AppToolbarTitle" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0.0dip"
+        android:layout_weight="1.0"
+        android:scrollbarSize="0.0dip">
+
+        <LinearLayout
+            android:id="@+id/main_info_parent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <gd.app.lib.view.NoScrollGridView
+                android:id="@+id/main_info_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:cacheColorHint="@android:color/transparent"
+                android:horizontalSpacing="@dimen/main_item_margin"
+                android:listSelector="@android:color/transparent"
+                android:nestedScrollingEnabled="false"
+                android:padding="@dimen/main_item_margin"
+                android:tag="contentBackground"
+                android:verticalSpacing="@dimen/main_item_margin" />
+
+            <LinearLayout
+                android:id="@+id/main_info_playlist"
+                android:layout_width="match_parent"
+                android:layout_height="?actionBarSize"
+                android:layout_marginTop="8.0dip"
+                android:layout_marginBottom="1.5dip"
+                android:background="@drawable/b_selector_item_bg_t_aw"
+                android:clickable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:tag="contentBackground">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:paddingStart="8.0dip"
+                    android:singleLine="true"
+                    android:tag="itemTextColor"
+                    android:text="@string/playlist"
+                    android:textAllCaps="true"
+                    android:textColor="@color/white"
+                    android:textSize="18.0sp" />
+
+                <TextView
+                    android:id="@+id/main_info_playlist_count"
+                    android:layout_width="0.0dip"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.0"
+                    android:drawablePadding="2.0dip"
+                    android:gravity="center_vertical"
+                    android:paddingEnd="6.0dip"
+                    android:singleLine="true"
+                    android:tag="itemTextColor"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="16.0sp" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/main_info_playlist_add"
+                    android:layout_width="40.0dip"
+                    android:layout_height="40.0dip"
+                    android:layout_marginEnd="16.0dip"
+                    android:background="@drawable/selector_image_bg_w"
+                    android:padding="8.0dip"
+                    android:scaleType="fitCenter"
+                    android:tag="itemTextColor"
+                    app:srcCompat="@drawable/vector_add" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:layout_width="24.0dip"
+                    android:layout_height="24.0dip"
+                    android:layout_marginEnd="6.0dip"
+                    android:scaleType="fitCenter"
+                    android:tag="itemTextColor"
+                    app:srcCompat="@drawable/vector_arrow_right" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/main_info_playlist_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="@dimen/main_item_margin"
+                android:tag="contentBackground" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

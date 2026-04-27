@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="widget_album_image" type="id" />
+    <item name="widget_artist" type="id" />
+    <item name="widget_background_image" type="id" />
+    <item name="widget_banner_overlay" type="id" />
+    <item name="widget_content" type="id" />
+    <item name="widget_favorite_selected" type="id" />
+    <item name="widget_favorite_unselected" type="id" />
+    <item name="widget_flipper_favorite" type="id" />
+    <item name="widget_flipper_play_pause" type="id" />
+    <item name="widget_mode" type="id" />
+    <item name="widget_next" type="id" />
+    <item name="widget_pause" type="id" />
+    <item name="widget_play" type="id" />
+    <item name="widget_previous" type="id" />
+    <item name="widget_progress" type="id" />
+    <item name="widget_progress_black" type="id" />
+    <item name="widget_progress_flipper" type="id" />
+    <item name="widget_queue" type="id" />
+    <item name="widget_queue_empty" type="id" />
+    <item name="widget_queue_info" type="id" />
+    <item name="widget_queue_item" type="id" />
+    <item name="widget_queue_item_artist" type="id" />
+    <item name="widget_queue_item_divider" type="id" />
+    <item name="widget_queue_item_position" type="id" />
+    <item name="widget_queue_item_title" type="id" />
+    <item name="widget_setting" type="id" />
+    <item name="widget_title" type="id" />
+    <item name="widget_visualizer" type="id" />
+</resources>

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/scan_checkbox_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/scan_checkbox"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:onClick="onCheckedChanged"
+            android:scaleType="centerInside"
+            android:tag="selectBox"
+            app:srcCompat="@drawable/vector_music_check_selector" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:singleLine="true"
+            android:tag="itemTextColor"
+            android:text="@string/scan_ignore_message"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:visibility="visible" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/excludeDurationEditText"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:background="@null"
+                android:gravity="center"
+                android:inputType="number"
+                android:minWidth="30dp"
+                android:singleLine="true"
+                android:tag="itemTextColor"
+                android:text="60"
+                android:textColor="@color/white"
+                android:textCursorDrawable="@null"
+                android:textSize="16sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/white"
+                android:tag="underLine" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:tag="itemTextColor"
+            android:text="@string/scan_ignore_message_x"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/scan_checkbox_parent_2"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_marginTop="@dimen/scan_checkbox_margin_top"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/scan_checkbox2"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:clickable="true"
+            android:onClick="onCheckedChanged"
+            android:scaleType="centerInside"
+            android:tag="selectBox"
+            app:srcCompat="@drawable/vector_music_check_selector" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:singleLine="true"
+            android:tag="itemTextColor"
+            android:text="@string/scan_ignore_message"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:visibility="visible" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/excludeSizeEditText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:gravity="center"
+                android:inputType="number"
+                android:minWidth="30dp"
+                android:singleLine="true"
+                android:tag="itemTextColor"
+                android:text="50"
+                android:textColor="@color/white"
+                android:textCursorDrawable="@null"
+                android:textSize="16sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/white"
+                android:tag="underLine" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:tag="itemTextColor"
+            android:text="@string/scan_ignore_message_x_2"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/scan_checkbox_parent_3"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_marginTop="@dimen/scan_checkbox_margin_top"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/scan_checkbox3"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:clickable="true"
+            android:onClick="onCheckedChanged"
+            android:scaleType="centerInside"
+            android:tag="selectBox"
+            app:srcCompat="@drawable/vector_music_check_selector" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:singleLine="true"
+            android:tag="itemTextColor"
+            android:text="@string/scan_ignore_message_3"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:visibility="visible" />
+    </LinearLayout>
+</LinearLayout>

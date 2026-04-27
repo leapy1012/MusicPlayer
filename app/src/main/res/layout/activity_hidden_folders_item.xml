@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/item_recycler_height"
+    android:minHeight="@dimen/item_recycler_height"
+    android:tag="itemBackground">
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/music_item_album"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginStart="16dp"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/music_item_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:singleLine="true"
+        android:tag="itemTextColor"
+        android:textColor="@color/item_title_color"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toTopOf="@+id/music_item_artist"
+        app:layout_constraintEnd_toStartOf="@+id/music_item_des"
+        app:layout_constraintStart_toEndOf="@+id/music_item_album"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/music_item_artist"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="middle"
+        android:singleLine="true"
+        android:tag="itemTextExtraColor"
+        android:textColor="@color/item_artist_color"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/music_item_title"
+        app:layout_constraintStart_toStartOf="@+id/music_item_title"
+        app:layout_constraintTop_toBottomOf="@+id/music_item_title"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/music_item_des"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:tag="itemTextExtraColor"
+        android:textColor="@color/item_artist_color"
+        android:textSize="12sp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/music_item_menu"
+        app:layout_constraintStart_toEndOf="@+id/music_item_title"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/music_item_menu"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="4dp"
+        android:alpha="0.8"
+        android:background="@drawable/selector_image_bg_w"
+        android:padding="10dp"
+        android:scaleType="centerInside"
+        android:tag="itemTextColor"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/music_item_des"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/vector_drive_close" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1px"
+        android:tag="recyclerDividerColor"
+        android:background="@color/list_divider_color"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

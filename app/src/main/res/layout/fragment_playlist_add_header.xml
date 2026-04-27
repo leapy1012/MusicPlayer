@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:tag="itemBackground"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/item_recycler_height"
+    android:minHeight="@dimen/item_recycler_height">
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/music_item_album"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:scaleType="centerCrop"
+        android:layout_marginStart="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/vector_playlist_add"/>
+    <androidx.appcompat.widget.AppCompatTextView
+        android:textSize="16sp"
+        android:textColor="@color/item_title_color"
+        android:id="@+id/music_item_title"
+        android:tag="itemTextColor"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/create_playlist"
+        android:singleLine="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/music_item_album"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed"/>
+    <View
+        android:tag="recyclerDividerColor"
+        android:layout_width="0dp"
+        android:layout_height="1px"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+</androidx.constraintlayout.widget.ConstraintLayout>

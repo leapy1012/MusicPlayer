@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="@style/Theme.AppCompat.Light.NoActionBar">
+        <item name="android:colorForeground">@android:color/white</item>
+        <item name="android:colorBackground">@android:color/white</item>
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:textViewStyle">@style/AppTextView</item>
+        <item name="android:windowAnimationStyle">@style/AppAnimationStyle</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+        <item name="android:actionBarSize">@dimen/common_title_height</item>
+        <item name="android:splitMotionEvents">false</item>
+        <item name="android:windowEnableSplitTouch">false</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="actionBarSize">@dimen/common_title_height</item>
+        <item name="colorAccent">@color/color_theme</item>
+        <item name="colorControlNormal">@android:color/white</item>
+        <item name="colorPrimary">@android:color/transparent</item>
+        <item name="colorPrimaryDark">@android:color/white</item>
+        <item name="editTextStyle">@style/AppEditText</item>
+        <item name="windowActionBar">false</item>
+    </style>
+    <style name="CommonDialog" parent="@style/Theme.AppCompat.Light.Dialog">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="windowActionBar">false</item>
+    </style>
+</resources>

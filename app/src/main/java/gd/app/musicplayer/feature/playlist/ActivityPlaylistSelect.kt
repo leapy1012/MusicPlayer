@@ -1,0 +1,159 @@
+package gd.app.musicplayer.feature.playlist
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.view.View
+import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
+import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.R
+import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
+import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.core.util.ToastUtil
+import gd.app.musicplayer.core.ui.extension.parcelableArrayList
+import gd.app.musicplayer.core.ui.extension.startActivityCompat
+import gd.app.musicplayer.databinding.ActivityPlaylistSelectBinding
+import kotlinx.coroutines.launch
+
+@AndroidEntryPoint
+class ActivityPlaylistSelect : BaseActivity() {
+
+    private val viewModel: PlaylistSelectViewModel by viewModels()
+
+    private lateinit var binding: ActivityPlaylistSelectBinding
+    private lateinit var songs: List<Music>
+    private val themeRepo by lazy { appContainer.themeRepo }
+    private val addTracksToPlaylists by lazy { appContainer.addTracksToPlaylistsUseCase }
+
+    private val selectedPlaylistIds = linkedSetOf<Long>()
+    private var currentPlaylists: List<MusicSet.Playlist> = emptyList()
+
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: PlaylistSelectAdapter
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        songs = intent.extras?.parcelableArrayList<Music>(ARG_SONGS) ?: arrayListOf()
+        if (songs.isEmpty()) {
+            finish()
+            return
+        }
+
+        binding = ActivityPlaylistSelectBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        initViews()
+        viewModel.setSongIds(songs.map(Music::_id))
+        setupCreatePlaylistResult()
+        observePlaylists()
+        refreshConfirmButton()
+    }
+
+
+    private fun initViews() {
+        setupEdgeToEdgeToolbar(
+            root = binding.root,
+            statusBarView = binding.statusBarSpace,
+            bottomPaddingView = binding.root,
+            toolbar = binding.toolbar,
+            titleRes = R.string.add_to_list
+        )
+
+        recyclerView = findViewById(R.id.recyclerview)
+
+        adapter = PlaylistSelectAdapter(layoutInflater).apply {
+            setOnCreatePlaylistClickListener(::showCreatePlaylistDialog)
+            setOnSelectionCountChangedListener {
+                refreshConfirmButton()
+            }
+            setOnSelectionChangedListener { selectedItems ->
+                selectedPlaylistIds.clear()
+                selectedPlaylistIds.addAll(
+                    selectedItems.mapNotNull { item -> (item as? MusicSet.Playlist)?.id }
+                )
+                refreshConfirmButton()
+            }
+        }
+        recyclerView.layoutManager =
+            WrapContentLinearLayoutManager(this, RecyclerView.VERTICAL, false)
+        recyclerView.adapter = adapter
+
+        binding.addToList.setOnClickListener { confirmAddToSelectedPlaylists() }
+
+    }
+
+    private fun observePlaylists() {
+        lifecycleScope.launch {
+            viewModel.uiState.collect { state ->
+                currentPlaylists = state.playlists
+                selectedPlaylistIds.retainAll(
+                    currentPlaylists.mapTo(
+                        hashSetOf(),
+                        MusicSet.Playlist::id
+                    )
+                )
+                adapter.submitPlaylists(
+                    items = currentPlaylists,
+                    selectedItems = currentPlaylists.filterTo(linkedSetOf()) { it.id in selectedPlaylistIds }
+                )
+                refreshConfirmButton()
+            }
+        }
+    }
+
+    private fun refreshConfirmButton() {
+        binding.addToList.visibility =
+            if (selectedPlaylistIds.isNotEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun showCreatePlaylistDialog() {
+        PlaylistInputDialog.forTracks(
+            tracks = songs,
+            mode = PlaylistInputDialog.MODE_CREATE_AND_RETURN
+        ).show(supportFragmentManager, TAG_CREATE_PLAYLIST_DIALOG)
+    }
+
+    private fun setupCreatePlaylistResult() {
+        supportFragmentManager.setFragmentResultListener(
+            PlaylistInputDialog.RESULT_REQUEST_KEY,
+            this
+        ) { _, result ->
+            val playlistId = result.getLong(PlaylistInputDialog.RESULT_PLAYLIST_ID, -1L)
+            if (playlistId > 0L) {
+                lifecycleScope.launch {
+                    addSongsToPlaylists(setOf(playlistId))
+                }
+            }
+        }
+    }
+
+    private fun confirmAddToSelectedPlaylists() {
+        lifecycleScope.launch {
+            addSongsToPlaylists(selectedPlaylistIds)
+        }
+    }
+
+    private suspend fun addSongsToPlaylists(playlistIds: Set<Long>) {
+        if (playlistIds.isEmpty()) return
+        val addedCount = addTracksToPlaylists(playlistIds, songs)
+        ToastUtil.show(this, if (addedCount > 0) R.string.succeed else R.string.list_contains_music)
+        finish()
+    }
+
+    companion object {
+        private const val ARG_SONGS = "songs"
+        private const val TAG_CREATE_PLAYLIST_DIALOG = "create_playlist_dialog"
+
+        fun start(context: Context, songs: List<Music>) {
+            context.startActivityCompat(Intent(context, ActivityPlaylistSelect::class.java).apply {
+                putParcelableArrayListExtra(ARG_SONGS, ArrayList(songs))
+            })
+        }
+    }
+}

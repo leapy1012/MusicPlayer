@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gd.app.musicplayer.ui.common.view.EqualizerItemLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/equalizer_item_seek_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:textColor="@drawable/selector_equalizer_text"
+        android:textSize="12sp" />
+
+    <gd.app.musicplayer.ui.common.view.SeekBar
+        android:id="@+id/equalizer_item_seek"
+        android:layout_width="@dimen/equalizer_seek_bar_width"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:tag="equalizerSeekBar"
+        app:seekClickDirectly="true"
+        app:seekIsVertical="true"
+        app:seekMax="1000"
+        app:seekProgressDrawable="@drawable/equalizer_progress_layer_v"
+        app:seekProgressHeight="@dimen/equalizer_seek_progress_height"
+        app:seekThumb="@drawable/equalizer_seekbar_thumb"
+        app:seekThumbOverlay="@drawable/equalizer_seekbar_thumb_overlay" />
+
+    <TextView
+        android:id="@+id/equalizer_item_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="31"
+        android:textColor="@drawable/selector_equalizer_text"
+        android:textSize="11sp" />
+</gd.app.musicplayer.ui.common.view.EqualizerItemLayout>

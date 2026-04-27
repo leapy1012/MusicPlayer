@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:orientation="vertical"
+
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/main_actionbar"
+        >
+        <View
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"/>
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:tag="toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:minHeight="?attr/actionBarSize"
+            app:theme="@style/AppToolbar"
+            app:navigationIcon="@drawable/vector_menu_back"
+            app:title="@string/add_to_list"
+            app:titleTextAppearance="@style/AppToolbarTitle"/>
+    </LinearLayout>
+    <include
+        android:id="@+id/main_fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        layout="@layout/layout_recyclerview"/>
+    <TextView
+        android:id="@+id/add_to_list"
+        android:text="@string/add_to_list"
+        style="@style/BottomConfirmButton"/>
+</LinearLayout>

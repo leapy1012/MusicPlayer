@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
+
+    <View
+        android:id="@+id/status_bar_space"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/main_actionbar" />
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/main_actionbar"
+        android:minHeight="?attr/actionBarSize"
+        android:tag="toolbar"
+        app:theme="@style/AppToolbar"
+        app:titleTextAppearance="@style/AppToolbarTitle" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <com.ijoysoft.music.model.soundclip.SoundWaveView
+            android:id="@+id/audio_editor_wave"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:tag="soundWaveView" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/audio_editor_zoom_in"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/selector_image_bg_w"
+                android:padding="4dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_zoom_in" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/audio_editor_zoom_out"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/selector_image_bg_w"
+                android:padding="4dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_zoom_out" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/audio_editor_info"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:gravity="center"
+        android:tag="soundInfoView"
+        android:textAlignment="center"
+        android:textColor="#b3ffffff"
+        android:textSize="12dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/main_actionbar"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.2"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <LinearLayout
+                android:id="@+id/audio_editor_start_group"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintEnd_toStartOf="@+id/audio_editor_end_group"
+                app:layout_constraintHorizontal_chainStyle="spread_inside"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/audio_editor_start_minus"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/selector_image_bg_w"
+                    android:padding="8dp"
+                    app:srcCompat="@drawable/sound_clip_minus" />
+
+                <com.ijoysoft.music.model.soundclip.TimeEditText
+                    android:id="@+id/audio_editor_start_time"
+                    android:layout_width="64dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/edit_bg"
+                    android:gravity="center_horizontal"
+                    android:minWidth="64dp"
+                    android:singleLine="true"
+                    android:text="0.00"
+                    android:textColor="#ffffff"
+                    android:textSize="13sp" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/audio_editor_start_plus"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/selector_image_bg_w"
+                    android:padding="8dp"
+                    app:srcCompat="@drawable/sound_clip_plus" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/audio_editor_end_group"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="@+id/audio_editor_start_group"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_chainStyle="spread_inside"
+                app:layout_constraintStart_toEndOf="@+id/audio_editor_start_group"
+                app:layout_constraintTop_toTopOf="@+id/audio_editor_start_group">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/audio_editor_end_minus"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/selector_image_bg_w"
+                    android:padding="8dp"
+                    app:srcCompat="@drawable/sound_clip_minus" />
+
+                <com.ijoysoft.music.model.soundclip.TimeEditText
+                    android:id="@+id/audio_editor_end_time"
+                    android:layout_width="64dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/edit_bg"
+                    android:gravity="center_horizontal"
+                    android:minWidth="64dp"
+                    android:singleLine="true"
+                    android:text="0.00"
+                    android:textColor="#ffffff"
+                    android:textSize="13sp" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/audio_editor_end_plus"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/selector_image_bg_w"
+                    android:padding="8dp"
+                    app:srcCompat="@drawable/sound_clip_plus" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/audio_editor_length"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_horizontal"
+                android:tag="itemTextColor"
+                android:text="00:00:00"
+                android:textAlignment="center"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/audio_editor_start_group" />
+
+            <TextView
+                android:id="@+id/audio_editor_length_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:gravity="center_horizontal"
+                android:tag="itemTextColor"
+                android:text="@string/audio_editor_length"
+                android:textAlignment="center"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/audio_editor_length" />
+
+            <TextView
+                android:id="@+id/audio_editor_start"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="4dp"
+                android:text="@string/audio_editor_start"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toBottomOf="@+id/audio_editor_length_text"
+                app:layout_constraintEnd_toEndOf="@+id/audio_editor_start_group"
+                app:layout_constraintStart_toStartOf="@+id/audio_editor_start_group"
+                app:layout_constraintTop_toTopOf="@+id/audio_editor_length" />
+
+            <TextView
+                android:id="@+id/audio_editor_end"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="4dp"
+                android:text="@string/audio_editor_end"
+                android:textColor="#ffffff"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toBottomOf="@+id/audio_editor_length_text"
+                app:layout_constraintEnd_toEndOf="@+id/audio_editor_end_group"
+                app:layout_constraintStart_toStartOf="@+id/audio_editor_end_group"
+                app:layout_constraintTop_toTopOf="@+id/audio_editor_length" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:layoutDirection="ltr"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/audio_editor_previous"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="48dp"
+                android:background="@drawable/selector_image_bg_w"
+                android:padding="4dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_main_play_previous" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/audio_editor_play"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/selector_image_bg_w"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_trim_play" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/audio_editor_next"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="48dp"
+                android:background="@drawable/selector_image_bg_w"
+                android:padding="4dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_main_play_next" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

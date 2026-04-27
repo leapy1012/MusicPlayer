@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:id="@+id/textView" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="vector_favorite_select" />
+    <item
+        android:state_selected="true"
+        android:drawable="@drawable/vector_favorite_select"/>
+    <item android:drawable="@drawable/vector_favorite"/>
+</selector>

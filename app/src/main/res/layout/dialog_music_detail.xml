@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/dialog_title"
+        style="@style/DialogTitle"
+        android:text="@string/details" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="20dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:orientation="vertical"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/des_title"
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_title" />
+
+                <TextView
+                    android:id="@+id/music_edit_name"
+                    style="@style/MusicDetailContentTextStyle"
+                    android:cursorVisible="true" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/des_album"
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_album" />
+
+                <TextView
+                    android:id="@+id/music_edit_album"
+                    style="@style/MusicDetailContentTextStyle" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/des_artist"
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_artist" />
+
+                <TextView
+                    android:id="@+id/music_edit_artist"
+                    style="@style/MusicDetailContentTextStyle" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/des_genre"
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_genre" />
+
+                <TextView
+                    android:id="@+id/music_edit_genre"
+                    style="@style/MusicDetailContentTextStyle" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_size" />
+
+                <TextView
+                    android:id="@+id/tv_music_detail_size"
+                    style="@style/MusicDetailContentTextStyle"
+                    android:text="@android:string/unknownName" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_duration" />
+
+                <TextView
+                    android:id="@+id/tv_music_detail_duration"
+                    style="@style/MusicDetailContentTextStyle"
+                    android:text="@android:string/unknownName" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_bit_rate" />
+
+                <TextView
+                    android:id="@+id/tv_music_detail_bit"
+                    style="@style/MusicDetailContentTextStyle"
+                    android:text="@android:string/unknownName" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_sample_rate" />
+
+                <TextView
+                    android:id="@+id/tv_music_detail_sample"
+                    style="@style/MusicDetailContentTextStyle"
+                    android:text="@android:string/unknownName" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_date" />
+
+                <TextView
+                    android:id="@+id/tv_music_detail_date"
+                    style="@style/MusicDetailContentTextStyle"
+                    android:text="@android:string/unknownName" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/MusicDetailTextStyle"
+                    android:text="@string/dlg_path" />
+
+                <TextView
+                    android:id="@+id/tv_music_detail_path"
+                    style="@style/MusicDetailContentTextStyle"
+                    android:text="@android:string/unknownName" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        style="@style/DialogButtonLayout"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:id="@+id/dialog_button_cancel"
+            style="@style/DialogButton.Cancel"
+            android:text="@string/cancel" />
+
+        <TextView
+            android:id="@+id/dialog_button_edit"
+            style="@style/DialogButton.Confirm"
+            android:text="@string/equalizer_edit" />
+    </LinearLayout>
+</LinearLayout>

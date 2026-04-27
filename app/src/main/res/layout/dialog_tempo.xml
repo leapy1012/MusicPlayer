@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/popup_text_pitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:tag="dialogTitle"
+        android:textColor="#ffffff"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/popup_refresh_pitch"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="24dp"
+        android:padding="3dp"
+        android:scaleType="fitCenter"
+        android:tag="dialogTitleIcon"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/popup_text_pitch"
+        app:srcCompat="@drawable/vector_tempo_refresh" />
+
+    <gd.app.musicplayer.ui.common.view.SeekBar
+        android:id="@+id/popup_seek_pitch"
+        android:layout_width="0dp"
+        android:layout_height="24dp"
+        android:paddingStart="24dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="5dp"
+        android:paddingBottom="6dp"
+        android:tag="seekBar"
+        app:layout_constraintBottom_toBottomOf="@id/popup_refresh_pitch"
+        app:layout_constraintEnd_toStartOf="@id/popup_refresh_pitch"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/popup_refresh_pitch"
+        app:seekMax="24"
+        app:seekProgressDrawable="@drawable/shape_tempo_progress"
+        app:seekProgressHeight="3dp"
+        app:seekThumb="@drawable/seekbar_thumb_white" />
+
+    <TextView
+        android:id="@+id/popup_text_tempo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:tag="dialogTitle"
+        android:textColor="#ffffff"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/popup_seek_pitch" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/popup_refresh_tempo"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="24dp"
+        android:padding="3dp"
+        android:tag="dialogTitleIcon"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/popup_text_tempo"
+        app:srcCompat="@drawable/vector_tempo_refresh" />
+
+    <gd.app.musicplayer.ui.common.view.SeekBar
+        android:id="@+id/popup_seek_tempo"
+        android:layout_width="0dp"
+        android:layout_height="24dp"
+        android:paddingStart="24dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="5dp"
+        android:paddingBottom="6dp"
+        android:tag="seekBar"
+        app:layout_constraintBottom_toBottomOf="@id/popup_refresh_tempo"
+        app:layout_constraintEnd_toStartOf="@id/popup_refresh_tempo"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/popup_refresh_tempo"
+        app:seekMax="100"
+        app:seekProgressDrawable="@drawable/shape_tempo_progress"
+        app:seekProgressHeight="3dp"
+        app:seekThumb="@drawable/seekbar_thumb_white" />
+
+    <TextView
+        android:id="@+id/popup_text_flow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="10dp"
+        android:singleLine="true"
+        android:tag="speedItemDes"
+        android:text="@string/equalizer_slow"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toStartOf="@id/popup_text_normal"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/popup_seek_tempo" />
+
+    <TextView
+        android:id="@+id/popup_text_normal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:tag="speedItemDes"
+        android:text="@string/equalizer_normal"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@id/popup_text_flow"
+        app:layout_constraintEnd_toStartOf="@id/popup_text_fast"
+        app:layout_constraintStart_toEndOf="@id/popup_text_flow"
+        app:layout_constraintTop_toTopOf="@id/popup_text_flow" />
+
+    <TextView
+        android:id="@+id/popup_text_fast"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="56dp"
+        android:singleLine="true"
+        android:tag="speedItemDes"
+        android:text="@string/equalizer_fast"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@id/popup_text_flow"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/popup_text_normal"
+        app:layout_constraintTop_toTopOf="@id/popup_text_flow" />
+
+    <TextView
+        android:id="@+id/popup_text_speed_1"
+        android:layout_width="52dp"
+        android:layout_height="46dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="16dp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:singleLine="true"
+        android:tag="speedItemText"
+        android:text="0.5x"
+        android:textAlignment="center"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/popup_text_speed_2"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/popup_text_flow" />
+
+    <TextView
+        android:id="@+id/popup_text_speed_2"
+        android:layout_width="52dp"
+        android:layout_height="46dp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:singleLine="true"
+        android:tag="speedItemText"
+        android:text="1.0x"
+        android:textAlignment="center"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toStartOf="@id/popup_text_speed_3"
+        app:layout_constraintStart_toEndOf="@id/popup_text_speed_1"
+        app:layout_constraintTop_toTopOf="@id/popup_text_speed_1" />
+
+    <TextView
+        android:id="@+id/popup_text_speed_3"
+        android:layout_width="52dp"
+        android:layout_height="46dp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:singleLine="true"
+        android:tag="speedItemText"
+        android:text="1.5x"
+        android:textAlignment="center"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toStartOf="@id/popup_text_speed_4"
+        app:layout_constraintStart_toEndOf="@id/popup_text_speed_2"
+        app:layout_constraintTop_toTopOf="@id/popup_text_speed_1" />
+
+    <TextView
+        android:id="@+id/popup_text_speed_4"
+        android:layout_width="52dp"
+        android:layout_height="46dp"
+        android:layout_marginEnd="24dp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:singleLine="true"
+        android:tag="speedItemText"
+        android:text="2.0x"
+        android:textAlignment="center"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/popup_text_speed_3"
+        app:layout_constraintTop_toTopOf="@id/popup_text_speed_1" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/ucrop_photobox"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
+
+    <View
+        android:id="@+id/status_bar_space"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:tag="titleBackgroundColor" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="?attr/actionBarSize"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:tag="titleBackgroundColor">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/crop_close"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:tag="titleColor"
+            app:srcCompat="@drawable/vector_crop_close" />
+
+        <TextView
+            android:id="@+id/crop_title"
+            style="@style/TextAppearance.Widget.AppCompat.Toolbar.Title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:tag="titleColor"
+            android:text="@string/edit_photo" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/crop_save"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:tag="titleColor"
+            app:srcCompat="@drawable/vector_crop_save" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/crop_loading"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:tag="titleColor"
+            android:visibility="gone"
+            app:srcCompat="@drawable/vector_crop_loader_animated" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.yalantis.ucrop.view.UCropView
+            android:id="@+id/crop_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0" />
+
+        <View
+            android:id="@+id/crop_blocking"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="true" />
+    </FrameLayout>
+</LinearLayout>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:background="@color/main_actionbar"
+        >
+
+        <View
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/theme_back"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/b_selector_image_bg_aw"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_menu_back" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:gravity="start|center_vertical"
+                android:text="@string/theme"
+                android:textAppearance="@style/AppToolbarTitle" />
+
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/b_selector_image_bg_aw"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    android:tag="accentColorBg" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/theme_accent_color"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/b_selector_image_bg_aw"
+                    android:padding="13dp"
+                    android:scaleType="fitCenter"
+                    android:tag="accentColor" />
+            </FrameLayout>
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/theme_edit"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/b_selector_image_bg_aw"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_theme_edit" />
+        </LinearLayout>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layoutDirection="ltr"
+            android:tag="tabLayout"
+            app:tabBackground="@drawable/selector_tab_layout_item"
+            app:tabIndicatorColor="@color/color_item_selected"
+            app:tabIndicatorHeight="2dp"
+            app:tabMinWidth="82dp"
+            app:tabMode="scrollable"
+            app:tabPaddingEnd="12dp"
+            app:tabPaddingStart="12dp"
+            app:tabRippleColor="@null"
+            app:tabSelectedTextColor="@color/color_item_selected"
+            app:tabTextAppearance="@style/AppTabLayoutText.Theme"
+            app:tabTextColor="@color/gray_text" />
+    </LinearLayout>
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/view_pager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layoutDirection="ltr"
+        android:tag="ignore" />
+</LinearLayout>

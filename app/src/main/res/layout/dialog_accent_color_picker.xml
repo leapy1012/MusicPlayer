@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="24dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/dialog_button_previous"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/b_selector_image_bg_aw"
+                android:padding="8dp"
+                android:tag="dialogTitle"
+                app:srcCompat="@drawable/vector_menu_back" />
+
+            <TextView
+                android:id="@+id/dialog_picker_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="2"
+                android:tag="dialogTitle"
+                android:text="@string/theme_color"
+                android:textAlignment="viewStart"
+                android:textColor="@color/white"
+                android:textSize="20sp" />
+        </FrameLayout>
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/accent_color_default_select"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:padding="2dp"
+            android:scaleType="fitCenter"
+            android:tag="dialogSelectBox"
+            app:srcCompat="@drawable/vector_multi_check_w_selector" />
+
+        <TextView
+            android:id="@+id/accent_color_default_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="120dp"
+            android:paddingStart="2dp"
+            android:tag="dialogMessage"
+            android:text="@string/accent_color_default"
+            android:textColor="#fff"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <ViewFlipper
+        android:id="@+id/accent_color_flipper"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/accent_color_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp"
+            android:layout_weight="1"
+            android:padding="16dp" />
+
+        <gd.app.musicplayer.view.ColorPickerView
+            android:id="@+id/accent_color_picker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="24dp"
+            android:paddingTop="20dp"
+            android:paddingEnd="24dp" />
+    </ViewFlipper>
+
+    <LinearLayout
+        style="@style/DialogButtonLayout"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:id="@+id/dialog_button_cancel"
+            style="@style/DialogButton.Cancel"
+            android:text="@string/cancel" />
+
+        <TextView
+            android:id="@+id/dialog_button_ok"
+            style="@style/DialogButton.Confirm"
+            android:text="@string/ok" />
+    </LinearLayout>
+</LinearLayout>

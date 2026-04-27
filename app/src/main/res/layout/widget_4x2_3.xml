@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/WidgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/widget_4x2_height">
+
+    <ImageView
+        style="@style/WidgetBackgroundImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <FrameLayout
+        style="@style/WidgetContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/widget_4x2_3_album_space"
+            android:layout_marginBottom="@dimen/widget_4x2_3_control_height"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/WidgetTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/widget_4x2_3_container_margin_start"
+                android:layout_marginTop="@dimen/widget_4x2_3_title_margin_top"
+                android:layout_marginEnd="@dimen/widget_4x2_3_container_margin_end"
+                android:textSize="@dimen/widget_4x2_3_title_size" />
+
+            <TextView
+                style="@style/WidgetArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/widget_4x2_3_container_margin_start"
+                android:layout_marginTop="@dimen/widget_4x2_3_artist_margin_top"
+                android:layout_marginEnd="@dimen/widget_4x2_3_container_margin_end"
+                android:textSize="@dimen/widget_4x2_3_artist_size" />
+
+            <ImageView
+                android:layout_width="1px"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <ViewFlipper
+                style="@style/WidgetProgressFlipper"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_4x2_3_progress_height"
+                android:layout_marginStart="@dimen/widget_4x2_3_container_margin_start"
+                android:layout_marginEnd="@dimen/widget_4x2_3_container_margin_end">
+
+                <include layout="@layout/layout_widget_progress" />
+            </ViewFlipper>
+
+            <ImageView
+                android:layout_width="1px"
+                android:layout_height="0dp"
+                android:layout_weight="0.5" />
+        </LinearLayout>
+
+        <FrameLayout
+            style="@style/WidgetBannerOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/widget_4x2_3_control_height"
+            android:layout_gravity="bottom"
+            android:paddingStart="@dimen/widget_4x2_3_album_space"
+            android:paddingEnd="@dimen/widget_4x2_3_container_margin_end">
+
+            <LinearLayout
+                style="@style/WidgetControlLayout"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_4x2_3_control_height"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ViewFlipper
+                    style="@style/WidgetFavoriteFlipper"
+                    android:layout_width="@dimen/widget_4x2_3_icon_size"
+                    android:layout_height="@dimen/widget_4x2_3_icon_size"
+                    android:padding="@dimen/widget_4x2_3_icon_padding">
+
+                    <include layout="@layout/layout_widget_favorite" />
+                </ViewFlipper>
+
+                <ImageView
+                    android:layout_width="0dp"
+                    android:layout_height="1px"
+                    android:layout_weight="1" />
+
+                <ImageView
+                    style="@style/WidgetPrevious"
+                    android:layout_width="@dimen/widget_4x2_3_icon_size"
+                    android:layout_height="@dimen/widget_4x2_3_icon_size"
+                    android:padding="@dimen/widget_4x2_3_icon_padding" />
+
+                <ImageView
+                    android:layout_width="0dp"
+                    android:layout_height="1px"
+                    android:layout_weight="1" />
+
+                <ViewFlipper
+                    style="@style/WidgetPlayPauseFlipper"
+                    android:layout_width="@dimen/widget_4x2_3_play_size"
+                    android:layout_height="@dimen/widget_4x2_3_play_size"
+                    android:padding="@dimen/widget_4x2_3_play_padding">
+
+                    <include layout="@layout/layout_widget_play_pause" />
+                </ViewFlipper>
+
+                <ImageView
+                    android:layout_width="0dp"
+                    android:layout_height="1px"
+                    android:layout_weight="1" />
+
+                <ImageView
+                    style="@style/WidgetNext"
+                    android:layout_width="@dimen/widget_4x2_3_icon_size"
+                    android:layout_height="@dimen/widget_4x2_3_icon_size"
+                    android:padding="@dimen/widget_4x2_3_icon_padding" />
+
+                <ImageView
+                    android:layout_width="0dp"
+                    android:layout_height="1px"
+                    android:layout_weight="1" />
+
+                <ImageView
+                    style="@style/WidgetMode"
+                    android:layout_width="@dimen/widget_4x2_3_icon_size"
+                    android:layout_height="@dimen/widget_4x2_3_icon_size"
+                    android:padding="@dimen/widget_4x2_3_icon_padding" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="@dimen/widget_4x2_3_album_size"
+            android:layout_height="@dimen/widget_4x2_3_album_size"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="@dimen/widget_4x2_3_album_margin_start">
+
+            <ImageView
+                style="@style/WidgetAlbumDishImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <ImageView
+                style="@style/WidgetAlbumImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="@dimen/widget_4x2_3_album_dish_margin"
+                android:src="@drawable/widget_preview_album_circle" />
+        </FrameLayout>
+
+        <ImageView
+            style="@style/WidgetSetting"
+            android:layout_width="@dimen/widget_4x2_3_setting_size"
+            android:layout_height="@dimen/widget_4x2_3_setting_size"
+            android:layout_gravity="end"
+            android:paddingStart="@dimen/widget_4x2_3_setting_padding_bl"
+            android:paddingTop="@dimen/widget_4x2_3_setting_padding_tr"
+            android:paddingEnd="@dimen/widget_4x2_3_setting_padding_tr"
+            android:paddingBottom="@dimen/widget_4x2_3_setting_padding_bl" />
+    </FrameLayout>
+</FrameLayout>

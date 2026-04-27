@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="50dp"
+    android:layout_marginTop="@dimen/lock_margin_16dp"
+    android:gravity="center_vertical"
+    android:layoutDirection="ltr"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/control_mode"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@drawable/selector_image_bg_w"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/vector_mode_order" />
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="1px"
+        android:layout_weight="1" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/control_previous"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@drawable/selector_image_bg_w"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/vector_main_play_previous" />
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="1px"
+        android:layout_weight="0.8" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/control_play_pause"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/selector_image_bg_w"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/vector_main_play_pause_selector" />
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="1px"
+        android:layout_weight="0.8" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/control_next"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@drawable/selector_image_bg_w"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/vector_main_play_next" />
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="1px"
+        android:layout_weight="1" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/lock_play_queue"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@drawable/selector_image_bg_w"
+        android:padding="5dp"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/vector_lock_queue" />
+</LinearLayout>

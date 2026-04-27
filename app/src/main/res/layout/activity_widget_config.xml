@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:tag="activityBackgroundColor"
+    android:visibility="invisible">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#1a000000" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <View
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/widget_back"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/b_selector_image_bg_aw"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:tag="backButton"
+                app:srcCompat="@drawable/vector_menu_back" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="16dp"
+                android:layout_weight="1"
+                android:gravity="start|center_vertical"
+                android:tag="itemTextColor"
+                android:text="@string/widget_config"
+                android:textColor="#fff"
+                android:textSize="@dimen/widget_config_title_size" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/widget_preview_layout"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="@integer/widget_config_weight_1"
+            android:background="#33000000"
+            android:paddingHorizontal="@dimen/widget_preview_margin_h"
+            android:paddingVertical="@dimen/widget_preview_margin_v"
+            android:paddingLeft="@dimen/widget_preview_margin_h"
+            android:paddingTop="@dimen/widget_preview_margin_v"
+            android:paddingRight="@dimen/widget_preview_margin_h"
+            android:paddingBottom="@dimen/widget_preview_margin_v">
+
+            <gd.app.musicplayer.ui.common.view.ZoomFrameLayout
+                android:id="@+id/widget_preview_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="@integer/widget_config_weight_2">
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/widget_scroll_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingBottom="@dimen/widget_config_bottom_height"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/widget_config_content_margin_start"
+                        android:layout_marginTop="@dimen/widget_config_margin_v_1"
+                        android:layout_marginEnd="@dimen/widget_config_content_margin_start"
+                        android:fontFamily="sans-serif-medium"
+                        android:tag="itemTextColor"
+                        android:text="@string/sbar_lyric_alpha"
+                        android:textSize="@dimen/widget_config_sub_text_size" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/widget_config_content_margin_start"
+                        android:layout_marginTop="@dimen/widget_config_margin_v_2"
+                        android:layout_marginEnd="@dimen/widget_config_margin_h_1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <gd.app.musicplayer.ui.common.view.SeekBar
+                            android:id="@+id/widget_opacity_seek"
+                            android:layout_width="0dp"
+                            android:layout_height="24dp"
+                            android:layout_weight="1"
+                            android:paddingTop="5.5dp"
+                            android:paddingBottom="5.5dp"
+                            android:tag="seekBar"
+                            app:seekDrawGraduation="false"
+                            app:seekIsVertical="false"
+                            app:seekMax="100"
+                            app:seekProgressHeight="3dp"
+                            app:seekThumb="@drawable/shape_seek_thumb_dot" />
+
+                        <TextView
+                            android:id="@+id/widget_opacity_seek_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/widget_config_margin_h_1"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:minWidth="42dp"
+                            android:singleLine="true"
+                            android:tag="itemTextColor"
+                            android:text="100%"
+                            android:textAlignment="center"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/widget_config_content_margin_start"
+                        android:layout_marginTop="@dimen/widget_config_margin_v_1"
+                        android:layout_marginEnd="@dimen/widget_config_content_margin_start"
+                        android:fontFamily="sans-serif-medium"
+                        android:tag="itemTextColor"
+                        android:text="@string/widget_theme"
+                        android:textSize="@dimen/widget_config_sub_text_size" />
+
+                    <gd.app.musicplayer.ui.common.view.WidgetRecyclerView
+                        android:id="@+id/widget_theme_recycler"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/widget_config_margin_v_1"
+                        android:scrollbars="none" />
+
+                    <View
+                        android:layout_width="wrap_content"
+                        android:layout_height="0dp"
+                        android:layout_marginStart="@dimen/widget_config_content_margin_start"
+                        android:layout_marginTop="@dimen/widget_config_margin_v_1"
+                        android:layout_marginEnd="@dimen/widget_config_content_margin_start" />
+
+                    <gd.app.musicplayer.ui.common.view.WidgetRecyclerView
+                        android:id="@+id/widget_style_recycler"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="@dimen/widget_config_margin_v_2"
+                        android:paddingBottom="@dimen/widget_config_margin_v_2"
+                        android:scrollbars="none" />
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+
+            <FrameLayout
+                android:id="@+id/widget_bottom_layout"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_config_bottom_height"
+                android:layout_gravity="bottom"
+                android:paddingHorizontal="@dimen/widget_config_bottom_margin_h"
+                android:paddingLeft="@dimen/widget_config_bottom_margin_h"
+                android:paddingRight="@dimen/widget_config_bottom_margin_h"
+                android:tag="bottomContent">
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/widget_save"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center_vertical"
+                    android:gravity="center"
+                    android:tag="saveButton"
+                    android:text="@string/save"
+                    android:textAlignment="center"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:textAllCaps="true" />
+            </FrameLayout>
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

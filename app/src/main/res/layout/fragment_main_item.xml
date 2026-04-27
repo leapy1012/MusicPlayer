@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gd.app.lib.view.square.SquareRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2" />
+
+        <ImageView
+            android:id="@+id/main_item_image"
+            android:layout_width="@dimen/main_item_image_size"
+            android:layout_height="@dimen/main_item_image_size"
+            android:layout_centerInParent="true"
+            android:scaleType="centerInside" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/main_item_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="1dp"
+            android:layout_marginEnd="1dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="center|bottom"
+            android:maxLines="2"
+            android:textAlignment="center"
+            android:textAllCaps="true"
+            android:textColor="@color/white"
+            android:textSize="@dimen/main_item_name_size"
+            app:textAllCaps="true" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/main_item_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:textColor="@color/white"
+        android:textSize="@dimen/main_item_count_size" />
+
+</gd.app.lib.view.square.SquareRelativeLayout>

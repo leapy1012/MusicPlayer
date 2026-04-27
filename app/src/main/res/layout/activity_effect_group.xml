@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1f1f1f"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:id="@+id/coordinator_layout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/effect_group_recycle_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <LinearLayout
+            android:id="@+id/toolbar_parent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <View
+                android:id="@+id/status_bar_space"
+                android:layout_width="match_parent"
+                android:layout_height="0dp" />
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/common_title_height"
+                android:background="@android:color/transparent"
+                android:tag="toolbarWhite"
+                app:layout_collapseMode="pin"
+                app:layout_scrollFlags="snap"
+                app:navigationIcon="@drawable/vector_menu_back"
+                app:theme="@style/AppToolbar"
+                app:titleTextAppearance="@style/AppToolbarTitle" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

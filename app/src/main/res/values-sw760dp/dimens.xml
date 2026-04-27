@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="more_item_height">60dp</dimen>
+    <dimen name="main_control_banner_height">70dp</dimen>
+</resources>

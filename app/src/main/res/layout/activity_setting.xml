@@ -1,0 +1,959 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/skin_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/main_actionbar"
+        android:orientation="vertical">
+
+        <View
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:minHeight="?attr/actionBarSize"
+            android:tag="toolbar"
+            app:theme="@style/AppToolbar"
+            app:titleTextAppearance="@style/AppToolbarTitle" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/setting_scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp"
+                android:tag="themeColor"
+                android:text="@string/normal_setting"
+                android:textColor="@color/color_item_selected"
+                android:textSize="15sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/setting_catory_bg"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_use_ten_bands"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music"
+                    app:preference_item_key="use_ten_band"
+                    app:preference_item_title="@string/use_ten_band" />
+
+                <View
+                    android:id="@+id/preference_use_ten_bands_divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_show_hidden_folders"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="show_hidden_folders"
+                    app:preference_item_title="@string/show_hidden_folders" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_show_directory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="show_directory"
+                    app:preference_item_title="@string/show_directory" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_dark_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_title="@string/night_mode" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <!--                <gd.app.musicplayer.ui.common.view.PreferenceItemView-->
+                <!--                    android:id="@+id/preference_quality_logo"-->
+                <!--                    android:layout_width="match_parent"-->
+                <!--                    android:layout_height="wrap_content"-->
+                <!--                    android:minHeight="?android:attr/listPreferredItemHeight"-->
+                <!--                    android:tag="itemBackground"-->
+                <!--                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"-->
+                <!--                    app:preference_item_default="false"-->
+                <!--                    app:preference_item_file_name="music_preference"-->
+                <!--                    app:preference_item_key="show_quality_logo"-->
+                <!--                    app:preference_item_title="@string/show_quality_logo" />-->
+
+                <!--                <View-->
+                <!--                    android:id="@+id/preference_quality_logo_divider"-->
+                <!--                    android:layout_width="match_parent"-->
+                <!--                    android:layout_height="1px"-->
+                <!--                    android:layout_marginStart="8dp"-->
+                <!--                    android:layout_marginEnd="8dp"-->
+                <!--                    android:background="@color/list_divider_color" />-->
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_show_forward_backward"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="show_forward_backward"
+                    app:preference_item_summary_on="@string/show_forward_backward_tip"
+                    app:preference_item_title="@string/show_forward_backward" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_time_forward_backward"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_title="@string/time_forward_backward" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_keep_alive_background"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_summary_on="@string/keep_alive_background_tip"
+                    app:preference_item_title="@string/keep_alive_background" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_queue_for_searching"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_title="@string/queue_for_searching" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_shuffle_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_summary_on="@string/show_shuffle_button_summary"
+                    app:preference_item_title="@string/show_shuffle_button" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_accent_color"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_summary_on="@string/accent_theme_color"
+                    app:preference_item_title="@string/accent_color" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_library_order"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_library_order"
+                    app:preference_item_title="@string/library_order" />
+
+                <View
+                    android:id="@+id/preference_keep_alive_background_divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_find_duplicate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_title="@string/music_find_duplicate" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp"
+                android:tag="themeColor"
+                android:text="@string/lyrics"
+                android:textColor="@color/color_item_selected"
+                android:textSize="15sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/setting_catory_bg"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.ui.common.view.PreferenceDeskLrcItemView
+                    android:id="@+id/preference_show_desk_lrc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_bluetooth_lyric"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="bluetooth_lyric"
+                    app:preference_item_title="@string/bluetooth_lyric" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_status_bar_lyrics"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_title="@string/sbar_lyric" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp"
+                android:tag="themeColor"
+                android:text="@string/audio_settings"
+                android:textColor="@color/color_item_selected"
+                android:textSize="15sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/setting_catory_bg"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_shake_change_music"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_shake_change_music"
+                    app:preference_item_title="@string/enable_shake" />
+
+                <View
+                    android:id="@+id/preference_shake_level_divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_swipe_change_songs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="swipe_change_songs"
+                    app:preference_item_title="@string/swipe_change_songs" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_simultaneous_play"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="simultaneous_play"
+                    app:preference_item_title="@string/simultaneous_play" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_volume_fade"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_volume_fade"
+                    app:preference_item_summary_on="@string/play_pause_fade_tip"
+                    app:preference_item_title="@string/play_pause_fade" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_gapless_playback"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="gapless_play"
+                    app:preference_item_summary_on="@string/gapless_playback_tip"
+                    app:preference_item_title="@string/gapless_playback" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_cross_fade"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="fade_enable"
+                    app:preference_item_summary_on="@string/cross_fade_tip"
+                    app:preference_item_title="@string/cross_fade" />
+
+                <LinearLayout
+                    android:id="@+id/preference_fade_seek_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:tag="itemBackground">
+
+                    <gd.app.musicplayer.ui.common.view.SeekBar
+                        android:id="@+id/preference_fade_seek_bar"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:paddingVertical="4dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        app:seekProgressHeight="2.5dp"
+                        app:seekThumb="@drawable/seekbar_thumb_dot" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/preference_fade_seek_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:gravity="center"
+                        android:minWidth="40dp"
+                        android:tag="itemTextExtraColor"
+                        android:textColor="@color/i_white_B3"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_track_click_operation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_track_click_operation"
+                    app:preference_item_summary_on="@string/track_click_operation_tip"
+                    app:preference_item_title="@string/track_click_operation" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_replay_song"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_replay_song"
+                    app:preference_item_summary_on="@string/replay_song_summery"
+                    app:preference_item_title="@string/replay_song" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_shake_level"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_title="@string/shake_level" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp"
+                android:tag="themeColor"
+                android:text="@string/replay_gain"
+                android:textColor="@color/color_item_selected"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/setting_catory_bg"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_replay_gain_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_title="@string/replay_gain_mode" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_replay_gain_preamp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_title="@string/replay_gain_preamp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp"
+                android:tag="themeColor"
+                android:text="@string/playlist_settings"
+                android:textColor="@color/color_item_selected"
+                android:textSize="15sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/setting_catory_bg"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_click_add_queue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_click_add_queue"
+                    app:preference_item_summary_on="@string/click_add_queue_summary"
+                    app:preference_item_title="@string/click_add_queue" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_playlist_add_position"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_summary_on="@string/add_music_position_summary"
+                    app:preference_item_title="@string/add_music_position" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_playlist_track_limit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_summary_on="@string/playlist_track_limit_summary"
+                    app:preference_item_title="@string/playlist_track_limit" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp"
+                android:tag="themeColor"
+                android:text="@string/notification_settings"
+                android:textColor="@color/color_item_selected"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/setting_catory_bg"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_use_notification"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_title="@string/use_notification_bar" />
+
+                <View
+                    android:id="@+id/preference_use_notification_divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_use_old_notification"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="old_notification"
+                    app:preference_item_title="@string/use_old_notification" />
+
+                <View
+                    android:id="@+id/preference_use_old_notification_divider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_use_color_notification"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="color_notification"
+                    app:preference_item_title="@string/use_color_notification" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp"
+                android:tag="themeColor"
+                android:text="@string/lockscreen_setting"
+                android:textColor="@color/color_item_selected"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/setting_catory_bg"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_lock_screen"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_lock_screen"
+                    app:preference_item_summary_on="@string/lock_screen_tip"
+                    app:preference_item_title="@string/lock_screen" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_lock_time_format"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_title="@string/lock_time_format" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_lock_background"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_title="@string/lock_screen_background" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp"
+                android:tag="themeColor"
+                android:text="@string/headset_setting"
+                android:textColor="@color/color_item_selected"
+                android:textSize="15sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/setting_catory_bg"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_headset_in_play"
+                    app:preference_item_summary_on="@string/play_when_inserted_tip"
+                    app:preference_item_title="@string/play_when_inserted" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_headset_out_stop"
+                    app:preference_item_summary_on="@string/pause_when_unplugged_tip"
+                    app:preference_item_title="@string/pause_when_unplugged" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:id="@+id/preference_bluetooth_auto_start"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="false"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_bluetooth_auto_start"
+                    app:preference_item_summary_on="@string/bluetooth_auto_start_summary"
+                    app:preference_item_title="@string/bluetooth_auto_start" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_bluetooth_auto_stop"
+                    app:preference_item_summary_on="@string/bluetooth_auto_stop_summary"
+                    app:preference_item_title="@string/bluetooth_auto_stop" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@color/list_divider_color" />
+
+                <gd.app.musicplayer.ui.common.view.PreferenceItemView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:tag="itemBackground"
+                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
+                    app:preference_item_default="true"
+                    app:preference_item_file_name="music_preference"
+                    app:preference_item_key="preference_headset_control_allow"
+                    app:preference_item_summary_on="@string/headset_control_allowed_summary"
+                    app:preference_item_title="@string/headset_control_allowed" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

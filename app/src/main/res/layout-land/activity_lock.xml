@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gd.app.lib.view.DragDismissLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/pull"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/th_music_large"
+        android:orientation="vertical">
+
+        <gd.app.lib.model.image.SkinImageView
+            android:id="@+id/lock_play_skin"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#33000000"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_margin="20dp"
+                android:layout_weight="1">
+
+                <gd.app.lib.view.square.SquareImageView
+                    android:id="@+id/lock_play_album"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:scaleType="centerCrop"
+                    app:squareMode="withMin"
+                    app:srcCompat="@drawable/default_album_identify" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/lock_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:singleLine="true"
+                        android:text="02:30"
+                        android:textColor="#ffffff"
+                        android:textSize="46sp" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/lock_date"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginBottom="4dp"
+                        android:layout_weight="1"
+                        android:singleLine="true"
+                        android:textColor="@color/white"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/lock_play_favourite"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/selector_image_bg_w"
+                        android:padding="8dp"
+                        android:scaleType="fitCenter"
+                        app:srcCompat="@drawable/vector_favorite_selector" />
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/lock_more"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/selector_image_bg_w"
+                        android:padding="8dp"
+                        app:srcCompat="@drawable/vector_more" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/lock_play_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="@dimen/lock_margin_10dp"
+                    android:layout_marginEnd="20dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:singleLine="true"
+                    android:textColor="@color/white"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:id="@+id/lock_play_artist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="@dimen/lock_margin_10dp"
+                    android:layout_marginEnd="20dp"
+                    android:singleLine="true"
+                    android:text="haha"
+                    android:textColor="#b7ffffff"
+                    android:textSize="14sp" />
+
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <gd.app.lib.model.lrc.view.LyricView
+                    android:id="@+id/lock_play_lrc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="@dimen/lock_margin_16dp"
+                    android:layout_marginEnd="16dp"
+                    android:tag="LyricView"
+                    app:lyricCurrentTextColor="@color/color_item_selected"
+                    app:lyricCurrentTextSize="16sp"
+                    app:lyricLineTextSize="13sp"
+                    app:lyricMaxLines="@integer/lock_lyric_lines"
+                    app:lyricNormalTextColor="#99ffffff"
+                    app:lyricNormalTextSize="16sp"
+                    app:lyricTextSpacing="6dp" />
+
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/lock_margin_16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <TextView
+                        android:id="@+id/lock_curr_time"
+                        android:layout_width="40dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:text="00:00"
+                        android:textColor="#ffffff"
+                        android:textSize="12sp" />
+
+                    <gd.app.musicplayer.ui.common.view.SeekBar
+                        android:id="@+id/lock_progress"
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_weight="1"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        app:seekDrawGraduation="false"
+                        app:seekIsVertical="false"
+                        app:seekProgressDrawable="@drawable/music_play_progress_drawable"
+                        app:seekProgressHeight="2dp"
+                        app:seekRtlEnable="false"
+                        app:seekThumb="@drawable/seekbar_thumb_white" />
+
+                    <TextView
+                        android:id="@+id/lock_total_time"
+                        android:layout_width="40dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:text="0:00"
+                        android:textColor="#ffffff"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <include layout="@layout/lock_play_controller" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</gd.app.lib.view.DragDismissLayout>

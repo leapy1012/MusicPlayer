@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        style="@style/DialogTitle"
+        android:text="@string/select_pages" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/shuffle_setting_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="20dp"
+        android:layout_weight="1" />
+
+    <LinearLayout style="@style/DialogButtonLayout">
+
+        <TextView
+            android:id="@+id/dialog_button_ok"
+            style="@style/DialogButton.Confirm"
+            android:text="@string/ok" />
+    </LinearLayout>
+</LinearLayout>

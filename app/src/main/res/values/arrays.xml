@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="default_playlist">
+        <item>@string/favorite</item>
+        <item>@string/default_playlist</item>
+    </array>
+    <array name="eq_presetName">
+        <item>@string/equalizer_effect_user_defined</item>
+        <item>@string/effect_normal</item>
+        <item>@string/effect_classical</item>
+        <item>@string/effect_dance</item>
+        <item>@string/effect_straightness</item>
+        <item>@string/effect_folk</item>
+        <item>@string/effect_heavy_metal</item>
+        <item>@string/effect_hip_hop</item>
+        <item>@string/effect_jazz</item>
+        <item>@string/effect_pop</item>
+        <item>@string/effect_rock</item>
+        <item>@string/effect_acoustic</item>
+        <item>@string/effect_bass_boost</item>
+        <item>@string/effect_treble_boost</item>
+        <item>@string/effect_vocal_boost</item>
+        <item>@string/effect_head_phone</item>
+        <item>@string/effect_deep</item>
+        <item>@string/effect_electronic</item>
+        <item>@string/effect_latin</item>
+        <item>@string/effect_loud</item>
+        <item>@string/effect_lounge</item>
+        <item>@string/effect_piano</item>
+        <item>@string/effect_rb</item>
+    </array>
+    <array name="equalizer_free_verb">
+        <item>@string/equalizer_reverb_none</item>
+        <item>@string/equalizer_reverb_small_room</item>
+        <item>@string/equalizer_reverb_middle_room</item>
+        <item>@string/equalizer_reverb_large_room</item>
+        <item>@string/equalizer_reverb_middle_hall</item>
+        <item>@string/equalizer_reverb_large_hall</item>
+        <item>@string/equalizer_reverb_plate</item>
+    </array>
+
+<!--    <array name="search_lyric_array">-->
+<!--        <item>@string/related_lyrics</item>-->
+<!--        <item>@string/all_lyrics</item>-->
+<!--    </array>-->
+<!--    <array name="time_format_array">-->
+<!--        <item>@string/time_format_12</item>-->
+<!--        <item>@string/time_format_24</item>-->
+<!--        <item>@string/time_format_auto</item>-->
+<!--    </array>-->
+</resources>

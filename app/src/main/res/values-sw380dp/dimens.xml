@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="music_play_margin_vertical_0">6dp</dimen>
+    <dimen name="music_play_margin_vertical_1">8dp</dimen>
+    <dimen name="music_play_margin_vertical_2">10dp</dimen>
+    <dimen name="music_play_margin_vertical_3">10dp</dimen>
+</resources>

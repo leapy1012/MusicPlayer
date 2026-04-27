@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<themes>
+    <group name="Nature">
+        <picture name="nature_01.webp"/>
+        <picture name="nature_02.webp"/>
+        <picture name="nature_03.webp"/>
+        <picture name="nature_04.webp"/>
+        <picture name="nature_05.webp"/>
+        <picture name="nature_06.webp"/>
+        <picture name="nature_07.webp"/>
+        <picture name="nature_08.webp"/>
+        <picture name="nature_09.webp"/>
+        <picture name="nature_10.webp"/>
+        <picture name="nature_11.webp"/>
+        <picture name="nature_12.webp"/>
+    </group>
+    <group name="Animal">
+        <picture name="animal_01.webp"/>
+        <picture name="animal_02.webp"/>
+        <picture name="animal_03.webp"/>
+        <picture name="animal_04.webp"/>
+        <picture name="animal_05.webp"/>
+        <picture name="animal_06.webp"/>
+        <picture name="animal_07.webp"/>
+        <picture name="animal_08.webp"/>
+        <picture name="animal_09.webp"/>
+        <picture name="animal_10.webp"/>
+        <picture name="animal_11.webp"/>
+        <picture name="animal_12.webp"/>
+    </group>
+    <group name="Live">
+        <picture name="live_01.webp"/>
+        <picture name="live_02.webp"/>
+        <picture name="live_03.webp"/>
+        <picture name="live_04.webp"/>
+        <picture name="live_05.webp"/>
+        <picture name="live_06.webp"/>
+        <picture name="live_07.webp"/>
+        <picture name="live_08.webp"/>
+        <picture name="live_09.webp"/>
+        <picture name="live_10.webp"/>
+        <picture name="live_11.webp"/>
+        <picture name="live_12.webp"/>
+    </group>
+    <group name="Others">
+        <picture name="other_01.webp"/>
+        <picture name="other_02.webp"/>
+        <picture name="other_03.webp"/>
+        <picture name="other_04.webp"/>
+        <picture name="other_05.webp"/>
+        <picture name="other_06.webp"/>
+        <picture name="other_07.webp"/>
+        <picture name="other_08.webp"/>
+        <picture name="other_09.webp"/>
+        <picture name="other_10.webp"/>
+        <picture name="other_11.webp"/>
+        <picture name="other_12.webp"/>
+    </group>
+
+</themes>

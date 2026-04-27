@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_gravity="center"
+    android:id="@+id/music_play_flipper"
+    android:clickable="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <gd.app.lib.view.square.SquareCornerFrameLayout
+        android:layout_gravity="center"
+        android:id="@+id/layout_music_play_album_parent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:corner_radius="12dp">
+        <ImageView
+            android:id="@+id/music_play_album"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/default_album_identify_large"
+            android:scaleType="centerCrop"/>
+    </gd.app.lib.view.square.SquareCornerFrameLayout>
+</FrameLayout>

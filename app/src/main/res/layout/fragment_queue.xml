@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <View
+        android:id="@+id/status_bar_space"
+        android:layout_width="match_parent"
+        android:layout_height="0dp" />
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/coordinator_layout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appbar_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            app:elevation="0dp">
+
+            <com.google.android.material.appbar.CollapsingToolbarLayout
+                android:id="@+id/collapsing_toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:theme="@style/Theme.AppCompat"
+                app:collapsedTitleTextAppearance="@style/AppToolbarTitle"
+                app:contentScrim="#00000000"
+                app:expandedTitleMarginBottom="32dp"
+                app:expandedTitleMarginStart="24dp"
+                app:expandedTitleMarginTop="32dp"
+                app:expandedTitleTextAppearance="@style/AppToolbarTitleExpend.Queue"
+                app:layout_scrollFlags="exitUntilCollapsed|scroll"
+                app:maxLines="2"
+                app:title="@string/playing_queue_2">
+
+                <androidx.appcompat.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/common_title_height"
+                    android:minHeight="@dimen/common_title_height"
+                    android:tag="ignore"
+                    app:contentInsetStartWithNavigation="0dp"
+                    app:layout_collapseMode="pin"
+                    app:navigationIcon="@drawable/vector_menu_back"
+                    app:theme="@style/AppToolbar"
+                    app:title="@string/playing_queue_2"
+                    app:titleTextAppearance="@style/AppToolbarTitle" />
+            </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+            <LinearLayout
+                android:id="@+id/queue_banner_layout"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:paddingStart="24dp"
+                android:paddingEnd="4dp"
+                android:tag="ignore">
+
+                <TextView
+                    android:id="@+id/queue_info"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="start|center_vertical"
+                    android:textColor="@color/i_white_m"
+                    android:textSize="14sp" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/queue_clear"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/b_selector_image_bg_aw"
+                    android:padding="7dp"
+                    android:scaleType="fitCenter"
+                    app:srcCompat="@drawable/vector_queue_clear" />
+            </LinearLayout>
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <include
+            layout="@layout/layout_recyclerview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="com.ijoysoft.music.view.behavior.FixScrollingFooterBehavior" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

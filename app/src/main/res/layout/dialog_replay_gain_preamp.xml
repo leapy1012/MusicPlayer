@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/common_dialog_title"
+        style="@style/DialogTitle"
+        android:tag="titleColor"
+        android:text="@string/replay_gain_preamp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="24dp"
+        android:singleLine="true"
+        android:tag="itemTextExtraColor"
+        android:text="@string/replay_gain_with_tags"
+        android:textAlignment="viewStart"
+        android:textColor="#66000000"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <gd.app.musicplayer.ui.common.view.SeekBar
+            android:id="@+id/with_tag_seek"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:tag="dialogSeekBar"
+            app:seekMax="300"
+            app:seekProgressHeight="3dp"
+            app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
+        <TextView
+            android:id="@+id/with_tag_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:minWidth="64sp"
+            android:singleLine="true"
+            android:tag="itemTextColor"
+            android:text="0dB"
+            android:textAlignment="viewEnd"
+            android:textColor="#66000000"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="24dp"
+        android:singleLine="true"
+        android:tag="itemTextExtraColor"
+        android:text="@string/replay_gain_without_tags"
+        android:textAlignment="viewStart"
+        android:textColor="#66000000"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <gd.app.musicplayer.ui.common.view.SeekBar
+            android:id="@+id/without_tag_seek"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:tag="dialogSeekBar"
+            app:seekMax="300"
+            app:seekProgressHeight="3dp"
+            app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
+        <TextView
+            android:id="@+id/without_tag_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:minWidth="64sp"
+            android:singleLine="true"
+            android:tag="itemTextColor"
+            android:text="0dB"
+            android:textAlignment="viewEnd"
+            android:textColor="#66000000"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="8dp"
+        android:gravity="end|center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:id="@+id/dialog_button_reset"
+            style="@style/DialogButton.Cancel"
+            android:text="@string/reset" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/dialog_button_cancel"
+            style="@style/DialogButton.Cancel"
+            android:text="@string/cancel" />
+
+        <TextView
+            android:id="@+id/dialog_button_ok"
+            style="@style/DialogButton.Confirm"
+            android:text="@string/confirm" />
+    </LinearLayout>
+</LinearLayout>

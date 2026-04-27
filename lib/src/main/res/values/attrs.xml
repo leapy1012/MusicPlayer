@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<!--    <declare-styleable name="TranslucentBarLinearLayout">-->
+<!--        <attr name="allowLandscapeDisplayCutout" format="boolean" />-->
+<!--        <attr name="allowNavigationBarPadding" format="boolean" />-->
+<!--        <attr name="allowNavigationBarPaddingBottom" format="boolean" />-->
+<!--        <attr name="allowNavigationBarPaddingLeft" format="boolean" />-->
+<!--        <attr name="allowNavigationBarPaddingRight" format="boolean" />-->
+<!--        <attr name="allowStatusBarPadding" format="boolean" />-->
+<!--        <attr name="customNavigationBarColor" format="color" />-->
+<!--        <attr name="customStatusBarColor" format="color" />-->
+<!--    </declare-styleable>-->
+
+    <declare-styleable name="TranslucentBarFrameLayout">
+        <attr name="allowLandscapeDisplayCutout" format="boolean" />
+        <attr name="allowNavigationBarPadding" format="boolean" />
+        <attr name="allowNavigationBarPaddingBottom" format="boolean" />
+        <attr name="allowNavigationBarPaddingLeft" format="boolean" />
+        <attr name="allowNavigationBarPaddingRight" format="boolean" />
+        <attr name="allowStatusBarPadding" format="boolean" />
+        <attr name="customNavigationBarColor" format="color" />
+        <attr name="customStatusBarColor" format="color" />
+    </declare-styleable>
+
+    <declare-styleable name="MaskImageView">
+        <attr name="maskColor" format="color" />
+    </declare-styleable>
+
+
+    <!-- Declare attributes once -->
+    <attr name="squareMode">
+        <enum name="byWidth" value="0" />
+        <enum name="byHeight" value="1" />
+        <enum name="withMin" value="2" />
+    </attr>
+
+    <attr name="squareRatio" format="string" />
+
+    <!-- Reuse attributes -->
+    <declare-styleable name="SquareRelativeLayout">
+        <attr name="squareMode" />
+        <attr name="squareRatio" />
+    </declare-styleable>
+
+    <declare-styleable name="SquareFrameLayout">
+        <attr name="squareMode" />
+        <attr name="squareRatio" />
+    </declare-styleable>
+
+    <declare-styleable name="SquareCornerFrameLayout">
+        <attr name="corner_radius" format="reference|dimension" />
+        <attr name="corner_radiusBottomLeft" format="reference|dimension" />
+        <attr name="corner_radiusBottomRight" format="reference|dimension" />
+        <attr name="corner_radiusTopLeft" format="reference|dimension" />
+        <attr name="corner_radiusTopRight" format="reference|dimension" />
+    </declare-styleable>
+
+    <declare-styleable name="SlidingUpPanelLayout">
+        <attr name="umanoAnchorPoint" format="float" />
+        <attr name="umanoClipPanel" format="boolean" />
+        <attr name="umanoDragView" format="reference" />
+        <attr name="umanoFadeColor" format="color" />
+        <attr name="umanoFlingVelocity" format="integer" />
+        <attr name="umanoInitialState">
+            <enum name="expanded" value="0" />
+            <enum name="collapsed" value="1" />
+            <enum name="anchored" value="2" />
+            <enum name="hidden" value="3" />
+        </attr>
+        <attr name="umanoOverlay" format="boolean" />
+        <attr name="umanoPanelHeight" format="dimension" />
+        <attr name="umanoParallaxOffset" format="dimension" />
+        <attr name="umanoScrollInterpolator" format="reference" />
+        <attr name="umanoScrollableView" format="reference" />
+        <attr name="umanoShadowHeight" format="dimension" />
+    </declare-styleable>
+
+    <declare-styleable name="SlidingBannerLayout">
+        <attr name="bannerPeekHeight" format="dimension" />
+        <attr name="bannerExpandedHeight" format="dimension" />
+    </declare-styleable>
+
+    <declare-styleable name="LyricView">
+        <attr name="lyricCurrentTextColor" format="reference|color" />
+        <attr name="lyricCurrentTextSize" format="dimension" />
+        <attr name="lyricDragEnable" format="boolean" />
+        <attr name="lyricFadeHeight" format="dimension" />
+        <attr name="lyricLineTextColor" format="reference|color" />
+        <attr name="lyricLineTextSize" format="dimension" />
+        <attr name="lyricMaxLines" format="reference|integer" />
+        <attr name="lyricNormalTextColor" format="reference|color" />
+        <attr name="lyricNormalTextSize" format="dimension" />
+        <attr name="lyricParagraphSpacing" format="dimension" />
+        <attr name="lyricTextSpacing" format="dimension" />
+        <attr name="lyricTextType">
+            <enum name="normal" value="0" />
+            <enum name="italic" value="1" />
+            <enum name="medium" value="2" />
+            <enum name="bold" value="3" />
+        </attr>
+    </declare-styleable>
+
+    <declare-styleable name="CircleIndicator">
+        <attr name="ci_animator" format="reference" />
+        <attr name="ci_animator_reverse" format="reference" />
+        <attr name="ci_drawable" format="reference" />
+        <attr name="ci_drawable_unselected" format="reference" />
+        <attr name="ci_height" format="dimension" />
+        <attr name="ci_margin" format="dimension" />
+        <attr name="ci_width" format="dimension" />
+        <attr name="circleCrop" format="boolean" />
+        <attr name="circleIndicatorDrawable" format="reference" />
+        <attr name="circleIndicatorHeight" format="dimension" />
+        <attr name="circleIndicatorMargin" format="dimension" />
+        <attr name="circleIndicatorWidth" format="dimension" />
+    </declare-styleable>
+
+    <declare-styleable name="UniformRadiusImageView">
+        <attr name="urivCornerRadius" format="dimension">
+        </attr>
+        <attr name="urivRoundMode">
+            <enum name="outline" value="0" />
+            <enum name="clip" value="1" />
+        </attr>
+    </declare-styleable>
+</resources>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_bottom_control_panel"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/main_control_banner_height"
+    android:tag="bottomControlBackground"
+    android:orientation="horizontal">
+
+    <gd.app.musicplayer.ui.common.view.SeekBar
+        android:id="@+id/main_music_progress"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_alignParentTop="true"
+        android:tag="seekBar"
+        app:seekMax="100"
+        app:seekProgress="0"
+        app:seekProgressHeight="2dp"
+        app:seekRtlEnable="false" />
+
+    <LinearLayout
+        android:id="@+id/background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/main_music_progress"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <gd.app.lib.view.loop.LoopViewPager
+            android:id="@+id/main_control_pager"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="20" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1px"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/main_control_play_pause"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/selector_image_bg_w"
+            android:scaleType="centerInside"
+            android:tag="itemTextColor"
+            app:srcCompat="@drawable/vector_main_play_pause_selector" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1px"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/main_control_next"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/selector_image_bg_w"
+            android:padding="1dp"
+            android:scaleType="centerInside"
+            android:tag="itemTextColor"
+            app:srcCompat="@drawable/vector_main_play_next" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1px"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/main_control_list"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/selector_image_bg_w"
+            android:scaleType="centerInside"
+            android:tag="itemTextColor"
+            app:srcCompat="@drawable/vector_play_queue_menu" />
+    </LinearLayout>
+</RelativeLayout>

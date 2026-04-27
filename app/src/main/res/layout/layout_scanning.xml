@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
+    <TextView
+        android:textSize="15sp"
+        android:textColor="@color/white"
+        android:gravity="center_horizontal"
+        android:id="@+id/scan_path"
+        android:tag="itemTextColor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:lineSpacingExtra="4dp"
+        android:textAlignment="center"/>
+    <gd.app.musicplayer.ui.common.view.SeekBar
+        android:id="@+id/scan_progress"
+        android:tag="progressBar"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_marginTop="8dp"
+        app:seekMax="100"
+        app:seekProgress="0"
+        app:seekProgressHeight="2dp"/>
+</LinearLayout>

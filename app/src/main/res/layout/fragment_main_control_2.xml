@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="236dp"
+    android:background="#33000000"
+    android:orientation="vertical"
+    android:tag="bottomRootLayout">
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/main_control_album"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="24dp"
+        android:scaleType="centerCrop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/main_control_back"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="24dp"
+        android:alpha="0.5"
+        android:background="@drawable/b_selector_image_bg_aw"
+        android:padding="6dp"
+        android:scaleType="fitCenter"
+        android:tag="itemTextColor"
+        app:layout_constraintBottom_toBottomOf="@+id/main_control_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/main_control_title"
+        app:srcCompat="@drawable/vector_main_bottom_back" />
+
+    <TextView
+        android:id="@+id/main_control_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="8dp"
+        android:gravity="start"
+        android:singleLine="true"
+        android:tag="itemTextColor"
+        android:text="@android:string/unknownName"
+        android:textColor="@android:color/white"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/main_control_artist"
+        app:layout_constraintEnd_toStartOf="@+id/main_control_back"
+        app:layout_constraintStart_toEndOf="@+id/main_control_album"
+        app:layout_constraintTop_toTopOf="@+id/main_control_album"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/main_control_artist"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="start"
+        android:singleLine="true"
+        android:tag="itemTextExtraColor"
+        android:text="@android:string/unknownName"
+        android:textColor="@color/i_white_m"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="@+id/main_control_album"
+        app:layout_constraintEnd_toEndOf="@+id/main_control_back"
+        app:layout_constraintStart_toStartOf="@+id/main_control_title"
+        app:layout_constraintTop_toBottomOf="@+id/main_control_title" />
+
+    <gd.app.musicplayer.ui.common.view.SeekBar
+        android:id="@+id/main_control_progress"
+        android:layout_width="0dp"
+        android:layout_height="28dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="24dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:tag="seekBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/main_control_album"
+        app:seekMax="100"
+        app:seekProgressHeight="2dp"
+        app:seekRtlEnable="false"
+        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
+    <LinearLayout
+        android:id="@+id/main_control_time_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layoutDirection="ltr"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@+id/main_control_progress">
+
+        <TextView
+            android:id="@+id/main_control_curr_time"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:layout_weight="1"
+            android:tag="itemTextExtraColor"
+            android:text="0:00"
+            android:textColor="@color/i_white_m"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/main_control_total_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="2dp"
+            android:gravity="start"
+            android:tag="itemTextExtraColor"
+            android:text="00:00"
+            android:textAlignment="viewStart"
+            android:textColor="@color/i_white_m"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/main_control_bottom_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="center_vertical"
+        android:layoutDirection="ltr"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/main_control_time_layout">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/main_control_left"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/b_selector_image_bg_aw"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:tag="favorite" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/main_control_previous"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/b_selector_image_bg_aw"
+            android:padding="12dp"
+            android:scaleType="fitEnd"
+            android:tag="itemTextColor" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/main_control_play_pause"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/b_selector_image_bg_aw"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:tag="itemTextColor" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/main_control_next"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/b_selector_image_bg_aw"
+            android:padding="12dp"
+            android:scaleType="fitStart"
+            android:tag="itemTextColor" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/main_control_right"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/b_selector_image_bg_aw"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:tag="itemTextColor" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:tag="bottomShadowMark"
+        app:layout_constraintTop_toTopOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

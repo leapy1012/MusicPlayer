@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center_vertical">
+
+    <gd.app.lib.configuration.ConfigurationLinearLayout
+        android:id="@+id/empty_linear_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/empty_image"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/music_empty_image"
+            android:tag="itemTextExtraColor" />
+
+        <TextView
+            android:id="@+id/empty_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:tag="itemTextExtraColor"
+            android:text="@string/music_empty"
+            android:textColor="@color/item_artist_color"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/empty_text_extra"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:tag="itemTextExtraColor"
+            android:text="@string/music_empty_add"
+            android:textColor="@color/item_artist_color"
+            android:textSize="15sp"
+            android:visibility="gone" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/empty_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/selector_scan_btn_bg_w"
+            android:drawablePadding="8dp"
+            android:gravity="center"
+            android:paddingStart="24dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="8dp"
+            android:singleLine="true"
+            android:tag="emptyButton"
+            android:text="@string/add_songs"
+            android:textColor="#ffffff"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:drawableStartCompat="@drawable/vector_add_songs" />
+    </gd.app.lib.configuration.ConfigurationLinearLayout>
+</ScrollView>

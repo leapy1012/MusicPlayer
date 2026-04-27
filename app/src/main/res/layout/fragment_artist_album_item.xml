@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gd.app.lib.view.square.SquareFrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="2dp"
+    android:layout_width="@dimen/album_recycler_height"
+    android:layout_height="@dimen/album_recycler_height"
+    app:squareRatio="1">
+    <ImageView
+        android:id="@+id/music_item_album"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"/>
+    <LinearLayout
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="#3d000000"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+        <androidx.appcompat.widget.AppCompatTextView
+            android:textSize="14sp"
+            android:textColor="#ffffff"
+            android:id="@+id/music_item_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Album"
+            android:singleLine="true"
+            android:layout_weight="1"/>
+        <gd.app.musicplayer.ui.common.view.BrokenWordTextView
+            android:textSize="12sp"
+            android:textColor="@color/secondary_text_default_material_dark"
+            android:id="@+id/music_item_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="0 musics"
+            android:singleLine="true"
+            android:layout_weight="1"/>
+    </LinearLayout>
+</gd.app.lib.view.square.SquareFrameLayout>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <gd.app.lib.view.square.SquareImageView
+        android:id="@+id/dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scaleType="fitCenter"
+        android:tag="dialogImage"
+        app:squareRatio="0.365"
+        app:srcCompat="@drawable/simultaneous_tip_icon" />
+
+    <TextView
+        android:id="@+id/dialog_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="24dp"
+        android:lineSpacingMultiplier="1.2"
+        android:tag="dialogMessage"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:id="@+id/common_dialog_button_container"
+        style="@style/DialogButtonLayout"
+        android:layout_marginTop="24dp">
+
+        <TextView
+            android:id="@+id/dialog_button_ok"
+            style="@style/DialogButton.Confirm"
+            android:text="@string/ok" />
+    </LinearLayout>
+</LinearLayout>

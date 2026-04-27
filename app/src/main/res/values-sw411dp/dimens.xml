@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="equalizer_bass_height">140dp</dimen>
+    <dimen name="equalizer_box_margin_top">26dp</dimen>
+    <dimen name="equalizer_graduation_size">9dp</dimen>
+    <dimen name="equalizer_group_bottom">10dp</dimen>
+    <dimen name="equalizer_group_top">4dp</dimen>
+    <dimen name="equalizer_reverb_margin">20dp</dimen>
+    <dimen name="equalizer_rotate_margin_top">16dp</dimen>
+    <dimen name="equalizer_rotate_text_margin">2dp</dimen>
+    <dimen name="equalizer_title_margin_bottom">16dp</dimen>
+    <dimen name="equalizer_toggle_height">25dp</dimen>
+    <dimen name="equalizer_toggle_width">50dp</dimen>
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="menu_margin">32dp</dimen>
+    <dimen name="main_item_name_size">15sp</dimen>
+    <dimen name="scan_result_padding">36dp</dimen>
+    <dimen name="scan_result_margin">2dp</dimen>
+    <dimen name="equalizer_bass_height">120dp</dimen>
+    <dimen name="equalizer_effect_width">120dp</dimen>
+    <dimen name="equalizer_graduation_size">8dp</dimen>
+    <dimen name="equalizer_reverb_margin">18dp</dimen>
+    <dimen name="equalizer_rotate_margin_bottom">20dp</dimen>
+    <dimen name="equalizer_rotate_text_margin">4dp</dimen>
+    <dimen name="equalizer_seek_bar_width">32dp</dimen>
+    <dimen name="equalizer_seek_bar_width_2">36dp</dimen>
+    <dimen name="equalizer_seek_progress_height">10dp</dimen>
+    <dimen name="equalizer_title_margin_bottom">12dp</dimen>
+    <dimen name="equalizer_toggle_height">20dp</dimen>
+    <dimen name="equalizer_toggle_width">40dp</dimen>
+    <dimen name="lock_margin_10dp">10dp</dimen>
+    <dimen name="lock_margin_16dp">16dp</dimen>
+    <dimen name="lock_margin_32dp">32dp</dimen>
+    <dimen name="lock_margin_6dp">6dp</dimen>
+</resources>

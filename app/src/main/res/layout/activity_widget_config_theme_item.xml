@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="@dimen/widget_config_image_size"
+    android:layout_height="@dimen/widget_config_image_size">
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/item_image"
+        android:background="@drawable/widget_image_bg_error"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter"/>
+    <androidx.appcompat.widget.AppCompatImageView
+        android:layout_gravity="center"
+        android:id="@+id/item_select"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/widget_item_selected"/>
+</FrameLayout>

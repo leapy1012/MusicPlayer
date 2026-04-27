@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gd.app.lib.view.square.SquareRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main_item_image_parent"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/b_selector_item_bg_t_aw">
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/main_item_image"
+        android:layout_width="@dimen/main_image_size"
+        android:layout_height="@dimen/main_image_size"
+        android:layout_centerInParent="true"
+        android:scaleType="centerCrop" />
+
+    <RelativeLayout
+        android:id="@+id/main_item_banner"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/main_item_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:background="#33000000"
+            android:gravity="center_horizontal"
+            android:paddingStart="4dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="4dp"
+            android:singleLine="true"
+            android:text="555"
+            android:textAlignment="center"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/main_item_name_size" />
+
+        <TextView
+            android:id="@+id/main_item_extra"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="6dp"
+            android:singleLine="true"
+            android:text="5"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/main_item_count_size" />
+    </RelativeLayout>
+</gd.app.lib.view.square.SquareRelativeLayout>
