@@ -1,0 +1,291 @@
+diff --git a/app/src/main/java/gd/app/musicplayer/app/AppContainer.kt b/app/src/main/java/gd/app/musicplayer/app/AppContainer.kt
+index c87b562..b3519c1 100644
+--- a/app/src/main/java/gd/app/musicplayer/app/AppContainer.kt
++++ b/app/src/main/java/gd/app/musicplayer/app/AppContainer.kt
+@@ -1,6 +1,7 @@
+ package gd.app.musicplayer.app
+ 
+ import android.content.Context
++import gd.app.musicplayer.core.dispatchers.AppDispatchers
+ import dagger.hilt.android.EntryPointAccessors
+ import gd.app.musicplayer.data.repo.LibraryRepo
+ import gd.app.musicplayer.data.repo.MainRepo
+@@ -35,14 +36,6 @@ import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+ import gd.app.musicplayer.core.di.AppDependenciesEntryPoint
+ import gd.app.musicplayer.ui.theme.ThemeEngine
+ import gd.app.musicplayer.util.PreferenceUtil
+-import kotlinx.coroutines.CoroutineDispatcher
+-import kotlinx.coroutines.Dispatchers
+-
+-data class AppDispatchers(
+-    val io: CoroutineDispatcher = Dispatchers.IO,
+-    val default: CoroutineDispatcher = Dispatchers.Default,
+-    val main: CoroutineDispatcher = Dispatchers.Main
+-)
+ 
+ class AppContainer(context: Context) {
+     private val appContext = context.applicationContext
+diff --git a/app/src/main/java/gd/app/musicplayer/core/dispatchers/AppDispatchers.kt b/app/src/main/java/gd/app/musicplayer/core/dispatchers/AppDispatchers.kt
+new file mode 100644
+index 0000000..603c20a
+--- /dev/null
++++ b/app/src/main/java/gd/app/musicplayer/core/dispatchers/AppDispatchers.kt
+@@ -0,0 +1,11 @@
++package gd.app.musicplayer.core.dispatchers
++
++import kotlinx.coroutines.CoroutineDispatcher
++import kotlinx.coroutines.Dispatchers
++
++data class AppDispatchers(
++    val io: CoroutineDispatcher = Dispatchers.IO,
++    val default: CoroutineDispatcher = Dispatchers.Default,
++    val main: CoroutineDispatcher = Dispatchers.Main
++)
++
+diff --git a/app/src/main/java/gd/app/musicplayer/core/di/DispatchersModule.kt b/app/src/main/java/gd/app/musicplayer/core/di/DispatchersModule.kt
+new file mode 100644
+index 0000000..7813972
+--- /dev/null
++++ b/app/src/main/java/gd/app/musicplayer/core/di/DispatchersModule.kt
+@@ -0,0 +1,18 @@
++package gd.app.musicplayer.core.di
++
++import dagger.Module
++import dagger.Provides
++import dagger.hilt.InstallIn
++import dagger.hilt.components.SingletonComponent
++import gd.app.musicplayer.core.dispatchers.AppDispatchers
++import javax.inject.Singleton
++
++@Module
++@InstallIn(SingletonComponent::class)
++object DispatchersModule {
++
++    @Provides
++    @Singleton
++    fun provideAppDispatchers(): AppDispatchers = AppDispatchers()
++}
++
+diff --git a/app/src/main/java/gd/app/musicplayer/data/repository/README.md b/app/src/main/java/gd/app/musicplayer/data/repository/README.md
+new file mode 100644
+index 0000000..b13904f
+--- /dev/null
++++ b/app/src/main/java/gd/app/musicplayer/data/repository/README.md
+@@ -0,0 +1,13 @@
++# Data repository layer
++
++Repository implementations live here.
++
++Responsibilities:
++
++- Talk to Room DAOs, MediaStore, files, shared preferences, and metadata readers.
++- Map database/media/file models into domain models.
++- Implement interfaces declared in `domain/repository`.
++
++Naming convention:
++
++- `LibraryRepositoryImpl : LibraryRepository`
++- `PlaylistRepositoryImpl : PlaylistRepository`
+diff --git a/app/src/main/java/gd/app/musicplayer/domain/model/README.md b/app/src/main/java/gd/app/musicplayer/domain/model/README.md
+new file mode 100644
+index 0000000..bf02004
+--- /dev/null
++++ b/app/src/main/java/gd/app/musicplayer/domain/model/README.md
+@@ -0,0 +1,9 @@
++# Domain models
++
++Pure Kotlin app models live here.
++
++Rules:
++
++- No Android framework dependencies.
++- No Room annotations.
++- No View/ViewBinding references.
+diff --git a/app/src/main/java/gd/app/musicplayer/domain/repository/README.md b/app/src/main/java/gd/app/musicplayer/domain/repository/README.md
+new file mode 100644
+index 0000000..2d4d1a7
+--- /dev/null
++++ b/app/src/main/java/gd/app/musicplayer/domain/repository/README.md
+@@ -0,0 +1,12 @@
++# Domain repository contracts
++
++Repository interfaces live here.
++
++Feature ViewModels and use cases depend on these interfaces, not on concrete data classes.
++
++Examples:
++
++- `LibraryRepository`
++- `PlaylistRepository`
++- `PlaybackRepository`
++- `ThemeRepository`
+diff --git a/app/src/main/java/gd/app/musicplayer/domain/usecase/README.md b/app/src/main/java/gd/app/musicplayer/domain/usecase/README.md
+new file mode 100644
+index 0000000..c6e82b2
+--- /dev/null
++++ b/app/src/main/java/gd/app/musicplayer/domain/usecase/README.md
+@@ -0,0 +1,15 @@
++# Domain use cases
++
++Use cases hold app-specific business actions.
++
++Rules:
++
++- One public action per class.
++- Constructor injection with `@Inject`.
++- Depend on repository interfaces from `domain/repository`.
++- Keep Android framework APIs outside this layer.
++
++Examples:
++
++- `GetLibraryTracksUseCase`
++- `ToggleFavoriteTrackUseCase`
++- `PlayTracksUseCase`
+diff --git a/app/src/main/java/gd/app/musicplayer/feature/README.md b/app/src/main/java/gd/app/musicplayer/feature/README.md
+new file mode 100644
+index 0000000..84809cc
+--- /dev/null
++++ b/app/src/main/java/gd/app/musicplayer/feature/README.md
+@@ -0,0 +1,28 @@
++# Feature layer
++
++Feature packages own screens and UI-specific state.
++
++Target pattern:
++
++```text
++feature/<feature-name>/
++  <Feature>Activity.kt or <Feature>Fragment.kt
++  <Feature>ViewModel.kt
++  <Feature>UiState.kt
++  <Feature>Action.kt
++  <Feature>Event.kt
++```
++
++Responsibilities:
++
++- Render `UiState`.
++- Send user actions to the ViewModel.
++- Perform navigation and permission prompts.
++- Keep business logic in use cases, not Activities.
++
++ViewModel rules:
++
++- Expose immutable `StateFlow<UiState>`.
++- Use `SharedFlow` or `Channel` for one-time events.
++- Call domain use cases.
++- Do not hold Android `View` or `Context` references unless using `@ApplicationContext` for a justified reason.
+diff --git a/docs/architecture/mvvm-migration.md b/docs/architecture/mvvm-migration.md
+new file mode 100644
+index 0000000..7fb37e8
+--- /dev/null
++++ b/docs/architecture/mvvm-migration.md
+@@ -0,0 +1,83 @@
++# MVVM Architecture Migration
++
++This document defines the target architecture for migrating MusicPlayer to a modern Android MVVM structure.
++
++## Target package layout
++
++```text
++app/src/main/java/gd/app/musicplayer/
++  core/
++    common/
++    di/
++    dispatchers/
++    media/
++    permission/
++    theme/
++    ui/
++
++  data/
++    local/
++      dao/
++      db/
++      entity/
++    media/
++      metadata/
++      scanner/
++    repository/
++
++  domain/
++    model/
++    repository/
++    usecase/
++
++  playback/
++    controller/
++    notification/
++    service/
++
++  feature/
++    library/
++    player/
++    playlist/
++    search/
++    scan/
++    settings/
++    widget/
++```
++
++## Dependency direction
++
++```text
++feature -> domain -> data
++playback -> domain
++core -> shared by all layers
++```
++
++The `domain` layer should stay pure Kotlin and should not depend on Android framework classes.
++
++## Layer responsibilities
++
++### core
++
++App-wide utilities and infrastructure such as Hilt modules, dispatchers, permissions, theme primitives, common UI helpers, and constants.
++
++### data
++
++Room database code, MediaStore/file scanners, metadata readers, preferences, and concrete repository implementations.
++
++### domain
++
++Pure models, repository interfaces, and use cases. This layer defines what the app can do without knowing how Android stores or displays it.
++
++### playback
++
++Foreground service, Media3 integration, notification controls, media button handling, queue/session controller, and adapters between Android media APIs and domain use cases.
++
++### feature
++
++User-facing screens grouped by product area. Each feature owns its Activity/Fragment, ViewModel, UI state, UI actions, adapters, and feature-only UI helpers.
++
++## Feature MVVM pattern
++
++Each migrated screen should follow this shape:
++
++```text
++feature/<name>/
++  <Name>Activity.kt or <Name>Fragment.kt
++  <Name>ViewModel.kt
++  <Name>UiState.kt
++  <Name>Action.kt
++  <Name>Event.kt
++```
++
++Activities and Fragments should only render state, collect events, handle navigation, and request permissions.
++
++## Migration order
++
++1. Move shared infrastructure to `core`.
++2. Replace manual `AppContainer` access with Hilt constructor injection.
++3. Add repository interfaces to `domain/repository`.
++4. Move concrete implementations to `data/repository`.
++5. Migrate one feature at a time to `ViewModel + UiState + Action`.
++6. Extract playback APIs behind a `PlaybackController` and domain playback use cases.
++
++## First feature candidates
++
++- `feature/search`: smaller feature and a good proof of the pattern.
++- `feature/library`: central feature for validating repository boundaries.
++- `feature/player`: migrate after playback abstractions are stable.

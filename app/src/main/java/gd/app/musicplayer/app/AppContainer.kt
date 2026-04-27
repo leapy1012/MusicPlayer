@@ -1,6 +1,7 @@
 package gd.app.musicplayer.app
 
 import android.content.Context
+import gd.app.musicplayer.core.dispatchers.AppDispatchers
 import dagger.hilt.android.EntryPointAccessors
 import gd.app.musicplayer.data.repo.LibraryRepo
 import gd.app.musicplayer.data.repo.MainRepo
@@ -33,14 +34,6 @@ import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.core.di.AppDependenciesEntryPoint
 import gd.app.musicplayer.ui.theme.ThemeEngine
 import gd.app.musicplayer.util.PreferenceUtil
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-
-data class AppDispatchers(
-    val io: CoroutineDispatcher = Dispatchers.IO,
-    val default: CoroutineDispatcher = Dispatchers.Default,
-    val main: CoroutineDispatcher = Dispatchers.Main
-)
 
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
