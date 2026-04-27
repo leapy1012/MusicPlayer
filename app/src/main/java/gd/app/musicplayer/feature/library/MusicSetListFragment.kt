@@ -18,7 +18,7 @@ import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.feature.menu.MusicSetContextMenu
 import gd.app.musicplayer.ui.folder.FolderFooterAdapter
 import gd.app.musicplayer.ui.folder.isHiddenFoldersEntry
-import gd.app.musicplayer.ui.hidden.HiddenFoldersActivity
+import gd.app.musicplayer.feature.hidden.HiddenFoldersActivity
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint

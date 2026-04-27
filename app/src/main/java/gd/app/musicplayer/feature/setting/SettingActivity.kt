@@ -35,7 +35,7 @@ import gd.app.musicplayer.ui.common.dialog.MessageDialog
 import gd.app.musicplayer.ui.common.view.SeekBar
 import gd.app.musicplayer.feature.duplicate.ActivityDuplicatedFinder
 import gd.app.musicplayer.feature.lyrics.ActivityStatusBarLyrics
-import gd.app.musicplayer.ui.theme.SelectAccentColorDialog
+import gd.app.musicplayer.feature.theme.SelectAccentColorDialog
 import gd.app.musicplayer.util.LibraryTabConfigStore
 import gd.app.musicplayer.util.PreferenceUtil
 import gd.app.musicplayer.util.ShakeDetector

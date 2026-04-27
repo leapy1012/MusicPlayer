@@ -9,7 +9,7 @@ import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderChildItemBinding
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderGroupItemBinding
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 import java.util.Locale
 
 class ActivityDuplicateBinder(

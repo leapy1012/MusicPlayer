@@ -2,8 +2,8 @@ package gd.app.musicplayer.feature.selection
 
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.LibraryRepo
-import gd.app.musicplayer.data.repo.PlaylistRepo
+import gd.app.musicplayer.data.repository.LibraryRepo
+import gd.app.musicplayer.data.repository.PlaylistRepo
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.flow.first
 import java.util.Locale

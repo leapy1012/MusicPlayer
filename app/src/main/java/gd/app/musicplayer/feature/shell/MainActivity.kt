@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.shell
+package gd.app.musicplayer.feature.shell
 
 import android.content.Context
 import android.content.Intent

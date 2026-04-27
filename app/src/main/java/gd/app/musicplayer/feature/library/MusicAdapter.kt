@@ -10,7 +10,7 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentMusicListItemBinding
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicViewHolder
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 
 class MusicAdapter(
     private val musicSet: MusicSet,

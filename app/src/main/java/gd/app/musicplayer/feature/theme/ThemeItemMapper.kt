@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.theme
+package gd.app.musicplayer.feature.theme
 
 import gd.app.musicplayer.data.model.ThemeGroup
 import gd.app.musicplayer.data.model.ThemeItem

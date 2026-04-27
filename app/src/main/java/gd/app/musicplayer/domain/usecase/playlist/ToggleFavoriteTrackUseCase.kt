@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.playlist
 
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.PlaylistRepo
+import gd.app.musicplayer.data.repository.PlaylistRepo
 
 class ToggleFavoriteTrackUseCase(
     private val playlistRepo: PlaylistRepo

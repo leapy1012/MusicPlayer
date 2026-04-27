@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.theme
+package gd.app.musicplayer.feature.theme
 
 object ThemeTags {
     const val ACTIVITY_BACKGROUND = "activityBackgroundColor"

@@ -26,7 +26,7 @@ import gd.app.musicplayer.ui.common.view.PlayStateView
 import gd.app.musicplayer.ui.common.view.RecyclerIndexBar
 import gd.app.musicplayer.ui.common.view.RotateStepBar
 import gd.app.musicplayer.ui.common.view.SeekBar
-import gd.app.musicplayer.ui.theme.ThemeTags
+import gd.app.musicplayer.feature.theme.ThemeTags
 
 class DefaultThemeBinder : ThemeViewBinder {
     override fun bind(palette: ThemePalette, payload: Any?, view: View): Boolean {

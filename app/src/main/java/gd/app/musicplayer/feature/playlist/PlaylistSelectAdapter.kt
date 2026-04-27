@@ -17,7 +17,7 @@ import gd.app.musicplayer.databinding.FragmentPlaylistAddItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 import gd.app.musicplayer.ui.common.viewholder.toDisplayInfo
 import gd.app.musicplayer.core.ui.extension.appContainer
 

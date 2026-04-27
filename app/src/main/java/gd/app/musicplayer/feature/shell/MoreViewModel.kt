@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.shell
+package gd.app.musicplayer.feature.shell
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.repository.UserPreferencesRepo
 import gd.app.musicplayer.playback.SleepTimerManager
 import gd.app.musicplayer.playback.SleepTimerState
 import kotlinx.coroutines.flow.SharingStarted

@@ -9,7 +9,7 @@ import android.os.Build
 import androidx.core.content.FileProvider
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.ui.shell.MainActivity
+import gd.app.musicplayer.feature.shell.MainActivity
 import gd.app.musicplayer.core.util.ToastUtil
 import java.io.File
 

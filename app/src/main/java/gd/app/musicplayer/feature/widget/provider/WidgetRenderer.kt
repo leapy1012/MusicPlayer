@@ -24,7 +24,7 @@ import gd.app.musicplayer.playback.MusicPlayService
 import gd.app.musicplayer.playback.MusicPlaybackController
 import gd.app.musicplayer.playback.MusicPlaybackState
 import gd.app.musicplayer.playback.PlaybackMode
-import gd.app.musicplayer.ui.shell.MainActivity
+import gd.app.musicplayer.feature.shell.MainActivity
 import gd.app.musicplayer.util.PreferenceUtil
 import java.io.File
 import java.io.InputStream

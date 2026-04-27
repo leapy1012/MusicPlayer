@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.theme
+package gd.app.musicplayer.feature.theme
 
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity

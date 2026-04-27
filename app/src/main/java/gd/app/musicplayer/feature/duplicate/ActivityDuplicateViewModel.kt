@@ -12,7 +12,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.app.AppDispatchers
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.LibraryRepo
+import gd.app.musicplayer.data.repository.LibraryRepo
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow

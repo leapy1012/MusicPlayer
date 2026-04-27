@@ -13,7 +13,7 @@ import gd.app.musicplayer.data.model.ContextMenuItem
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.data.model.isTrackCollection
-import gd.app.musicplayer.data.repo.EditableTrackMetadata
+import gd.app.musicplayer.data.repository.EditableTrackMetadata
 import gd.app.musicplayer.core.ui.extension.appContainer
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.feature.library.ManageArtworkDialogFragment

@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gd.app.musicplayer.data.repo.LibraryRepo
-import gd.app.musicplayer.data.repo.PlaylistRepo
+import gd.app.musicplayer.data.repository.LibraryRepo
+import gd.app.musicplayer.data.repository.PlaylistRepo
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.flow.Flow

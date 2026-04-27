@@ -14,7 +14,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentMainBinding
-import gd.app.musicplayer.ui.shell.MainActivity
+import gd.app.musicplayer.feature.shell.MainActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.feature.library.AlbumActivity

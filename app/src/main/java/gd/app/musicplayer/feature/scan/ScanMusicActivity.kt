@@ -16,7 +16,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.ActivityScanMusicBinding
-import gd.app.musicplayer.ui.hidden.HiddenFoldersActivity
+import gd.app.musicplayer.feature.hidden.HiddenFoldersActivity
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.view.SeekBar
 import gd.app.musicplayer.core.ui.extension.applySystemBarInsets

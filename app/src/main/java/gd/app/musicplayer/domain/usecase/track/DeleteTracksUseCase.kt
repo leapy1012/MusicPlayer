@@ -5,7 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repo.TrackMutationRepo
+import gd.app.musicplayer.data.repository.TrackMutationRepo
 import java.io.File
 
 class DeleteTracksUseCase(

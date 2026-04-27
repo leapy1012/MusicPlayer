@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.theme
+package gd.app.musicplayer.feature.theme
 
 import android.view.View
 import gd.app.musicplayer.core.ui.extension.appContainer

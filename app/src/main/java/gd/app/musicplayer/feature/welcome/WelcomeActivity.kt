@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui
+package gd.app.musicplayer.feature.welcome
 
 import android.os.Bundle
 import android.os.SystemClock
@@ -9,7 +9,7 @@ import gd.app.musicplayer.data.db.MusicDatabase
 import gd.app.musicplayer.databinding.ActivityWelcomeBinding
 import gd.app.musicplayer.databinding.DialogNewPlaylistBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.shell.MainActivity
+import gd.app.musicplayer.feature.shell.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

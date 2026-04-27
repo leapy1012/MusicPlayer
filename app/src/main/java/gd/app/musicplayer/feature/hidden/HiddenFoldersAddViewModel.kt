@@ -1,10 +1,10 @@
-package gd.app.musicplayer.ui.hidden
+package gd.app.musicplayer.feature.hidden
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.HiddenRepo
+import gd.app.musicplayer.data.repository.HiddenRepo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

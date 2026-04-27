@@ -26,7 +26,7 @@ import gd.app.musicplayer.feature.library.ListMoreMenuHost
 import gd.app.musicplayer.ui.feature.menu.MusicSetContextMenu
 import gd.app.musicplayer.feature.search.SearchActivity
 import gd.app.musicplayer.feature.selection.MusicSetEditActivity
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 import gd.app.musicplayer.core.ui.extension.applySystemBarInsets
 import gd.app.musicplayer.core.ui.extension.navigateBack
 import gd.app.musicplayer.feature.library.MusicSetOptionsDialog

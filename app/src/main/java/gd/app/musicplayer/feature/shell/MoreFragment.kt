@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.shell
+package gd.app.musicplayer.feature.shell
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -20,8 +20,8 @@ import gd.app.musicplayer.feature.scan.ScanMusicActivity
 import gd.app.musicplayer.feature.setting.SettingActivity
 import gd.app.musicplayer.feature.sleep.SleepActivity
 import gd.app.musicplayer.feature.widget.WidgetActivity
-import gd.app.musicplayer.ui.hidden.HiddenFoldersActivity
-import gd.app.musicplayer.ui.theme.ThemeActivity
+import gd.app.musicplayer.feature.hidden.HiddenFoldersActivity
+import gd.app.musicplayer.feature.theme.ThemeActivity
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint

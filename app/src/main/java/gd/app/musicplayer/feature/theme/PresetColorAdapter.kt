@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.theme
+package gd.app.musicplayer.feature.theme
 
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable

@@ -23,7 +23,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 
 abstract class BaseBottomRecyclerMenuDialog : BottomSheetDialogFragment() {
 

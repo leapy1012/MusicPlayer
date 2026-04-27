@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.app.AppDispatchers
-import gd.app.musicplayer.data.repo.MainRepo
+import gd.app.musicplayer.data.repository.MainRepo
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.R
 import gd.app.musicplayer.util.PreferenceUtil

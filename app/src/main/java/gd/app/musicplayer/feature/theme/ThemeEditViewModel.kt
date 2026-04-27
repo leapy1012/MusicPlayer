@@ -1,13 +1,13 @@
-package gd.app.musicplayer.ui.theme
+package gd.app.musicplayer.feature.theme
 
 import android.graphics.Color
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.repo.ThemeRepo
-import gd.app.musicplayer.data.repo.ThemeSettings
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.repository.ThemeRepo
+import gd.app.musicplayer.data.repository.ThemeSettings
+import gd.app.musicplayer.data.repository.UserPreferencesRepo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

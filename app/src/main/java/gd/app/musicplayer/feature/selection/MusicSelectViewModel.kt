@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.app.AppDispatchers
-import gd.app.musicplayer.data.repo.LibraryRepo
-import gd.app.musicplayer.data.repo.PlaylistRepo
+import gd.app.musicplayer.data.repository.LibraryRepo
+import gd.app.musicplayer.data.repository.PlaylistRepo
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow

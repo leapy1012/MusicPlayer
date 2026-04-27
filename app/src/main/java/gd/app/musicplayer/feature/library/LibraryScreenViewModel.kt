@@ -2,7 +2,7 @@ package gd.app.musicplayer.feature.library
 
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.repository.UserPreferencesRepo
 import gd.app.musicplayer.util.LibraryTabConfig
 import gd.app.musicplayer.util.LibraryTabConfigStore
 import javax.inject.Inject

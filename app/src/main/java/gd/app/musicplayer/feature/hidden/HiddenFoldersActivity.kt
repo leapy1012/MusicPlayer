@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.hidden
+package gd.app.musicplayer.feature.hidden
 
 import android.content.Context
 import android.content.Intent
@@ -24,7 +24,7 @@ import gd.app.musicplayer.databinding.ActivityHiddenFoldersSetHeaderBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 import gd.app.musicplayer.ui.common.viewholder.HiddenFolderHeaderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenFolderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenMusicHeaderViewHolder

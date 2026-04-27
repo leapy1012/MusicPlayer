@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.theme
+package gd.app.musicplayer.feature.theme
 
 import android.content.Context
 import android.net.Uri
@@ -7,9 +7,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.data.model.ThemeGroup
-import gd.app.musicplayer.data.repo.ThemeRepo
-import gd.app.musicplayer.data.repo.ThemeSettings
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.repository.ThemeRepo
+import gd.app.musicplayer.data.repository.ThemeSettings
+import gd.app.musicplayer.data.repository.UserPreferencesRepo
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow

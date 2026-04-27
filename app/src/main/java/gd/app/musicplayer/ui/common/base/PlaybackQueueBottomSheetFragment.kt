@@ -31,7 +31,7 @@ import gd.app.musicplayer.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.feature.selection.DragSwipeCallback
 import gd.app.musicplayer.feature.selection.ItemMoveListener
 import gd.app.musicplayer.feature.selection.ItemTouchStateListener
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 import kotlinx.coroutines.launch
 import java.util.Collections
 

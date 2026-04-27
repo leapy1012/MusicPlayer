@@ -1,4 +1,4 @@
-package gd.app.musicplayer.data.repo
+package gd.app.musicplayer.data.repositorysitory
 
 import gd.app.musicplayer.data.db.dao.PlaylistDao
 import gd.app.musicplayer.data.db.entity.MusicPlaylistEntity

@@ -41,7 +41,7 @@ import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.albumArtSource
 import gd.app.musicplayer.feature.lock.LockActivity
 import gd.app.musicplayer.feature.widget.provider.WidgetRenderer
-import gd.app.musicplayer.ui.shell.MainActivity
+import gd.app.musicplayer.feature.shell.MainActivity
 import gd.app.musicplayer.util.PreferenceUtil
 import java.io.File
 import kotlinx.coroutines.CoroutineScope

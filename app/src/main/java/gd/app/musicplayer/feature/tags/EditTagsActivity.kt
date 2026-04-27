@@ -12,7 +12,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repo.EditableTrackMetadata
+import gd.app.musicplayer.data.repository.EditableTrackMetadata
 import gd.app.musicplayer.databinding.ActivityEditTagsBinding
 import gd.app.musicplayer.databinding.ItemEditTagFieldBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity

@@ -25,7 +25,7 @@ import gd.app.musicplayer.feature.widget.provider.WidgetRenderer
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.view.SeekBar
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 
 class WidgetConfigActivity : BaseActivity() {
     private lateinit var binding: ActivityWidgetConfigBinding

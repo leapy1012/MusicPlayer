@@ -6,7 +6,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 import gd.app.musicplayer.ui.common.viewholder.MusicSelectViewHolder
 
 class MusicSelectAdapter(

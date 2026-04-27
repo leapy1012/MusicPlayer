@@ -1,4 +1,4 @@
-package gd.app.musicplayer.data.repo
+package gd.app.musicplayer.data.repositorysitory
 
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteQuery

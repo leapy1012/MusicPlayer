@@ -40,7 +40,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".ui.WelcomeActivity"
+            android:name=".feature.welcome.WelcomeActivity"
             android:configChanges="screenSize|orientation|keyboardHidden|keyboard"
             android:exported="true"
             android:launchMode="singleTop"
@@ -54,16 +54,16 @@
         </activity>
 
         <activity
-            android:name=".ui.shell.MainActivity"
+            android:name=".feature.shell.MainActivity"
             android:exported="true"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.theme.ThemeActivity"
+            android:name=".feature.theme.ThemeActivity"
             android:configChanges="screenSize|orientation|keyboardHidden|keyboard" />
 
         <activity
-            android:name=".ui.theme.ThemeEditActivity"
+            android:name=".feature.theme.ThemeEditActivity"
             android:configChanges="keyboardHidden|keyboard" />
 
         <activity
@@ -180,12 +180,12 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.hidden.HiddenFoldersActivity"
+            android:name=".feature.hidden.HiddenFoldersActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.hidden.HiddenFoldersAddActivity"
+            android:name=".feature.hidden.HiddenFoldersAddActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 

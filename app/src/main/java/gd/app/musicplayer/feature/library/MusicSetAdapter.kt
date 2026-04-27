@@ -13,7 +13,7 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentAlbumGridItemBinding
 import gd.app.musicplayer.databinding.FragmentAlbumListItemBinding
 import gd.app.musicplayer.databinding.FragmentFolderListItemBinding
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 import gd.app.musicplayer.ui.common.viewholder.FolderListMusicSetViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetGridViewHolder

@@ -12,7 +12,7 @@ import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
 import gd.app.musicplayer.ui.common.model.loadArtwork
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 import gd.app.musicplayer.core.ui.extension.appContainer
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 

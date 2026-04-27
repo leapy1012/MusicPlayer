@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""
+Restructure MusicPlayer into a clearer modern Android MVVM package layout.
+
+Run from the repository root:
+    python3 scripts/restructure_mvvm.py
+
+The script is intentionally conservative: it only moves known source packages and then
+updates Kotlin/XML/Gradle references. It does not rewrite feature internals or change behavior.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import shutil
+from pathlib import Path
+
+ROOT_PACKAGE_PATH = Path("app/src/main/java/gd/app/musicplayer")
+TEXT_EXTENSIONS = {".kt", ".java", ".xml", ".gradle", ".kts", ".toml", ".md"}
+
+MOVE_RULES = [
+    # Manual service locator is kept for compatibility, but placed under core/di
+    (ROOT_PACKAGE_PATH / "app" / "AppContainer.kt", ROOT_PACKAGE_PATH / "core" / "di" / "AppContainer.kt"),
+
+    # Repository implementations belong in data/repository
+    (ROOT_PACKAGE_PATH / "data" / "repo", ROOT_PACKAGE_PATH / "data" / "repository"),
+
+    # UI packages become feature packages
+    (ROOT_PACKAGE_PATH / "ui" / "shell", ROOT_PACKAGE_PATH / "feature" / "shell"),
+    (ROOT_PACKAGE_PATH / "ui" / "theme", ROOT_PACKAGE_PATH / "feature" / "theme"),
+    (ROOT_PACKAGE_PATH / "ui" / "hidden", ROOT_PACKAGE_PATH / "feature" / "hidden"),
+    (ROOT_PACKAGE_PATH / "ui" / "WelcomeActivity.kt", ROOT_PACKAGE_PATH / "feature" / "welcome" / "WelcomeActivity.kt"),
+]
+
+REPLACEMENTS = {
+    # Packages/imports
+    "gd.app.musicplayer.app.AppContainer": "gd.app.musicplayer.core.di.AppContainer",
+    "package gd.app.musicplayer.app": "package gd.app.musicplayer.core.di",
+    "gd.app.musicplayer.data.repo": "gd.app.musicplayer.data.repository",
+    "package gd.app.musicplayer.data.repo": "package gd.app.musicplayer.data.repository",
+    "gd.app.musicplayer.ui.shell": "gd.app.musicplayer.feature.shell",
+    "package gd.app.musicplayer.ui.shell": "package gd.app.musicplayer.feature.shell",
+    "gd.app.musicplayer.ui.theme": "gd.app.musicplayer.feature.theme",
+    "package gd.app.musicplayer.ui.theme": "package gd.app.musicplayer.feature.theme",
+    "gd.app.musicplayer.ui.hidden": "gd.app.musicplayer.feature.hidden",
+    "package gd.app.musicplayer.ui.hidden": "package gd.app.musicplayer.feature.hidden",
+    "package gd.app.musicplayer.ui\n": "package gd.app.musicplayer.feature.welcome\n",
+
+    # Manifest shorthand activity names
+    '.ui.WelcomeActivity': '.feature.welcome.WelcomeActivity',
+    '.ui.shell.MainActivity': '.feature.shell.MainActivity',
+    '.ui.theme.ThemeActivity': '.feature.theme.ThemeActivity',
+    '.ui.theme.ThemeEditActivity': '.feature.theme.ThemeEditActivity',
+    '.ui.hidden.HiddenFoldersActivity': '.feature.hidden.HiddenFoldersActivity',
+    '.ui.hidden.HiddenFoldersAddActivity': '.feature.hidden.HiddenFoldersAddActivity',
+}
+
+README_FILES = {
+    ROOT_PACKAGE_PATH / "core" / "README.md": """# core\n\nShared app infrastructure: dependency injection, dispatchers, common UI helpers, permissions, and design-system/theme primitives.\n\n`core` may be used by every other layer. It should not contain screen-specific business logic.\n""",
+    ROOT_PACKAGE_PATH / "data" / "README.md": """# data\n\nConcrete data implementations: Room database, DAOs, entities, MediaStore scanning, metadata/artwork readers, preferences, and repository implementations.\n\nThe data layer implements interfaces from `domain/repository`.\n""",
+    ROOT_PACKAGE_PATH / "domain" / "README.md": """# domain\n\nPure Kotlin application logic: models, repository interfaces, and use cases.\n\nThe domain layer should not depend on Android framework classes.\n""",
+    ROOT_PACKAGE_PATH / "feature" / "README.md": """# feature\n\nUser-facing screens grouped by product feature.\n\nEach migrated feature should follow:\n\n```text\nfeature/<name>/\n  <Name>Activity.kt or <Name>Fragment.kt\n  <Name>ViewModel.kt\n  <Name>UiState.kt\n  <Name>Action.kt\n  <Name>Event.kt\n```\n\nActivities and Fragments should render state, collect events, handle navigation, and request permissions. Business logic belongs in ViewModels/use cases.\n""",
+    ROOT_PACKAGE_PATH / "playback" / "README.md": """# playback\n\nAndroid/media framework integration: foreground playback service, media button receiver, player controller, notification, queue/session integration.\n\nFeature code should communicate with playback through domain use cases or a playback controller abstraction, not by directly owning service internals.\n""",
+}
+
+ARCH_DOC = Path("docs/architecture/mvvm-project-structure.md")
+ARCH_DOC_TEXT = """# MusicPlayer MVVM Project Structure\n\nThis project is being organized around a modern Android MVVM architecture.\n\n## Target package layout\n\n```text\ngd.app.musicplayer\n  core/       shared infrastructure and cross-cutting utilities\n  data/       local data sources and repository implementations\n  domain/     pure Kotlin models, repository interfaces, and use cases\n  feature/    screen-specific UI, ViewModels, state, and actions\n  playback/   Media3/service/media-session integration\n```\n\n## Dependency direction\n\n```text\nfeature -> domain <- data\nfeature -> core\ndata    -> core\nplayback -> domain/core\n```\n\n`domain` is the center of the app. It should stay free of Android framework dependencies.\n\n## Migration rules\n\n1. Move screen packages under `feature/<feature-name>`.\n2. Keep Activities/Fragments thin. They should render UI state and delegate actions to ViewModels.\n3. Put business logic in use cases under `domain/usecase`.\n4. Put repository interfaces in `domain/repository`.\n5. Put concrete repository implementations in `data/repository`.\n6. Use Hilt constructor injection instead of manual dependency lookup.\n7. Migrate one feature at a time to `ViewModel + UiState + Action + Event`.\n\n## Recommended next migration order\n\n1. Search\n2. Library\n3. Playlist\n4. Player queue\n5. Playback service/controller\n6. Settings/theme\n\nThis restructuring is package-level only. It is designed to be safe before deeper behavior refactors.\n"""
+
+
+def repo_root() -> Path:
+    current = Path.cwd()
+    if (current / "settings.gradle.kts").exists():
+        return current
+    raise SystemExit("Run this script from the repository root, where settings.gradle.kts exists.")
+
+
+def move_path(src: Path, dst: Path, dry_run: bool) -> None:
+    if not src.exists():
+        return
+    if dst.exists():
+        print(f"SKIP existing destination: {dst}")
+        return
+    print(f"MOVE {src} -> {dst}")
+    if not dry_run:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(src), str(dst))
+
+
+def rewrite_text_files(root: Path, dry_run: bool) -> int:
+    changed = 0
+    for path in root.rglob("*"):
+        if not path.is_file() or path.suffix not in TEXT_EXTENSIONS:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        updated = text
+        for old, new in REPLACEMENTS.items():
+            updated = updated.replace(old, new)
+        if updated != text:
+            changed += 1
+            print(f"REWRITE {path}")
+            if not dry_run:
+                path.write_text(updated, encoding="utf-8")
+    return changed
+
+
+def write_docs(root: Path, dry_run: bool) -> None:
+    for rel_path, content in README_FILES.items():
+        path = root / rel_path
+        print(f"WRITE {path}")
+        if not dry_run:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+    doc_path = root / ARCH_DOC
+    print(f"WRITE {doc_path}")
+    if not dry_run:
+        doc_path.parent.mkdir(parents=True, exist_ok=True)
+        doc_path.write_text(ARCH_DOC_TEXT, encoding="utf-8")
+
+
+def remove_empty_dirs(root: Path, dry_run: bool) -> None:
+    base = root / ROOT_PACKAGE_PATH
+    if not base.exists():
+        return
+    for dirpath, dirnames, filenames in os.walk(base, topdown=False):
+        p = Path(dirpath)
+        if p == base:
+            continue
+        if not dirnames and not filenames:
+            print(f"RMDIR {p}")
+            if not dry_run:
+                p.rmdir()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dry-run", action="store_true", help="Print changes without modifying files")
+    args = parser.parse_args()
+
+    root = repo_root()
+    for src, dst in MOVE_RULES:
+        move_path(root / src, root / dst, args.dry_run)
+    changed = rewrite_text_files(root, args.dry_run)
+    write_docs(root, args.dry_run)
+    remove_empty_dirs(root, args.dry_run)
+    print(f"Done. Rewritten text files: {changed}")
+    print("Next: run ./gradlew test or ./gradlew assembleDebug and fix any imports that were feature-specific.")
+
+
+if __name__ == "__main__":
+    main()

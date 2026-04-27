@@ -17,7 +17,7 @@ import androidx.core.content.getSystemService
 import androidx.core.os.ConfigurationCompat
 import androidx.core.text.TextUtilsCompat
 import gd.app.musicplayer.MusicPlayerApp
-import gd.app.musicplayer.app.AppContainer
+import gd.app.musicplayer.core.di.AppContainer
 import kotlin.math.roundToInt
 
 fun Context.dpToPx(value: Float): Int =

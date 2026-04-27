@@ -1,7 +1,7 @@
 package gd.app.musicplayer
 
 import android.app.Application
-import gd.app.musicplayer.app.AppContainer
+import gd.app.musicplayer.core.di.AppContainer
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp

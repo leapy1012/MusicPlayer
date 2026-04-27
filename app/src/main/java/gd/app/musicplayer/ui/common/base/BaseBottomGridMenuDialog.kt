@@ -16,7 +16,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.ui.extension.getMaxScreenSize
 import gd.app.musicplayer.core.ui.extension.getMinScreenSize
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 
 abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
 

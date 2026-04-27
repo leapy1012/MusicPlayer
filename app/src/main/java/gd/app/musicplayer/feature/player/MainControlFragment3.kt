@@ -20,7 +20,7 @@ import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlaybackControlViewModel
 import gd.app.musicplayer.ui.common.view.SeekBar
-import gd.app.musicplayer.ui.shell.MainActivity
+import gd.app.musicplayer.feature.shell.MainActivity
 import gd.app.musicplayer.core.ui.extension.appContainer
 import kotlinx.coroutines.launch
 

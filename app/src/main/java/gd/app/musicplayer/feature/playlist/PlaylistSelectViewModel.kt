@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.PlaylistRepo
+import gd.app.musicplayer.data.repository.PlaylistRepo
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow

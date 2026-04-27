@@ -11,7 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import gd.app.musicplayer.MusicPlayerApp
-import gd.app.musicplayer.app.AppContainer
+import gd.app.musicplayer.core.di.AppContainer
 import gd.app.musicplayer.core.theme.ThemeObserver
 
 abstract class BaseActivity : AppCompatActivity(), ThemeObserver {

@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.MainRepo
+import gd.app.musicplayer.data.repository.MainRepo
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTrackUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayPreviousTrackUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase

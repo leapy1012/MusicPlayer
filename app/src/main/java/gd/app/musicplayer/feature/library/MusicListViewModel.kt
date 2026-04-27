@@ -7,7 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.LibraryRepo
+import gd.app.musicplayer.data.repository.LibraryRepo
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow

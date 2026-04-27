@@ -1,4 +1,4 @@
-package gd.app.musicplayer.data.repo
+package gd.app.musicplayer.data.repositorysitory
 
 import android.content.ContentUris
 import android.content.ContentValues

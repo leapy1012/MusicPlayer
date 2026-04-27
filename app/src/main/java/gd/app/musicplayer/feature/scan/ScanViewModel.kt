@@ -7,9 +7,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.app.AppDispatchers
 import gd.app.musicplayer.data.db.MediaStoreMusicImporter
-import gd.app.musicplayer.data.repo.MainRepo
-import gd.app.musicplayer.data.repo.ScanRepo
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.repository.MainRepo
+import gd.app.musicplayer.data.repository.ScanRepo
+import gd.app.musicplayer.data.repository.UserPreferencesRepo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive

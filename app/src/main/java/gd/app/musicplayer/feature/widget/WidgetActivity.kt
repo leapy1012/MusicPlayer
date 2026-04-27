@@ -20,7 +20,7 @@ import gd.app.musicplayer.databinding.ActivityWidgetBinding
 import gd.app.musicplayer.databinding.ActivityWidgetItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.feature.theme.applyCurrentTheme
 
 class WidgetActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
