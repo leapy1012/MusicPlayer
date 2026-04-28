@@ -228,10 +228,27 @@ interface PlaylistDao {
     )
     suspend fun updatePlaylistSort(playlistId: Long, sort: Int)
 
+    @Query(
+        """
+        UPDATE music_playlist
+        SET sort = :sort
+        WHERE p_id = :playlistId
+          AND m_id = :trackId
+        """
+    )
+    suspend fun updatePlaylistTrackSort(playlistId: Long, trackId: Long, sort: Int)
+
     @Transaction
     suspend fun updatePlaylistOrder(playlistIdsInDisplayOrder: List<Long>) {
         playlistIdsInDisplayOrder.forEachIndexed { index, playlistId ->
             updatePlaylistSort(playlistId, index)
+        }
+    }
+
+    @Transaction
+    suspend fun updatePlaylistTrackOrder(playlistId: Long, trackIdsInDisplayOrder: List<Long>) {
+        trackIdsInDisplayOrder.forEachIndexed { index, trackId ->
+            updatePlaylistTrackSort(playlistId, trackId, index)
         }
     }
 

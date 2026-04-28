@@ -35,7 +35,7 @@
             android:tag="dialogSizeBtn"
             app:srcCompat="@drawable/vector_lyric_minus" />
 
-        <gd.app.musicplayer.ui.common.view.SeekBar
+        <gd.app.musicplayer.core.ui.view.SeekBar
             android:id="@+id/lyric_seek_bar"
             android:layout_width="0dp"
             android:layout_height="32dp"
@@ -80,7 +80,7 @@
             android:textColor="#ffffff"
             android:textSize="16sp" />
 
-        <gd.app.musicplayer.ui.common.view.ColorSelectView
+        <gd.app.musicplayer.core.ui.view.ColorSelectView
             android:id="@+id/lyric_color_select"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -239,7 +239,7 @@
             android:textColor="#ffffff"
             android:textSize="16sp" />
 
-        <gd.app.musicplayer.ui.common.view.SelectBox
+        <gd.app.musicplayer.core.ui.view.SelectBox
             android:id="@+id/lyric_desk_select"
             android:layout_width="40dp"
             android:layout_height="40dp"
@@ -271,7 +271,7 @@
             android:textColor="#ffffff"
             android:textSize="16sp" />
 
-        <gd.app.musicplayer.ui.common.view.SelectBox
+        <gd.app.musicplayer.core.ui.view.SelectBox
             android:id="@+id/lyric_auto_scroll_select"
             android:layout_width="40dp"
             android:layout_height="40dp"

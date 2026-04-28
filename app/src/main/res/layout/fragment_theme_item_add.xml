@@ -9,7 +9,7 @@
         android:layout_height="match_parent"
         android:src="@drawable/th_music_large"
         android:scaleType="centerCrop"/>
-    <gd.app.musicplayer.ui.common.view.SkinAddView
+    <gd.app.musicplayer.core.ui.view.SkinAddView
         android:layout_gravity="center"
         android:id="@+id/theme_add"
         android:layout_width="80dp"

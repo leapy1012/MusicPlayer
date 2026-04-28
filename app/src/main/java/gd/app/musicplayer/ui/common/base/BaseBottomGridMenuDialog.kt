@@ -13,8 +13,8 @@ import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.extension.getMaxScreenSize
-import gd.app.musicplayer.core.ui.extension.getMinScreenSize
+import gd.app.musicplayer.core.extension.getMaxScreenSize
+import gd.app.musicplayer.core.extension.getMinScreenSize
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.ui.theme.applyCurrentTheme
 

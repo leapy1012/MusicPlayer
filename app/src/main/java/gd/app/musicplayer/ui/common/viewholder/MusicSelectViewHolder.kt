@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
-import gd.app.musicplayer.core.ui.extension.appContainer
+import gd.app.musicplayer.core.extension.appDependencies
 
 class MusicSelectViewHolder(
     val binding: ActivityMusicSelectItemBinding,
@@ -17,7 +17,7 @@ class MusicSelectViewHolder(
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(music: Music, selected: Boolean, locked: Boolean, highlightQuery: String) {
         val context = binding.root.context
-        val accentColor = context.appContainer.themeRepo.getAccentColor(context)
+        val accentColor = context.appDependencies.themeRepo.getAccentColor(context)
 
         binding.musicItemTitle.text = buildHighlightedTitle(
             title = music.title,

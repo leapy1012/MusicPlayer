@@ -6,7 +6,6 @@ import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -15,17 +14,17 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import com.google.android.material.tabs.TabLayout
-import com.ijoysoft.music.model.soundclip.SoundWaveView
 import gd.app.lib.model.scan.MusicScanProgressView
 import gd.app.lib.view.MaskImageView
 import gd.app.lib.model.lrc.view.LyricView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.core.ui.drawable.ViewStateDrawables
-import gd.app.musicplayer.ui.common.view.PlayStateView
-import gd.app.musicplayer.ui.common.view.RecyclerIndexBar
-import gd.app.musicplayer.ui.common.view.RotateStepBar
-import gd.app.musicplayer.ui.common.view.SeekBar
+import gd.app.musicplayer.core.ui.view.PlayStateView
+import gd.app.musicplayer.core.ui.view.RecyclerIndexBar
+import gd.app.musicplayer.core.ui.view.RotateStepBar
+import gd.app.musicplayer.core.ui.view.SeekBar
+import gd.app.musicplayer.ui.feature.editor.waveform.SoundWaveView
 import gd.app.musicplayer.ui.theme.ThemeTags
 
 class DefaultThemeBinder : ThemeViewBinder {

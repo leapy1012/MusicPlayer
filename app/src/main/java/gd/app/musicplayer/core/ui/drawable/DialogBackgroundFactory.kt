@@ -6,7 +6,7 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import androidx.core.graphics.drawable.toDrawable
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.extension.dpToPx
+import gd.app.musicplayer.core.extension.dpToPx
 
 object DialogBackgroundFactory {
 

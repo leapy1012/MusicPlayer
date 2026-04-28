@@ -13,6 +13,7 @@ import gd.app.musicplayer.core.theme.DefaultThemeBinder
 import gd.app.musicplayer.core.theme.ThemePalette
 import gd.app.musicplayer.core.theme.ThemeProvider
 import gd.app.musicplayer.core.theme.ThemeRegistry
+import gd.app.musicplayer.core.theme.headerTitleColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue

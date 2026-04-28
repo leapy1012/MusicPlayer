@@ -26,7 +26,7 @@ class FolderFooterAdapter(
     override fun getItemCount(): Int = 1
 
     class FolderFooterViewHolder(
-        private val binding: FragmentFolderFooterBinding,
+        binding: FragmentFolderFooterBinding,
         onScanClick: () -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
         init {

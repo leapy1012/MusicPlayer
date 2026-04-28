@@ -107,7 +107,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"/>
-            <gd.app.musicplayer.ui.common.view.CustomSpinner
+            <gd.app.musicplayer.core.ui.view.CustomSpinner
                 android:textSize="14sp"
                 android:textColor="@color/white"
                 android:gravity="center_vertical"

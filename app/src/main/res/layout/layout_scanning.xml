@@ -16,7 +16,7 @@
         android:layout_height="wrap_content"
         android:lineSpacingExtra="4dp"
         android:textAlignment="center"/>
-    <gd.app.musicplayer.ui.common.view.SeekBar
+    <gd.app.musicplayer.core.ui.view.SeekBar
         android:id="@+id/scan_progress"
         android:tag="progressBar"
         android:layout_width="match_parent"

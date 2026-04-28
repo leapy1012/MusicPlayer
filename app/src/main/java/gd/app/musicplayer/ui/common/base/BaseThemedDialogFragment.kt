@@ -15,12 +15,13 @@ import androidx.fragment.app.DialogFragment
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.drawable.DrawableCompat
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.extension.appContainer
-import gd.app.musicplayer.core.ui.extension.screenHeight
-import gd.app.musicplayer.core.ui.extension.screenWidth
+import gd.app.musicplayer.core.extension.appDependencies
+import gd.app.musicplayer.core.extension.screenHeight
+import gd.app.musicplayer.core.extension.screenWidth
 import gd.app.musicplayer.core.theme.*
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.core.ui.drawable.ViewStateDrawables
+import gd.app.musicplayer.core.ui.view.SeekBar
 
 abstract class BaseThemedDialogFragment : DialogFragment() {
 
@@ -39,7 +40,7 @@ abstract class BaseThemedDialogFragment : DialogFragment() {
     }
 
     protected fun currentAccentColor(): Int =
-        requireContext().appContainer.themeRepo.getAccentColor(requireContext())
+        requireContext().appDependencies.themeRepo.getAccentColor(requireContext())
 
     protected fun applyDialogWidth(widthRatio: Float) {
         dialog?.window?.let { window ->
@@ -59,16 +60,16 @@ abstract class BaseThemedDialogFragment : DialogFragment() {
         reqWidth: Int = maxOf(320, requireContext().screenWidth / 2),
         reqHeight: Int = maxOf(220, requireContext().screenHeight / 3)
     ) {
-        rootView.background = rootView.context.appContainer.themeRepo
+        rootView.background = rootView.context.appDependencies.themeRepo
             .getCorePalette(rootView.context)
             .getDialogSurfaceDrawable(rootView.context)
     }
 
     protected fun applyTagStyles(rootView: View, accentColor: Int = currentAccentColor()) {
         val palette = DialogTagPalette(
-            theme = rootView.context.appContainer.themeRepo.getCorePalette(rootView.context),
+            theme = rootView.context.appDependencies.themeRepo.getCorePalette(rootView.context),
             accentColorOverride = accentColor,
-            editTextBackground = rootView.context.appContainer.themeRepo
+            editTextBackground = rootView.context.appDependencies.themeRepo
                 .getCorePalette(rootView.context)
                 .getEditTextBackground(rootView.context)
         )
@@ -212,7 +213,7 @@ abstract class BaseThemedDialogFragment : DialogFragment() {
             }
 
             "dialogSeekBar" -> {
-                if (view is gd.app.musicplayer.ui.common.view.SeekBar) {
+                if (view is SeekBar) {
                     view.setThumbColor(palette.accentColor)
                     view.setProgressDrawable(
                         DrawableUtil.roundedProgress(

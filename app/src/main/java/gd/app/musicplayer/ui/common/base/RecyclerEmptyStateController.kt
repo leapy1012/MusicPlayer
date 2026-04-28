@@ -16,8 +16,8 @@ import androidx.recyclerview.widget.RecyclerView
 import gd.app.lib.configuration.ConfigurationLinearLayout
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
-import gd.app.musicplayer.core.ui.extension.appContainer
-import gd.app.musicplayer.core.ui.extension.dpToPx
+import gd.app.musicplayer.core.extension.appDependencies
+import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.core.theme.*
 
 class RecyclerEmptyStateController(
@@ -71,7 +71,7 @@ class RecyclerEmptyStateController(
             strokeWidth = button.context.dpToPx(1f),
             strokeColor = if (usesDarkForegroundPalette) 0x1A000000 else 0x33FFFFFF,
             fillColor = 0,
-            rippleColor = button.context.appContainer.themeRepo.getRippleColor(button.context)
+            rippleColor = button.context.appDependencies.themeRepo.getRippleColor(button.context)
         )
 
         root.findViewById<ImageView>(R.id.empty_image)?.imageTintList =
@@ -166,7 +166,7 @@ class RecyclerEmptyStateController(
             }
 
             applyTheme(
-                theme ?: recyclerView.context.appContainer.themeRepo.getCorePalette(recyclerView.context)
+                theme ?: recyclerView.context.appDependencies.themeRepo.getCorePalette(recyclerView.context)
             )
         }
 

@@ -4,10 +4,10 @@ import android.content.Context
 import android.view.View
 import gd.app.musicplayer.data.model.ContextMenuItem
 import gd.app.musicplayer.data.model.MenuItemModel
-import gd.app.musicplayer.ui.feature.menu.BaseContextMenu
+import gd.app.musicplayer.ui.common.menu.BaseContextMenu
 
 class EditMorePopupMenu(
-    private val context: Context,
+    context: Context,
     private val items: List<MenuItemModel>,
     private val itemClickListener: OnItemClickListener<MenuItemModel>
 ) : BaseContextMenu(context) {

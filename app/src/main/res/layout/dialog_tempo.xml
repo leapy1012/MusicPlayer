@@ -29,7 +29,7 @@
         app:layout_constraintTop_toBottomOf="@id/popup_text_pitch"
         app:srcCompat="@drawable/vector_tempo_refresh" />
 
-    <gd.app.musicplayer.ui.common.view.SeekBar
+    <gd.app.musicplayer.core.ui.view.SeekBar
         android:id="@+id/popup_seek_pitch"
         android:layout_width="0dp"
         android:layout_height="24dp"
@@ -71,7 +71,7 @@
         app:layout_constraintTop_toBottomOf="@id/popup_text_tempo"
         app:srcCompat="@drawable/vector_tempo_refresh" />
 
-    <gd.app.musicplayer.ui.common.view.SeekBar
+    <gd.app.musicplayer.core.ui.view.SeekBar
         android:id="@+id/popup_seek_tempo"
         android:layout_width="0dp"
         android:layout_height="24dp"

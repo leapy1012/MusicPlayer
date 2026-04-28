@@ -8,7 +8,7 @@ import android.util.AttributeSet
 import android.view.WindowInsets
 import androidx.core.content.withStyledAttributes
 import gd.app.lib.R
-import gd.app.lib.view.ConfigurationFrameLayout
+import gd.app.lib.configuration.ConfigurationFrameLayout
 
 interface NavigationBarColorHost  {
     fun setNavigationBarColor(color: Int)

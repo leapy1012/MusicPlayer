@@ -15,14 +15,14 @@ class DeleteTracksUseCase(
     suspend operator fun invoke(tracks: Collection<Music>): Int {
         val deletedIds = mutableListOf<Long>()
 
-        tracks.distinctBy(Music::_id).forEach { track ->
+        tracks.distinctBy(Music::id).forEach { track ->
             val contentUri = ContentUris.withAppendedId(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                track._id
+                track.id
             )
             val wasDeleted = tryDeleteFromMediaStore(contentUri) || tryDeleteFromFileSystem(track)
             if (wasDeleted) {
-                deletedIds += track._id
+                deletedIds += track.id
             }
         }
 

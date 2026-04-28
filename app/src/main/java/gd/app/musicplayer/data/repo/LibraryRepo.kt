@@ -21,21 +21,13 @@ class LibraryRepo(
         sortStyle: String,
         sortDescending: Boolean
     ): Flow<List<Music>> {
-        return when (musicSet) {
-            is MusicSet.TrackCollection,
-            is MusicSet.Playlist,
-            is MusicSet.Favorites -> {
-                val query = LibraryQueryBuilder.buildTrackQuery(
-                    musicSet = musicSet,
-                    sortStyle = sortStyle,
-                    sortDescending = sortDescending,
-                    smartConfig = preferenceUtil.getSmartPlaylistConfig()
-                )
-                libraryDao.observeTracksRaw(query)
-            }
-
-            else -> flowOf(emptyList())
-        }
+        val query = LibraryQueryBuilder.buildTrackQuery(
+            musicSet = musicSet,
+            sortStyle = sortStyle,
+            sortDescending = sortDescending,
+            smartConfig = preferenceUtil.getSmartPlaylistConfig()
+        )
+        return libraryDao.observeTracksRaw(query)
     }
 
     fun observeTracks(musicSet: MusicSet): Flow<List<Music>> =
@@ -77,6 +69,9 @@ class LibraryRepo(
 
     fun observePreferenceChanges(): Flow<Unit> =
         preferenceUtil.observePreferenceChanges()
+
+    fun getSortStyle(musicSet: MusicSet): String =
+        preferenceUtil.getSortStyle(musicSet)
 
     fun getListViewMode(musicSet: MusicSet): Int =
         if (musicSet is MusicSet.Folders) {

@@ -3,7 +3,7 @@ package gd.app.musicplayer.ui.common.viewholder
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.loadMusicArtwork
+import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersMusicItemBinding
 
 class HiddenMusicViewHolder(

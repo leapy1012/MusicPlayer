@@ -12,11 +12,11 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
-import gd.app.musicplayer.core.ui.extension.applySystemBarInsets
-import gd.app.musicplayer.core.ui.extension.startActivityCompat
+import gd.app.musicplayer.core.extension.applySystemBarInsets
+import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityThemeBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.feature.library.ArtworkCropActivity
+import gd.app.musicplayer.ui.feature.library.ArtworkCropActivity
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -77,7 +77,7 @@ class ThemeActivity : BaseActivity() {
 
     private fun setupAccentColorDialog() {
         binding.themeAccentColor.setOnClickListener {
-            val fallbackColor = appContainer.themeRepo.getAccentColor(this)
+            val fallbackColor = appDependencies.themeRepo.getAccentColor(this)
             viewModel.onAccentColorClicked(fallbackColor)
         }
 

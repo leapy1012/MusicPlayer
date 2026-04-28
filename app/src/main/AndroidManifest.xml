@@ -19,24 +19,20 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.BLUETOOTH"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
 
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
-        android:name=".MusicPlayerApp"
+        android:name=".app.MusicPlayerApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/app_icon"
         android:label="@string/music_player"
         android:supportsRtl="true"
-        tools:replace="android:label"
         android:theme="@style/AppTheme">
 
         <activity
@@ -67,76 +63,76 @@
             android:configChanges="keyboardHidden|keyboard" />
 
         <activity
-            android:name=".feature.library.AlbumActivity"
+            android:name=".ui.feature.library.AlbumActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.library.AlbumMusicActivity"
+            android:name=".ui.feature.library.AlbumMusicActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.selection.MusicEditActivity"
+            android:name=".ui.feature.selection.MusicEditActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.selection.ActivityMusicSelect"
+            android:name=".ui.feature.selection.ActivityMusicSelect"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.playlist.ActivityPlaylistSelect"
+            android:name=".ui.feature.playlist.ActivityPlaylistSelect"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.selection.MusicSetEditActivity"
+            android:name=".ui.feature.selection.MusicSetEditActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.search.SearchActivity"
+            android:name=".ui.feature.search.SearchActivity"
             android:configChanges="screenSize|orientation|keyboardHidden|keyboard"
             android:windowSoftInputMode="adjustPan" />
 
         <activity
-            android:name=".feature.scan.ScanMusicActivity"
+            android:name=".ui.feature.scan.ScanMusicActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".feature.duplicate.ActivityDuplicatedFinder"
-            android:exported="false"
-            android:launchMode="singleTop" />
-
-        <activity
-            android:name=".feature.equalizer.EqualizerActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-        <activity
-            android:name=".feature.equalizer.EffectGroupActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-        <activity
-            android:name=".feature.tags.EditTagsActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-        <activity
-            android:name=".feature.library.ArtworkCropActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-        <activity
-            android:name=".feature.editor.ActivityAudioEditor"
+            android:name=".ui.feature.duplicate.ActivityDuplicatedFinder"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.widget.WidgetActivity"
+            android:name=".ui.feature.equalizer.EqualizerActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".feature.widget.WidgetConfigActivity"
+            android:name=".ui.feature.equalizer.EffectGroupActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.feature.tags.EditTagsActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.feature.library.ArtworkCropActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.feature.editor.ActivityAudioEditor"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.feature.widget.WidgetActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.feature.widget.WidgetConfigActivity"
             android:exported="true"
             android:launchMode="singleTop">
             <intent-filter>
@@ -145,29 +141,29 @@
         </activity>
 
         <activity
-            android:name=".feature.sleep.SleepActivity"
+            android:name=".ui.feature.sleep.SleepActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.drivemode.DriveModeActivity"
+            android:name=".ui.feature.drivemode.DriveModeActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".feature.drivemode.DriveRemindActivity"
+            android:name=".ui.feature.drivemode.DriveRemindActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".feature.setting.SettingActivity"
+            android:name=".ui.feature.setting.SettingActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".feature.lyrics.ActivityStatusBarLyrics"
+            android:name=".ui.feature.lyrics.ActivityStatusBarLyrics"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".feature.lock.LockActivity"
+            android:name=".ui.feature.lock.LockActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleTop"
@@ -175,7 +171,7 @@
             android:taskAffinity="" />
 
         <activity
-            android:name=".feature.player.ActivityPlayQueue"
+            android:name=".ui.feature.player.ActivityPlayQueue"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -190,11 +186,11 @@
             android:launchMode="singleTop" />
 
         <service
-            android:name=".playback.MusicPlayService"
+            android:name=".playback.MusicPlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
         <service
-            android:name=".feature.widget.WidgetQueueService"
+            android:name=".ui.feature.widget.WidgetQueueService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
@@ -208,7 +204,7 @@
         </receiver>
 
         <receiver
-            android:name=".feature.widget.provider.Widget2x1Provider"
+            android:name=".ui.feature.widget.provider.Widget2x1Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -221,7 +217,7 @@
         </receiver>
 
         <receiver
-            android:name=".feature.widget.provider.Widget3x2Provider"
+            android:name=".ui.feature.widget.provider.Widget3x2Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -234,7 +230,7 @@
         </receiver>
 
         <receiver
-            android:name=".feature.widget.provider.Widget4x1Provider"
+            android:name=".ui.feature.widget.provider.Widget4x1Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -247,7 +243,7 @@
         </receiver>
 
         <receiver
-            android:name=".feature.widget.provider.Widget4x2Provider"
+            android:name=".ui.feature.widget.provider.Widget4x2Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -260,7 +256,7 @@
         </receiver>
 
         <receiver
-            android:name=".feature.widget.provider.Widget4x3Provider"
+            android:name=".ui.feature.widget.provider.Widget4x3Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -273,7 +269,7 @@
         </receiver>
 
         <receiver
-            android:name=".feature.widget.provider.Widget4x4Provider"
+            android:name=".ui.feature.widget.provider.Widget4x4Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -286,7 +282,7 @@
         </receiver>
 
         <receiver
-            android:name=".feature.widget.provider.WidgetListProvider"
+            android:name=".ui.feature.widget.provider.WidgetListProvider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>

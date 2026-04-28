@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.drawable.toDrawable
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 
 abstract class BaseThemePalette : ThemePalette {
@@ -78,7 +79,7 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun getHeaderPressedOverlayColor(): Int = ThemeColorUtils.pressedOverlay(isHeaderSurfaceLight())
 
-    override fun getDialogSurfaceDrawable(context: Context): Drawable = ColorDrawable(-1)
+    override fun getDialogSurfaceDrawable(context: Context): Drawable = Color.WHITE.toDrawable()
 
     override fun getHeaderTitleColor(): Int = ThemeColorUtils.primaryTextColor(isHeaderSurfaceLight())
 

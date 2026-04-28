@@ -18,19 +18,19 @@ import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.extension.appContainer
+import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.theme.*
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.isFavorite
+import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.databinding.DialogQueueListBinding
 import gd.app.musicplayer.databinding.DialogQueueListItemBinding
 import gd.app.musicplayer.playback.MusicPlaybackState
 import gd.app.musicplayer.ui.common.playback.PlaybackControlViewModel
-import gd.app.musicplayer.feature.playlist.ActivityPlaylistSelect
-import gd.app.musicplayer.feature.selection.DragSwipeCallback
-import gd.app.musicplayer.feature.selection.ItemMoveListener
-import gd.app.musicplayer.feature.selection.ItemTouchStateListener
+import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.feature.selection.DragSwipeCallback
+import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
+import gd.app.musicplayer.ui.feature.selection.ItemTouchStateListener
 import gd.app.musicplayer.ui.theme.applyCurrentTheme
 import kotlinx.coroutines.launch
 import java.util.Collections
@@ -38,8 +38,8 @@ import java.util.Collections
 @AndroidEntryPoint
 class PlaybackQueueBottomSheetFragment : BottomSheetDialogFragment() {
     private val viewModel: PlaybackControlViewModel by viewModels()
-    private val toggleFavoriteTrack by lazy { requireContext().appContainer.toggleFavoriteTrackUseCase }
-    private val themeRepo by lazy { requireContext().appContainer.themeRepo }
+    private val toggleFavoriteTrack by lazy { requireContext().appDependencies.toggleFavoriteTrackUseCase }
+    private val themeRepo by lazy { requireContext().appDependencies.themeRepo }
 
     private var _binding: DialogQueueListBinding? = null
     private val binding: DialogQueueListBinding
@@ -60,7 +60,7 @@ class PlaybackQueueBottomSheetFragment : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.root.background = view.context.appContainer.themeRepo
+        binding.root.background = view.context.appDependencies.themeRepo
             .getCorePalette(view.context)
             .getDialogSurfaceDrawable(view.context)
         applyCurrentTheme(view)
@@ -157,8 +157,8 @@ class PlaybackQueueBottomSheetFragment : BottomSheetDialogFragment() {
             return
         }
 
-        val currentTrackId = playbackState.currentTrack?._id
-        val nextIndex = updatedQueue.indexOfFirst { it._id == currentTrackId }
+        val currentTrackId = playbackState.currentTrack?.id
+        val nextIndex = updatedQueue.indexOfFirst { it.id == currentTrackId }
             .takeIf { it >= 0 }
             ?: playbackState.currentIndex.coerceIn(0, updatedQueue.lastIndex)
 
@@ -175,7 +175,7 @@ class PlaybackQueueBottomSheetFragment : BottomSheetDialogFragment() {
         } else {
             buildList(queue.size) {
                 add(currentTrack)
-                addAll(queue.filterNot { it._id == currentTrack._id }.shuffled())
+                addAll(queue.filterNot { it.id == currentTrack.id }.shuffled())
             }
         }
 
@@ -185,8 +185,8 @@ class PlaybackQueueBottomSheetFragment : BottomSheetDialogFragment() {
 
     private fun toggleFavorite(track: Music) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val favorited = toggleFavoriteTrack(track._id)
-            adapter.updateFavorite(track._id, favorited)
+            val favorited = toggleFavoriteTrack(track.id)
+            adapter.updateFavorite(track.id, favorited)
         }
     }
 
@@ -235,9 +235,9 @@ private class QueueAdapter(
     }
 
     fun updateFavorite(trackId: Long, favorited: Boolean) {
-        val index = queue.indexOfFirst { it._id == trackId }
+        val index = queue.indexOfFirst { it.id == trackId }
         if (index < 0) return
-        queue[index] = queue[index].copy(p_id = if (favorited) 1L else 0L)
+        queue[index] = queue[index].copy(playlistId = if (favorited) 1L else 0L)
         notifyItemChanged(index)
     }
 
@@ -252,7 +252,7 @@ private class QueueAdapter(
         itemTouchHelper.attachToRecyclerView(recyclerView)
     }
 
-    override fun getItemId(position: Int): Long = queue[position]._id
+    override fun getItemId(position: Int): Long = queue[position].id
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QueueViewHolder {
         val binding = DialogQueueListItemBinding.inflate(
@@ -295,10 +295,10 @@ private class QueueAdapter(
             onDragStart: () -> Unit
         ) {
             val context = binding.root.context
-            val palette = context.appContainer.themeRepo
+            val palette = context.appDependencies.themeRepo
                 .getCorePalette(context)
             val titleColor = if (isCurrent) {
-                context.appContainer.themeRepo.getAccentColor(context)
+                context.appDependencies.themeRepo.getAccentColor(context)
             } else {
                 palette.titleColor
             }
@@ -310,7 +310,7 @@ private class QueueAdapter(
             binding.currentListMusicArtist.setTextColor(artistColor)
             binding.currentListFavorite.isSelected = music.isFavorite()
             binding.currentListFavorite.imageTintList = ColorStateList.valueOf(
-                if (music.isFavorite()) context.appContainer.themeRepo.getAccentColor(context)
+                if (music.isFavorite()) context.appDependencies.themeRepo.getAccentColor(context)
                 else palette.titleColor
             )
 

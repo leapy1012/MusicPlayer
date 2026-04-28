@@ -4,7 +4,7 @@
     android:layout_height="@dimen/main_control_banner_height"
     android:orientation="horizontal">
 
-    <gd.app.musicplayer.ui.common.view.RotationalImageView
+    <gd.app.musicplayer.core.ui.view.RotationalImageView
         android:id="@+id/item_main_control_album"
         android:layout_width="@dimen/main_control_banner_height"
         android:layout_height="@dimen/main_control_banner_height"

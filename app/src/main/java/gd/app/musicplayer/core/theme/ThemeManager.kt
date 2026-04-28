@@ -1,6 +1,7 @@
 package gd.app.musicplayer.core.theme
 
 import android.content.Context
+import gd.app.musicplayer.core.extension.isDarkTheme
 import gd.app.musicplayer.util.PreferenceUtil
 
 class ThemeManager(
@@ -20,18 +21,8 @@ class ThemeManager(
         }
 
     override fun createInitialTheme(): ThemePalette {
-        val themeType = preferenceUtil.getIntPreference("theme_type", THEME_TYPE_PICTURE)
-        val themeColor = preferenceUtil.getThemeColor()
-        val blurAmount = preferenceUtil.getThemeBlur()
-        val overlayColor = preferenceUtil.getThemeOverlayColor()
-        val imageName = preferenceUtil.getThemeImageName()
-
-        return (if (themeType == THEME_TYPE_DARK) DarkThemePalette() else PictureThemePalette()).apply {
-            setImageName(imageName)
-            setAccentColor(themeColor)
-            setBlurAmount(blurAmount)
-            setBackgroundOverlayColor(overlayColor)
-        }
+        val preferredType = preferenceUtil.getIntPreference("theme_type", THEME_TYPE_PICTURE)
+        return createPalette(preferredType)
     }
 
     override fun notifyThemeChanged(palette: ThemePalette) {
@@ -49,7 +40,9 @@ class ThemeManager(
 
     override fun refreshTheme(context: Context) {
         val safeContext = context.applicationContext
-        val palette = createInitialTheme()
+        val preferredType = preferenceUtil.getIntPreference("theme_type", THEME_TYPE_PICTURE)
+        val resolvedType = resolveThemeType(safeContext, preferredType)
+        val palette = createPalette(resolvedType)
         if (palette.ensureResourcesLoaded(safeContext)) {
             updateCurrentTheme(palette, persist = false, notify = true)
             return
@@ -60,7 +53,7 @@ class ThemeManager(
     fun toggleDarkMode(enabled: Boolean) {
         val themeType = if (enabled) THEME_TYPE_DARK else THEME_TYPE_PICTURE
         preferenceUtil.putIntPreference("theme_type", themeType)
-        val palette = (getCurrentTheme() as PictureThemePalette).copyAsThemeType(themeType, reuseBitmaps = true)
+        val palette = createPalette(themeType)
         applyTheme(palette)
     }
 
@@ -69,6 +62,27 @@ class ThemeManager(
         val current = getCurrentTheme()
         current.setAccentColor(accentColor)
         updateCurrentTheme(current, persist = false, notify = true)
+    }
+
+    private fun resolveThemeType(context: Context, preferredType: Int): Int {
+        return when {
+            preferredType == THEME_TYPE_DARK -> THEME_TYPE_DARK
+            context.isDarkTheme() -> THEME_TYPE_DARK
+            else -> THEME_TYPE_PICTURE
+        }
+    }
+
+    private fun createPalette(themeType: Int): PictureThemePalette {
+        val themeColor = preferenceUtil.getThemeColor()
+        val blurAmount = preferenceUtil.getThemeBlur()
+        val overlayColor = preferenceUtil.getThemeOverlayColor()
+        val imageName = preferenceUtil.getThemeImageName()
+        return (if (themeType == THEME_TYPE_DARK) DarkThemePalette() else PictureThemePalette()).apply {
+            setImageName(imageName)
+            setAccentColor(themeColor)
+            setBlurAmount(blurAmount)
+            setBackgroundOverlayColor(overlayColor)
+        }
     }
 
     companion object {

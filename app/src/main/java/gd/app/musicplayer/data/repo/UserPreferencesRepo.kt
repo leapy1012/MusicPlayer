@@ -3,7 +3,7 @@ package gd.app.musicplayer.data.repo
 import android.content.Context
 import gd.app.musicplayer.R
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.feature.scan.ScanOptions
+import gd.app.musicplayer.ui.feature.scan.ScanOptions
 import gd.app.musicplayer.util.LibraryTabConfig
 import gd.app.musicplayer.util.PreferenceUtil
 import gd.app.musicplayer.util.ThemePreferenceOps

@@ -25,7 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.model.loadMusicArtwork
+import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersAddBinding
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersAddItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -34,8 +34,8 @@ import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.theme.applyCurrentTheme
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
-import gd.app.musicplayer.core.ui.extension.appContainer
-import gd.app.musicplayer.core.ui.extension.startActivityCompat
+import gd.app.musicplayer.core.extension.appDependencies
+import gd.app.musicplayer.core.extension.startActivityCompat
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -52,7 +52,7 @@ class HiddenFoldersAddActivity : BaseActivity(), Toolbar.OnMenuItemClickListener
     private var visibleSongs: List<Music> = emptyList()
     private lateinit var emptyStateController: RecyclerEmptyStateController
     private lateinit var recyclerView: RecyclerView
-    private val themeRepo by lazy { appContainer.themeRepo }
+    private val themeRepo by lazy { appDependencies.themeRepo }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -262,11 +262,11 @@ private class HiddenFoldersAddAdapter(
 ) : RecyclerView.Adapter<HiddenFoldersAddAdapter.ItemViewHolder>() {
 
     private val accentColor by lazy {
-        context.appContainer.themeRepo.getAccentColor(context)
+        context.appDependencies.themeRepo.getAccentColor(context)
     }
 
     private val rippleColor by lazy {
-        context.appContainer.themeRepo.getRippleColor(context)
+        context.appDependencies.themeRepo.getRippleColor(context)
     }
     private val allItems = mutableListOf<HiddenSelectionItem>()
     private var visibleItems: List<HiddenSelectionItem> = emptyList()
@@ -313,7 +313,7 @@ private class HiddenFoldersAddAdapter(
 
     fun submitSongs(songs: List<Music>) {
         if (mode != MODE_SONGS) return
-        selectedSongIds.retainAll(songs.mapTo(hashSetOf()) { it._id })
+        selectedSongIds.retainAll(songs.mapTo(hashSetOf()) { it.id })
         allItems.clear()
         songs.forEach { allItems += HiddenSelectionItem.SongItem(it) }
         updateVisibleItems(applyFilter(searchQuery))
@@ -363,7 +363,7 @@ private class HiddenFoldersAddAdapter(
                     old is HiddenSelectionItem.FolderItem && new is HiddenSelectionItem.FolderItem ->
                         old.folder.folderPath == new.folder.folderPath
                     old is HiddenSelectionItem.SongItem && new is HiddenSelectionItem.SongItem ->
-                        old.song._id == new.song._id
+                        old.song.id == new.song.id
                     else -> false
                 }
             }
@@ -414,7 +414,7 @@ private class HiddenFoldersAddAdapter(
                     binding.musicItemTitle.text = highlight(item.song.title)
                     binding.musicItemArtist.text = highlight(item.song.artist)
                     binding.musicItemDes.visibility = View.GONE
-                    binding.musicItemSelect.isSelected = selectedSongIds.contains(item.song._id)
+                    binding.musicItemSelect.isSelected = selectedSongIds.contains(item.song.id)
                 }
             }
             updateSelectionTint()
@@ -431,10 +431,10 @@ private class HiddenFoldersAddAdapter(
                 }
 
                 is HiddenSelectionItem.SongItem -> {
-                    if (!selectedSongIds.add(current.song._id)) {
-                        selectedSongIds.remove(current.song._id)
+                    if (!selectedSongIds.add(current.song.id)) {
+                        selectedSongIds.remove(current.song.id)
                     }
-                    binding.musicItemSelect.isSelected = selectedSongIds.contains(current.song._id)
+                    binding.musicItemSelect.isSelected = selectedSongIds.contains(current.song.id)
                 }
             }
             updateSelectionTint()

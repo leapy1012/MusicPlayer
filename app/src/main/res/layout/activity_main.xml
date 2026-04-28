@@ -38,7 +38,7 @@
 
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/bottomPlayer"
-                android:name="gd.app.musicplayer.feature.player.MainControlFragment3"
+                android:name="gd.app.musicplayer.ui.feature.player.MainControlFragment3"
                 android:layout_width="match_parent"
                 android:layout_height="236dp"
                 android:clipToPadding="false"

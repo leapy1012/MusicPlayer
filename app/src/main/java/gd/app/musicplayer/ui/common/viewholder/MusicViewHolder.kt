@@ -1,21 +1,20 @@
 package gd.app.musicplayer.ui.common.viewholder
 
-import android.annotation.SuppressLint
+import android.text.format.Formatter
 import android.view.View
 import androidx.core.graphics.ColorUtils
-import gd.app.musicplayer.R
+import androidx.core.view.isVisible
 import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.model.loadMusicArtwork
+import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.FragmentMusicListItemBinding
-import gd.app.musicplayer.core.ui.extension.appContainer
+import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.view.isVisible
-import java.util.Locale.getDefault
+import kotlin.time.Duration.Companion.milliseconds
 
 class MusicViewHolder(
     val binding: FragmentMusicListItemBinding,
@@ -38,7 +37,7 @@ class MusicViewHolder(
         viewInfo: String
     ) {
         val music = (item as ListItem.MusicItem).music
-        boundMusicId = music._id
+        boundMusicId = music.id
 
         music.loadMusicArtwork(binding.musicItemAlbum)
         binding.musicItemTitle.text = music.title
@@ -72,10 +71,8 @@ class MusicViewHolder(
     }
 
     private fun bindMetadata(music: Music, isCurrentTrack: Boolean, isPlaying: Boolean, viewInfo: String) {
-        if (musicSet is MusicSet.RecentlyAdded || viewInfo == "date") {
-            val formattedDate = formatMonthDay(music.date)
-            binding.musicItemSize.text = formattedDate
-            binding.musicItemSize.visibility = if (formattedDate.isBlank()) View.GONE else View.VISIBLE
+        if (musicSet is MusicSet.RecentlyAdded || viewInfo == VIEW_INFO_DATE) {
+            showTrackMetadata(formatAddedDate(music.date))
             binding.musicItemCount.visibility = View.GONE
         }
 
@@ -86,18 +83,21 @@ class MusicViewHolder(
             binding.musicItemCount.text = music.playCount.toString()
         }
 
-        else if (viewInfo == "size") {
-            binding.musicItemSize.text = music.size.toString()
-            binding.musicItemSize.visibility = View.VISIBLE
+        else if (viewInfo == VIEW_INFO_SIZE) {
+            showTrackMetadata(formatFileSize(music.size))
             binding.musicItemCount.visibility = View.GONE
-        } else if (viewInfo == "duration") {
-            binding.musicItemSize.text = music.duration.toString()
-            binding.musicItemSize.visibility = View.VISIBLE
+        } else if (viewInfo == VIEW_INFO_DURATION) {
+            showTrackMetadata(formatDuration(music.duration))
             binding.musicItemCount.visibility = View.GONE
         } else {
             binding.musicItemCount.visibility = View.GONE
-            binding.musicItemCount.visibility = View.GONE
+            binding.musicItemSize.visibility = View.GONE
         }
+    }
+
+    private fun showTrackMetadata(value: String) {
+        binding.musicItemSize.text = value
+        binding.musicItemSize.visibility = if (value.isBlank()) View.GONE else View.VISIBLE
     }
 
     private fun bindPlaybackMetadataOnly(isCurrentTrack: Boolean, isPlaying: Boolean) {
@@ -109,7 +109,7 @@ class MusicViewHolder(
 
     private fun renderTextColors(isCurrentTrack: Boolean, isPlaying: Boolean) {
         val context = binding.root.context
-        val theme = context.appContainer.themeRepo
+        val theme = context.appDependencies.themeRepo
             .getCorePalette(context)
         val isActivePlayingTrack = isCurrentTrack && isPlaying
 
@@ -129,13 +129,40 @@ class MusicViewHolder(
         }
     }
 
-    private fun formatMonthDay(value: Long?): String {
+    private fun formatAddedDate(value: Long?): String {
         if (value == null || value <= 0L) return ""
         val epochMillis = if (value < 1_000_000_000_000L) value * 1000L else value
-        return MONTH_DAY_FORMAT.format(Date(epochMillis))
+        return ADDED_DATE_FORMAT.format(Date(epochMillis))
+    }
+
+    private fun formatFileSize(value: Long?): String {
+        if (value == null || value <= 0L) return ""
+        return Formatter.formatShortFileSize(binding.root.context, value)
+    }
+
+    private fun formatDuration(durationMs: Int): String {
+        if (durationMs <= 0) return ""
+
+        val duration = durationMs.milliseconds
+        val totalSeconds = duration.inWholeSeconds
+        val hours = totalSeconds / SECONDS_PER_HOUR
+        val minutes = (totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
+        val seconds = totalSeconds % SECONDS_PER_MINUTE
+
+        return if (hours > 0) {
+            "%d:%02d:%02d".format(Locale.getDefault(), hours, minutes, seconds)
+        } else {
+            "%d:%02d".format(Locale.getDefault(), minutes, seconds)
+        }
     }
 
     private companion object {
-        val MONTH_DAY_FORMAT = SimpleDateFormat("MM-dd", Locale.getDefault())
+        private const val VIEW_INFO_DATE = "date"
+        private const val VIEW_INFO_SIZE = "size"
+        private const val VIEW_INFO_DURATION = "duration"
+        private const val SECONDS_PER_MINUTE = 60
+        private const val SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE
+
+        val ADDED_DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     }
 }

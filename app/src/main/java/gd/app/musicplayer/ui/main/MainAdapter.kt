@@ -10,7 +10,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import androidx.core.graphics.drawable.toDrawable
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.extension.applyRoundedOutline
+import gd.app.musicplayer.core.extension.applyRoundedOutline
 import gd.app.musicplayer.databinding.FragmentMainItemBinding
 
 class MainAdapter(

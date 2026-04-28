@@ -12,7 +12,7 @@
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.5" />
 
-    <gd.app.musicplayer.ui.common.view.SelectBox
+    <gd.app.musicplayer.core.ui.view.SelectBox
         android:id="@+id/equalizer_bass_box"
         android:layout_width="@dimen/equalizer_toggle_width"
         android:layout_height="@dimen/equalizer_toggle_height"
@@ -24,7 +24,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/selector_equalizer_select_box" />
 
-    <gd.app.musicplayer.ui.common.view.SelectBox
+    <gd.app.musicplayer.core.ui.view.SelectBox
         android:id="@+id/equalizer_virtual_box"
         android:layout_width="@dimen/equalizer_toggle_width"
         android:layout_height="@dimen/equalizer_toggle_height"
@@ -35,7 +35,7 @@
         app:layout_constraintTop_toTopOf="@+id/equalizer_bass_box"
         app:srcCompat="@drawable/selector_equalizer_select_box" />
 
-    <gd.app.musicplayer.ui.common.view.RotateStepBar
+    <gd.app.musicplayer.core.ui.view.RotateStepBar
         android:id="@+id/equalizer_bass_rotate"
         android:layout_width="@dimen/equalizer_bass_height"
         android:layout_height="@dimen/equalizer_bass_height"
@@ -44,7 +44,7 @@
         app:layout_constraintEnd_toEndOf="@+id/equalizer_bass_box"
         app:layout_constraintStart_toStartOf="@+id/equalizer_bass_box"
         app:layout_constraintTop_toBottomOf="@+id/equalizer_bass_box"
-        app:rotateStep="1"
+        app:rotateStep="0"
         app:rotateStepExtraGraduationDrawable="@drawable/rotate_extra_graduation"
         app:rotateStepExtraGraduationSize="@dimen/equalizer_graduation_size"
         app:rotateStepGraduationCount="13"
@@ -53,7 +53,7 @@
         app:rotateStepMax="100"
         app:rotateStepPlugPadding="@dimen/equalizer_plug_padding" />
 
-    <gd.app.musicplayer.ui.common.view.RotateStepBar
+    <gd.app.musicplayer.core.ui.view.RotateStepBar
         android:id="@+id/equalizer_virtual_rotate"
         android:layout_width="@dimen/equalizer_bass_height"
         android:layout_height="@dimen/equalizer_bass_height"
@@ -61,7 +61,7 @@
         app:layout_constraintEnd_toEndOf="@+id/equalizer_virtual_box"
         app:layout_constraintStart_toStartOf="@+id/equalizer_virtual_box"
         app:layout_constraintTop_toTopOf="@+id/equalizer_bass_rotate"
-        app:rotateStep="1"
+        app:rotateStep="0"
         app:rotateStepExtraGraduationDrawable="@drawable/rotate_extra_graduation"
         app:rotateStepExtraGraduationSize="@dimen/equalizer_graduation_size"
         app:rotateStepGraduationCount="13"

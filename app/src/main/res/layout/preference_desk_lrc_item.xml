@@ -59,7 +59,7 @@
             android:tag="selectBox"
             app:srcCompat="@drawable/vector_desktop_lrc_lock_setting_selector" />
 
-        <gd.app.musicplayer.ui.common.view.SelectBox
+        <gd.app.musicplayer.core.ui.view.SelectBox
             android:id="@+id/checkbox"
             android:layout_width="56dp"
             android:layout_height="56dp"

@@ -9,7 +9,7 @@
     android:paddingBottom="@dimen/equalizer_group_bottom"
     android:tag="effectStroke">
 
-    <gd.app.musicplayer.ui.common.view.SelectBox
+    <gd.app.musicplayer.core.ui.view.SelectBox
         android:id="@+id/effect_group_select"
         android:layout_width="48dp"
         android:layout_height="48dp"
@@ -102,7 +102,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/effect_group_tip_2" />
 
-    <gd.app.musicplayer.ui.common.view.SeekBar
+    <gd.app.musicplayer.core.ui.view.SeekBar
         android:id="@+id/effect_group_volume_seek"
         android:layout_width="0dp"
         android:layout_height="32dp"

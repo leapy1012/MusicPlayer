@@ -96,8 +96,8 @@ object SleepTimerManager {
         when (current.action) {
             SleepTimerState.ACTION_STOP_PLAYBACK,
             SleepTimerState.ACTION_EXIT_PLAYER -> {
-                val intent = android.content.Intent(context, MusicPlayService::class.java).apply {
-                    action = MusicPlayService.ACTION_STOP
+                val intent = android.content.Intent(context, MusicPlaybackService::class.java).apply {
+                    action = MusicPlaybackService.ACTION_STOP
                 }
                 context.startService(intent)
             }

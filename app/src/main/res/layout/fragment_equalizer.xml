@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:scrollbars="none">
 
-    <gd.app.musicplayer.ui.common.view.FixedHeightLinearLayout
+    <gd.app.musicplayer.core.ui.view.FixedHeightLinearLayout
         android:id="@+id/equalizer_content_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -28,7 +28,7 @@
                 android:textColor="@color/white"
                 android:textSize="18sp" />
 
-            <gd.app.musicplayer.ui.common.view.SelectBox
+            <gd.app.musicplayer.core.ui.view.SelectBox
                 android:id="@+id/equalizer_box"
                 android:layout_width="@dimen/equalizer_toggle_width"
                 android:layout_height="@dimen/equalizer_toggle_height"
@@ -123,5 +123,5 @@
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1" />
-    </gd.app.musicplayer.ui.common.view.FixedHeightLinearLayout>
+    </gd.app.musicplayer.core.ui.view.FixedHeightLinearLayout>
 </androidx.core.widget.NestedScrollView>

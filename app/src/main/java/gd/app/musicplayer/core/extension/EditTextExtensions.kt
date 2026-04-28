@@ -1,0 +1,46 @@
+package gd.app.musicplayer.core.extension
+
+import android.content.Context
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
+import gd.app.musicplayer.core.util.MaxLengthInputFilter
+import java.io.File
+
+fun EditText.extractValidatedText(keepPathSeparators: Boolean): String? {
+    val trimmedText = text?.toString()?.trim().orEmpty()
+    if (trimmedText.isEmpty()) return null
+
+    val finalText = if (keepPathSeparators) {
+        trimmedText
+    } else {
+        trimmedText.replace(File.separator, "")
+    }
+
+    return finalText.takeIf { it.isNotEmpty() }
+}
+
+fun EditText.applyLengthFilter(
+    maxLength: Int
+) {
+    filters = arrayOf(MaxLengthInputFilter(context, maxLength))
+}
+
+fun EditText.hideKeyboard() {
+    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+    if (rootView != null) {
+        imm.hideSoftInputFromWindow(rootView.windowToken, 0)
+        return
+    }
+//
+//    val root = (context as? Activity)?.findViewById<View>(android.R.id.content) ?: return
+//    imm.hideSoftInputFromWindow(root.windowToken, 0)
+}
+
+fun EditText.showKeyboardDelayed(delayMs: Long = 400L) {
+    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+    rootView.postDelayed({
+        rootView.requestFocus()
+        imm.showSoftInput(rootView, 0)
+    }, delayMs)
+}
+

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.AppCompatTextView
+        style="@style/DialogTitle"
+        android:text="@string/shake_level" />
+
+    <TextView
+        android:id="@+id/shake_level_number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="24dp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center_horizontal"
+        android:singleLine="true"
+        android:tag="dialogMessage"
+        android:text="7"
+        android:textColor="@color/i_black_m"
+        android:textSize="18sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/shake_level_minus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:tag="dialogImageThemeButton"
+            app:srcCompat="@drawable/vector_shake_minus" />
+
+        <gd.app.musicplayer.core.ui.view.SeekBar
+            android:id="@+id/shake_level_seek"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:tag="dialogSeekBar"
+            app:seekMax="15"
+            app:seekProgressHeight="3dp"
+            app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/shake_level_plus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:tag="dialogImageThemeButton"
+            app:srcCompat="@drawable/vector_shake_plus" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/DialogButtonLayout">
+
+        <TextView
+            android:id="@+id/dialog_button_reset"
+            style="@style/DialogButton.Cancel"
+            android:text="@string/reset" />
+
+        <TextView
+            android:id="@+id/dialog_button_ok"
+            style="@style/DialogButton.Confirm"
+            android:text="@string/confirm" />
+    </LinearLayout>
+</LinearLayout>

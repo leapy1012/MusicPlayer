@@ -17,12 +17,12 @@ import gd.app.musicplayer.databinding.FragmentMainBinding
 import gd.app.musicplayer.ui.shell.MainActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.feature.library.AlbumActivity
-import gd.app.musicplayer.feature.library.AlbumMusicActivity
-import gd.app.musicplayer.feature.search.SearchActivity
-import gd.app.musicplayer.feature.playlist.PlaylistInputDialog
-import gd.app.musicplayer.core.ui.extension.applySystemBarInsets
-import gd.app.musicplayer.core.ui.extension.dpToPx
+import gd.app.musicplayer.ui.feature.library.AlbumActivity
+import gd.app.musicplayer.ui.feature.library.AlbumMusicActivity
+import gd.app.musicplayer.ui.feature.search.SearchActivity
+import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
+import gd.app.musicplayer.core.extension.applySystemBarInsets
+import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
 import kotlinx.coroutines.launch
 
@@ -97,7 +97,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
                     .build()
             ).attachToRecyclerView(this)
 
-            binding.mainInfoPlaylistAdd.setOnClickListener(::onAddPlaylistClick)
+            binding.mainInfoPlaylistAdd.setOnClickListener{ onAddPlaylistClick()}
             binding.mainInfoPlaylist.setOnClickListener(::onPlaylistsClick)
         }
     }
@@ -134,7 +134,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
         AlbumMusicActivity.start(requireContext(), playlist)
     }
 
-    private fun onAddPlaylistClick(view: android.view.View) {
+    private fun onAddPlaylistClick() {
         openCreatePlaylistDialog()
     }
 

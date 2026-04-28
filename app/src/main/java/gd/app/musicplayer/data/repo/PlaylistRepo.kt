@@ -21,6 +21,11 @@ class PlaylistRepo(
         playlistDao.updatePlaylistOrder(playlistIdsInDisplayOrder)
     }
 
+    suspend fun updatePlaylistTrackOrder(playlistId: Long, trackIdsInDisplayOrder: List<Long>) {
+        if (playlistId <= 0L || trackIdsInDisplayOrder.isEmpty()) return
+        playlistDao.updatePlaylistTrackOrder(playlistId, trackIdsInDisplayOrder.distinct())
+    }
+
     suspend fun playlistNameExists(name: String, excludePlaylistId: Long = -1L): Boolean {
         return playlistDao.playlistNameExists(name, excludePlaylistId)
     }
@@ -68,7 +73,7 @@ class PlaylistRepo(
 
     suspend fun addTracksToPlaylists(playlistIds: Collection<Long>, tracks: Collection<Music>): Int {
         val normalizedPlaylistIds = playlistIds.distinct().filter { it > 0L }
-        val trackIds = tracks.map(Music::_id).distinct()
+        val trackIds = tracks.map(Music::id).distinct()
         if (normalizedPlaylistIds.isEmpty() || trackIds.isEmpty()) return 0
 
         val existingRefs = playlistDao.getExistingPlaylistSongRefs(normalizedPlaylistIds, trackIds)

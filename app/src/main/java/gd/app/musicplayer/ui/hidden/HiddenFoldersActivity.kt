@@ -29,7 +29,7 @@ import gd.app.musicplayer.ui.common.viewholder.HiddenFolderHeaderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenFolderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenMusicHeaderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenMusicViewHolder
-import gd.app.musicplayer.core.ui.extension.startActivityCompat
+import gd.app.musicplayer.core.extension.startActivityCompat
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -81,7 +81,7 @@ class HiddenFoldersActivity : BaseActivity() {
                 viewModel.removeHiddenFolder(folder.folderPath)
             },
             onRemoveMusic = { music ->
-                viewModel.unhideSong(music._id)
+                viewModel.unhideSong(music.id)
             }
         )
         recyclerView.adapter = adapter
@@ -154,7 +154,7 @@ private class HiddenItemsAdapter(
                     old is HiddenRow.FolderItem && new is HiddenRow.FolderItem ->
                         old.folder.folderPath == new.folder.folderPath
                     old is HiddenRow.MusicItem && new is HiddenRow.MusicItem ->
-                        old.music._id == new.music._id
+                        old.music.id == new.music.id
                     else -> false
                 }
             }

@@ -77,8 +77,10 @@ open class PictureThemePalette : BaseThemePalette() {
     override fun getAccentColor(): Int = themeAccentColor
 
     override fun getBlurredBackgroundDrawable(context: Context): Drawable {
-        val bitmap = blurredBitmap ?: return ColorDrawable(0xFFF9F9F9.toInt())
-        return DialogBackgroundFactory.pictureDialogBackground(context, bitmap)
+        return blurredBitmap?.toDrawable(context.resources) ?: 0xFFF9F9F9.toInt().toDrawable()
+//        val bitmap = blurredBitmap ?: return 0xFFF9F9F9.toInt().toDrawable()
+//        return blurredBitmap.toDrawable(context.resources)
+//        return DialogBackgroundFactory.pictureDialogBackground(context, bitmap)
     }
 
     fun setImageName(imageName: String?) {

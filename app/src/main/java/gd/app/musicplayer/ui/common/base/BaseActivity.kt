@@ -1,6 +1,7 @@
 package gd.app.musicplayer.ui.common.base
 
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -10,8 +11,8 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import gd.app.musicplayer.MusicPlayerApp
-import gd.app.musicplayer.app.AppContainer
+import gd.app.musicplayer.app.di.AppDependenciesEntryPoint
+import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.theme.ThemeObserver
 
 abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
@@ -24,8 +25,8 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     }
 
 
-    protected val appContainer: AppContainer
-        get() = (application as MusicPlayerApp).appContainer
+    protected val appDependencies: AppDependenciesEntryPoint
+        get() = applicationContext.appDependencies
 
     companion object {
         val AUDIO_PERMISSIONS =
@@ -72,14 +73,14 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     }
 
     fun applyThemeTo(root: View?) {
-        appContainer.themeEngine.apply(root)
+        appDependencies.themeEngine.apply(root)
     }
 
     override fun onStart() {
         super.onStart()
         isStateSaved = false
-        appContainer.themeRegistry.registerObserver(this)
-        appContainer.themeRepo.refreshTheme(this)
+        appDependencies.themeRegistry.registerObserver(this)
+        appDependencies.themeRepo.refreshTheme(this)
     }
 
     override fun onRestoreInstanceState(
@@ -91,11 +92,17 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     }
 
     override fun onStop() {
-        appContainer.themeRegistry.unregisterObserver(this)
+        appDependencies.themeRegistry.unregisterObserver(this)
         super.onStop()
     }
 
     override fun onThemeChanged(palette: gd.app.musicplayer.core.theme.ThemePalette?) {
+        applyThemeTo(findViewById(android.R.id.content))
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        appDependencies.themeRepo.refreshTheme(this)
         applyThemeTo(findViewById(android.R.id.content))
     }
 

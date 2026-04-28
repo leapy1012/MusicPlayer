@@ -9,11 +9,11 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentFolderBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.feature.library.ListMoreMenuHost
-import gd.app.musicplayer.feature.library.MusicSetListFragment
-import gd.app.musicplayer.feature.search.SearchActivity
-import gd.app.musicplayer.core.ui.extension.applySystemBarInsets
-import gd.app.musicplayer.core.ui.extension.navigateBack
+import gd.app.musicplayer.ui.feature.library.ListMoreMenuHost
+import gd.app.musicplayer.ui.feature.library.MusicSetListFragment
+import gd.app.musicplayer.ui.feature.search.SearchActivity
+import gd.app.musicplayer.core.extension.applySystemBarInsets
+import gd.app.musicplayer.core.extension.navigateBack
 
 @AndroidEntryPoint
 class FolderFragment : ViewBindingFragment<FragmentFolderBinding>() {

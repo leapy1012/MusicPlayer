@@ -25,7 +25,7 @@ class TrackMetadataRepo(
 
     @RequiresApi(Build.VERSION_CODES.R)
     suspend fun updateTrackMetadata(track: Music, metadata: EditableTrackMetadata): Boolean {
-        val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, track._id)
+        val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, track.id)
         val values = ContentValues().apply {
             put(MediaStore.Audio.Media.TITLE, metadata.title)
             put(MediaStore.Audio.Media.ALBUM, metadata.album)
@@ -36,7 +36,7 @@ class TrackMetadataRepo(
         if (updatedRows <= 0) return false
 
         // Refresh the local Room row immediately so lists/details update without requiring a full rescan.
-        importer.queryMusicById(context, track._id)?.let { libraryDao.upsertAll(listOf(it)) }
+        importer.queryMusicById(context, track.id)?.let { libraryDao.upsertAll(listOf(it)) }
         return true
     }
 }

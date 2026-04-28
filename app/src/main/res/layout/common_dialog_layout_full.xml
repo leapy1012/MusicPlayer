@@ -17,7 +17,7 @@
             android:importantForAccessibility="no"
             android:soundEffectsEnabled="false" />
 
-        <gd.app.lib.view.CommonContainerLayout
+        <gd.app.lib.configuration.CommonContainerLayout
             android:id="@+id/common_dialog_background"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -29,6 +29,6 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:fitsSystemWindows="true" />
-        </gd.app.lib.view.CommonContainerLayout>
+        </gd.app.lib.configuration.CommonContainerLayout>
     </gd.app.lib.view.InterceptTouchCoordinatorLayout>
 </FrameLayout>

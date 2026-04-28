@@ -29,7 +29,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/vector_more" />
 
-    <gd.app.musicplayer.ui.common.view.PlayStateView
+    <gd.app.musicplayer.core.ui.view.PlayStateView
         android:id="@+id/music_item_state"
         android:layout_width="40dp"
         android:layout_height="40dp"

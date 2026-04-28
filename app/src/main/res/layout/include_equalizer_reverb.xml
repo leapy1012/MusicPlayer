@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<gd.app.musicplayer.ui.common.view.EqualizerSingleGroup xmlns:android="http://schemas.android.com/apk/res/android"
+<gd.app.musicplayer.core.ui.view.EqualizerSingleGroup xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -68,4 +68,4 @@
             android:layout_weight="1"
             android:text="@string/equalizer_reverb_plate" />
     </LinearLayout>
-</gd.app.musicplayer.ui.common.view.EqualizerSingleGroup>
+</gd.app.musicplayer.core.ui.view.EqualizerSingleGroup>

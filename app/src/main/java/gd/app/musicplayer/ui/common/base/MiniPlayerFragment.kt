@@ -16,11 +16,11 @@ import androidx.viewpager.widget.ViewPager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.loadMusicArtwork
+import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ItemMainControlPagerBinding
 import gd.app.musicplayer.databinding.MainBottomControlPanelBinding
 import gd.app.musicplayer.ui.common.playback.PlaybackControlViewModel
-import gd.app.musicplayer.feature.player.ActivityPlayQueue
+import gd.app.musicplayer.ui.feature.player.ActivityPlayQueue
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.launch
 
@@ -143,12 +143,12 @@ class MiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBinding>() 
     }
 
     private fun placeholderMusic(): Music = Music(
-        _id = -1L,
+        id = -1L,
         title = getString(android.R.string.unknownName),
         artist = getString(android.R.string.unknownName),
         album = "",
-        album_id = "",
-        p_id = 0L,
+        albumId = "",
+        playlistId = 0L,
         data = null,
         duration = 0
     )
@@ -237,7 +237,7 @@ private class MiniPlayerPagerAdapter(
     private fun hasSameItems(old: List<Music>, new: List<Music>): Boolean {
         if (old.size != new.size) return false
         return old.indices.all { index ->
-            old[index]._id == new[index]._id &&
+            old[index].id == new[index].id &&
                 old[index].data == new[index].data &&
                 old[index].title == new[index].title &&
                 old[index].artist == new[index].artist

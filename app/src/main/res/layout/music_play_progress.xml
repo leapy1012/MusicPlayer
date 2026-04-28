@@ -7,7 +7,7 @@
     android:minHeight="48dp"
     android:paddingStart="8dp"
     android:paddingEnd="8dp">
-    <gd.app.musicplayer.ui.common.view.SeekBar
+    <gd.app.musicplayer.core.ui.view.SeekBar
         android:id="@+id/music_play_progress"
         android:paddingTop="6dp"
         android:paddingBottom="6dp"

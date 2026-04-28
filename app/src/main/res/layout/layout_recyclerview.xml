@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <gd.app.musicplayer.ui.common.view.MusicRecyclerView
+    <gd.app.musicplayer.core.ui.view.MusicRecyclerView
         android:scrollbarSize="0dp"
         android:scrollbarThumbHorizontal="@drawable/shape_scrollbar"
         android:scrollbarThumbVertical="@drawable/shape_scrollbar"
@@ -16,7 +16,7 @@
         android:dividerHeight="0dp"
         android:nestedScrollingEnabled="false"
         android:fastScrollEnabled="false"/>
-    <gd.app.musicplayer.ui.common.view.RecyclerIndexBar
+    <gd.app.musicplayer.core.ui.view.RecyclerIndexBar
         android:layout_gravity="end|center_vertical"
         android:id="@+id/recyclerview_index"
         android:tag="recyclerIndexBar"

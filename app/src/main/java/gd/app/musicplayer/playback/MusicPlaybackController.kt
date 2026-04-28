@@ -34,10 +34,10 @@ object MusicPlaybackController {
         val queueId = PlaybackQueueStore.put(queue)
         startService(
             context = context,
-            action = MusicPlayService.ACTION_PLAY_FROM_QUEUE,
+            action = MusicPlaybackService.ACTION_PLAY_FROM_QUEUE,
             builder = { intent ->
-                intent.putExtra(MusicPlayService.EXTRA_QUEUE_ID, queueId)
-                intent.putExtra(MusicPlayService.EXTRA_INDEX, targetIndex)
+                intent.putExtra(MusicPlaybackService.EXTRA_QUEUE_ID, queueId)
+                intent.putExtra(MusicPlaybackService.EXTRA_INDEX, targetIndex)
             }
         )
     }
@@ -52,9 +52,9 @@ object MusicPlaybackController {
         val queueId = PlaybackQueueStore.put(items)
         startService(
             context = context,
-            action = MusicPlayService.ACTION_ENQUEUE,
+            action = MusicPlaybackService.ACTION_ENQUEUE,
             builder = { intent ->
-                intent.putExtra(MusicPlayService.EXTRA_QUEUE_ID, queueId)
+                intent.putExtra(MusicPlaybackService.EXTRA_QUEUE_ID, queueId)
             }
         )
     }
@@ -64,53 +64,53 @@ object MusicPlaybackController {
         val queueId = PlaybackQueueStore.put(items)
         startService(
             context = context,
-            action = MusicPlayService.ACTION_PLAY_NEXT,
+            action = MusicPlaybackService.ACTION_PLAY_NEXT,
             builder = { intent ->
-                intent.putExtra(MusicPlayService.EXTRA_QUEUE_ID, queueId)
+                intent.putExtra(MusicPlaybackService.EXTRA_QUEUE_ID, queueId)
             }
         )
     }
 
     fun togglePlayPause(context: Context) {
-        startService(context, MusicPlayService.ACTION_TOGGLE_PLAY_PAUSE)
+        startService(context, MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE)
     }
 
     fun play(context: Context) {
-        startService(context, MusicPlayService.ACTION_PLAY)
+        startService(context, MusicPlaybackService.ACTION_PLAY)
     }
 
     fun pause(context: Context) {
-        startService(context, MusicPlayService.ACTION_PAUSE)
+        startService(context, MusicPlaybackService.ACTION_PAUSE)
     }
 
     fun playNext(context: Context) {
-        startService(context, MusicPlayService.ACTION_NEXT)
+        startService(context, MusicPlaybackService.ACTION_NEXT)
     }
 
     fun playPrevious(context: Context) {
-        startService(context, MusicPlayService.ACTION_PREVIOUS)
+        startService(context, MusicPlaybackService.ACTION_PREVIOUS)
     }
 
     fun seekTo(context: Context, positionMs: Int) {
         startService(
             context = context,
-            action = MusicPlayService.ACTION_SEEK_TO,
-            builder = { intent -> intent.putExtra(MusicPlayService.EXTRA_SEEK_POSITION_MS, positionMs) }
+            action = MusicPlaybackService.ACTION_SEEK_TO,
+            builder = { intent -> intent.putExtra(MusicPlaybackService.EXTRA_SEEK_POSITION_MS, positionMs) }
         )
     }
 
     fun setStopAfterCurrentTrack(context: Context, enabled: Boolean) {
         startService(
             context = context,
-            action = MusicPlayService.ACTION_SET_STOP_AFTER_CURRENT_TRACK,
+            action = MusicPlaybackService.ACTION_SET_STOP_AFTER_CURRENT_TRACK,
             builder = { intent ->
-                intent.putExtra(MusicPlayService.EXTRA_STOP_AFTER_CURRENT_TRACK, enabled)
+                intent.putExtra(MusicPlaybackService.EXTRA_STOP_AFTER_CURRENT_TRACK, enabled)
             }
         )
     }
 
     fun applyAudioEffects(context: Context) {
-        startService(context, MusicPlayService.ACTION_APPLY_AUDIO_EFFECTS)
+        startService(context, MusicPlaybackService.ACTION_APPLY_AUDIO_EFFECTS)
     }
 
     fun replaceQueue(context: Context, queue: List<Music>, currentIndex: Int) {
@@ -122,28 +122,32 @@ object MusicPlaybackController {
         val queueId = PlaybackQueueStore.put(queue)
         startService(
             context = context,
-            action = MusicPlayService.ACTION_REPLACE_QUEUE,
+            action = MusicPlaybackService.ACTION_REPLACE_QUEUE,
             builder = { intent ->
-                intent.putExtra(MusicPlayService.EXTRA_QUEUE_ID, queueId)
-                intent.putExtra(MusicPlayService.EXTRA_INDEX, targetIndex)
+                intent.putExtra(MusicPlaybackService.EXTRA_QUEUE_ID, queueId)
+                intent.putExtra(MusicPlaybackService.EXTRA_INDEX, targetIndex)
             }
         )
     }
 
     fun clearQueue(context: Context) {
-        startService(context, MusicPlayService.ACTION_CLEAR_QUEUE)
+        startService(context, MusicPlaybackService.ACTION_CLEAR_QUEUE)
     }
 
     fun applyPlaybackTuning(context: Context) {
-        startService(context, MusicPlayService.ACTION_APPLY_PLAYBACK_TUNING)
+        startService(context, MusicPlaybackService.ACTION_APPLY_PLAYBACK_TUNING)
     }
 
     fun refreshNotificationStyle(context: Context) {
-        startService(context, MusicPlayService.ACTION_REFRESH_NOTIFICATION_STYLE)
+        startService(context, MusicPlaybackService.ACTION_REFRESH_NOTIFICATION_STYLE)
     }
 
     fun restartCurrentTrack(context: Context) {
-        startService(context, MusicPlayService.ACTION_RESTART_CURRENT)
+        startService(context, MusicPlaybackService.ACTION_RESTART_CURRENT)
+    }
+
+    fun cyclePlayMode(context: Context) {
+        startService(context, MusicPlaybackService.ACTION_CHANGE_MODE)
     }
 
     internal fun publishState(state: MusicPlaybackState) {
@@ -166,7 +170,7 @@ object MusicPlaybackController {
         action: String,
         builder: ((Intent) -> Unit)? = null
     ) {
-        val intent = Intent(context, MusicPlayService::class.java).setAction(action)
+        val intent = Intent(context, MusicPlaybackService::class.java).setAction(action)
         builder?.invoke(intent)
         if (action.requiresForegroundStart()) {
             ContextCompat.startForegroundService(context, intent)
@@ -176,12 +180,13 @@ object MusicPlaybackController {
     }
 
     private fun String.requiresForegroundStart(): Boolean {
-        return this == MusicPlayService.ACTION_PLAY_FROM_QUEUE ||
-            this == MusicPlayService.ACTION_PLAY ||
-            this == MusicPlayService.ACTION_PLAY_NEXT ||
-            this == MusicPlayService.ACTION_REPLACE_QUEUE ||
-            this == MusicPlayService.ACTION_TOGGLE_PLAY_PAUSE ||
-            this == MusicPlayService.ACTION_NEXT ||
-            this == MusicPlayService.ACTION_PREVIOUS
+        return this == MusicPlaybackService.ACTION_PLAY_FROM_QUEUE ||
+            this == MusicPlaybackService.ACTION_PLAY ||
+            this == MusicPlaybackService.ACTION_PLAY_NEXT ||
+            this == MusicPlaybackService.ACTION_REPLACE_QUEUE ||
+            this == MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE ||
+            this == MusicPlaybackService.ACTION_NEXT ||
+            this == MusicPlaybackService.ACTION_PREVIOUS ||
+            this == MusicPlaybackService.ACTION_CHANGE_MODE
     }
 }

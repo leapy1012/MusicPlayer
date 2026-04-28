@@ -6,10 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.extension.applyRoundedOutline
-import gd.app.musicplayer.core.ui.extension.dpToPx
-import gd.app.musicplayer.core.ui.extension.isTablet
-import gd.app.musicplayer.core.ui.extension.screenWidth
+import gd.app.musicplayer.core.extension.applyRoundedOutline
+import gd.app.musicplayer.core.extension.dpToPx
+import gd.app.musicplayer.core.extension.isTablet
+import gd.app.musicplayer.core.extension.screenWidth
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentMainPlaylistItemBinding
 

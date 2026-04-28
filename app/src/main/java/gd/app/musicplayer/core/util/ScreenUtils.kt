@@ -9,7 +9,7 @@ import android.graphics.Rect
 import android.os.Build
 import android.util.DisplayMetrics
 import android.view.WindowManager
-import gd.app.musicplayer.core.ui.extension.dpToPx
+import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.util.AppLogger
 import kotlin.math.max
 import kotlin.math.min

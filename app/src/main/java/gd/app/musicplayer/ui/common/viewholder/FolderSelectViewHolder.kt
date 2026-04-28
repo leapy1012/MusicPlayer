@@ -7,7 +7,7 @@ import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
-import gd.app.musicplayer.core.ui.extension.appContainer
+import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
 
 
@@ -17,7 +17,7 @@ class FolderSelectViewHolder(
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(musicSet: MusicSet.Folder, highlightQuery: String) {
         val context = binding.root.context
-        val accentColor = context.appContainer.themeRepo.getAccentColor(context)
+        val accentColor = context.appDependencies.themeRepo.getAccentColor(context)
 
         binding.musicItemTitle.text = buildHighlightedTitle(
             title = musicSet.name,

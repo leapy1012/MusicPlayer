@@ -29,7 +29,7 @@
             android:text="Album"
             android:singleLine="true"
             android:layout_weight="1"/>
-        <gd.app.musicplayer.ui.common.view.BrokenWordTextView
+        <gd.app.musicplayer.core.ui.view.BrokenWordTextView
             android:textSize="12sp"
             android:textColor="@color/secondary_text_default_material_dark"
             android:id="@+id/music_item_artist"

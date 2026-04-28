@@ -15,7 +15,7 @@ class ArtworkRepo(
 
     suspend fun updateTrackArtwork(track: Music, artworkPath: String?) {
         val previousPath = track.albumPicture
-        libraryDao.updateTrackArtwork(track._id, artworkPath)
+        libraryDao.updateTrackArtwork(track.id, artworkPath)
         cleanupIfUnused(previousPath, artworkPath)
     }
 

@@ -18,7 +18,7 @@ import android.view.Gravity
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
-import gd.app.musicplayer.core.ui.extension.appContainer
+import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.util.ThemePreferenceOps
 import gd.app.musicplayer.util.FastBlur
 import java.io.File
@@ -167,7 +167,7 @@ object DrawableUtil {
         }
     }
     fun loadBitmap(context: Context): Bitmap? {
-        val preferenceUtil = context.appContainer.preferenceUtil
+        val preferenceUtil = context.appDependencies.preferenceUtil
         return loadBitmap(
             context = context,
             imageName = preferenceUtil.getThemeImageName(),
@@ -193,7 +193,7 @@ object DrawableUtil {
     }
 
     fun loadBlurBackgroundBitmap(context: Context): Bitmap? {
-        val preferenceUtil = context.appContainer.preferenceUtil
+        val preferenceUtil = context.appDependencies.preferenceUtil
         return loadBlurBackgroundBitmap(context, preferenceUtil.getThemeImageName())
     }
 
@@ -499,7 +499,7 @@ object DrawableUtil {
     }
 
     fun createActivityBackground(context: Context): BitmapDrawable {
-        val overlayColor = context.appContainer.preferenceUtil.getThemeOverlayColor()
+        val overlayColor = context.appDependencies.preferenceUtil.getThemeOverlayColor()
         return OverlayCenterCropDrawable(context.resources, loadBitmap(context), overlayColor)
     }
 }

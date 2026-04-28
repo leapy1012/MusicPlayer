@@ -13,15 +13,15 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.yalantis.ucrop.UCrop
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.extension.applySystemBarInsets
-import gd.app.musicplayer.core.ui.extension.startActivityCompat
+import gd.app.musicplayer.core.extension.applySystemBarInsets
+import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.databinding.ActivityThemeEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.MiniPlayerFragment
-import gd.app.musicplayer.feature.player.MainControlFragment3
-import gd.app.musicplayer.ui.common.view.SeekBar
-import gd.app.musicplayer.feature.library.ArtworkCropActivity
+import gd.app.musicplayer.ui.feature.player.MainControlFragment3
+import gd.app.musicplayer.core.ui.view.SeekBar
+import gd.app.musicplayer.ui.feature.library.ArtworkCropActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -87,7 +87,7 @@ class ThemeEditActivity : BaseActivity() {
         binding = ActivityThemeEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        savedImageName = appContainer.preferenceUtil.getThemeImageName()
+        savedImageName = appDependencies.preferenceUtil.getThemeImageName()
 
         setupInsets()
         setupViews()
@@ -103,7 +103,7 @@ class ThemeEditActivity : BaseActivity() {
     }
 
     private fun setupInsets() {
-        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
+        binding.root.applySystemBarInsets(statusBarView = binding.statusBarSpace)
     }
 
     private fun setupViews() {
@@ -200,14 +200,14 @@ class ThemeEditActivity : BaseActivity() {
             }
         }
 
-        appContainer.preferenceUtil.addThemeImageUri(savedFile.absolutePath)
+        appDependencies.preferenceUtil.addThemeImageUri(savedFile.absolutePath)
 
         return savedFile.absolutePath
     }
 
     private fun cleanupTransientDraft() {
         val draftImageName = viewModel.uiState.value.imageName
-        val persistedImageName = savedImageName ?: appContainer.preferenceUtil.getThemeImageName()
+        val persistedImageName = savedImageName ?: appDependencies.preferenceUtil.getThemeImageName()
         if (draftImageName == persistedImageName) return
         if (!ThemeBackgroundStore.isDraftThemePath(this, draftImageName)) return
         runCatching { File(draftImageName).delete() }

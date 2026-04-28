@@ -27,7 +27,7 @@
         app:layout_constraintStart_toEndOf="@+id/music_item_album"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed"/>
-    <gd.app.musicplayer.ui.common.view.BrokenWordTextView
+    <gd.app.musicplayer.core.ui.view.BrokenWordTextView
         android:textSize="12sp"
         android:textColor="@color/item_artist_color"
         android:id="@+id/music_item_artist"
