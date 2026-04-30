@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<gd.app.lib.view.square.SquareRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<gd.app.lib.view.square.AspectRatioRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main_item_image_parent"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -46,4 +46,4 @@
             android:textColor="@android:color/white"
             android:textSize="@dimen/main_item_count_size" />
     </RelativeLayout>
-</gd.app.lib.view.square.SquareRelativeLayout>
+</gd.app.lib.view.square.AspectRatioRelativeLayout>

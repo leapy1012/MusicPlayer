@@ -27,33 +27,33 @@
     </declare-styleable>
 
 
-    <!-- Declare attributes once -->
-    <attr name="squareMode">
-        <enum name="byWidth" value="0" />
-        <enum name="byHeight" value="1" />
-        <enum name="withMin" value="2" />
-    </attr>
+<!--    &lt;!&ndash; Declare attributes once &ndash;&gt;-->
+<!--    <attr name="squareMode">-->
+<!--        <enum name="byWidth" value="0" />-->
+<!--        <enum name="byHeight" value="1" />-->
+<!--        <enum name="withMin" value="2" />-->
+<!--    </attr>-->
 
-    <attr name="squareRatio" format="string" />
+<!--    <attr name="squareRatio" format="string" />-->
 
-    <!-- Reuse attributes -->
-    <declare-styleable name="SquareRelativeLayout">
-        <attr name="squareMode" />
-        <attr name="squareRatio" />
-    </declare-styleable>
+<!--    &lt;!&ndash; Reuse attributes &ndash;&gt;-->
+<!--    <declare-styleable name="SquareRelativeLayout">-->
+<!--        <attr name="squareMode" />-->
+<!--        <attr name="squareRatio" />-->
+<!--    </declare-styleable>-->
 
-    <declare-styleable name="SquareFrameLayout">
-        <attr name="squareMode" />
-        <attr name="squareRatio" />
-    </declare-styleable>
+<!--    <declare-styleable name="SquareFrameLayout">-->
+<!--        <attr name="squareMode" />-->
+<!--        <attr name="squareRatio" />-->
+<!--    </declare-styleable>-->
 
-    <declare-styleable name="SquareCornerFrameLayout">
-        <attr name="corner_radius" format="reference|dimension" />
-        <attr name="corner_radiusBottomLeft" format="reference|dimension" />
-        <attr name="corner_radiusBottomRight" format="reference|dimension" />
-        <attr name="corner_radiusTopLeft" format="reference|dimension" />
-        <attr name="corner_radiusTopRight" format="reference|dimension" />
-    </declare-styleable>
+<!--    <declare-styleable name="SquareCornerFrameLayout">-->
+<!--        <attr name="corner_radius" format="reference|dimension" />-->
+<!--        <attr name="corner_radiusBottomLeft" format="reference|dimension" />-->
+<!--        <attr name="corner_radiusBottomRight" format="reference|dimension" />-->
+<!--        <attr name="corner_radiusTopLeft" format="reference|dimension" />-->
+<!--        <attr name="corner_radiusTopRight" format="reference|dimension" />-->
+<!--    </declare-styleable>-->
 
     <declare-styleable name="SlidingUpPanelLayout">
         <attr name="umanoAnchorPoint" format="float" />

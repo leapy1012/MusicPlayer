@@ -9,7 +9,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.LibraryRepo
+import gd.app.musicplayer.domain.usecase.library.ObserveAlbumsByArtistUseCase
+import gd.app.musicplayer.domain.usecase.library.ObserveLibraryPreferenceChangesUseCase
+import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
+import gd.app.musicplayer.domain.usecase.library.GetSortStyleUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
@@ -60,7 +63,10 @@ sealed interface TrackListEvent {
 @HiltViewModel
 class TrackListViewModel @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
-    private val libraryRepo: LibraryRepo,
+    private val observeTracksUseCase: ObserveTracksUseCase,
+    private val observeAlbumsByArtistUseCase: ObserveAlbumsByArtistUseCase,
+    private val observeLibraryPreferenceChangesUseCase: ObserveLibraryPreferenceChangesUseCase,
+    private val getSortStyleUseCase: GetSortStyleUseCase,
     private val playTracksUseCase: PlayTracksUseCase,
     private val shuffleTracksUseCase: ShuffleTracksUseCase,
     private val playNextTracksUseCase: PlayNextTracksUseCase,
@@ -81,17 +87,17 @@ class TrackListViewModel @Inject constructor(
         currentMusicSet
             .filterNotNull()
             .flatMapLatest { musicSet ->
-                libraryRepo.observePreferenceChanges().onStart { emit(Unit) }
+                observeLibraryPreferenceChangesUseCase().onStart { emit(Unit) }
                     .flatMapLatest {
                         combine(
-                            libraryRepo.observeTracks(musicSet),
+                            observeTracksUseCase(musicSet),
                             observeArtistAlbums(musicSet),
 
                             ) { tracks, albums ->
                             TrackListUiState(
                                 tracks = tracks,
                                 artistAlbums = albums,
-                                trackMetadataDisplayMode = libraryRepo.getSortStyle(musicSet),
+                                trackMetadataDisplayMode = getSortStyleUseCase(musicSet),
                                 isEmpty = tracks.isEmpty()
                             )
                         }
@@ -221,7 +227,7 @@ class TrackListViewModel @Inject constructor(
 
     private fun observeArtistAlbums(musicSet: MusicSet) =
         (musicSet as? MusicSet.Artist)?.let { artist ->
-            libraryRepo.observeAlbumsByArtist(artist.name)
+            observeAlbumsByArtistUseCase(artist.name)
         } ?: flowOf(emptyList())
 
     private companion object {

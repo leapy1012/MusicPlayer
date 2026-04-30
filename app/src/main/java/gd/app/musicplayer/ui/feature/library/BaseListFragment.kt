@@ -41,13 +41,10 @@ abstract class BaseListFragment : ViewBindingFragment<LayoutRecyclerviewBinding>
         musicRecyclerView.setHasFixedSize(true)
         musicRecyclerView.isNestedScrollingEnabled = true
         musicSet = requireNotNull(requireArguments().parcelable(ARG_MUSIC_SET))
-//        musicRecyclerView.itemAnimator = null
-        binding.root.post { applyCurrentPlayerInset() }
     }
 
     override fun onResume() {
         super.onResume()
-        applyCurrentPlayerInset()
     }
 
     protected fun setupRecyclerView(adapter: RecyclerView.Adapter<*>) {
@@ -89,10 +86,5 @@ abstract class BaseListFragment : ViewBindingFragment<LayoutRecyclerviewBinding>
             requireContext().isTablet() && !landscape -> 3
             else -> 4
         }
-    }
-
-    private fun applyCurrentPlayerInset() {
-        val host = activity as? PlayerSheetInsetHost ?: return
-        musicRecyclerView.setPlayerSheetBottomInset(host.currentPlayerSheetVisibleHeight())
     }
 }

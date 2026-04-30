@@ -1,6 +1,7 @@
 package gd.app.musicplayer.ui.feature.player
 
 import android.os.Bundle
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.MotionEvent
@@ -9,6 +10,7 @@ import android.view.ViewGroup
 import android.view.ViewStub
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.isGone
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -16,29 +18,31 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.appDependencies
-import gd.app.musicplayer.core.extension.applySystemBarInsets
+import gd.app.musicplayer.core.extension.applyStatusBarInsetHeight
+import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.core.extension.navigateBack
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.isFavorite
+import gd.app.musicplayer.core.theme.messageColor
+import gd.app.musicplayer.core.theme.titleColor
 import gd.app.musicplayer.databinding.FragmentQueueBinding
 import gd.app.musicplayer.databinding.MusicPlayFragmentListItemBinding
 import gd.app.musicplayer.ui.feature.library.QueueTrackOptionsDialog
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
-import gd.app.musicplayer.ui.feature.selection.DragSwipeCallback
 import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
-import gd.app.musicplayer.ui.feature.selection.ItemTouchStateListener
-import gd.app.musicplayer.playback.MusicPlaybackController
-import gd.app.musicplayer.playback.PlaybackMode
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.playback.MusicPlaybackState
 import gd.app.musicplayer.core.ui.view.MusicRecyclerView
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.ui.common.playback.PlaybackControlViewModel
-import gd.app.musicplayer.util.PreferenceUtil
+import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
+import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
+import gd.app.musicplayer.playback.PlaybackControlViewModel
 import kotlinx.coroutines.launch
 import java.util.Collections
 
@@ -47,12 +51,13 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     Toolbar.OnMenuItemClickListener {
 
     private val viewModel: PlaybackControlViewModel by viewModels()
+    private val playModeViewModel: PlayModeViewModel by viewModels()
 
     private lateinit var adapter: QueueListAdapter
     private lateinit var emptyStateController: RecyclerEmptyStateController
     private lateinit var recyclerView: MusicRecyclerView
     private lateinit var emptyViewStub: ViewStub
-    private var playbackState = MusicPlaybackController.state.value
+    private var playbackState = PlaybackControllerProvider.state.value
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentQueueBinding =
         FragmentQueueBinding.inflate(inflater)
@@ -66,11 +71,13 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         recyclerView = binding.root.findViewById(R.id.recyclerview)
         emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
 
+        applyInsets(binding)
         setupToolbar(binding)
         adapter = buildAdapter()
 
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView.layoutManager = WrapContentLinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
         recyclerView.adapter = adapter
+        recyclerView.isNestedScrollingEnabled = true
         emptyStateController = RecyclerEmptyStateController(
             recyclerView = recyclerView,
             emptyViewStub = emptyViewStub
@@ -79,12 +86,15 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         }
 
         observePlayback()
-        refreshPlayModeIcon()
+        observePlayMode()
+    }
+
+    private fun applyInsets(binding: FragmentQueueBinding) {
+        binding.statusBarSpace.applyStatusBarInsetHeight()
     }
 
     private fun setupToolbar(binding: FragmentQueueBinding) {
         binding.toolbar.navigateBack(this)
-        binding.root.applySystemBarInsets(binding.toolbar, binding.root)
         binding.toolbar.inflateMenu(R.menu.menu_fragment_queue)
         binding.toolbar.setOnMenuItemClickListener(this)
         binding.queueClear.setOnClickListener {
@@ -131,7 +141,6 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                     binding.collapsingToolbar.isTitleEnabled = isEmpty.not()
                     updateCollapsingHeight(isEmpty)
                     updateQueueInfo(state)
-                    refreshPlayModeIcon()
                 }
             }
         }
@@ -163,14 +172,12 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
 
     private fun updateCollapsingHeight(isEmpty: Boolean) {
         val binding = requireBinding()
+
         val baseHeight = resources.getDimensionPixelSize(R.dimen.common_title_height)
-        val bannerHeight = (40f * resources.displayMetrics.density).toInt()
+        val bannerHeight = requireContext().dpToPx(72f)
         val targetHeight = if (isEmpty) baseHeight else baseHeight + bannerHeight
-        val params = binding.collapsingToolbar.layoutParams
-        if (params.height != targetHeight) {
-            params.height = targetHeight
-            binding.collapsingToolbar.layoutParams = params
-        }
+
+        binding.collapsingToolbar.updateLayoutParams { height = targetHeight }
     }
 
     fun scrollToCurrentTrack() {
@@ -185,7 +192,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     override fun onMenuItemClick(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.menu_mode -> {
-                MusicPlaybackController.cyclePlayMode(requireContext())
+                playModeViewModel.cyclePlayMode()
             }
 
             R.id.menu_add_to -> {
@@ -199,15 +206,14 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         return true
     }
 
-    private fun refreshPlayModeIcon() {
-        val item = requireBinding().toolbar.menu.findItem(R.id.menu_mode) ?: return
-        val mode = PreferenceUtil.getInstance(requireContext()).getPlayMode()
-        val icon = when (mode) {
-            PlaybackMode.LOOP_ALL -> R.drawable.widget_ic_mode_loop
-            PlaybackMode.SHUFFLE_ALL -> R.drawable.widget_ic_mode_random
-            else -> R.drawable.vector_mode_order
+    private fun observePlayMode() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playModeViewModel.uiState.collect { state ->
+                    requireBinding().toolbar.menu.findItem(R.id.menu_mode)?.setIcon(state.iconRes)
+                }
+            }
         }
-        item.setIcon(icon)
     }
 }
 
@@ -220,6 +226,7 @@ private class QueueListAdapter(
 ) : RecyclerView.Adapter<QueueListAdapter.QueueViewHolder>(), ItemMoveListener {
 
     private val queue = mutableListOf<Music>()
+    private val favoriteOverrides = mutableMapOf<Long, Boolean>()
     private var currentIndex = -1
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var hasPendingReorder = false
@@ -230,7 +237,13 @@ private class QueueListAdapter(
 
     fun submitQueue(items: List<Music>, currentIndex: Int) {
         queue.clear()
-        queue.addAll(items)
+        queue.addAll(
+            items.map { music ->
+                val overriddenFavorite = favoriteOverrides[music.id] ?: return@map music
+                music.copy(playlistId = if (overriddenFavorite) 1L else 0L)
+            }
+        )
+        favoriteOverrides.keys.retainAll(queue.mapTo(hashSetOf()) { it.id })
         this.currentIndex = currentIndex
         notifyDataSetChanged()
     }
@@ -238,16 +251,25 @@ private class QueueListAdapter(
     fun updateFavorite(trackId: Long, favorited: Boolean) {
         val index = queue.indexOfFirst { it.id == trackId }
         if (index < 0) return
+        favoriteOverrides[trackId] = favorited
         queue[index] = queue[index].copy(playlistId = if (favorited) 1L else 0L)
         notifyItemChanged(index)
     }
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
-        val callback = DragSwipeCallback(null).apply {
-            setLongPressDragEnabled(false)
-            setDragDirections(ItemTouchHelper.UP or ItemTouchHelper.DOWN)
-        }
+        val callback = DragItemTouchHelperCallback.Builder(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+            0
+        )
+            .setDragEnabled(false)
+            .onItemDragListener(::onItemMove)
+            .onDragFinishedListener {
+                if (!hasPendingReorder) return@onDragFinishedListener
+                hasPendingReorder = false
+                onTrackMoveFinished(queue.toList())
+            }
+            .build()
         itemTouchHelper = ItemTouchHelper(callback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
     }
@@ -269,31 +291,38 @@ private class QueueListAdapter(
         if (fromPosition !in queue.indices || toPosition !in queue.indices) return
         Collections.swap(queue, fromPosition, toPosition)
         notifyItemMoved(fromPosition, toPosition)
-        hasPendingReorder = true
         onTrackMoved(queue.toList())
+        hasPendingReorder = true
     }
 
     class QueueViewHolder(
         private val binding: MusicPlayFragmentListItemBinding,
         private val itemTouchHelper: ItemTouchHelper
-    ) : RecyclerView.ViewHolder(binding.root), ItemTouchStateListener {
-
-        private var onDragCleared: (() -> Unit)? = null
+    ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(
             music: Music,
             isCurrent: Boolean,
             onClick: () -> Unit,
             onFavoriteClick: () -> Unit,
-            onMenuClick: () -> Unit,
-            onDragCleared: () -> Unit
+            onMenuClick: () -> Unit
         ) {
-            this.onDragCleared = onDragCleared
+            val context = binding.root.context
+            val palette = context.appDependencies.themeRepo.getCorePalette(context)
+            val accentColor = context.appDependencies.themeRepo.getAccentColor(context)
+            val titleColor = if (isCurrent) accentColor else palette.titleColor
+            val extraColor = if (isCurrent) accentColor else palette.messageColor
+
             binding.musicItemTitle.text = music.title
             binding.musicItemExtra.text = music.artist
-            binding.musicItemTime.text = MusicPlaybackController.formatTime(music.duration)
+            binding.musicItemTitle.setTextColor(titleColor)
+            binding.musicItemExtra.setTextColor(extraColor)
+            binding.musicItemTime.text = PlaybackControllerProvider.formatTime(music.duration)
             binding.musicItemFavorite.visibility = if (isCurrent) View.VISIBLE else View.GONE
             binding.musicItemFavorite.isSelected = music.isFavorite()
+            binding.musicItemFavorite.imageTintList = ColorStateList.valueOf(
+                if (music.isFavorite()) accentColor else palette.messageColor
+            )
             binding.root.alpha = 1f
             binding.root.setOnClickListener { onClick() }
             binding.musicItemMenu.setOnClickListener { onMenuClick() }
@@ -306,15 +335,6 @@ private class QueueListAdapter(
                 false
             }
         }
-
-        override fun onItemSelected() {
-            binding.root.alpha = 0.8f
-        }
-
-        override fun onItemCleared() {
-            binding.root.alpha = 1f
-            onDragCleared?.invoke()
-        }
     }
 
     override fun onBindViewHolder(holder: QueueViewHolder, position: Int) {
@@ -323,12 +343,8 @@ private class QueueListAdapter(
             isCurrent = position == currentIndex,
             onClick = { onTrackClicked(position) },
             onFavoriteClick = { onToggleFavorite(queue[position]) },
-            onMenuClick = { onTrackMenu(queue[position]) },
-            onDragCleared = {
-                if (!hasPendingReorder) return@bind
-                hasPendingReorder = false
-                onTrackMoveFinished(queue.toList())
-            }
+            onMenuClick = { onTrackMenu(queue[position]) }
         )
     }
 }
+

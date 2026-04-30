@@ -4,6 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -12,19 +16,21 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.loadMusicArtwork
+import gd.app.musicplayer.databinding.FragmentQueueBinding
 import gd.app.musicplayer.databinding.FragmentQueueControlBinding
 import gd.app.musicplayer.databinding.ItemMainControlPagerBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.ui.common.playback.PlaybackControlViewModel
+import gd.app.musicplayer.playback.PlaybackControlViewModel
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() {
     private val viewModel: PlaybackControlViewModel by viewModels()
-    private val pagerAdapter by lazy { QueueControlPagerAdapter { ActivityPlayQueue.start(requireContext()) } }
+    private val pagerAdapter by lazy { QueueControlPagerAdapter { PlayQueueActivity.start(requireContext()) } }
     private val preferenceUtil by lazy { PreferenceUtil.getInstance(requireContext()) }
 
     private var pagerSyncFromState = false
@@ -38,6 +44,7 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
     ) {
         super.onBindingCreated(binding, savedInstanceState)
 
+        applyInsets(binding)
         binding.mainControlPager.adapter = pagerAdapter
         binding.mainControlPager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
             override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) = Unit
@@ -58,7 +65,14 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
         })
 
         binding.mainControlPlayPause.setOnClickListener {
-            viewModel.togglePlayPause(requireContext())
+            val state = viewModel.playbackState.value
+            if (state.queue.isEmpty()) {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewModel.playAllTracks(requireContext())
+                }
+            } else {
+                viewModel.togglePlayPause(requireContext())
+            }
         }
         binding.mainControlLocation.setOnClickListener {
             (parentFragmentManager.findFragmentByTag(PlaybackQueueFragment::class.java.simpleName) as? PlaybackQueueFragment)
@@ -67,6 +81,26 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
 
         observePlayback()
         observePreferences()
+    }
+
+    private fun applyInsets(binding: FragmentQueueControlBinding) {
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.mainBottomControlPanel) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val toolbarHeight = resources.getDimensionPixelSize(R.dimen.main_control_banner_height) + systemBars.bottom
+
+            view.updateLayoutParams {
+                height = toolbarHeight
+            }
+
+            view.updatePadding(
+                bottom = systemBars.bottom
+            )
+
+            insets
+        }
+
+        ViewCompat.requestApplyInsets(binding.mainBottomControlPanel)
     }
 
     private fun observePlayback() {
@@ -78,7 +112,7 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
                     binding.mainMusicProgress.setMax(state.durationMs.coerceAtLeast(1))
                     binding.mainMusicProgress.setProgress(state.positionMs.coerceAtLeast(0))
 
-                    val queue = if (state.queue.isEmpty()) listOf(placeholderMusic()) else state.queue
+                    val queue = state.queue.ifEmpty { listOf(placeholderMusic()) }
                     pagerAdapter.submitQueue(
                         queue = queue,
                         swipeEnabled = preferenceUtil.getBooleanPreference(KEY_SWIPE_CHANGE_SONGS, true),
@@ -110,8 +144,8 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
 
     private fun placeholderMusic(): Music = Music(
         id = -1L,
-        title = getString(android.R.string.unknownName),
-        artist = getString(android.R.string.unknownName),
+        title = getString(R.string.music),
+        artist = getString(R.string.artist),
         album = "",
         albumId = "",
         playlistId = 0L,
@@ -175,7 +209,7 @@ private class QueueControlPagerAdapter(
             if (isSwipeEnabled && showSlideHint && realQueue.size > 1) {
                 binding.root.context.getString(R.string.sliding_to_swtich)
             } else {
-                music.artist.ifBlank { binding.root.context.getString(android.R.string.unknownName) }
+                music.artist.ifBlank { binding.root.context.getString(R.string.artist) }
             }
         music.loadMusicArtwork(binding.itemMainControlAlbum)
         binding.root.setOnClickListener { onItemClick() }

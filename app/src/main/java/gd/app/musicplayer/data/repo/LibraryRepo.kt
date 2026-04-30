@@ -3,6 +3,7 @@ package gd.app.musicplayer.data.repo
 import gd.app.musicplayer.data.db.dao.LibraryDao
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.util.PreferenceKeys
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -86,7 +87,7 @@ class LibraryRepo(
     }
 
     fun shouldShowHiddenFoldersEntry(): Boolean =
-        preferenceUtil.getBooleanPreference(KEY_SHOW_HIDDEN_FOLDERS, true)
+        preferenceUtil.getBooleanPreference(PreferenceKeys.KEY_SHOW_HIDDEN_FOLDERS, true)
 
     fun saveFolderScrollPosition(position: Int, offset: Int) {
         preferenceUtil.putIntPreference(KEY_FOLDER_SCROLL_POSITION, position)
@@ -103,7 +104,6 @@ class LibraryRepo(
     }
 
     private companion object {
-        const val KEY_SHOW_HIDDEN_FOLDERS = "show_hidden_folders"
         const val KEY_FOLDER_SCROLL_POSITION = "folder_scroll_position"
         const val KEY_FOLDER_SCROLL_OFFSET = "folder_scroll_offset"
     }

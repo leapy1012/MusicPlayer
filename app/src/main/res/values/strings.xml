@@ -1027,6 +1027,7 @@
     <string name="permission_video_system_tip_again">Allow access to photos and videos</string>
     <string name="play_all">Play all</string>
     <string name="play_mode_list">Order</string>
+    <string name="play_mode_single">Single</string>
     <string name="play_mode_list_cycle">Loop All</string>
     <string name="play_mode_list_rand">Shuffle All</string>
     <string name="play_mode_one_cycle">Repeat Current</string>

@@ -60,7 +60,7 @@
             app:layout_constraintWidth_percent="0.45" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <gd.app.lib.view.square.SquareCornerFrameLayout
+    <gd.app.lib.view.square.SquareRoundedFrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
@@ -78,7 +78,7 @@
             layout="@layout/activity_effect_group_header_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
-    </gd.app.lib.view.square.SquareCornerFrameLayout>
+    </gd.app.lib.view.square.SquareRoundedFrameLayout>
 
     <androidx.appcompat.widget.AppCompatTextView
         android:layout_width="wrap_content"

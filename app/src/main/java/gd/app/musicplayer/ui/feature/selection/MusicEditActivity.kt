@@ -47,6 +47,7 @@ class MusicEditActivity : BaseActivity(),
     private var selectedMusic: Music? = null
     private var initialTopOffset: Int = 0
     private var shouldScrollToInitialMusic = true
+    private var shouldApplyInitialSelection = true
 
     private val searchTextWatcher = object : TextWatcher {
         override fun afterTextChanged(editable: Editable?) {
@@ -148,7 +149,6 @@ class MusicEditActivity : BaseActivity(),
             onOrderChanged = viewModel::updateTrackOrder
         ).apply {
             setSelectionCountListener(this@MusicEditActivity)
-            selectedMusic?.let(::selectItem)
         }
 
     private fun setupSearch() {
@@ -179,10 +179,17 @@ class MusicEditActivity : BaseActivity(),
 
     private fun renderMusicList(musicList: List<Music>) {
         adapter.submitList(musicList)
+        applyInitialSelectionIfNeeded()
 
         updateSelectionTitle(adapter.getSelectedItems().size)
         scrollToInitialMusicIfNeeded(musicList)
         updateFilteredListChrome()
+    }
+
+    private fun applyInitialSelectionIfNeeded() {
+        if (!shouldApplyInitialSelection) return
+        shouldApplyInitialSelection = false
+        selectedMusic?.let(adapter::selectItem)
     }
 
     private fun scrollToInitialMusicIfNeeded(musicList: List<Music>) {
@@ -191,7 +198,7 @@ class MusicEditActivity : BaseActivity(),
         shouldScrollToInitialMusic = false
 
         val music = selectedMusic ?: return
-        val index = musicList.indexOf(music)
+        val index = musicList.indexOfFirst { it.id == music.id && it.data == music.data }
 
         if (index < 0) return
 

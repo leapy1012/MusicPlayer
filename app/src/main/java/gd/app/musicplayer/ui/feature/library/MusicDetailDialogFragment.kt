@@ -10,6 +10,9 @@ import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.extension.formatAddedDate
+import gd.app.musicplayer.core.extension.formatDuration
+import gd.app.musicplayer.core.extension.formatFileSize
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.databinding.DialogMusicDetailBinding
 import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
@@ -59,9 +62,9 @@ class MusicDetailDialogFragment : BaseThemedDialogFragment(), View.OnClickListen
         binding.musicEditArtist.text = track.artist.ifBlank { getString(android.R.string.unknownName) }
         binding.musicEditGenre.text = getString(android.R.string.unknownName)
         binding.tvMusicDetailPath.text = track.data.orEmpty().ifBlank { getString(android.R.string.unknownName) }
-        binding.tvMusicDetailDuration.text = formatDuration(track.duration)
-        binding.tvMusicDetailSize.text = Formatter.formatShortFileSize(requireContext(), track.size ?: 0L)
-        binding.tvMusicDetailDate.text = formatDate(track.date)
+        binding.tvMusicDetailDuration.text = track.formatDuration()
+        binding.tvMusicDetailSize.text = track.formatFileSize(requireContext())
+        binding.tvMusicDetailDate.text = track.formatAddedDate()
         binding.tvMusicDetailBit.text = getString(android.R.string.unknownName)
         binding.tvMusicDetailSample.text = getString(android.R.string.unknownName)
 

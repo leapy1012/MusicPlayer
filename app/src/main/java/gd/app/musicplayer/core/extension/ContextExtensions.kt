@@ -25,7 +25,7 @@ fun Context.dpToPx(value: Float): Int =
         TypedValue.COMPLEX_UNIT_DIP,
         value,
         resources.displayMetrics
-    ).roundToInt()
+    ).toInt()
 
 fun Context.spToPx(value: Float): Float =
     TypedValue.applyDimension(

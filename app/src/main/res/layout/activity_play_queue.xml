@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main_background"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:id="@+id/main_background">
+    android:layout_height="match_parent">
 
     <gd.app.lib.model.image.SkinImageView
         android:id="@+id/music_play_skin"

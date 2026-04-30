@@ -1,27 +1,39 @@
 package gd.app.musicplayer.ui.feature.search
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.LibraryRepo
-import gd.app.musicplayer.data.repo.PlaylistRepo
-import gd.app.musicplayer.data.repo.SearchRepo
-import gd.app.musicplayer.util.PreferenceUtil
-import kotlin.random.Random
+import gd.app.musicplayer.domain.usecase.library.GetAllTracksByCurrentSortUseCase
+import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.RestartCurrentTrackUseCase
+import gd.app.musicplayer.domain.usecase.preferences.GetQueueForSearchingModeUseCase
+import gd.app.musicplayer.domain.usecase.preferences.IsReplaySongEnabledUseCase
+import gd.app.musicplayer.domain.usecase.preferences.IsTrackClickOperationEnabledUseCase
+import gd.app.musicplayer.domain.usecase.search.ObserveDefaultSearchMusicSetsUseCase
+import gd.app.musicplayer.domain.usecase.search.ObserveDefaultSearchPlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.search.ObserveDefaultSearchTracksUseCase
+import gd.app.musicplayer.domain.usecase.search.ObserveSearchMusicSetsUseCase
+import gd.app.musicplayer.domain.usecase.search.ObserveSearchPlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.search.ObserveSearchTracksUseCase
+import gd.app.musicplayer.domain.usecase.search.SortSearchResultsUseCase
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -29,13 +41,25 @@ import javax.inject.Inject
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val libraryRepo: LibraryRepo,
-    private val playlistRepo: PlaylistRepo,
-    private val searchRepo: SearchRepo,
-    private val preferenceUtil: PreferenceUtil
+    @ApplicationContext private val appContext: Context,
+    private val observeDefaultSearchTracksUseCase: ObserveDefaultSearchTracksUseCase,
+    private val observeSearchTracksUseCase: ObserveSearchTracksUseCase,
+    private val observeDefaultSearchMusicSetsUseCase: ObserveDefaultSearchMusicSetsUseCase,
+    private val observeSearchMusicSetsUseCase: ObserveSearchMusicSetsUseCase,
+    private val observeDefaultSearchPlaylistsUseCase: ObserveDefaultSearchPlaylistsUseCase,
+    private val observeSearchPlaylistsUseCase: ObserveSearchPlaylistsUseCase,
+    private val isReplaySongEnabledUseCase: IsReplaySongEnabledUseCase,
+    private val isTrackClickOperationEnabledUseCase: IsTrackClickOperationEnabledUseCase,
+    private val getQueueForSearchingModeUseCase: GetQueueForSearchingModeUseCase,
+    private val sortSearchResultsUseCase: SortSearchResultsUseCase,
+    private val playTracksUseCase: PlayTracksUseCase,
+    private val restartCurrentTrackUseCase: RestartCurrentTrackUseCase,
+    private val getAllTracksByCurrentSortUseCase: GetAllTracksByCurrentSortUseCase
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val sortVersion = MutableStateFlow(0)
+    private val _events = MutableSharedFlow<SearchEvent>()
+    val events: SharedFlow<SearchEvent> = _events.asSharedFlow()
 
     private data class SearchSource(
         val tracks: List<Music>,
@@ -74,9 +98,28 @@ class SearchViewModel @Inject constructor(
         sortVersion.value += 1
     }
 
+    suspend fun onSongClicked(song: Music, currentTrackId: Long?) {
+        val shouldReplayCurrent =
+            isReplaySongEnabledUseCase() && currentTrackId == song.id
+
+        if (shouldReplayCurrent) {
+            restartCurrentTrackUseCase(appContext)
+            if (isTrackClickOperationEnabledUseCase()) {
+                _events.emit(SearchEvent.OpenQueueScreen)
+            }
+            return
+        }
+
+        val (queue, startIndex) = resolvePlaybackQueue(song)
+        playTracksUseCase(appContext, queue, startIndex)
+        if (isTrackClickOperationEnabledUseCase()) {
+            _events.emit(SearchEvent.OpenQueueScreen)
+        }
+    }
+
     suspend fun resolvePlaybackQueue(clickedTrack: Music): Pair<List<Music>, Int> {
-        val queue = if (preferenceUtil.getQueueForSearchingMode() == 0) {
-            libraryRepo.observeTracks(MusicSet.Tracks).first()
+        val queue = if (getQueueForSearchingModeUseCase() == 0) {
+            getAllTracksByCurrentSortUseCase(appContext)
         } else {
             sections.value.firstOrNull { section ->
                 section.items.firstOrNull() is ListItem.MusicItem
@@ -105,27 +148,23 @@ class SearchViewModel @Inject constructor(
 
     private fun observeTracksSource(query: String) =
         if (query.isBlank()) {
-            libraryRepo.observeTracks(
-                musicSet = MusicSet.Tracks,
-                sortStyle = "title",
-                sortDescending = false
-            )
+            observeDefaultSearchTracksUseCase()
         } else {
-            searchRepo.observeSearchTracks(query)
+            observeSearchTracksUseCase(query)
         }
 
     private fun observeBrowseSource(query: String, musicSet: MusicSet) =
         if (query.isBlank()) {
-            libraryRepo.observeMusicSets(musicSet)
+            observeDefaultSearchMusicSetsUseCase(musicSet)
         } else {
-            searchRepo.observeSearchMusicSets(musicSet, query)
+            observeSearchMusicSetsUseCase(musicSet, query)
         }
 
     private fun observePlaylistsSource(query: String) =
         if (query.isBlank()) {
-            playlistRepo.observePlaylists()
+            observeDefaultSearchPlaylistsUseCase()
         } else {
-            searchRepo.observeSearchPlaylists(query)
+            observeSearchPlaylistsUseCase(query)
         }
 
     private fun buildSections(
@@ -135,11 +174,11 @@ class SearchViewModel @Inject constructor(
         folders: List<MusicSet>,
         playlists: List<MusicSet.Playlist>
     ): List<SearchResultAdapter.SearchSection> {
-        val sortedTracks = sortTracks(tracks)
-        val sortedAlbums = sortAlbums(albums)
-        val sortedArtists = sortArtists(artists)
-        val sortedFolders = sortFolders(folders)
-        val sortedPlaylists = sortPlaylists(playlists)
+        val sortedTracks = sortSearchResultsUseCase.sortTracks(tracks, sortVersion.value)
+        val sortedAlbums = sortSearchResultsUseCase.sortAlbums(albums)
+        val sortedArtists = sortSearchResultsUseCase.sortArtists(artists)
+        val sortedFolders = sortSearchResultsUseCase.sortFolders(folders)
+        val sortedPlaylists = sortSearchResultsUseCase.sortPlaylists(playlists)
 
         return buildList {
             if (sortedTracks.isNotEmpty()) {
@@ -185,88 +224,8 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    private fun sortTracks(items: List<Music>): List<Music> {
-        val style = preferenceUtil.getSortStyle(MusicSet.Tracks)
-        val reversed = preferenceUtil.isSortReversed(MusicSet.Tracks, false)
-        val comparator = when (style) {
-            "title", "title_desc" -> compareBy<Music>({ it.title.lowercase() }, { it.id })
-            "track" -> compareBy<Music>({ it.playlistId }, { it.title.lowercase() }, { it.id })
-            "year" -> compareBy<Music>({ it.year ?: 0 }, { it.title.lowercase() }, { it.id })
-            "artist" -> compareBy<Music>({ it.artist.lowercase() }, { it.title.lowercase() }, { it.id })
-            "album" -> compareBy<Music>({ it.album.lowercase() }, { it.title.lowercase() }, { it.id })
-            "folder" -> compareBy<Music>({ it.folderPath.orEmpty().lowercase() }, { it.title.lowercase() }, { it.id })
-            "date" -> compareBy<Music>({ it.date ?: 0L }, { it.title.lowercase() }, { it.id })
-            "size" -> compareBy<Music>({ it.size ?: 0L }, { it.title.lowercase() }, { it.id })
-            "duration" -> compareBy<Music>({ it.duration }, { it.title.lowercase() }, { it.id })
-            else -> compareBy<Music>({ it.title.lowercase() }, { it.id })
-        }
-        val sorted = when (style) {
-            "random" -> items.shuffled(Random(sortVersion.value))
-            else -> items.sortedWith(comparator)
-        }
-        return when {
-            style == "title_desc" -> sorted.asReversed()
-            reversed -> sorted.asReversed()
-            else -> sorted
-        }
-    }
+}
 
-    private fun sortAlbums(items: List<MusicSet>): List<MusicSet> {
-        val albums = items.filterIsInstance<MusicSet.Album>()
-        val style = preferenceUtil.getAlbumSortStyle()
-        val reversed = preferenceUtil.isAlbumSortReversed()
-        val comparator = when (style) {
-            "title", "title_desc", "album" -> compareBy<MusicSet.Album>({ it.name.lowercase() }, { it.id })
-            "year" -> compareBy<MusicSet.Album>({ it.year }, { it.name.lowercase() }, { it.id })
-            "artist" -> compareBy<MusicSet.Album>({ it.artist.lowercase() }, { it.name.lowercase() }, { it.id })
-            "track_count" -> compareBy<MusicSet.Album>({ it.musicCount }, { it.name.lowercase() }, { it.id })
-            "date" -> compareBy<MusicSet.Album>({ it.date }, { it.name.lowercase() }, { it.id })
-            else -> compareBy<MusicSet.Album>({ it.name.lowercase() }, { it.id })
-        }
-        val sorted = albums.sortedWith(comparator)
-        return when {
-            style == "title_desc" -> sorted.asReversed()
-            reversed -> sorted.asReversed()
-            else -> sorted
-        }
-    }
-
-    private fun sortArtists(items: List<MusicSet>): List<MusicSet> {
-        val artists = items.filterIsInstance<MusicSet.Artist>()
-        val style = preferenceUtil.getArtistSortStyle()
-        val reversed = preferenceUtil.isArtistSortReversed()
-        val comparator = when (style) {
-            "title", "title_desc", "artist" -> compareBy<MusicSet.Artist>({ it.name.lowercase() }, { it.id })
-            "track_count" -> compareBy<MusicSet.Artist>({ it.musicCount }, { it.name.lowercase() }, { it.id })
-            "album_count" -> compareBy<MusicSet.Artist>({ it.albumCount }, { it.name.lowercase() }, { it.id })
-            else -> compareBy<MusicSet.Artist>({ it.name.lowercase() }, { it.id })
-        }
-        val sorted = artists.sortedWith(comparator)
-        return when {
-            style == "title_desc" -> sorted.asReversed()
-            reversed -> sorted.asReversed()
-            else -> sorted
-        }
-    }
-
-    private fun sortFolders(items: List<MusicSet>): List<MusicSet> {
-        val folders = items.filterIsInstance<MusicSet.Folder>()
-        val style = preferenceUtil.getFolderSortStyle(false)
-        val reversed = preferenceUtil.isFolderSortReversed(false)
-        val comparator = when (style) {
-            "name", "title", "title_desc" -> compareBy<MusicSet.Folder>({ it.name.lowercase() }, { it.id })
-            "track_count" -> compareBy<MusicSet.Folder>({ it.musicCount }, { it.name.lowercase() }, { it.id })
-            "date" -> compareBy<MusicSet.Folder>({ it.date }, { it.name.lowercase() }, { it.id })
-            else -> compareBy<MusicSet.Folder>({ it.name.lowercase() }, { it.id })
-        }
-        val sorted = folders.sortedWith(comparator)
-        return when {
-            style == "title_desc" -> sorted.asReversed()
-            reversed -> sorted.asReversed()
-            else -> sorted
-        }
-    }
-
-    private fun sortPlaylists(items: List<MusicSet.Playlist>): List<MusicSet.Playlist> =
-        items.sortedWith(compareBy({ it.sort }, { it.setup_time }, { it.name.lowercase() }, { it.id }))
+sealed interface SearchEvent {
+    data object OpenQueueScreen : SearchEvent
 }

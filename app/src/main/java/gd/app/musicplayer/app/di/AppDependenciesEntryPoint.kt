@@ -15,6 +15,7 @@ import gd.app.musicplayer.data.repo.TrackMutationRepo
 import gd.app.musicplayer.data.repo.UserPreferencesRepo
 import gd.app.musicplayer.core.theme.ThemeManager
 import gd.app.musicplayer.core.theme.ThemeRegistry
+import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTrackUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
@@ -39,6 +40,7 @@ import dagger.hilt.components.SingletonComponent
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface AppDependenciesEntryPoint {
+    val playbackController: PlaybackController
     val musicDao: MusicDao
     val preferenceUtil: PreferenceUtil
     val themeRegistry: ThemeRegistry

@@ -39,7 +39,6 @@ abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
             object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onStateChanged(bottomSheet: View, newState: Int) {
                     renderPlayerSheetForState(newState)
-                    updateMusicRecyclerViewPlayerInset()
                 }
 
                 override fun onSlide(bottomSheet: View, slideOffset: Float) {
@@ -47,20 +46,9 @@ abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
 
                     miniPlayer.alpha = 1f - progress
                     fullPlayer.alpha = progress
-                    updateMusicRecyclerViewPlayerInset()
                 }
             }
         )
-
-        playerSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            updateMusicRecyclerViewPlayerInset()
-        }
-        window.decorView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            updateMusicRecyclerViewPlayerInset()
-        }
-        playerSheet.post {
-            updateMusicRecyclerViewPlayerInset()
-        }
 
         miniPlayer.setOnClickListener {
             expandPlayerPanel()
@@ -105,7 +93,6 @@ abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
             }
 
             playerSheetBehavior.peekHeight = normalMiniHeight + navBottom
-            updateMusicRecyclerViewPlayerInset()
 
             insets
         }
@@ -141,15 +128,6 @@ abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
         }
     }
 
-    private fun updateMusicRecyclerViewPlayerInset() {
-        val visibleSheetHeight = currentPlayerSheetVisibleHeight()
-
-        window.decorView.findMusicRecyclerViews()
-            .filterNot { recyclerView -> recyclerView.isDescendantOf(playerSheet) }
-            .forEach { recyclerView ->
-                recyclerView.setPlayerSheetBottomInset(visibleSheetHeight)
-            }
-    }
 
     override fun currentPlayerSheetVisibleHeight(): Int {
         if (!::playerSheetBehavior.isInitialized) return 0

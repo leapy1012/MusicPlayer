@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import gd.app.musicplayer.databinding.FragmentSoundEffectBinding
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.core.ui.view.EqualizerSingleGroup
 import gd.app.musicplayer.core.ui.view.RotateStepBar
@@ -198,7 +198,7 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
 
     private fun persistAndApply() {
         AudioEffectsManager.saveSettings(requireContext(), settings)
-        MusicPlaybackController.applyAudioEffects(requireContext())
+        PlaybackControllerProvider.applyAudioEffects(requireContext())
     }
 
     private fun updateContentHeight() {
@@ -222,3 +222,4 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
         }
     }
 }
+

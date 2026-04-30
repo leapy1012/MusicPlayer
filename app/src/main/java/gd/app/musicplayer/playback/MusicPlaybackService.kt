@@ -1,8 +1,6 @@
 package gd.app.musicplayer.playback
 
 import android.app.Notification
-import android.app.Notification.Action
-import android.app.Notification.MediaStyle
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -29,6 +27,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Parcelable
 import android.os.SystemClock
+import android.util.Log
 import android.view.KeyEvent
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -44,6 +43,11 @@ import gd.app.musicplayer.core.extension.albumArtSource
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.playback.notification.BaseMusicNotificationBuilder
+import gd.app.musicplayer.playback.notification.DefaultMusicNotificationContent
+import gd.app.musicplayer.playback.notification.NotificationAlbumArtwork
+import gd.app.musicplayer.playback.queue.PlaybackQueue
+import gd.app.musicplayer.playback.queue.QueueUpdateResult
 import gd.app.musicplayer.ui.feature.lock.LockActivity
 import gd.app.musicplayer.ui.feature.widget.provider.WidgetRenderer
 import gd.app.musicplayer.ui.shell.MainActivity
@@ -52,16 +56,25 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlin.random.Random
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MusicPlaybackService : Service() {
+
+    @Inject
+    lateinit var playbackRuntimeStateStore: PlaybackRuntimeStateStore
+    @Inject
+    lateinit var playbackStateStore: PlaybackStateStore
+
     private lateinit var player: ExoPlayer
     private lateinit var notificationManager: NotificationManager
     private lateinit var mediaSession: MediaSession
+    private var notificationBuilder: BaseMusicNotificationBuilder? = null
     private lateinit var defaultArtwork: Bitmap
     private lateinit var serviceScope: CoroutineScope
-    private lateinit var playbackStateStore: PlaybackStateStore
     private var isNightMode = false
     private var lastStateSaveElapsedMs = 0L
 
@@ -75,6 +88,7 @@ class MusicPlaybackService : Service() {
     }
 
     private var artworkTarget: CustomTarget<Bitmap>? = null
+    private val queueEngine = PlaybackQueue()
     private var queue: List<Music> = emptyList()
     private var currentIndex = -1
     private var hasAudioFocus = false
@@ -84,9 +98,12 @@ class MusicPlaybackService : Service() {
     private var currentArtworkTrackId = Long.MIN_VALUE
     private var lastStartedTrackId = Long.MIN_VALUE
     private var shouldResumeAfterTransientLoss = false
+    private var transientLossAtMs = 0L
     private var fadeAnimationId = 0L
     private var timedTransitionTrackId = Long.MIN_VALUE
     private var timedTransitionStartedAtMs = 0L
+    private var keepIdleNotification = false
+    private var lastNotificationRenderState: NotificationRenderState? = null
     private val screenStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
             if (intent?.action != Intent.ACTION_SCREEN_OFF) return
@@ -103,16 +120,26 @@ class MusicPlaybackService : Service() {
         when (focusChange) {
             AudioManager.AUDIOFOCUS_LOSS -> {
                 shouldResumeAfterTransientLoss = false
+                transientLossAtMs = 0L
                 pausePlayback(withFade = false)
             }
+
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 shouldResumeAfterTransientLoss = player.isPlaying
+                transientLossAtMs = if (shouldResumeAfterTransientLoss) SystemClock.elapsedRealtime() else 0L
                 pausePlayback(withFade = false)
             }
+
             AudioManager.AUDIOFOCUS_GAIN -> {
-                if (shouldResumeAfterTransientLoss) {
+                val canResume = transientLossAtMs > 0L &&
+                        SystemClock.elapsedRealtime() - transientLossAtMs <= AUDIO_FOCUS_AUTO_RESUME_WINDOW_MS
+                if (shouldResumeAfterTransientLoss && canResume) {
                     shouldResumeAfterTransientLoss = false
+                    transientLossAtMs = 0L
                     resumePlayback()
+                } else {
+                    shouldResumeAfterTransientLoss = false
+                    transientLossAtMs = 0L
                 }
             }
         }
@@ -122,10 +149,10 @@ class MusicPlaybackService : Service() {
         super.onCreate()
         isRunning = true
         isNightMode = isNightMode(resources.configuration)
-        serviceScope = CoroutineScope(SupervisorJob() + applicationContext.appDependencies.dispatchers.io)
-        playbackStateStore = PlaybackStateStore(applicationContext)
-        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        defaultArtwork = BitmapFactory.decodeResource(resources, R.drawable.default_album_identify)
+        serviceScope =
+            CoroutineScope(SupervisorJob() + applicationContext.appDependencies.dispatchers.io)
+        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        defaultArtwork = BitmapFactory.decodeResource(resources, R.drawable.notify_default_album)
         createNotificationChannel()
         configurePlayer()
         configureMediaSession()
@@ -136,6 +163,7 @@ class MusicPlaybackService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
+        android.util.Log.e("Leapy Notificatoin", action?:"null")
         if (action == null && !player.isPlaying && currentIndex !in queue.indices) {
             isRunning = false
             return START_NOT_STICKY
@@ -147,30 +175,47 @@ class MusicPlaybackService : Service() {
             ACTION_UPDATE_NOTIFICATION, ACTION_FOREGROUND -> {
                 progressHandler.postDelayed({ updateNotification() }, 50L)
             }
+
             ACTION_NOTIFICATION_STYLE -> {
-                progressHandler.postDelayed({ updateNotification() }, 50L)
-                progressHandler.postDelayed({ updateNotification() }, 1500L)
+                refreshNotificationStyle()
             }
+
             ACTION_EXIT -> {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 isRunning = false
                 stopSelf()
                 return START_NOT_STICKY
             }
+
+            ACTION_QUIT -> {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                notificationManager.cancel(NOTIFICATION_ID)
+                isRunning = false
+                stopSelf()
+                return START_NOT_STICKY
+            }
+
             ACTION_PLAY_PAUSE -> {
                 if (player.isPlaying) pausePlayback() else resumePlayback()
             }
+
             ACTION_CHANGE_MODE -> cyclePlaybackMode()
             ACTION_MODE_RANDOM -> setPlaybackMode(PlaybackMode.SHUFFLE_ALL)
             ACTION_MODE_LOOP -> setPlaybackMode(PlaybackMode.LOOP_ALL)
             ACTION_CHANGE_FAVORITE -> {
-                val track = intent.parcelableExtra<Music>(EXTRA_ACTION_DATA) ?: queue.getOrNull(currentIndex)
+                val track = intent.parcelableExtra<Music>(EXTRA_ACTION_DATA) ?: queue.getOrNull(
+                    currentIndex
+                )
                 if (track == null || track.id <= 0L) {
-                    gd.app.musicplayer.core.util.ToastUtil.show(applicationContext, getString(android.R.string.unknownName))
+                    gd.app.musicplayer.core.util.ToastUtil.show(
+                        applicationContext,
+                        getString(android.R.string.unknownName)
+                    )
                 } else {
                     toggleFavorite(track)
                 }
             }
+
             ACTION_CHANGE_MUSIC_BY_INDEX -> {
                 val dataIndex = intent.parcelableExtra<IndexActionData>(EXTRA_ACTION_DATA)?.index
                 val intIndex = intent.getIntExtra(EXTRA_INDEX, -1)
@@ -179,19 +224,21 @@ class MusicPlaybackService : Service() {
                     playIndex(targetIndex, playWhenReady = true)
                 }
             }
+
             ACTION_DESK_LRC_LOCK -> {
                 PreferenceUtil.getInstance(applicationContext).setDesktopLyricsLocked(
                     !PreferenceUtil.getInstance(applicationContext).isDesktopLyricsLocked()
                 )
             }
+
             ACTION_PLAY_FROM_QUEUE -> {
                 val queueId = intent.getLongExtra(EXTRA_QUEUE_ID, -1L)
                 val incomingQueue = PlaybackQueueStore.get(queueId).orEmpty()
                 val incomingIndex = intent.getIntExtra(EXTRA_INDEX, 0)
                 if (incomingQueue.isNotEmpty()) {
-                    queue = incomingQueue
+                    applyQueueChange(queueEngine.setQueue(incomingQueue, incomingIndex))
                     updateMediaSessionQueue()
-                    playIndex(incomingIndex, playWhenReady = true)
+                    playIndex(currentIndex, playWhenReady = true)
                 }
             }
 
@@ -199,10 +246,7 @@ class MusicPlaybackService : Service() {
                 val queueId = intent.getLongExtra(EXTRA_QUEUE_ID, -1L)
                 val incomingQueue = PlaybackQueueStore.get(queueId).orEmpty()
                 if (incomingQueue.isNotEmpty()) {
-                    queue = queue + incomingQueue
-                    if (currentIndex !in queue.indices) {
-                        currentIndex = 0
-                    }
+                    applyQueueChange(queueEngine.addAllToEnd(incomingQueue))
                     updateMediaSessionQueue()
                     updateNotification()
                 }
@@ -213,16 +257,11 @@ class MusicPlaybackService : Service() {
                 val incomingQueue = PlaybackQueueStore.get(queueId).orEmpty()
                 if (incomingQueue.isNotEmpty()) {
                     if (queue.isEmpty()) {
-                        queue = incomingQueue
+                        applyQueueChange(queueEngine.setQueue(incomingQueue, 0))
                         updateMediaSessionQueue()
                         playIndex(0, playWhenReady = true)
                     } else {
-                        val insertIndex = (currentIndex + 1).coerceIn(0, queue.size)
-                        queue = buildList(queue.size + incomingQueue.size) {
-                            addAll(queue.subList(0, insertIndex))
-                            addAll(incomingQueue)
-                            addAll(queue.subList(insertIndex, queue.size))
-                        }
+                        applyQueueChange(queueEngine.addAllNext(incomingQueue))
                         updateMediaSessionQueue()
                     }
                 }
@@ -241,29 +280,34 @@ class MusicPlaybackService : Service() {
             ACTION_PREVIOUS -> playPrevious()
             ACTION_SEEK_TO -> seekTo(intent.getIntExtra(EXTRA_SEEK_POSITION_MS, 0))
             ACTION_SET_STOP_AFTER_CURRENT_TRACK -> {
-                stopAfterCurrentTrack = intent.getBooleanExtra(EXTRA_STOP_AFTER_CURRENT_TRACK, false)
+                stopAfterCurrentTrack =
+                    intent.getBooleanExtra(EXTRA_STOP_AFTER_CURRENT_TRACK, false)
             }
+
             ACTION_TOGGLE_FAVORITE -> {
                 handleNotificationFavoriteToggle()
             }
+
             ACTION_CUSTOM_FAVORITE, ACTION_CUSTOM_UNFAVORITE -> {
                 handleNotificationFavoriteToggle()
             }
+
             ACTION_CUSTOM_STOP -> stopPlayback()
 
             ACTION_APPLY_AUDIO_EFFECTS -> {
                 AudioEffectsManager.applyFromPreferences(this, player)
                 applyResolvedPlayerVolume()
             }
+
             ACTION_APPLY_PLAYBACK_TUNING -> applyPlaybackTuning()
             ACTION_PLAY -> resumePlayback()
             ACTION_PAUSE -> pausePlayback()
             ACTION_RESTART_CURRENT -> restartCurrentTrack()
-            ACTION_REFRESH_NOTIFICATION_STYLE -> updateNotification()
-            ACTION_CLEAR_QUEUE -> stopPlayback()
+            ACTION_REFRESH_NOTIFICATION_STYLE -> refreshNotificationStyle()
+            ACTION_CLEAR_QUEUE -> clearQueueKeepingNotification()
             ACTION_STOP -> stopPlayback()
         }
-        if (!player.isPlaying && currentIndex !in queue.indices && isForegroundStarted) {
+        if (!player.isPlaying && currentIndex !in queue.indices && isForegroundStarted && !keepIdleNotification) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             notificationManager.cancel(NOTIFICATION_ID)
             isForegroundStarted = false
@@ -302,7 +346,10 @@ class MusicPlaybackService : Service() {
         abandonAudioFocus()
         serviceScope.cancel()
         unregisterReceiver(screenStateReceiver)
-        MusicPlaybackController.reset()
+
+        playbackRuntimeStateStore.reset()
+        PlaybackControllerProvider.resetState()
+
         isRunning = false
         super.onDestroy()
     }
@@ -327,6 +374,7 @@ class MusicPlaybackService : Service() {
                         AudioEffectsManager.attachAndApply(this@MusicPlaybackService, player)
                         applyResolvedPlayerVolume()
                     }
+
                     Player.STATE_ENDED -> {
                         timedTransitionTrackId = Long.MIN_VALUE
                         timedTransitionStartedAtMs = 0L
@@ -399,13 +447,55 @@ class MusicPlaybackService : Service() {
                 override fun onSkipToNext() = playNext()
                 override fun onSkipToPrevious() = playPrevious()
                 override fun onSeekTo(pos: Long) = seekTo(pos.toInt())
-                override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
-                    val event: KeyEvent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT)
+                override fun onCustomAction(action: String, extras: android.os.Bundle?) {
+                    Log.d("Leapy Notification", "onCustomAction: $action")
+                    when (action) {
+                        ACTION_CUSTOM_FAVORITE,
+                        ACTION_CUSTOM_UNFAVORITE,
+                        ACTION_TOGGLE_FAVORITE -> handleNotificationFavoriteToggle()
+
+                        ACTION_CUSTOM_STOP,
+                        ACTION_QUIT,
+                        ACTION_STOP -> {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            notificationManager.cancel(NOTIFICATION_ID)
+                            isRunning = false
+                            stopSelf()
+                        }
                     }
+                }
+                override fun onCommand(
+                    command: String,
+                    args: android.os.Bundle?,
+                    cb: android.os.ResultReceiver?,
+                ) {
+                    Log.d("Leapy Notification", "onCommand: $command")
+                    when (command) {
+                        ACTION_CUSTOM_FAVORITE,
+                        ACTION_CUSTOM_UNFAVORITE,
+                        ACTION_TOGGLE_FAVORITE -> handleNotificationFavoriteToggle()
+
+                        ACTION_CUSTOM_STOP,
+                        ACTION_QUIT,
+                        ACTION_STOP -> {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            notificationManager.cancel(NOTIFICATION_ID)
+                            isRunning = false
+                            stopSelf()
+                        }
+                    }
+                }
+                override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+                    val event: KeyEvent? =
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            mediaButtonIntent.getParcelableExtra(
+                                Intent.EXTRA_KEY_EVENT,
+                                KeyEvent::class.java
+                            )
+                        } else {
+                            @Suppress("DEPRECATION")
+                            mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT)
+                        }
                     if (event?.action != KeyEvent.ACTION_DOWN) return true
                     HeadsetMediaButtonHandler.handle(this@MusicPlaybackService, event.keyCode)
                     return true
@@ -418,7 +508,7 @@ class MusicPlaybackService : Service() {
 
     private fun playIndex(index: Int, playWhenReady: Boolean) {
         if (queue.isEmpty()) return
-        currentIndex = index.coerceIn(0, queue.lastIndex)
+        applyQueueChange(queueEngine.moveTo(index))
         lastStartedTrackId = Long.MIN_VALUE
         timedTransitionTrackId = Long.MIN_VALUE
         timedTransitionStartedAtMs = 0L
@@ -451,7 +541,10 @@ class MusicPlaybackService : Service() {
     }
 
     private fun resumePlayback() {
-        if (queue.isEmpty()) return
+        if (queue.isEmpty()) {
+            playDefaultQueue()
+            return
+        }
         if (!requestAudioFocus()) return
         if (currentIndex !in queue.indices) {
             playIndex(0, playWhenReady = true)
@@ -475,6 +568,25 @@ class MusicPlaybackService : Service() {
             updateNotification()
             updatePlaybackStateForMediaSession()
             publishState()
+        }
+    }
+
+    private fun playDefaultQueue() {
+        serviceScope.launch {
+            val tracks = runCatching {
+                applicationContext.appDependencies.mainRepo.observeTracks(
+                    musicSet = MusicSet.Tracks,
+                    sortStyle = PreferenceUtil.getInstance(applicationContext).getSortStyle(MusicSet.Tracks),
+                    sortDescending = PreferenceUtil.getInstance(applicationContext)
+                        .isSortReversed(MusicSet.Tracks, false)
+                ).first()
+            }.getOrDefault(emptyList())
+            if (tracks.isEmpty()) return@launch
+            progressHandler.post {
+                applyQueueChange(queueEngine.setQueue(tracks, 0))
+                updateMediaSessionQueue()
+                playIndex(0, playWhenReady = true)
+            }
         }
     }
 
@@ -515,6 +627,41 @@ class MusicPlaybackService : Service() {
     }
 
     private fun stopPlayback() {
+        keepIdleNotification = false
+
+        artworkTarget?.let { Glide.with(this).clear(it) }
+        artworkTarget = null
+        currentArtwork = null
+        currentArtworkTrackId = Long.MIN_VALUE
+
+        lastStartedTrackId = Long.MIN_VALUE
+        timedTransitionTrackId = Long.MIN_VALUE
+        timedTransitionStartedAtMs = 0L
+        fadeAnimationId += 1L
+
+        player.stop()
+        player.clearMediaItems()
+
+        applyQueueChange(queueEngine.clear())
+
+        playbackStateStore.clear()
+        playbackRuntimeStateStore.reset()
+        PlaybackControllerProvider.resetState()
+
+        mediaSession.setMetadata(null)
+        mediaSession.setQueue(emptyList())
+
+        abandonAudioFocus()
+
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        notificationManager.cancel(NOTIFICATION_ID)
+        isForegroundStarted = false
+
+        stopSelf()
+    }
+
+    private fun clearQueueKeepingNotification() {
+        keepIdleNotification = true
         artworkTarget?.let { Glide.with(this).clear(it) }
         artworkTarget = null
         currentArtwork = null
@@ -525,17 +672,17 @@ class MusicPlaybackService : Service() {
         fadeAnimationId += 1L
         player.stop()
         player.clearMediaItems()
-        queue = emptyList()
-        currentIndex = -1
+        applyQueueChange(queueEngine.clear())
         playbackStateStore.clear()
         mediaSession.setMetadata(null)
         mediaSession.setQueue(emptyList())
         abandonAudioFocus()
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        notificationManager.cancel(NOTIFICATION_ID)
-        isForegroundStarted = false
-        MusicPlaybackController.reset()
-        stopSelf()
+        if (isForegroundStarted) {
+            stopForeground(STOP_FOREGROUND_DETACH)
+            isForegroundStarted = false
+        }
+        publishState()
+        updateNotification()
     }
 
     private fun replaceQueue(newQueue: List<Music>, requestedIndex: Int) {
@@ -545,11 +692,10 @@ class MusicPlaybackService : Service() {
         }
 
         val previousTrackId = queue.getOrNull(currentIndex)?.id
-        val previousPosition = player.currentPosition
         val wasPlaying = player.isPlaying
 
-        queue = newQueue
-        currentIndex = requestedIndex.coerceIn(0, newQueue.lastIndex)
+        val change = queueEngine.replacePreservingCurrent(newQueue, requestedIndex)
+        applyQueueChange(change)
         timedTransitionTrackId = Long.MIN_VALUE
         timedTransitionStartedAtMs = 0L
         updateMediaSessionQueue()
@@ -557,12 +703,11 @@ class MusicPlaybackService : Service() {
         val selectedTrack = queue.getOrNull(currentIndex)
         val canKeepCurrentTrack =
             previousTrackId != null &&
-                selectedTrack?.id == previousTrackId &&
-                player.currentMediaItem != null &&
-                player.playbackState != Player.STATE_IDLE
+                    selectedTrack?.id == previousTrackId &&
+                    player.currentMediaItem != null &&
+                    player.playbackState != Player.STATE_IDLE
 
         if (canKeepCurrentTrack) {
-            player.seekTo(previousPosition)
             refreshArtworkAndSession(force = false)
             updateNotification()
             updatePlaybackStateForMediaSession()
@@ -598,43 +743,34 @@ class MusicPlaybackService : Service() {
 
     private fun resolveNextIndex(fromAutoTransition: Boolean): Int? {
         val mode = PreferenceUtil.getInstance(this).getPlayMode()
-        val activeIndex = currentIndex.takeIf { it in queue.indices } ?: return 0
-        return when (mode) {
-            PlaybackMode.SHUFFLE_ALL -> randomOtherIndex(activeIndex) ?: activeIndex
-            PlaybackMode.LOOP_ALL -> (activeIndex + 1) % queue.size
-            else -> {
-                if (activeIndex == queue.lastIndex) {
-                    null
-                } else {
-                    activeIndex + 1
-                }
-            }
-        }
+        return queueEngine.nextIndex(mode, fromAutoTransition)
     }
 
     private fun resolvePreviousIndex(): Int? {
         val mode = PreferenceUtil.getInstance(this).getPlayMode()
-        val activeIndex = currentIndex.takeIf { it in queue.indices } ?: return 0
-        return when (mode) {
-            PlaybackMode.SHUFFLE_ALL -> randomOtherIndex(activeIndex) ?: activeIndex
-            PlaybackMode.LOOP_ALL -> if (activeIndex == 0) queue.lastIndex else activeIndex - 1
-            else -> if (activeIndex == 0) 0 else activeIndex - 1
-        }
-    }
-
-    private fun randomOtherIndex(current: Int): Int? {
-        if (queue.size <= 1) return null
-        val candidates = queue.indices.filterNot { it == current }
-        return candidates.random(Random(System.nanoTime()))
+        return queueEngine.previousIndex(
+            mode = mode,
+            restartAtBeginning = player.currentPosition > PREVIOUS_RESTART_WINDOW_MS
+        )
     }
 
     private fun seekTo(positionMs: Int) {
         if (currentIndex !in queue.indices) return
-        val durationMs = player.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L)?.toInt() ?: 0
+        val durationMs =
+            player.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L)?.toInt() ?: 0
         val target = positionMs.coerceIn(0, durationMs)
         player.seekTo(target.toLong())
         publishState()
         updatePlaybackStateForMediaSession()
+    }
+
+    private fun applyQueueChange(change: QueueUpdateResult = QueueUpdateResult.NoChange) {
+        queue = queueEngine.queue
+        currentIndex = queueEngine.currentIndex
+        if (change.currentItemChanged || change.queueChanged) {
+            timedTransitionTrackId = Long.MIN_VALUE
+            timedTransitionStartedAtMs = 0L
+        }
     }
 
     private fun refreshArtworkAndSession(force: Boolean = false) {
@@ -654,27 +790,28 @@ class MusicPlaybackService : Service() {
         }
 
         artworkTarget?.let { Glide.with(this).clear(it) }
-        val target = object : CustomTarget<Bitmap>(NOTIFICATION_ART_SIZE_PX, NOTIFICATION_ART_SIZE_PX) {
-            override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                currentArtwork = resource
-                currentArtworkTrackId = track.id
-                updateMediaSessionMetadata(track, resource)
-                updateNotification()
-            }
+        val target =
+            object : CustomTarget<Bitmap>(NOTIFICATION_ART_SIZE_PX, NOTIFICATION_ART_SIZE_PX) {
+                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                    currentArtwork = resource
+                    currentArtworkTrackId = track.id
+                    updateMediaSessionMetadata(track, resource)
+                    updateNotification()
+                }
 
-            override fun onLoadFailed(errorDrawable: android.graphics.drawable.Drawable?) {
-                currentArtwork = defaultArtwork
-                currentArtworkTrackId = track.id
-                updateMediaSessionMetadata(track, defaultArtwork)
-                updateNotification()
-            }
-
-            override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {
-                if (currentArtworkTrackId == track.id) {
+                override fun onLoadFailed(errorDrawable: android.graphics.drawable.Drawable?) {
                     currentArtwork = defaultArtwork
+                    currentArtworkTrackId = track.id
+                    updateMediaSessionMetadata(track, defaultArtwork)
+                    updateNotification()
+                }
+
+                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {
+                    if (currentArtworkTrackId == track.id) {
+                        currentArtwork = defaultArtwork
+                    }
                 }
             }
-        }
         artworkTarget = target
 
         Glide.with(this)
@@ -717,24 +854,35 @@ class MusicPlaybackService : Service() {
 
     private fun publishState() {
         val duration = runCatching {
-            player.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L)?.toInt() ?: 0
+            player.duration
+                .takeIf { it != C.TIME_UNSET }
+                ?.coerceAtLeast(0L)
+                ?.toInt()
+                ?: 0
         }.getOrDefault(0)
+
         val position = runCatching {
-            player.currentPosition.coerceIn(0L, duration.toLong()).toInt()
+            player.currentPosition
+                .coerceIn(0L, duration.toLong())
+                .toInt()
         }.getOrDefault(0)
-        val transitionPlaying = player.playWhenReady &&
-            currentIndex in queue.indices &&
-            player.playbackState != Player.STATE_IDLE
-        MusicPlaybackController.publishState(
-            MusicPlaybackState(
-                queue = queue,
-                currentIndex = currentIndex,
-                isPlaying = player.isPlaying || transitionPlaying,
-                positionMs = position,
-                durationMs = duration,
-                audioSessionId = player.audioSessionId.takeIf { it > 0 } ?: -1
-            )
+
+        val transitionPlaying =
+            player.playWhenReady &&
+                    currentIndex in queue.indices &&
+                    player.playbackState != Player.STATE_IDLE
+
+        val state = MusicPlaybackState(
+            queue = queue,
+            currentIndex = currentIndex,
+            isPlaying = player.isPlaying || transitionPlaying,
+            positionMs = position,
+            durationMs = duration,
+            audioSessionId = player.audioSessionId.takeIf { it > 0 } ?: -1
         )
+        playbackRuntimeStateStore.publish(state)
+        PlaybackControllerProvider.publishState(state)
+
         maybePersistPlaybackState(position)
         WidgetRenderer.updateAll(this)
     }
@@ -753,9 +901,8 @@ class MusicPlaybackService : Service() {
     private fun restorePlaybackStateIfAvailable() {
         val restored = playbackStateStore.restoreState() ?: return
         if (restored.queue.isEmpty()) return
-        queue = restored.queue
+        applyQueueChange(queueEngine.setQueue(restored.queue, restored.index))
         updateMediaSessionQueue()
-        currentIndex = restored.index
         playIndex(currentIndex, playWhenReady = false)
         player.seekTo(restored.positionMs.coerceAtLeast(0).toLong())
         publishState()
@@ -774,12 +921,12 @@ class MusicPlaybackService : Service() {
         val builder = PlaybackState.Builder()
             .setActions(
                 PlaybackState.ACTION_PLAY or
-                    PlaybackState.ACTION_PAUSE or
-                    PlaybackState.ACTION_PLAY_PAUSE or
-                    PlaybackState.ACTION_SKIP_TO_NEXT or
-                    PlaybackState.ACTION_SKIP_TO_PREVIOUS or
-                    PlaybackState.ACTION_SEEK_TO or
-                    PlaybackState.ACTION_STOP
+                        PlaybackState.ACTION_PAUSE or
+                        PlaybackState.ACTION_PLAY_PAUSE or
+                        PlaybackState.ACTION_SKIP_TO_NEXT or
+                        PlaybackState.ACTION_SKIP_TO_PREVIOUS or
+                        PlaybackState.ACTION_SEEK_TO or
+                        PlaybackState.ACTION_STOP
             )
             .setState(state, position, speed)
 
@@ -790,7 +937,7 @@ class MusicPlaybackService : Service() {
                 PlaybackState.CustomAction.Builder(
                     if (isFavorite) ACTION_CUSTOM_UNFAVORITE else ACTION_CUSTOM_FAVORITE,
                     getString(if (isFavorite) R.string.music_unfavorite else R.string.favorite),
-                    if (isFavorite) R.drawable.vector_notify_unfavorite else R.drawable.vector_notify_favorite
+                    if (isFavorite) R.drawable.vector_notify_favorite else R.drawable.vector_notify_unfavorite
                 ).build()
             )
             builder.addCustomAction(
@@ -808,10 +955,7 @@ class MusicPlaybackService : Service() {
     private fun buildNotification(): Notification {
         val track = queue.getOrNull(currentIndex)
         val effectivelyPlaying = isEffectivelyPlaying()
-        val title = track?.title ?: getString(R.string.music_player)
-        val text = track?.artist ?: getString(android.R.string.unknownName)
-        val subText = track?.album
-        val isFavorite = track?.playlistId == MusicSet.FAVORITES_ID
+        val preferences = PreferenceUtil.getInstance(this)
         val contentIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val contentIntent = PendingIntent.getActivity(
             this,
@@ -822,71 +966,24 @@ class MusicPlaybackService : Service() {
             },
             contentIntentFlags
         )
-
-        val previousAction = Action.Builder(
-            android.R.drawable.ic_media_previous,
-            getString(R.string.operation_previous),
-            serviceActionPendingIntent(ACTION_PREVIOUS, REQUEST_PREVIOUS)
-        ).build()
-        val playPauseAction = Action.Builder(
-            if (effectivelyPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
-            getString(if (effectivelyPlaying) R.string.operation_pause else R.string.operation_play),
-            serviceActionPendingIntent(ACTION_TOGGLE_PLAY_PAUSE, REQUEST_TOGGLE_PLAY_PAUSE)
-        ).build()
-        val nextAction = Action.Builder(
-            android.R.drawable.ic_media_next,
-            getString(R.string.operation_next),
-            serviceActionPendingIntent(ACTION_NEXT, REQUEST_NEXT)
-        ).build()
-        val favoriteAction = Action.Builder(
-            if (isFavorite) R.drawable.vector_notify_unfavorite else R.drawable.vector_notify_favorite,
-            getString(if (isFavorite) R.string.music_unfavorite else R.string.favorite),
-            serviceActionPendingIntent(ACTION_TOGGLE_FAVORITE, REQUEST_TOGGLE_FAVORITE)
-        ).build()
-        val stopAction = Action.Builder(
-            R.drawable.vector_notify_close,
-            getString(R.string.operation_stop),
-            serviceActionPendingIntent(ACTION_STOP, REQUEST_STOP)
-        ).build()
-
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
-        } else {
-            Notification.Builder(this)
-        }
-        val preferences = PreferenceUtil.getInstance(this)
-        val useOldNotification = preferences.getBooleanPreference("old_notification", false)
-        val useColorNotification = preferences.getBooleanPreference("color_notification", true)
-
-        builder
-            .setSmallIcon(R.drawable.notify_icon)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setSubText(subText)
-            .setContentIntent(contentIntent)
-            .setDeleteIntent(serviceActionPendingIntent(ACTION_STOP, REQUEST_DELETE))
-            .setVisibility(Notification.VISIBILITY_PUBLIC)
-            .setOnlyAlertOnce(true)
-            .setShowWhen(false)
-            .setOngoing(effectivelyPlaying)
-            .setCategory(Notification.CATEGORY_SERVICE)
-            .setLargeIcon(currentArtwork ?: defaultArtwork)
-            .addAction(favoriteAction)
-            .addAction(previousAction)
-            .addAction(playPauseAction)
-            .addAction(nextAction)
-            .addAction(stopAction)
-            .setStyle(
-                MediaStyle()
-                    .setMediaSession(mediaSession.sessionToken)
-                    .setShowActionsInCompactView(1, 2, 3)
-            )
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder.setColorized(!useOldNotification && useColorNotification)
-        }
-
-        return builder.build()
+        val builder = notificationBuilder ?: BaseMusicNotificationBuilder.create(
+            context = this,
+            shouldUseDynamicColors = true
+        ).also { notificationBuilder = it }
+        val content = DefaultMusicNotificationContent(
+            music = track,
+            playing = effectivelyPlaying,
+            desktopLyricsEnabled = preferences.isDesktopLyricsVisible(),
+            albumArt = NotificationAlbumArtwork(
+                originalBitmap = currentArtwork,
+                displayBitmap = currentArtwork,
+                palette = currentArtwork?.let { androidx.palette.graphics.Palette.from(it).generate() }
+            ),
+            contentIntent = contentIntent,
+            actionIntentFactory = ::serviceActionPendingIntent,
+            mediaSessionToken = mediaSession.sessionToken
+        )
+        return builder.buildNotification(content)
     }
 
     private fun ensureForegroundServiceStarted() {
@@ -905,10 +1002,14 @@ class MusicPlaybackService : Service() {
         return PendingIntent.getService(this, requestCode, intent, flags)
     }
 
-    private fun updateNotification() {
-        if (currentIndex !in queue.indices) return
+    private fun updateNotification(force: Boolean = false) {
+        val renderState = createNotificationRenderState()
+        if (!force && renderState == lastNotificationRenderState) {
+            return
+        }
         val effectivelyPlaying = isEffectivelyPlaying()
         val notification = buildNotification()
+        lastNotificationRenderState = renderState
         if (effectivelyPlaying) {
             if (!isForegroundStarted) {
                 if (tryStartForeground(notification)) {
@@ -928,13 +1029,22 @@ class MusicPlaybackService : Service() {
         }
     }
 
+    private fun refreshNotificationStyle() {
+        notificationBuilder?.cancel()
+        notificationBuilder = null
+        lastNotificationRenderState = null
+        notificationManager.cancel(NOTIFICATION_ID)
+        progressHandler.postDelayed({ updateNotification(force = true) }, 50L)
+        progressHandler.postDelayed({ updateNotification(force = true) }, NOTIFICATION_STYLE_REFRESH_DELAY_MS)
+    }
+
     private fun isEffectivelyPlaying(): Boolean {
         return player.isPlaying ||
-            (
-                player.playWhenReady &&
-                    currentIndex in queue.indices &&
-                    player.playbackState != Player.STATE_IDLE
-                )
+                (
+                        player.playWhenReady &&
+                                currentIndex in queue.indices &&
+                                player.playbackState != Player.STATE_IDLE
+                        )
     }
 
     private fun handleNotificationFavoriteToggle() {
@@ -945,23 +1055,46 @@ class MusicPlaybackService : Service() {
     private fun toggleFavorite(track: Music) {
         serviceScope.launch {
             val favorited = applicationContext.appDependencies.toggleFavoriteTrackUseCase(track.id)
-            queue = queue.map { item ->
-                if (item.id == track.id) item.copy(playlistId = if (favorited) MusicSet.FAVORITES_ID else 0L)
-                else item
-            }
             progressHandler.post {
+                val updatedTrack = track.copy(
+                    playlistId = if (favorited) MusicSet.FAVORITES_ID else 0L
+                )
+                applyQueueChange(
+                    queueEngine.updateItem(updatedTrack) { _, newTrack -> newTrack }
+                )
+                updatePlaybackStateForMediaSession()
                 publishState()
-                updateNotification()
+                updateNotification(force = true)
             }
         }
     }
 
+    private fun createNotificationRenderState(): NotificationRenderState {
+        val track = queue.getOrNull(currentIndex)
+        return NotificationRenderState(
+            trackId = track?.id ?: -1L,
+            favorite = track?.playlistId == MusicSet.FAVORITES_ID,
+            playing = isEffectivelyPlaying(),
+            artworkTrackId = currentArtworkTrackId,
+            artworkReady = currentArtwork != null,
+        )
+    }
+
+    private data class NotificationRenderState(
+        val trackId: Long,
+        val favorite: Boolean,
+        val playing: Boolean,
+        val artworkTrackId: Long,
+        val artworkReady: Boolean,
+    )
+
     private fun cyclePlaybackMode() {
         val preference = PreferenceUtil.getInstance(this)
         val nextMode = when (preference.getPlayMode()) {
+            PlaybackMode.SINGLE -> PlaybackMode.ORDER
             PlaybackMode.ORDER -> PlaybackMode.LOOP_ALL
             PlaybackMode.LOOP_ALL -> PlaybackMode.SHUFFLE_ALL
-            else -> PlaybackMode.ORDER
+            else -> PlaybackMode.SINGLE
         }
         preference.setPlayMode(nextMode)
     }
@@ -1071,7 +1204,8 @@ class MusicPlaybackService : Service() {
 
         val preferences = PreferenceUtil.getInstance(this)
         if (preferences.getBooleanPreference(KEY_CROSS_FADE, false)) {
-            val fadeDurationMs = preferences.getIntPreference(KEY_FADE_DURATION_MS, 6000).coerceIn(1_000, 12_000)
+            val fadeDurationMs =
+                preferences.getIntPreference(KEY_FADE_DURATION_MS, 6000).coerceIn(1_000, 12_000)
             if (remainingMs in 1..fadeDurationMs.toLong() && resolveNextIndex(fromAutoTransition = true) != null) {
                 timedTransitionTrackId = currentTrackId
                 timedTransitionStartedAtMs = SystemClock.elapsedRealtime()
@@ -1105,11 +1239,11 @@ class MusicPlaybackService : Service() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            getString(R.string.music_player),
+            BaseMusicNotificationBuilder.CHANNEL_NAME,
             NotificationManager.IMPORTANCE_LOW
         ).apply {
             setShowBadge(false)
-            description = getString(R.string.music_player)
+            description = BaseMusicNotificationBuilder.CHANNEL_NAME
         }
         notificationManager.createNotificationChannel(channel)
     }
@@ -1135,12 +1269,14 @@ class MusicPlaybackService : Service() {
 
     private fun String.requiresImmediateForegroundPromotion(): Boolean {
         return this == ACTION_PLAY_FROM_QUEUE ||
-            this == ACTION_PLAY ||
-            this == ACTION_PLAY_NEXT ||
-            this == ACTION_REPLACE_QUEUE ||
-            this == ACTION_TOGGLE_PLAY_PAUSE ||
-            this == ACTION_NEXT ||
-            this == ACTION_PREVIOUS
+                this == ACTION_PLAY ||
+                this == ACTION_PLAY_NEXT ||
+                this == ACTION_REPLACE_QUEUE ||
+                this == ACTION_TOGGLE_PLAY_PAUSE ||
+                this == ACTION_NEXT ||
+                this == ACTION_PREVIOUS ||
+                this == ACTION_TOGGLE_FAVORITE ||
+                this == ACTION_STOP
     }
 
     companion object {
@@ -1168,6 +1304,7 @@ class MusicPlaybackService : Service() {
         const val ACTION_SEEK_TO = "gd.app.musicplayer.action.SEEK_TO"
         const val ACTION_CLEAR_QUEUE = "gd.app.musicplayer.action.CLEAR_QUEUE"
         const val ACTION_STOP = "music_action_stop"
+        const val ACTION_QUIT = "gd.app.musicplayer.action.QUIT"
         const val ACTION_TOGGLE_FAVORITE = "gd.app.musicplayer.action.TOGGLE_FAVORITE"
         const val ACTION_SET_STOP_AFTER_CURRENT_TRACK =
             "gd.app.musicplayer.action.SET_STOP_AFTER_CURRENT_TRACK"
@@ -1193,8 +1330,8 @@ class MusicPlaybackService : Service() {
         var isRunning: Boolean = false
             private set
 
-        private const val NOTIFICATION_CHANNEL_ID = "music_playback"
-        private const val NOTIFICATION_ID = 1001
+        private const val NOTIFICATION_CHANNEL_ID = BaseMusicNotificationBuilder.CHANNEL_ID
+        private const val NOTIFICATION_ID = BaseMusicNotificationBuilder.NOTIFICATION_ID
         private const val PROGRESS_TICK_MS = 500L
         private const val MEDIA_SESSION_TAG = "MusicPlaybackServiceSession"
         private const val PREVIOUS_RESTART_WINDOW_MS = 5_000L
@@ -1203,11 +1340,13 @@ class MusicPlaybackService : Service() {
         private const val REQUEST_TOGGLE_PLAY_PAUSE = 22
         private const val REQUEST_NEXT = 23
         private const val REQUEST_STOP = 24
-        private const val REQUEST_DELETE = 25
         private const val REQUEST_TOGGLE_FAVORITE = 26
+        private const val REQUEST_DESK_LRC_LOCK = 27
         private const val PLAY_PAUSE_FADE_DURATION_MS = 1_000L
         private const val FADE_STEP_MS = 50L
         private const val GAPLESS_ADVANCE_WINDOW_MS = 150L
+        private const val AUDIO_FOCUS_AUTO_RESUME_WINDOW_MS = 5 * 60 * 1000L
+        private const val NOTIFICATION_STYLE_REFRESH_DELAY_MS = 1_500L
         private const val KEY_SIMULTANEOUS_PLAY = "simultaneous_play"
         private const val KEY_VOLUME_FADE = "preference_volume_fade"
         private const val KEY_CROSS_FADE = "fade_enable"
@@ -1219,10 +1358,11 @@ class MusicPlaybackService : Service() {
 
         fun startAction(context: Context, action: String, actionData: Parcelable?): Boolean {
             return runCatching {
-                val intent = Intent(context.applicationContext, MusicPlaybackService::class.java).apply {
-                    this.action = action
-                    actionData?.let { putExtra(EXTRA_ACTION_DATA, it) }
-                }
+                val intent =
+                    Intent(context.applicationContext, MusicPlaybackService::class.java).apply {
+                        this.action = action
+                        actionData?.let { putExtra(EXTRA_ACTION_DATA, it) }
+                    }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.applicationContext.startForegroundService(intent)
                 } else {
@@ -1234,11 +1374,12 @@ class MusicPlaybackService : Service() {
 
         fun startActionWithIndex(context: Context, action: String, index: Int): Boolean {
             return runCatching {
-                val intent = Intent(context.applicationContext, MusicPlaybackService::class.java).apply {
-                    this.action = action
-                    putExtra(EXTRA_ACTION_DATA, index)
-                    putExtra(EXTRA_INDEX, index)
-                }
+                val intent =
+                    Intent(context.applicationContext, MusicPlaybackService::class.java).apply {
+                        this.action = action
+                        putExtra(EXTRA_ACTION_DATA, index)
+                        putExtra(EXTRA_INDEX, index)
+                    }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.applicationContext.startForegroundService(intent)
                 } else {

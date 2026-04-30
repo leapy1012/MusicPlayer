@@ -1,10 +1,11 @@
 package gd.app.musicplayer.domain.usecase.playback
 
 import android.content.Context
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 
 class SeekToPositionUseCase {
     operator fun invoke(context: Context, positionMs: Int) {
-        MusicPlaybackController.seekTo(context, positionMs)
+        PlaybackControllerProvider.seekTo(context, positionMs)
     }
 }
+

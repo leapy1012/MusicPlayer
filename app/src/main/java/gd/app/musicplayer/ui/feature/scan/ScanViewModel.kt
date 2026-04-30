@@ -6,10 +6,11 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.app.AppDispatchers
-import gd.app.musicplayer.data.db.MediaStoreMusicImporter
-import gd.app.musicplayer.data.repo.MainRepo
-import gd.app.musicplayer.data.repo.ScanRepo
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.domain.usecase.scan.LoadScanOptionsUseCase
+import gd.app.musicplayer.domain.usecase.scan.ObserveLibraryTrackCountUseCase
+import gd.app.musicplayer.domain.usecase.scan.PersistScanOptionsUseCase
+import gd.app.musicplayer.domain.usecase.scan.QueryMediaStoreTracksUseCase
+import gd.app.musicplayer.domain.usecase.scan.UpsertScannedTracksUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
@@ -18,9 +19,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.min
-import javax.inject.Inject
 
 data class ScanOptions(
     val excludeShort: Boolean = false,
@@ -48,12 +49,13 @@ data class ScanUiState(
 @HiltViewModel
 class ScanViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val preferencesRepo: UserPreferencesRepo,
-    private val mainRepo: MainRepo,
-    private val scanRepo: ScanRepo,
+    private val loadScanOptionsUseCase: LoadScanOptionsUseCase,
+    private val persistScanOptionsUseCase: PersistScanOptionsUseCase,
+    private val observeLibraryTrackCountUseCase: ObserveLibraryTrackCountUseCase,
+    private val queryMediaStoreTracksUseCase: QueryMediaStoreTracksUseCase,
+    private val upsertScannedTracksUseCase: UpsertScannedTracksUseCase,
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
-    private val importer = MediaStoreMusicImporter()
 
     private val _uiState = MutableStateFlow(
         ScanUiState(options = loadSavedOptions())
@@ -63,7 +65,7 @@ class ScanViewModel @Inject constructor(
     private var scanJob: Job? = null
 
     fun startScan(options: ScanOptions) {
-        preferencesRepo.persistScanOptions(options)
+        persistScanOptionsUseCase(options)
         scanJob?.cancel()
         _uiState.value = ScanUiState(
             options = options,
@@ -74,8 +76,8 @@ class ScanViewModel @Inject constructor(
         )
 
         scanJob = viewModelScope.launch(dispatchers.io) {
-            val oldCount = mainRepo.observeTracksCount().first()
-            val imported = importer.queryMusic(appContext)
+            val oldCount = observeLibraryTrackCountUseCase().first()
+            val imported = queryMediaStoreTracksUseCase(appContext)
             val filtered = imported.filter { track ->
                 if (options.excludeShort && track.duration < options.durationSec * 1000) return@filter false
                 if (options.excludeBySize && (track.size ?: 0L) < options.sizeKb * 1024L) return@filter false
@@ -90,7 +92,7 @@ class ScanViewModel @Inject constructor(
             try {
                 filtered.chunked(chunkSize).forEach { chunk ->
                     coroutineContext.ensureActive()
-                    scanRepo.upsertTracks(chunk)
+                    upsertScannedTracksUseCase(chunk)
                     processed += chunk.size
                     _uiState.value = _uiState.value.copy(
                         isScanning = true,
@@ -99,7 +101,7 @@ class ScanViewModel @Inject constructor(
                     )
                 }
 
-                val newCount = mainRepo.observeTracksCount().first()
+                val newCount = observeLibraryTrackCountUseCase().first()
                 _uiState.value = ScanUiState(
                     options = options,
                     isScanning = false,
@@ -124,6 +126,6 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun loadSavedOptions(): ScanOptions {
-        return preferencesRepo.loadScanOptions()
+        return loadScanOptionsUseCase()
     }
 }

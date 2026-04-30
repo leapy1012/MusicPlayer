@@ -41,7 +41,7 @@
         android:paddingEnd="10dp"
         android:tag="shadowMark">
 
-        <gd.app.lib.view.square.SquareFrameLayout
+        <gd.app.lib.view.square.AspectRatioFrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_gravity="center"
@@ -52,7 +52,7 @@
             <!--                android:tag="MusicScanProgressView"-->
             <!--                android:layout_width="match_parent"-->
             <!--                android:layout_height="match_parent"/>-->
-        </gd.app.lib.view.square.SquareFrameLayout>
+        </gd.app.lib.view.square.AspectRatioFrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"

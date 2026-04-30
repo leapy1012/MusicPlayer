@@ -138,6 +138,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="8dp"
             android:scaleType="fitCenter"
+            android:src="@drawable/vector_bottom_favorite_selector"
             android:tag="favorite" />
 
         <View
@@ -152,6 +153,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="12dp"
             android:scaleType="fitEnd"
+            android:src="@drawable/vector_main_play_previous"
             android:tag="itemTextColor" />
 
         <View
@@ -166,6 +168,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="10dp"
             android:scaleType="fitCenter"
+            android:src="@drawable/vector_main_play_pause_selector"
             android:tag="itemTextColor" />
 
         <View
@@ -180,6 +183,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="12dp"
             android:scaleType="fitStart"
+            android:src="@drawable/vector_main_play_next"
             android:tag="itemTextColor" />
 
         <View
@@ -195,6 +199,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="8dp"
             android:scaleType="fitCenter"
+            android:src="@drawable/vector_play_queue_menu"
             android:tag="itemTextColor" />
     </LinearLayout>
 

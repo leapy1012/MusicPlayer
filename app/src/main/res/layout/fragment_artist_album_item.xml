@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<gd.app.lib.view.square.SquareFrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<gd.app.lib.view.square.AspectRatioFrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="2dp"
     android:layout_width="@dimen/album_recycler_height"
     android:layout_height="@dimen/album_recycler_height"
@@ -40,4 +40,4 @@
             android:singleLine="true"
             android:layout_weight="1"/>
     </LinearLayout>
-</gd.app.lib.view.square.SquareFrameLayout>
+</gd.app.lib.view.square.AspectRatioFrameLayout>

@@ -5,7 +5,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
@@ -27,11 +29,7 @@ class ActivityPlaylistSelect : BaseActivity() {
 
     private lateinit var binding: ActivityPlaylistSelectBinding
     private lateinit var songs: List<Music>
-    private val themeRepo by lazy { appDependencies.themeRepo }
-    private val addTracksToPlaylists by lazy { appDependencies.addTracksToPlaylistsUseCase }
 
-    private val selectedPlaylistIds = linkedSetOf<Long>()
-    private var currentPlaylists: List<MusicSet.Playlist> = emptyList()
     private val adapter by lazy { buildAdapter() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,10 +45,9 @@ class ActivityPlaylistSelect : BaseActivity() {
         setContentView(binding.root)
 
         initViews()
-        viewModel.setSongIds(songs.map(Music::id))
+        viewModel.setSongs(songs)
         setupCreatePlaylistResult()
-        observePlaylists()
-        refreshConfirmButton()
+        observeViewModel()
     }
 
 
@@ -67,7 +64,7 @@ class ActivityPlaylistSelect : BaseActivity() {
             WrapContentLinearLayoutManager(this, RecyclerView.VERTICAL, false)
         binding.mainFragmentContainer.recyclerview.adapter = adapter
 
-        binding.addToList.setOnClickListener { confirmAddToSelectedPlaylists() }
+        binding.addToList.setOnClickListener { viewModel.confirmAddToSelectedPlaylists() }
 
     }
 
@@ -75,39 +72,40 @@ class ActivityPlaylistSelect : BaseActivity() {
         PlaylistSelectAdapter(layoutInflater).apply {
             setOnCreatePlaylistClickListener(::showCreatePlaylistDialog)
             setOnSelectionCountChangedListener {
-                refreshConfirmButton()
             }
             setOnSelectionChangedListener { selectedItems ->
-                selectedPlaylistIds.clear()
-                selectedPlaylistIds.addAll(
-                    selectedItems.mapNotNull { item -> (item as? MusicSet.Playlist)?.id }
+                viewModel.updateSelectedPlaylistIds(
+                    selectedItems.mapNotNullTo(linkedSetOf()) { item ->
+                        (item as? MusicSet.Playlist)?.id
+                    }
                 )
-                refreshConfirmButton()
             }
         }
 
-    private fun observePlaylists() {
+    private fun observeViewModel() {
         lifecycleScope.launch {
-            viewModel.uiState.collect { state ->
-                currentPlaylists = state.playlists
-                selectedPlaylistIds.retainAll(
-                    currentPlaylists.mapTo(
-                        hashSetOf(),
-                        MusicSet.Playlist::id
-                    )
-                )
-                adapter.submitPlaylists(
-                    items = currentPlaylists,
-                    selectedItems = currentPlaylists.filterTo(linkedSetOf()) { it.id in selectedPlaylistIds }
-                )
-                refreshConfirmButton()
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.uiState.collect { state ->
+                        adapter.submitPlaylists(
+                            items = state.playlists,
+                            selectedItems = state.playlists.filterTo(linkedSetOf()) {
+                                it.id in state.selectedPlaylistIds
+                            }
+                        )
+                        binding.addToList.visibility = if (state.canConfirm) View.VISIBLE else View.GONE
+                    }
+                }
+                launch {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            is PlaylistSelectEvent.ShowToast -> ToastUtil.show(this@ActivityPlaylistSelect, event.messageRes)
+                            PlaylistSelectEvent.Finish -> finish()
+                        }
+                    }
+                }
             }
         }
-    }
-
-    private fun refreshConfirmButton() {
-        binding.addToList.visibility =
-            if (selectedPlaylistIds.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun showCreatePlaylistDialog() {
@@ -124,24 +122,9 @@ class ActivityPlaylistSelect : BaseActivity() {
         ) { _, result ->
             val playlistId = result.getLong(PlaylistInputDialog.RESULT_PLAYLIST_ID, -1L)
             if (playlistId > 0L) {
-                lifecycleScope.launch {
-                    addSongsToPlaylists(setOf(playlistId))
-                }
+                viewModel.addToCreatedPlaylist(playlistId)
             }
         }
-    }
-
-    private fun confirmAddToSelectedPlaylists() {
-        lifecycleScope.launch {
-            addSongsToPlaylists(selectedPlaylistIds)
-        }
-    }
-
-    private suspend fun addSongsToPlaylists(playlistIds: Set<Long>) {
-        if (playlistIds.isEmpty()) return
-        val addedCount = addTracksToPlaylists(playlistIds, songs)
-        ToastUtil.show(this, if (addedCount > 0) R.string.succeed else R.string.list_contains_music)
-        finish()
     }
 
     companion object {

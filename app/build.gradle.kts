@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.media3.exoplayer)
+    implementation("androidx.media:media:1.7.0")
     implementation(libs.hilt.android)
     implementation(libs.glide)
     ksp(libs.hilt.compiler)
@@ -64,4 +65,5 @@ dependencies {
     implementation("com.pranavpandey.android:dynamic-support:6.4.1")
     implementation("com.github.yalantis:ucrop:2.2.11")
     implementation("net.jthink:jaudiotagger:3.0.1")
+    implementation("jp.wasabeef:glide-transformations:4.3.0")
 }

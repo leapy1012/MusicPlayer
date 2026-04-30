@@ -30,14 +30,14 @@
                 android:layout_margin="20dp"
                 android:layout_weight="1">
 
-                <gd.app.lib.view.square.SquareImageView
+                <gd.app.lib.view.square.AspectRatioImageView
                     android:id="@+id/lock_play_album"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_gravity="center"
                     android:layout_marginTop="8dp"
                     android:scaleType="centerCrop"
-                    app:squareMode="withMin"
+                    app:squareFactory="withMin"
                     app:srcCompat="@drawable/default_album_identify" />
             </FrameLayout>
 

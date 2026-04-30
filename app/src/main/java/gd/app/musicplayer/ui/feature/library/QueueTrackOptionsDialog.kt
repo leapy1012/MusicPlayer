@@ -5,23 +5,25 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.selection.MusicShareSupport
-import gd.app.musicplayer.playback.MusicPlaybackController
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
     private lateinit var music: Music
-    private val deleteTracks by lazy { requireContext().appDependencies.deleteTracksUseCase }
+    private val viewModel: QueueTrackOptionsViewModel by viewModels()
 
     override fun onReadArguments(arguments: Bundle) {
         music = arguments.parcelable(ARG_MUSIC) ?: error("Missing music")
@@ -39,16 +41,27 @@ class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
     )
 
     override fun onMenuItemClicked(item: MenuItem) {
-        dismiss()
         when (item.id) {
-            R.string.operation_play -> MusicPlaybackController.playQueue(requireContext(), listOf(music), 0)
-            R.string.add_to -> ActivityPlaylistSelect.start(requireContext(), listOf(music))
-            R.string.dlg_more_view_album -> openAlbum()
-            R.string.dlg_more_view_artist -> openArtist()
-            R.string.remove -> removeFromQueue()
-            R.string.dlg_ringtone_2 -> ToastUtil.show(requireContext(), R.string.feature_not_implemented)
-            R.string.dlg_share_music -> MusicShareSupport.share(requireContext(), listOf(music))
+            R.string.operation_play -> viewModel.onPlay(music)
+            R.string.add_to -> viewModel.onAddToPlaylist(music)
+            R.string.dlg_more_view_album -> viewModel.onOpenAlbum(music)
+            R.string.dlg_more_view_artist -> viewModel.onOpenArtist(music)
+            R.string.remove -> viewModel.onRemoveFromQueue(music)
+            R.string.dlg_ringtone_2 -> {
+                ToastUtil.show(requireContext(), R.string.feature_not_implemented)
+                dismissAllowingStateLoss()
+            }
+            R.string.dlg_share_music -> viewModel.onShare(music)
             R.string.delete -> confirmDeleteTrack()
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collect(::handleEvent)
+            }
         }
     }
 
@@ -69,71 +82,26 @@ class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
         titleIconView.setOnClickListener(detailClick)
     }
 
-    private fun openAlbum() {
-        val albumName = music.album.takeIf { it.isNotBlank() } ?: return
-        AlbumMusicActivity.start(
-            requireContext(),
-            MusicSet.Album(
-                id = music.albumId.toLongOrNull() ?: MusicSet.ALBUMS_ID,
-                name = albumName,
-                albumArt = music.albumPicture,
-                artist = music.artist,
-                musicCount = 0,
-                date = music.date ?: 0L
-            )
-        )
-    }
-
-    private fun openArtist() {
-        val artistName = music.artist.takeIf { it.isNotBlank() } ?: return
-        AlbumMusicActivity.start(
-            requireContext(),
-            MusicSet.Artist(
-                id = MusicSet.ARTISTS_ID,
-                name = artistName,
-                musicCount = 0,
-                albumCount = 0,
-                albumArt = music.albumPicture
-            )
-        )
-    }
-
-    private fun removeFromQueue() {
-        val state = MusicPlaybackController.state.value
-        val index = state.queue.indexOfFirst { it.id == music.id }
-        if (index < 0) return
-
-        val newQueue = state.queue.toMutableList().apply { removeAt(index) }
-        if (newQueue.isEmpty()) {
-            MusicPlaybackController.clearQueue(requireContext())
-            ToastUtil.show(requireContext(), R.string.succeed)
-            return
-        }
-
-        val newIndex = when {
-            index < state.currentIndex -> state.currentIndex - 1
-            state.currentIndex >= newQueue.size -> newQueue.lastIndex
-            else -> state.currentIndex
-        }
-        MusicPlaybackController.replaceQueue(requireContext(), newQueue, newIndex)
-        ToastUtil.show(requireContext(), R.string.succeed)
-    }
-
     private fun confirmDeleteTrack() {
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.delete)
             .setMessage(music.title)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.delete) { _, _ ->
-                viewLifecycleOwner.lifecycleScope.launch {
-                    val deletedCount = deleteTracks(listOf(music))
-                    ToastUtil.show(
-                        requireContext(),
-                        if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
-                    )
-                }
+                viewModel.onDeleteConfirmed(music)
             }
             .show()
+    }
+
+    private fun handleEvent(event: QueueTrackOptionsEvent) {
+        when (event) {
+            QueueTrackOptionsEvent.Dismiss -> dismissAllowingStateLoss()
+            is QueueTrackOptionsEvent.OpenAddTo -> ActivityPlaylistSelect.start(requireContext(), event.tracks)
+            is QueueTrackOptionsEvent.OpenAlbum -> AlbumMusicActivity.start(requireContext(), event.album)
+            is QueueTrackOptionsEvent.OpenArtist -> AlbumMusicActivity.start(requireContext(), event.artist)
+            is QueueTrackOptionsEvent.Share -> MusicShareSupport.share(requireContext(), event.tracks)
+            is QueueTrackOptionsEvent.ShowToast -> ToastUtil.show(requireContext(), event.messageRes)
+        }
     }
 
     companion object {

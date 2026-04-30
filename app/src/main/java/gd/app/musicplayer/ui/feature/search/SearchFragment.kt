@@ -18,15 +18,13 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentSearchBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.data.model.isConcreteCollection
-import gd.app.musicplayer.core.extension.appDependencies
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.ui.feature.library.AlbumMusicActivity
 import gd.app.musicplayer.ui.feature.library.MusicOptionsDialog
-import gd.app.musicplayer.ui.feature.player.ActivityPlayQueue
+import gd.app.musicplayer.ui.feature.player.PlayQueueActivity
 import gd.app.musicplayer.core.ui.view.SearchView
 import gd.app.musicplayer.core.extension.applyStatusBarInsetHeight
 import gd.app.musicplayer.core.extension.navigateBack
-import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -48,6 +46,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         setupToolbar()
         setupList()
         observeSections()
+        observeEvents()
         viewModel.refreshSortOrder()
     }
 
@@ -93,6 +92,18 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         }
     }
 
+    private fun observeEvents() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        SearchEvent.OpenQueueScreen -> PlayQueueActivity.start(requireContext())
+                    }
+                }
+            }
+        }
+    }
+
     override fun onQueryTextChange(query: String): Boolean {
         viewModel.setQuery(query)
         adapter.setQuery(query)
@@ -106,25 +117,8 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
     }
 
     override fun onSongClicked(song: Music) {
-        val preferences = PreferenceUtil.getInstance(requireContext())
-        val playbackState = MusicPlaybackController.state.value
-        if (preferences.isReplaySongEnabled() && playbackState.currentTrack?.id == song.id) {
-            MusicPlaybackController.restartCurrentTrack(requireContext())
-            if (preferences.isTrackClickOperationEnabled()) {
-                ActivityPlayQueue.start(requireContext())
-            }
-            return
-        }
         viewLifecycleOwner.lifecycleScope.launch {
-            val (queue, startIndex) = viewModel.resolvePlaybackQueue(song)
-            requireContext().appDependencies.playTracksUseCase(
-                requireContext(),
-                queue,
-                startIndex
-            )
-            if (preferences.isTrackClickOperationEnabled()) {
-                ActivityPlayQueue.start(requireContext())
-            }
+            viewModel.onSongClicked(song, PlaybackControllerProvider.state.value.currentTrack?.id)
         }
     }
 
@@ -139,3 +133,4 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         }
     }
 }
+

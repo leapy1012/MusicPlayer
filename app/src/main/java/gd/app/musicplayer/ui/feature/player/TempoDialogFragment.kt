@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.fragment.app.FragmentManager
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogTempoBinding
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.util.PreferenceUtil
@@ -127,12 +127,12 @@ class TempoDialogFragment : BaseThemedDialogFragment(), SeekBar.OnSeekBarChangeL
 
     private fun persistPitch(factor: Float) {
         preferenceUtil.setPlayPitch(factor)
-        MusicPlaybackController.applyPlaybackTuning(requireContext())
+        PlaybackControllerProvider.applyPlaybackTuning(requireContext())
     }
 
     private fun persistSpeed(factor: Float) {
         preferenceUtil.setPlaySpeed(factor)
-        MusicPlaybackController.applyPlaybackTuning(requireContext())
+        PlaybackControllerProvider.applyPlaybackTuning(requireContext())
     }
 
     private fun factorToPitchProgress(factor: Float): Int {
@@ -181,3 +181,4 @@ class TempoDialogFragment : BaseThemedDialogFragment(), SeekBar.OnSeekBarChangeL
         }
     }
 }
+

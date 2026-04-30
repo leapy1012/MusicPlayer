@@ -5,6 +5,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.playback.AudioEffectsManager
 import gd.app.musicplayer.ui.feature.scan.ScanOptions
 import gd.app.musicplayer.util.LibraryTabConfig
+import gd.app.musicplayer.util.PreferenceKeys
 import gd.app.musicplayer.util.PreferenceUtil
 import gd.app.musicplayer.util.ThemePreferenceOps
 import kotlinx.coroutines.flow.Flow
@@ -44,15 +45,17 @@ class UserPreferencesRepo(
 
     fun cyclePlayMode(): Int {
         val nextMode = when (preferenceUtil.getPlayMode()) {
+            PLAY_MODE_SINGLE -> PLAY_MODE_ORDER
             PLAY_MODE_ORDER -> PLAY_MODE_LOOP_ALL
             PLAY_MODE_LOOP_ALL -> PLAY_MODE_SHUFFLE_ALL
-            else -> PLAY_MODE_ORDER
+            else -> PLAY_MODE_SINGLE
         }
         preferenceUtil.setPlayMode(nextMode)
         return nextMode
     }
 
-    fun shouldShowHiddenFolders(): Boolean = preferenceUtil.getBooleanPreference(KEY_SHOW_HIDDEN_FOLDERS, true)
+    fun shouldShowHiddenFolders(): Boolean =
+        preferenceUtil.getBooleanPreference(PreferenceKeys.KEY_SHOW_HIDDEN_FOLDERS, true)
 
     fun getEqualizerPresetName(): String {
         val settings = AudioEffectsManager.loadSettings(context)
@@ -72,10 +75,10 @@ class UserPreferencesRepo(
     fun observeThemeSettings(): Flow<ThemeSettings> =
         observePreferenceChanges(
             KEY_THEME_IMAGE_NAME,
-            KEY_THEME_SKIN_URIS,
-            KEY_THEME_COLOR,
-            KEY_THEME_OVERLAY_COLOR,
-            KEY_THEME_BLUR
+            ThemePreferenceOps.KEY_THEME_SKIN_URIS,
+            ThemePreferenceOps.KEY_THEME_COLOR,
+            ThemePreferenceOps.KEY_THEME_OVERLAY_COLOR,
+            ThemePreferenceOps.KEY_THEME_BLUR
         ).map { getThemeSettings() }
 
     fun getThemeSettings(): ThemeSettings =
@@ -120,14 +123,10 @@ class UserPreferencesRepo(
     }
 
     private companion object {
+        const val PLAY_MODE_SINGLE = 0
         const val PLAY_MODE_ORDER = 1
         const val PLAY_MODE_LOOP_ALL = 2
         const val PLAY_MODE_SHUFFLE_ALL = 3
-        const val KEY_SHOW_HIDDEN_FOLDERS = "show_hidden_folders"
-        const val KEY_THEME_IMAGE_NAME = "image_name"
-        const val KEY_THEME_SKIN_URIS = ThemePreferenceOps.KEY_THEME_SKIN_URIS
-        const val KEY_THEME_COLOR = "theme_color"
-        const val KEY_THEME_OVERLAY_COLOR = "theme_overlay_color"
-        const val KEY_THEME_BLUR = "theme_blur"
+        const val KEY_THEME_IMAGE_NAME = ThemePreferenceOps.KEY_IMAGE_NAME
     }
 }

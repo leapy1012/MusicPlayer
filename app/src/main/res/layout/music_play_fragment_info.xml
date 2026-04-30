@@ -5,7 +5,7 @@
     android:clickable="true"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <gd.app.lib.view.square.SquareCornerFrameLayout
+    <gd.app.lib.view.square.SquareRoundedFrameLayout
         android:layout_gravity="center"
         android:id="@+id/layout_music_play_album_parent"
         android:layout_width="match_parent"
@@ -17,5 +17,5 @@
             android:layout_height="match_parent"
             android:src="@drawable/default_album_identify_large"
             android:scaleType="centerCrop"/>
-    </gd.app.lib.view.square.SquareCornerFrameLayout>
+    </gd.app.lib.view.square.SquareRoundedFrameLayout>
 </FrameLayout>

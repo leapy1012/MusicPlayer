@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.HiddenRepo
 import dagger.hilt.android.lifecycle.HiltViewModel
+import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
+import gd.app.musicplayer.domain.usecase.hidden.ObserveVisibleFoldersUseCase
+import gd.app.musicplayer.domain.usecase.hidden.ObserveVisibleSongsUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -20,12 +22,14 @@ data class HiddenFoldersAddUiState(
 
 @HiltViewModel
 class HiddenFoldersAddViewModel @Inject constructor(
-    private val hiddenRepo: HiddenRepo
+    private val observeVisibleFoldersUseCase: ObserveVisibleFoldersUseCase,
+    private val observeVisibleSongsUseCase: ObserveVisibleSongsUseCase,
+    private val hideSelectionUseCase: HideSelectionUseCase
 ) : ViewModel() {
 
     val uiState: StateFlow<HiddenFoldersAddUiState> = combine(
-        hiddenRepo.observeVisibleFolders(),
-        hiddenRepo.observeVisibleSongs()
+        observeVisibleFoldersUseCase(),
+        observeVisibleSongsUseCase()
     ) { folders, songs ->
         HiddenFoldersAddUiState(
             visibleFolders = folders,
@@ -39,7 +43,7 @@ class HiddenFoldersAddViewModel @Inject constructor(
 
     fun hideSelection(folderPaths: Collection<String>, songIds: Collection<Long>) {
         viewModelScope.launch {
-            hiddenRepo.hideSelection(folderPaths, songIds)
+            hideSelectionUseCase(folderPaths, songIds)
         }
     }
 }

@@ -22,7 +22,7 @@ fun interface OnWindowInsetsChangedListener {
     fun onWindowInsetsChanged(windowInsets: WindowInsets)
 }
 
-class TranslucentBarFrameLayout @JvmOverloads constructor(
+open class TranslucentBarFrameLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0

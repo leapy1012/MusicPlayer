@@ -1,10 +1,11 @@
 package gd.app.musicplayer.domain.usecase.playback
 
 import android.content.Context
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 
 class PlayNextTrackUseCase {
     operator fun invoke(context: Context) {
-        MusicPlaybackController.playNext(context)
+        PlaybackControllerProvider.playNext(context)
     }
 }
+

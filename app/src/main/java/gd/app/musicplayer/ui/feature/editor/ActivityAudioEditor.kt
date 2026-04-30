@@ -83,7 +83,8 @@ class ActivityAudioEditor : BaseActivity(),
         setupEdgeToEdgeToolbar(
             root = binding.root,
             statusBarView = binding.statusBarSpace,
-            toolbar = binding.toolbar
+            toolbar = binding.toolbar,
+            bottomPaddingView = binding.bottomControl as View
         )
         binding.toolbar.title = track?.title ?: getString(R.string.audio_editor_title)
 

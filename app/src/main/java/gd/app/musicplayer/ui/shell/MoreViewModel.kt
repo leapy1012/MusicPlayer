@@ -5,10 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import gd.app.musicplayer.domain.usecase.playmode.CyclePlayModeUseCase
+import gd.app.musicplayer.domain.usecase.playmode.GetPlayModeUseCase
+import gd.app.musicplayer.domain.usecase.playmode.ObservePlayModeUseCase
+import gd.app.musicplayer.domain.usecase.preferences.GetEqualizerPresetNameUseCase
+import gd.app.musicplayer.domain.usecase.preferences.GetHiddenFoldersVisibleUseCase
+import gd.app.musicplayer.domain.usecase.preferences.ObservePreferenceChangesUseCase
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
 import gd.app.musicplayer.playback.SleepTimerManager
 import gd.app.musicplayer.playback.SleepTimerState
+import gd.app.musicplayer.ui.common.playback.PlayModeUiMapper
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -18,6 +24,7 @@ import javax.inject.Inject
 
 data class MoreUiState(
     val playModeLabelRes: Int = R.string.play_mode_list,
+    val playModeIconRes: Int = R.drawable.vector_mode_order,
     val sleepSummary: String = "",
     val isHiddenFoldersVisible: Boolean = false,
     val equalizerSummary: String = ""
@@ -26,16 +33,22 @@ data class MoreUiState(
 @HiltViewModel
 class MoreViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val preferencesRepo: UserPreferencesRepo
+    private val observePreferenceChangesUseCase: ObservePreferenceChangesUseCase,
+    private val observePlayModeUseCase: ObservePlayModeUseCase,
+    private val getPlayModeUseCase: GetPlayModeUseCase,
+    private val cyclePlayModeUseCase: CyclePlayModeUseCase,
+    private val getHiddenFoldersVisibleUseCase: GetHiddenFoldersVisibleUseCase,
+    private val getEqualizerPresetNameUseCase: GetEqualizerPresetNameUseCase
 ) : ViewModel() {
 
     val uiState: StateFlow<MoreUiState> = combine(
-        preferencesRepo.observePreferenceChanges().map {
+        combine(observePreferenceChangesUseCase(), observePlayModeUseCase()) { _, mode -> mode }.map { mode ->
             MoreUiState(
-                playModeLabelRes = playModeLabel(),
+                playModeLabelRes = PlayModeUiMapper.labelRes(mode),
+                playModeIconRes = PlayModeUiMapper.iconRes(mode),
                 sleepSummary = "",
-                isHiddenFoldersVisible = preferencesRepo.shouldShowHiddenFolders(),
-                equalizerSummary = preferencesRepo.getEqualizerPresetName()
+                isHiddenFoldersVisible = getHiddenFoldersVisibleUseCase(),
+                equalizerSummary = getEqualizerPresetNameUseCase()
             )
         },
         SleepTimerManager.state
@@ -46,21 +59,18 @@ class MoreViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = MoreUiState(
             playModeLabelRes = playModeLabel(),
-            isHiddenFoldersVisible = preferencesRepo.shouldShowHiddenFolders(),
-            equalizerSummary = preferencesRepo.getEqualizerPresetName()
+            playModeIconRes = PlayModeUiMapper.iconRes(getPlayModeUseCase()),
+            isHiddenFoldersVisible = getHiddenFoldersVisibleUseCase(),
+            equalizerSummary = getEqualizerPresetNameUseCase()
         )
     )
 
     fun onPlayModeClicked() {
-        preferencesRepo.cyclePlayMode()
+        cyclePlayModeUseCase()
     }
 
     private fun playModeLabel(): Int =
-        when (preferencesRepo.getPlayMode()) {
-            PLAY_MODE_LOOP_ALL -> R.string.play_mode_list_cycle
-            PLAY_MODE_SHUFFLE_ALL -> R.string.play_mode_list_rand
-            else -> R.string.play_mode_list
-        }
+        PlayModeUiMapper.labelRes(getPlayModeUseCase())
 
     private fun formatRemainingTime(state: SleepTimerState): String = when {
         !state.isActive -> ""
@@ -74,10 +84,5 @@ class MoreViewModel @Inject constructor(
             if (hours > 0L) "%d:%02d:%02d".format(hours, minutes, seconds)
             else "%02d:%02d".format(minutes, seconds)
         }
-    }
-
-    private companion object {
-        const val PLAY_MODE_LOOP_ALL = 2
-        const val PLAY_MODE_SHUFFLE_ALL = 3
     }
 }

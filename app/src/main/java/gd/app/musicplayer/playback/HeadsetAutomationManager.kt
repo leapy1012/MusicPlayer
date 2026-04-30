@@ -84,10 +84,10 @@ object HeadsetAutomationManager {
         val preferences = PreferenceUtil.getInstance(context)
         if (connected) {
             if (preferences.shouldPlayWhenHeadsetConnected()) {
-                MusicPlaybackController.play(context)
+                PlaybackControllerProvider.play(context)
             }
         } else if (preferences.shouldStopWhenHeadsetDisconnected()) {
-            MusicPlaybackController.pause(context)
+            PlaybackControllerProvider.pause(context)
         }
     }
 
@@ -98,9 +98,9 @@ object HeadsetAutomationManager {
             return
         }
         if (bluetoothHeadsetOn && preferences.isBluetoothAutoStopEnabled()) {
-            MusicPlaybackController.pause(context)
+            PlaybackControllerProvider.pause(context)
         } else if (preferences.shouldStopWhenHeadsetDisconnected()) {
-            MusicPlaybackController.pause(context)
+            PlaybackControllerProvider.pause(context)
         }
     }
 
@@ -111,7 +111,7 @@ object HeadsetAutomationManager {
         val preferences = PreferenceUtil.getInstance(context)
         if (connected) {
             if (preferences.isBluetoothAutoStartEnabled()) {
-                MusicPlaybackController.play(context)
+                PlaybackControllerProvider.play(context)
             }
         } else {
             maybeStopForBluetoothDisconnect(context)
@@ -120,7 +120,7 @@ object HeadsetAutomationManager {
 
     private fun maybeStopForBluetoothDisconnect(context: Context) {
         if (PreferenceUtil.getInstance(context).isBluetoothAutoStopEnabled()) {
-            MusicPlaybackController.pause(context)
+            PlaybackControllerProvider.pause(context)
         }
     }
 
@@ -162,3 +162,4 @@ object HeadsetAutomationManager {
             getParcelableExtra(name)
         }
 }
+

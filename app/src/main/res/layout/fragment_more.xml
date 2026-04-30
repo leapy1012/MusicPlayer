@@ -14,7 +14,7 @@
         android:layout_height="0dp"
         android:background="#1a000000" />
 
-    <gd.app.lib.view.square.SquareFrameLayout
+    <gd.app.lib.view.square.AspectRatioFrameLayout
         android:id="@+id/menu_header_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -40,7 +40,7 @@
             android:scaleType="fitCenter"
             android:tag="bannerImage"
             app:srcCompat="@drawable/vector_left_menu_text" />
-    </gd.app.lib.view.square.SquareFrameLayout>
+    </gd.app.lib.view.square.AspectRatioFrameLayout>
 
     <ScrollView
         android:id="@+id/menu_scroll_view"

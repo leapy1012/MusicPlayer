@@ -42,7 +42,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"/>
-            <gd.app.lib.view.square.SquareFrameLayout
+            <gd.app.lib.view.square.AspectRatioFrameLayout
                 android:layout_gravity="center"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -55,7 +55,7 @@
                     android:tag="MusicScanProgressView"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"/>
-            </gd.app.lib.view.square.SquareFrameLayout>
+            </gd.app.lib.view.square.AspectRatioFrameLayout>
             <androidx.appcompat.widget.AppCompatTextView
                 android:textSize="20sp"
                 android:textColor="@color/white"

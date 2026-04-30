@@ -14,7 +14,7 @@ import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import androidx.core.graphics.drawable.toDrawable
 import gd.app.lib.view.RoundedOutlineProvider
-import gd.app.lib.view.square.SquareConfig
+import gd.app.lib.view.square.HeightFromWidthMeasurePolicy
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.dpToPx
@@ -95,7 +95,7 @@ class SimultaneousTipDialog : BaseDialogFragment() {
     }
 
     private fun buildDialogMessage(): String {
-        val activity = requireContext() as BaseActivity
+        val activity = requireActivity() as BaseActivity
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             buildString {
@@ -112,9 +112,8 @@ class SimultaneousTipDialog : BaseDialogFragment() {
 
     private fun updateTitleImageShape(isLandscape: Boolean) {
         binding.dialogTitle.setSquare(
-            SquareConfig.create(
-                SquareConfig.BY_WIDTH,
-                if (isLandscape) 0.24f else 0.3f
+            HeightFromWidthMeasurePolicy(
+                ratio = if (isLandscape) 0.24f else 0.3f
             )
         )
 

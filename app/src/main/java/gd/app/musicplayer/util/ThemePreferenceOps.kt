@@ -5,11 +5,11 @@ interface ThemePreferenceOps : PreferenceAccess {
     companion object {
         const val DEFAULT_THEME_IMAGE = "nature_01.webp"
         const val KEY_THEME_SKIN_URIS = "skin_uris"
-        private const val KEY_THEME_OVERLAY_COLOR = "theme_overlay_color"
-        private const val KEY_THEME_BLUR = "theme_blur"
-        private const val KEY_THEME_COLOR = "theme_color"
-        private const val KEY_THEME_DIALOG = "theme_dialog"
-        private const val KEY_IMAGE_NAME = "image_name"
+        const val KEY_THEME_OVERLAY_COLOR = "theme_overlay_color"
+        const val KEY_THEME_BLUR = "theme_blur"
+        const val KEY_THEME_COLOR = "theme_color"
+        const val KEY_THEME_DIALOG = "theme_dialog"
+        const val KEY_IMAGE_NAME = "image_name"
         private const val SKIN_URI_SEPARATOR = "&&"
     }
 

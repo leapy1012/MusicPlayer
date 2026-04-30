@@ -18,8 +18,8 @@ import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.databinding.ActivityThemeEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.common.base.MiniPlayerFragment
-import gd.app.musicplayer.ui.feature.player.MainControlFragment3
+import gd.app.musicplayer.ui.common.base.BottomMiniPlayerFragment
+import gd.app.musicplayer.ui.feature.player.BottomPlayerFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.ui.feature.library.ArtworkCropActivity
 import kotlinx.coroutines.Dispatchers
@@ -131,13 +131,13 @@ class ThemeEditActivity : BaseActivity() {
         supportFragmentManager.beginTransaction()
             .replace(
                 R.id.main_fragment_container,
-                MainControlFragment3(),
-                MainControlFragment3::class.java.simpleName
+                BottomPlayerFragment(),
+                BottomPlayerFragment::class.java.simpleName
             )
             .replace(
                 R.id.main_bottom_control_container,
-                MiniPlayerFragment(),
-                MiniPlayerFragment::class.java.simpleName
+                BottomMiniPlayerFragment(),
+                BottomMiniPlayerFragment::class.java.simpleName
             )
             .commitNowAllowingStateLoss()
     }

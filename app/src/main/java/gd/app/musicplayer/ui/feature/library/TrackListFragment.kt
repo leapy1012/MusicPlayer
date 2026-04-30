@@ -17,17 +17,18 @@ import gd.app.musicplayer.data.model.MusicSet.Album
 import gd.app.musicplayer.databinding.LayoutRecyclerviewBinding
 import gd.app.musicplayer.ui.feature.library.adapter.ArtistAlbumHeaderAdapter
 import gd.app.musicplayer.ui.feature.library.adapter.TrackAdapter
-import gd.app.musicplayer.ui.feature.player.ActivityPlayQueue
+import gd.app.musicplayer.ui.feature.player.PlayQueueActivity
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.menu.MusicSetContextMenu
 import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -46,10 +47,7 @@ class TrackListFragment : BaseListFragment() {
         binding: LayoutRecyclerviewBinding,
         savedInstanceState: Bundle?
     ) {
-        super.onBindingCreated(
-            binding,
-            savedInstanceState
-        )
+        super.onBindingCreated(binding, savedInstanceState)
 
         setupAdapters()
         setupRecyclerView(concatAdapter)
@@ -94,40 +92,23 @@ class TrackListFragment : BaseListFragment() {
     }
 
     private fun observeUiState() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    render(state)
-                }
-            }
-        }
+        collectWhenStarted(viewModel.uiState, ::render)
     }
 
     private fun observeEvents() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.events.collect { event ->
-                    handleEvent(event)
-                }
-            }
-        }
+        collectWhenStarted(viewModel.events, ::handleEvent)
     }
 
     private fun observePlaybackState() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                MusicPlaybackController.state
-                    .map { playbackState ->
-                        playbackState.currentTrack?.id to playbackState.isPlaying
-                    }
-                    .distinctUntilChanged()
-                    .collect { (currentTrackId, isPlaying) ->
-                        trackAdapter.updatePlaybackState(
-                            currentTrackId = currentTrackId,
-                            isPlaying = isPlaying
-                        )
-                    }
-            }
+        collectWhenStarted(
+            PlaybackControllerProvider.state
+                .map { playbackState -> playbackState.currentTrack?.id to playbackState.isPlaying }
+                .distinctUntilChanged()
+        ) { (currentTrackId, isPlaying) ->
+            trackAdapter.updatePlaybackState(
+                currentTrackId = currentTrackId,
+                isPlaying = isPlaying
+            )
         }
     }
 
@@ -145,20 +126,11 @@ class TrackListFragment : BaseListFragment() {
 
     private fun handleEvent(event: TrackListEvent) {
         when (event) {
-            TrackListEvent.OpenPlayQueue -> {
-                ActivityPlayQueue.start(requireContext())
-            }
+            TrackListEvent.OpenPlayQueue -> PlayQueueActivity.start(requireContext())
 
-            is TrackListEvent.OpenAddToPlaylist -> {
-                ActivityPlaylistSelect.start(requireContext(), event.tracks)
-            }
+            is TrackListEvent.OpenAddToPlaylist -> ActivityPlaylistSelect.start(requireContext(), event.tracks)
 
-            is TrackListEvent.ShowMessage -> {
-                ToastUtil.show(
-                    requireContext(),
-                    event.messageRes
-                )
-            }
+            is TrackListEvent.ShowMessage -> ToastUtil.show(requireContext(), event.messageRes)
 
             is TrackListEvent.ShowEnqueuedMessage -> {
                 ToastUtil.show(
@@ -173,8 +145,7 @@ class TrackListFragment : BaseListFragment() {
     }
 
     private fun updateCurrentPlaybackState() {
-        val playbackState = MusicPlaybackController.state.value
-
+        val playbackState = PlaybackControllerProvider.state.value
         trackAdapter.updatePlaybackState(
             currentTrackId = playbackState.currentTrack?.id,
             isPlaying = playbackState.isPlaying
@@ -208,20 +179,20 @@ class TrackListFragment : BaseListFragment() {
     private fun onTrackClicked(track: Music) {
         val context = requireContext()
         val preferences = PreferenceUtil.getInstance(context)
-        val playbackState = MusicPlaybackController.state.value
+        val playbackState = PlaybackControllerProvider.state.value
 
         val shouldRestartCurrentTrack =
             preferences.isReplaySongEnabled() &&
                     playbackState.currentTrack?.id == track.id
 
         if (shouldRestartCurrentTrack) {
-            MusicPlaybackController.restartCurrentTrack(context)
+            PlaybackControllerProvider.restartCurrentTrack(context)
         } else {
             viewModel.onTrackClicked(track)
         }
 
         if (preferences.isTrackClickOperationEnabled()) {
-            ActivityPlayQueue.start(context)
+            PlayQueueActivity.start(context)
         }
     }
 
@@ -263,24 +234,16 @@ class TrackListFragment : BaseListFragment() {
 
     fun handleMusicSetMenuAction(action: MusicSetMenuAction) {
         when (action) {
-            MusicSetMenuAction.Select -> {
-                openSelection()
-            }
+            MusicSetMenuAction.Select -> openSelection()
 
             MusicSetMenuAction.ShuffleAll,
             MusicSetMenuAction.PlayNext,
             MusicSetMenuAction.AddToQueue,
-            MusicSetMenuAction.AddToPlaylist -> {
-                viewModel.onMenuAction(action)
-            }
+            MusicSetMenuAction.AddToPlaylist -> viewModel.onMenuAction(action)
 
-            MusicSetMenuAction.Rename -> {
-                showRenameDialog()
-            }
+            MusicSetMenuAction.Rename -> showRenameDialog()
 
-            MusicSetMenuAction.ManageArtwork -> {
-                showManageArtworkDialog()
-            }
+            MusicSetMenuAction.ManageArtwork -> showManageArtworkDialog()
 
             is MusicSetMenuAction.SortChanged -> {
                 // Sort update flow is driven by view model state observers.
@@ -335,20 +298,9 @@ class TrackListFragment : BaseListFragment() {
 
             is MusicSet.Album,
             is MusicSet.Artist,
-            is MusicSet.Genre -> {
-                // Keep collection metadata rename in a dedicated dialog/use case later.
-                ToastUtil.show(
-                    requireContext(),
-                    R.string.feature_not_implemented
-                )
-            }
+            is MusicSet.Genre -> showNotImplemented()
 
-            else -> {
-                ToastUtil.show(
-                    requireContext(),
-                    R.string.feature_not_implemented
-                )
-            }
+            else -> showNotImplemented()
         }
     }
 
@@ -367,6 +319,18 @@ class TrackListFragment : BaseListFragment() {
         return currentTracks
     }
 
+    private fun showNotImplemented() {
+        ToastUtil.show(requireContext(), R.string.feature_not_implemented)
+    }
+
+    private fun <T> collectWhenStarted(flow: Flow<T>, collector: (T) -> Unit) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                flow.collect(collector)
+            }
+        }
+    }
+
     companion object {
         private const val TAG_RENAME_PLAYLIST_DIALOG = "rename_playlist_dialog"
 
@@ -379,3 +343,4 @@ class TrackListFragment : BaseListFragment() {
         }
     }
 }
+

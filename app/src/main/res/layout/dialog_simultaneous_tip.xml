@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <gd.app.lib.view.square.SquareImageView
+    <gd.app.lib.view.square.AspectRatioImageView
         android:id="@+id/dialog_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

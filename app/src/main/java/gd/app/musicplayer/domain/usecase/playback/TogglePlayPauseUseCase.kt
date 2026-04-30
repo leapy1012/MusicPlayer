@@ -1,10 +1,11 @@
 package gd.app.musicplayer.domain.usecase.playback
 
 import android.content.Context
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 
 class TogglePlayPauseUseCase {
     operator fun invoke(context: Context) {
-        MusicPlaybackController.togglePlayPause(context)
+        PlaybackControllerProvider.togglePlayPause(context)
     }
 }
+

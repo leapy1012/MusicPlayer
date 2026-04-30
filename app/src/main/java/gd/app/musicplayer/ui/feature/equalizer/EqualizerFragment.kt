@@ -17,7 +17,7 @@ import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.databinding.FragmentEqualizerBinding
 import gd.app.musicplayer.databinding.LayoutEdittextBinding
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.core.ui.dialog.OptionsListDialog
 import gd.app.musicplayer.core.ui.dialog.DialogRegistry
@@ -457,7 +457,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>(), View.
 
     private fun persistAndApply() {
         AudioEffectsManager.saveSettings(requireContext(), settings)
-        MusicPlaybackController.applyAudioEffects(requireContext())
+        PlaybackControllerProvider.applyAudioEffects(requireContext())
     }
 
     private fun updateContentHeight() {
@@ -522,3 +522,4 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>(), View.
         }
     }
 }
+

@@ -79,12 +79,20 @@ internal object LibraryQueryBuilder {
 
             is MusicSet.Playlist -> {
                 args += musicSet.id
-                playlistTrackQuery()
+                playlistTrackQuery().appendTrackOrder(
+                    sortStyle = sortStyle,
+                    sortDescending = sortDescending,
+                    sourceId = musicSet.id.toInt()
+                )
             }
 
             is MusicSet.Favorites -> {
                 args += MusicSet.FAVORITES_ID
-                playlistTrackQuery()
+                playlistTrackQuery().appendTrackOrder(
+                    sortStyle = sortStyle,
+                    sortDescending = sortDescending,
+                    sourceId = MusicSet.FAVORITES_ID.toInt()
+                )
             }
 
             is MusicSet.RecentlyAdded -> {
@@ -370,7 +378,6 @@ internal object LibraryQueryBuilder {
                    on music.[_id] = list.[m_id]
             where map.[p_id] = ?
               and music._id is not null
-            order by map.sort asc
         """.trimIndent()
     }
 

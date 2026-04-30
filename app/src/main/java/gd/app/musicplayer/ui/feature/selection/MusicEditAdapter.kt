@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -92,17 +93,7 @@ class MusicEditAdapter(
         }
         override fun onClick(v: View?) {
             val token = currentToken ?: return
-
-            val isSelected = !binding.musicItemMenu.isSelected
-            binding.musicItemMenu.isSelected = isSelected
-
-            if (isSelected) {
-                selectedRowTokens.add(token)
-            } else {
-                selectedRowTokens.remove(token)
-            }
-
-            selectionCountListener?.onSelectionCountChanged(selectedRowTokens.size)
+            toggleRowSelection(token)
         }
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -140,7 +131,7 @@ class MusicEditAdapter(
         fun bindSelection(row: RowEntry) {
             currentToken = row.token
             currentMusic = row.music
-            binding.musicItemMenu.isSelected = isRowSelected(row.token)
+            renderSelectionState(isRowSelected(row.token))
         }
 
         private fun bindMusic(music: Music) {
@@ -151,12 +142,23 @@ class MusicEditAdapter(
             music.loadMusicArtwork(binding.musicItemAlbum)
             binding.musicItemTitle.text = context.highlightText(music.title, searchKeyword, accentColor, "")
             binding.musicItemArtist.text = context.highlightText(music.artist, searchKeyword, accentColor, "")
-            binding.musicItemMenu.isSelected = currentToken?.let(::isRowSelected) == true
+            renderSelectionState(currentToken?.let(::isRowSelected) == true)
             binding.root.alpha = 1.0f
 
             if (dragEnabled) {
                 binding.musicItemDrag.isEnabled = searchKeyword.isNullOrEmpty()
             }
+        }
+
+        private fun renderSelectionState(selected: Boolean) {
+            val context = binding.root.context
+            binding.musicItemMenu.isSelected = selected
+            val tint = if (selected) {
+                context.appDependencies.themeRepo.getAccentColor(context)
+            } else {
+                ContextCompat.getColor(context, R.color.item_artist_color)
+            }
+            binding.musicItemMenu.setColorFilter(tint)
         }
     }
 
@@ -242,7 +244,7 @@ class MusicEditAdapter(
 
     fun selectItem(music: Music) {
         val row = allRows.firstOrNull { it.music.id == music.id && it.music.data == music.data } ?: return
-        if (!selectedRowTokens.add(row.token)) return
+        if (!setRowSelection(row.token, selected = true)) return
         findFilteredIndex(row.token)?.let { notifyItemChanged(it, PAYLOAD_SELECTION) }
         selectionCountListener?.onSelectionCountChanged(selectedRowTokens.size)
     }
@@ -330,6 +332,21 @@ class MusicEditAdapter(
     }
 
     private fun isRowSelected(token: Long): Boolean = token in selectedRowTokens
+
+    private fun toggleRowSelection(token: Long) {
+        val changed = setRowSelection(token, selected = !isRowSelected(token))
+        if (!changed) return
+        findFilteredIndex(token)?.let { notifyItemChanged(it, PAYLOAD_SELECTION) }
+        selectionCountListener?.onSelectionCountChanged(selectedRowTokens.size)
+    }
+
+    private fun setRowSelection(token: Long, selected: Boolean): Boolean {
+        return if (selected) {
+            selectedRowTokens.add(token)
+        } else {
+            selectedRowTokens.remove(token)
+        }
+    }
 
     private fun restoreSelection(previouslySelectedRows: List<RowEntry>) {
         selectedRowTokens.clear()

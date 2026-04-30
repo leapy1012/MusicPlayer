@@ -18,14 +18,19 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.textfield.TextInputEditText
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.ActivitySettingBinding
 import gd.app.musicplayer.core.theme.*
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.playback.SoundEffectPreferences
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -43,15 +48,19 @@ import gd.app.musicplayer.util.StatusBarLyricSettings
 import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.core.ui.dialog.MaterialDialogConfig
+import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class SettingActivity : BaseActivity() {
 
     private lateinit var binding: ActivitySettingBinding
     private val preferenceUtil by lazy { PreferenceUtil.getInstance(this) }
+    private val viewModel: SettingViewModel by viewModels()
 
     private var pendingBluetoothAutoStartEnable = false
     private var pendingNotificationPermissionRefresh = false
     private var restoredScrollPercent: Float? = null
+    private var currentUiState: SettingUiState = SettingUiState()
 
     private val bluetoothPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -70,7 +79,6 @@ class SettingActivity : BaseActivity() {
         private const val KEY_FORWARD_BACKWARD_SECONDS = "time_forward_backward"
         private const val KEY_FADE_DURATION_MS = "fade_duration"
         private const val KEY_QUEUE_FOR_SEARCHING = "queue_for_searching"
-        private const val KEY_BLUETOOTH_LYRIC = "bluetooth_lyric"
         private const val KEY_SHOW_KEEP_ALIVE_DOT = "show_keep_alive_dot"
         private const val KEY_SHOW_FORWARD_BACKWARD = "show_forward_backward"
         private const val KEY_SHOW_SHUFFLE_BUTTON = "preference_show_shuffle_button"
@@ -78,8 +86,6 @@ class SettingActivity : BaseActivity() {
         private const val KEY_REPLAY_GAIN_MODE = "replay_gain_mode"
         private const val KEY_REPLAY_GAIN_PREAMP_WITH_TAG = "preamp_with_tag"
         private const val KEY_REPLAY_GAIN_PREAMP_WITHOUT_TAG = "preamp_without_tag"
-        private const val KEY_OLD_NOTIFICATION = "old_notification"
-        private const val KEY_COLOR_NOTIFICATION = "color_notification"
         private const val KEY_NOTIFICATION_BAR_ENABLED = "use_notification_bar"
         private const val KEY_SCROLL_PERCENT = "scrollPercent"
         private const val KEY_PENDING_BLUETOOTH_AUTO_START_ENABLE =
@@ -112,6 +118,7 @@ class SettingActivity : BaseActivity() {
         setupToolbar()
         setupFragmentResults()
         setupInteractions()
+        observeUiState()
         syncState()
         restoreScrollPositionIfNeeded()
     }
@@ -153,7 +160,7 @@ class SettingActivity : BaseActivity() {
         }
         if (pendingNotificationPermissionRefresh) {
             pendingNotificationPermissionRefresh = false
-            syncNotificationPreferences()
+            syncNotificationPreferences(currentUiState)
         }
     }
 
@@ -180,6 +187,64 @@ class SettingActivity : BaseActivity() {
         restoredScrollPercent = null
     }
 
+    private fun observeUiState() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect(::renderUiState)
+            }
+        }
+    }
+
+    private fun renderUiState(state: SettingUiState) {
+        currentUiState = state
+        binding.preferenceTimeForwardBackward.setSummaryOn("${state.forwardBackwardSeconds}s")
+        setEnabledState(binding.preferenceTimeForwardBackward, state.showForwardBackward)
+        binding.preferenceFadeSeekBar.setMax(11)
+        binding.preferenceFadeSeekBar.setProgress(state.fadeDurationSeconds - 1)
+        binding.preferenceFadeSeekText.text = formatSecondsLabel(state.fadeDurationSeconds)
+        binding.preferenceBluetoothLyric.setSelected(state.bluetoothLyricEnabled)
+        binding.preferenceShakeLevel.setSummaryOn((((state.shakeLevel * 15f) + 1f).toInt()).toString())
+        renderShakeLevel(state.shakeEnabled)
+        binding.preferenceShakeLevelDivider.visibility = if (state.shakeEnabled) View.VISIBLE else View.GONE
+        ShakeDetector.getInstance(this).apply {
+            updateSensitivity(state.shakeLevel)
+            setEnabled(state.shakeEnabled)
+        }
+        syncNotificationPreferences(state)
+        syncBluetoothAutoStartState(state)
+        binding.preferenceQueueForSearching.setSummaryOn(
+            if (state.queueForSearchingMode == 0) {
+                getString(R.string.queue_all_songs)
+            } else {
+                getString(R.string.queue_search_result)
+            }
+        )
+        binding.preferenceReplayGainMode.setSummaryOn(
+            when (state.replayGainMode) {
+                1 -> getString(R.string.replay_gain_track)
+                2 -> getString(R.string.replay_gain_album)
+                else -> getString(R.string.replay_gain_none)
+            }
+        )
+        binding.preferenceReplayGainPreamp.setSummaryOn(
+            "${formatPreampDb(state.replayGainPreampWithTag)} / ${formatPreampDb(state.replayGainPreampWithoutTag)}"
+        )
+        binding.preferenceLockBackground.setSummaryOn(
+            if (state.lockBackgroundMode == 0) {
+                getString(R.string.lock_screen_theme)
+            } else {
+                getString(R.string.lock_screen_artwork)
+            }
+        )
+        binding.preferencePlaylistAddPosition.setTips(
+            if (state.playlistAddPosition == 0) {
+                R.string.add_music_position_top
+            } else {
+                R.string.add_music_position_end
+            }
+        )
+    }
+
     private fun setupInteractions() {
         binding.preferenceUseTenBands.setOnClickListener {
             toggleTenBandEqualizer()
@@ -195,7 +260,9 @@ class SettingActivity : BaseActivity() {
             showForwardBackwardDialog()
         }
 
-        binding.preferenceShowForwardBackward.setOnPreferenceChangedListener { preferenceItemView, z10 -> syncForwardBackwardEnabledState() }
+        binding.preferenceShowForwardBackward.setOnPreferenceChangedListener { _, enabled ->
+            viewModel.setShowForwardBackward(enabled)
+        }
 
         binding.preferenceKeepAliveBackground.setOnClickListener {
             openKeepAliveSettings()
@@ -233,10 +300,7 @@ class SettingActivity : BaseActivity() {
         }
 
         binding.preferenceShakeChangeMusic.setOnPreferenceChangedListener { preferenceItemView, enabled ->
-            renderShakeLevel(enabled)
-            binding.preferenceShakeLevelDivider.visibility =
-                if (enabled) View.VISIBLE else View.GONE
-            ShakeDetector.getInstance(this).setEnabled(enabled)
+            viewModel.setShakeEnabled(enabled)
         }
 
         binding.preferenceShakeLevel.setOnClickListener {
@@ -247,14 +311,14 @@ class SettingActivity : BaseActivity() {
             if (enabled) {
                 SimultaneousTipDialog.newInstance().show(this@SettingActivity.supportFragmentManager, null)
             }
-            MusicPlaybackController.applyPlaybackTuning(this)
+            PlaybackControllerProvider.applyPlaybackTuning(this)
         }
 
         binding.preferenceVolumeFade.setOnPreferenceChangedListener { _, enabled ->
             if (enabled) {
                 binding.preferenceGaplessPlayback.isSelected = false
             }
-            MusicPlaybackController.applyPlaybackTuning(this)
+            PlaybackControllerProvider.applyPlaybackTuning(this)
         }
 
         binding.preferenceGaplessPlayback.setOnPreferenceChangedListener { _, z10 ->
@@ -262,7 +326,7 @@ class SettingActivity : BaseActivity() {
                 binding.preferenceCrossFade.isSelected = false
             }
             renderFadeControls(binding.preferenceCrossFade.isSelected)
-            MusicPlaybackController.applyPlaybackTuning(this)
+            PlaybackControllerProvider.applyPlaybackTuning(this)
         }
 
         binding.preferenceCrossFade.setOnPreferenceChangedListener { _, z10 ->
@@ -270,7 +334,7 @@ class SettingActivity : BaseActivity() {
                 binding.preferenceGaplessPlayback.isSelected = false
             }
             renderFadeControls(z10)
-            MusicPlaybackController.applyPlaybackTuning(this)
+            PlaybackControllerProvider.applyPlaybackTuning(this)
         }
 
         binding.preferenceFadeSeekBar.setOnSeekBarChangeListener(
@@ -283,8 +347,8 @@ class SettingActivity : BaseActivity() {
                     val seconds = progress + 1
                     binding.preferenceFadeSeekText.text = formatSecondsLabel(seconds)
                     if (fromUser) {
-                        preferenceUtil.putIntPreference(KEY_FADE_DURATION_MS, seconds * 1000)
-                        MusicPlaybackController.applyPlaybackTuning(this@SettingActivity)
+                        viewModel.setFadeDurationSeconds(seconds)
+                        PlaybackControllerProvider.applyPlaybackTuning(this@SettingActivity)
                     }
                 }
 
@@ -328,17 +392,14 @@ class SettingActivity : BaseActivity() {
                 return@setOnClickListener
             }
             val enabled = !binding.preferenceUseOldNotification.isSelected
-            preferenceUtil.putBooleanPreference(KEY_OLD_NOTIFICATION, enabled)
-            syncNotificationPreferences()
-            MusicPlaybackController.refreshNotificationStyle(this)
+            viewModel.setOldNotificationEnabled(enabled)
+            syncNotificationPreferences(currentUiState.copy(oldNotificationEnabled = enabled))
+            PlaybackControllerProvider.refreshNotificationStyle(this)
         }
 
         binding.preferenceUseColorNotification.setOnPreferenceChangedListener { _, z10 ->
-            preferenceUtil.putBooleanPreference(
-                KEY_COLOR_NOTIFICATION,
-                z10
-            )
-            MusicPlaybackController.refreshNotificationStyle(this)
+            viewModel.setColorNotificationEnabled(z10)
+            PlaybackControllerProvider.refreshNotificationStyle(this)
         }
 
 //        binding.preferenceLockTimeFormat.setOnClickListener {
@@ -374,14 +435,10 @@ class SettingActivity : BaseActivity() {
         syncSmartPlaylistSummary()
         syncBluetoothLyricState()
         syncStatusBarLyricState()
-        syncNotificationPreferences()
-        syncBluetoothAutoStartState()
+        syncNotificationPreferences(currentUiState)
+        syncBluetoothAutoStartState(currentUiState)
         syncFadeControls()
         renderShakeLevel(binding.preferenceShakeChangeMusic.isSelected)
-        ShakeDetector.getInstance(this).apply {
-            updateSensitivity(preferenceUtil.getShakeLevel())
-            setEnabled(binding.preferenceShakeChangeMusic.isSelected)
-        }
     }
 
     private fun syncTenBandState() {
@@ -509,38 +566,27 @@ class SettingActivity : BaseActivity() {
     }
 
     private fun syncBluetoothLyricState() {
-        binding.preferenceBluetoothLyric.setSelected(
-            preferenceUtil.getBooleanPreference(KEY_BLUETOOTH_LYRIC, true)
-        )
+        binding.preferenceBluetoothLyric.setSelected(currentUiState.bluetoothLyricEnabled)
     }
 
-    private fun syncNotificationPreferences() {
+    private fun syncNotificationPreferences(state: SettingUiState) {
         val hasPermission = hasNotificationPermission()
         binding.preferenceUseNotification.isSelected = hasPermission
         preferenceUtil.putBooleanPreference(KEY_NOTIFICATION_BAR_ENABLED, hasPermission)
 
-        val oldNotificationEnabled = hasPermission &&
-                preferenceUtil.getBooleanPreference(KEY_OLD_NOTIFICATION, false)
+        val oldNotificationEnabled = hasPermission && state.oldNotificationEnabled
         binding.preferenceUseOldNotification.isSelected = oldNotificationEnabled
         setEnabledState(binding.preferenceUseColorNotification, !oldNotificationEnabled)
         setEnabledState(binding.preferenceUseOldNotificationDivider, !oldNotificationEnabled)
 
-        val colorNotificationEnabled =
-            preferenceUtil.getBooleanPreference(
-                KEY_COLOR_NOTIFICATION,
-                true
-            ) && !oldNotificationEnabled
+        val colorNotificationEnabled = state.colorNotificationEnabled && !oldNotificationEnabled
         binding.preferenceUseColorNotification.isSelected = colorNotificationEnabled
     }
 
-    private fun syncBluetoothAutoStartState() {
-        val enabled =
-            preferenceUtil.isBluetoothAutoStartEnabled() && hasBluetoothConnectPermission()
-        if (enabled != preferenceUtil.isBluetoothAutoStartEnabled()) {
-            preferenceUtil.putBooleanPreference(
-                AppPreferenceKey.BLUETOOTH_AUTO_START,
-                enabled
-            )
+    private fun syncBluetoothAutoStartState(state: SettingUiState) {
+        val enabled = state.bluetoothAutoStartEnabled && hasBluetoothConnectPermission()
+        if (enabled != state.bluetoothAutoStartEnabled) {
+            viewModel.setBluetoothAutoStartEnabled(enabled)
         }
         binding.preferenceBluetoothAutoStart.isSelected = enabled
     }
@@ -579,8 +625,7 @@ class SettingActivity : BaseActivity() {
                 selectedItemIndex = checkedIndex
                 onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
                     DialogRegistry.dismissAll(this@SettingActivity)
-                    preferenceUtil.putIntPreference(KEY_FORWARD_BACKWARD_SECONDS, values[which])
-                    syncForwardBackwardSummary()
+                    viewModel.setForwardBackwardSeconds(values[which])
                 }
                 this.itemIconRes = R.drawable.vector_single_check_selector
             }
@@ -622,8 +667,7 @@ class SettingActivity : BaseActivity() {
                 selectedItemIndex = preferenceUtil.getQueueForSearchingMode()
                 onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
                     DialogRegistry.dismissAll(this@SettingActivity)
-                    preferenceUtil.putIntPreference(KEY_QUEUE_FOR_SEARCHING, which)
-                    syncQueueForSearchingSummary()
+                    viewModel.setQueueForSearchingMode(which)
                 }
             }
         OptionsListDialog.show(this, config)
@@ -632,8 +676,7 @@ class SettingActivity : BaseActivity() {
     private fun handleBluetoothLyricClick() {
         val enabled = binding.preferenceBluetoothLyric.isSelected
         if (enabled) {
-            preferenceUtil.putBooleanPreference(KEY_BLUETOOTH_LYRIC, false)
-            binding.preferenceBluetoothLyric.setSelected(false)
+            viewModel.setBluetoothLyricEnabled(false)
             return
         }
         showMessageDialog(
@@ -642,8 +685,7 @@ class SettingActivity : BaseActivity() {
             positiveText = getString(R.string.confirm),
             negativeText = getString(R.string.cancel)
         ) {
-            preferenceUtil.putBooleanPreference(KEY_BLUETOOTH_LYRIC, true)
-            binding.preferenceBluetoothLyric.setSelected(true)
+            viewModel.setBluetoothLyricEnabled(true)
         }
     }
 
@@ -682,9 +724,8 @@ class SettingActivity : BaseActivity() {
             items = labels.toList(),
             checkedIndex = checked
         ) { which ->
-            preferenceUtil.putIntPreference(KEY_REPLAY_GAIN_MODE, which)
-            syncReplayGainModeSummary()
-            MusicPlaybackController.applyPlaybackTuning(this)
+            viewModel.setReplayGainMode(which)
+            PlaybackControllerProvider.applyPlaybackTuning(this)
         }
     }
 
@@ -769,16 +810,12 @@ class SettingActivity : BaseActivity() {
             withoutTagSeek.setProgress(withoutTagSeek.getMax() / 2)
         }
         okButton.setOnClickListener {
-            preferenceUtil.putFloatPreference(
-                KEY_REPLAY_GAIN_PREAMP_WITH_TAG,
+            viewModel.setReplayGainPreamp(
                 progressToPreampDb(withTagSeek.getProgress(), withTagSeek.getMax())
-            )
-            preferenceUtil.putFloatPreference(
-                KEY_REPLAY_GAIN_PREAMP_WITHOUT_TAG,
+                ,
                 progressToPreampDb(withoutTagSeek.getProgress(), withoutTagSeek.getMax())
             )
-            syncReplayGainPreampSummary()
-            MusicPlaybackController.applyPlaybackTuning(this)
+            PlaybackControllerProvider.applyPlaybackTuning(this)
             dialog.dismiss()
         }
         dialog.show()
@@ -793,8 +830,7 @@ class SettingActivity : BaseActivity() {
             items = labels.toList(),
             checkedIndex = preferenceUtil.getPlaylistAddPosition().coerceIn(0, 1)
         ) { which ->
-            preferenceUtil.setPlaylistAddPosition(which)
-            syncPlaylistAddPositionSummary()
+            viewModel.setPlaylistAddPosition(which)
         }
     }
 
@@ -876,8 +912,7 @@ class SettingActivity : BaseActivity() {
             items = labels.toList(),
             checkedIndex = preferenceUtil.getIntPreference(KEY_LOCK_BACKGROUND, 1).coerceIn(0, 1)
         ) { which ->
-            preferenceUtil.putIntPreference(KEY_LOCK_BACKGROUND, which)
-            syncLockBackgroundSummary()
+            viewModel.setLockBackgroundMode(which)
         }
     }
 
@@ -901,7 +936,7 @@ class SettingActivity : BaseActivity() {
     }
 
     private fun setBluetoothAutoStartEnabled(enabled: Boolean) {
-        preferenceUtil.putBooleanPreference(AppPreferenceKey.BLUETOOTH_AUTO_START, enabled)
+        viewModel.setBluetoothAutoStartEnabled(enabled)
         binding.preferenceBluetoothAutoStart.setSelected(enabled)
     }
 
@@ -1015,10 +1050,6 @@ class SettingActivity : BaseActivity() {
         }
     )
 
-    private object AppPreferenceKey {
-        const val BLUETOOTH_AUTO_START = "preference_bluetooth_auto_start"
-    }
-
     private fun themedMessageDialogConfig(): MessageDialog.Config {
         val palette = appDependencies.themeRepo.getCorePalette(this)
         return MessageDialog.Config.create(this).apply {
@@ -1100,3 +1131,4 @@ class SettingActivity : BaseActivity() {
         OptionsListDialog.show(this, config)
     }
 }
+

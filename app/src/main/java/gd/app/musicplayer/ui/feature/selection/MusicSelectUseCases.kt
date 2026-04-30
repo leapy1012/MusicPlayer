@@ -7,8 +7,9 @@ import gd.app.musicplayer.data.repo.PlaylistRepo
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.flow.first
 import java.util.Locale
+import javax.inject.Inject
 
-class LoadMusicSelectDataUseCase(
+class LoadMusicSelectDataUseCase @Inject constructor(
     private val libraryRepo: LibraryRepo,
     private val playlistRepo: PlaylistRepo,
     private val preferenceUtil: PreferenceUtil
@@ -202,7 +203,7 @@ class LoadMusicSelectDataUseCase(
     }
 }
 
-class ConfirmMusicSelectUseCase(
+class ConfirmMusicSelectUseCase @Inject constructor(
     private val playlistRepo: PlaylistRepo
 ) {
     suspend operator fun invoke(request: MusicSelectConfirmRequest): MusicSelectConfirmResult {

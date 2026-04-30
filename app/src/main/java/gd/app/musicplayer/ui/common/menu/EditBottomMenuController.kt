@@ -12,7 +12,7 @@ import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.data.model.MenuItemModel
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
@@ -172,7 +172,7 @@ class EditBottomMenuController(
 
                 is MusicSet.Queue -> {
                     val selectedIds = songs.mapTo(hashSetOf(), Music::id)
-                    val state = MusicPlaybackController.state.value
+                    val state = PlaybackControllerProvider.state.value
                     val newQueue = state.queue.filterNot { it.id in selectedIds }
                     val newIndex = when {
                         newQueue.isEmpty() -> -1
@@ -181,7 +181,7 @@ class EditBottomMenuController(
                             .takeIf { it >= 0 }
                             ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
                     }
-                    MusicPlaybackController.replaceQueue(activity, newQueue, newIndex)
+                    PlaybackControllerProvider.replaceQueue(activity, newQueue, newIndex)
                     ToastUtil.show(activity, R.string.succeed)
                 }
 
@@ -249,3 +249,4 @@ class EditBottomMenuController(
         }
     }
 }
+

@@ -5,6 +5,7 @@ import android.content.ContextWrapper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.ViewConfiguration
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import kotlin.math.abs
@@ -38,25 +39,16 @@ class MusicRecyclerView @JvmOverloads constructor(
 
     private var initialTouchX: Float = 0f
     private var initialTouchY: Float = 0f
-    private var basePaddingLeft: Int = paddingLeft
-    private var basePaddingTop: Int = paddingTop
-    private var basePaddingRight: Int = paddingRight
-    private var basePaddingBottom: Int = paddingBottom
-    private var playerSheetBottomInset: Int = 0
-    private var applyingCombinedPadding: Boolean = false
 
     init {
         disableChangeAnimations()
-        clipToPadding = false
     }
 
     private fun disableChangeAnimations() {
-        (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
-    }
-
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        syncPlayerSheetInsetFromHost()
+        val animator = itemAnimator
+        if (animator is DefaultItemAnimator) {
+            animator.supportsChangeAnimations = false
+        }
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
@@ -85,48 +77,5 @@ class MusicRecyclerView @JvmOverloads constructor(
         }
 
         return super.dispatchTouchEvent(event)
-    }
-
-    override fun setPadding(left: Int, top: Int, right: Int, bottom: Int) {
-        if (applyingCombinedPadding) {
-            super.setPadding(left, top, right, bottom)
-            return
-        }
-
-        basePaddingLeft = left
-        basePaddingTop = top
-        basePaddingRight = right
-        basePaddingBottom = bottom
-        applyCombinedPadding()
-    }
-
-    fun setPlayerSheetBottomInset(inset: Int) {
-        val normalizedInset = inset.coerceAtLeast(0)
-        if (playerSheetBottomInset == normalizedInset) return
-
-        playerSheetBottomInset = normalizedInset
-        applyCombinedPadding()
-    }
-
-    private fun applyCombinedPadding() {
-        applyingCombinedPadding = true
-        super.setPadding(
-            basePaddingLeft,
-            basePaddingTop,
-            basePaddingRight,
-            basePaddingBottom + playerSheetBottomInset
-        )
-        applyingCombinedPadding = false
-    }
-
-    private fun syncPlayerSheetInsetFromHost() {
-        var current: Context? = context
-        while (current is ContextWrapper) {
-            if (current is PlayerSheetInsetHost) {
-                setPlayerSheetBottomInset(current.currentPlayerSheetVisibleHeight())
-                return
-            }
-            current = current.baseContext
-        }
     }
 }

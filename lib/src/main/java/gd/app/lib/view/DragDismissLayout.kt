@@ -21,83 +21,84 @@ class DragDismissLayout @JvmOverloads constructor(
 
     object Direction {
         const val LEFT = 1
-        const val RIGHT = 1 shl 1
-        const val UP = 1 shl 2
-        const val DOWN = 1 shl 3
-        const val HORIZONTAL = LEFT or RIGHT
-        const val VERTICAL = UP or DOWN
-        const val ALL = HORIZONTAL or VERTICAL
+        const val RIGHT = 2
+        const val UP = 4
+        const val DOWN = 8
+        const val ALL = LEFT or RIGHT or UP or DOWN
     }
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
-    private val dragCallback = DismissDragCallback()
+    private val dragCallback = DragCallback()
     private val dragHelper = ViewDragHelper.create(this, dragCallback)
 
+    private var contentView: View? = null
     private var dismissListener: OnDismissListener? = null
+
     private var allowedDirections: Int = Direction.ALL
-    private var childHandlesOwnTouch = false
-    private var childTouchCanceled = false
-    private var dismissTarget: View? = null
+    private var disallowDragIntercept = false
+    private var hasSentCancelToChild = false
 
     override fun onFinishInflate() {
         super.onFinishInflate()
-        dismissTarget = getChildAt(0)
+        contentView = getChildAt(0)
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-        dragHelper.shouldInterceptTouchEvent(event)
+        dragHelper.processTouchEvent(event)
         return true
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         try {
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                childTouchCanceled = false
+                hasSentCancelToChild = false
             }
 
-            if (!childHandlesOwnTouch) {
+            if (!disallowDragIntercept) {
                 dragHelper.processTouchEvent(event)
             }
 
-            val target = dismissTarget
-            if (target != null) {
-                if (childHandlesOwnTouch || childTouchCanceled || !dragCallback.isDragging()) {
-                    target.dispatchTouchEvent(event)
-                } else {
-                    childTouchCanceled = true
-                    val cancelEvent = MotionEvent.obtain(event)
-                    cancelEvent.action = MotionEvent.ACTION_CANCEL
-                    target.dispatchTouchEvent(cancelEvent)
-                    cancelEvent.recycle()
-                }
+            dispatchEventToChild(event)
+
+            if (event.actionMasked == MotionEvent.ACTION_UP && !dragCallback.isDragging) {
+                performClick()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+
         return true
     }
 
-    override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
-        // Parent interception is intentionally controlled by the drag-dismiss logic.
+    override fun performClick(): Boolean {
+        return super.performClick()
     }
 
     override fun computeScroll() {
         if (dragHelper.continueSettling(true)) {
             ViewCompat.postInvalidateOnAnimation(this)
-        } else if (dragCallback.shouldNotifyDismiss()) {
-            dragCallback.setShouldNotifyDismiss(false)
-            dismissTarget?.let { target ->
-                post { dismissListener?.onDismissed(target) }
-            }
+        } else if (dragCallback.isDismissed) {
+            notifyDismissed()
         }
+    }
+
+    override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+        // Intentionally ignored.
+        // This layout manages drag interception manually.
     }
 
     fun setAllowedDirections(directions: Int) {
         allowedDirections = directions
     }
 
-    fun setDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
-        childHandlesOwnTouch = disallowIntercept
-        if (disallowIntercept) {
+    fun setAllowedDirection(direction: Int) {
+        allowedDirections = direction
+    }
+
+    fun setDisallowInterceptTouchEvent(disallow: Boolean) {
+        disallowDragIntercept = disallow
+
+        if (disallow) {
             dragHelper.cancel()
         }
     }
@@ -106,117 +107,199 @@ class DragDismissLayout @JvmOverloads constructor(
         dismissListener = listener
     }
 
-    private inner class DismissDragCallback : ViewDragHelper.Callback() {
-        private var activeDirection: Int = 0
-        private var notifyDismiss = false
+    private fun dispatchEventToChild(event: MotionEvent) {
+        val child = contentView ?: return
+
+        if (disallowDragIntercept || hasSentCancelToChild || !dragCallback.hasDragStarted) {
+            child.dispatchTouchEvent(event)
+            return
+        }
+
+        hasSentCancelToChild = true
+
+        val cancelEvent = MotionEvent.obtain(event).apply {
+            action = MotionEvent.ACTION_CANCEL
+        }
+
+        child.dispatchTouchEvent(cancelEvent)
+        cancelEvent.recycle()
+    }
+
+    private fun notifyDismissed() {
+        dragCallback.isDismissed = false
+
+        post {
+            contentView?.let { dismissListener?.onDismissed(it) }
+        }
+    }
+
+    private fun isDirectionAllowed(direction: Int): Boolean {
+        return allowedDirections and direction == direction
+    }
+
+    private inner class DragCallback : ViewDragHelper.Callback() {
+
+        private var dragDirection = 0
         private var accumulatedDx = 0
         private var accumulatedDy = 0
 
-        fun isDragging(): Boolean = activeDirection != 0
+        var isDismissed = false
+        var isDragging = false
+            private set
 
-        fun shouldNotifyDismiss(): Boolean = notifyDismiss
-
-        fun setShouldNotifyDismiss(shouldNotifyDismiss: Boolean) {
-            notifyDismiss = shouldNotifyDismiss
-        }
+        val hasDragStarted: Boolean
+            get() = dragDirection != 0
 
         override fun tryCaptureView(child: View, pointerId: Int): Boolean {
-            return child == dismissTarget
+            return child == contentView
         }
 
         override fun onViewCaptured(capturedChild: View, activePointerId: Int) {
-            notifyDismiss = false
-            activeDirection = 0
+            dragDirection = 0
             accumulatedDx = 0
             accumulatedDy = 0
+            isDismissed = false
+            isDragging = false
         }
 
-        override fun clampViewPositionHorizontal(child: View, left: Int, dx: Int): Int {
+        override fun clampViewPositionHorizontal(
+            child: View,
+            left: Int,
+            dx: Int
+        ): Int {
             val width = child.width
-            when (activeDirection) {
-                0 -> {
-                    accumulatedDx += dx
-                    if (abs(accumulatedDx) < touchSlop) return 0
 
-                    val direction = if (left < 0) Direction.LEFT else Direction.RIGHT
-                    if ((allowedDirections and direction) == 0) {
-                        dragHelper.cancel()
-                        return 0
-                    }
-                    activeDirection = direction
+            if (dragDirection == 0) {
+                accumulatedDx += dx
+
+                if (abs(accumulatedDx) < touchSlop) {
+                    return 0
                 }
 
-                Direction.LEFT -> return left.coerceIn(-width, 0)
-                Direction.RIGHT -> return left.coerceIn(0, width)
-                else -> return 0
+                val detectedDirection =
+                    if (left < 0) Direction.LEFT else Direction.RIGHT
+
+                if (!isDirectionAllowed(detectedDirection)) {
+                    dragHelper.cancel()
+                    return 0
+                }
+
+                dragDirection = detectedDirection
+                isDragging = true
             }
-            return left.coerceIn(-width, width)
+
+            return when (dragDirection) {
+                Direction.LEFT -> left.coerceIn(-width, 0)
+                Direction.RIGHT -> left.coerceIn(0, width)
+                else -> 0
+            }
         }
 
-        override fun clampViewPositionVertical(child: View, top: Int, dy: Int): Int {
+        override fun clampViewPositionVertical(
+            child: View,
+            top: Int,
+            dy: Int
+        ): Int {
             val height = child.height
-            when (activeDirection) {
-                0 -> {
-                    accumulatedDy += dy
-                    if (abs(accumulatedDy) < touchSlop) return 0
 
-                    val direction = if (top < 0) Direction.UP else Direction.DOWN
-                    if ((allowedDirections and direction) == 0) {
-                        dragHelper.cancel()
-                        return 0
-                    }
-                    activeDirection = direction
+            if (dragDirection == 0) {
+                accumulatedDy += dy
+
+                if (abs(accumulatedDy) < touchSlop) {
+                    return 0
                 }
 
-                Direction.UP -> return top.coerceIn(-height, 0)
-                Direction.DOWN -> return top.coerceIn(0, height)
-                else -> return 0
+                val detectedDirection =
+                    if (top < 0) Direction.UP else Direction.DOWN
+
+                if (!isDirectionAllowed(detectedDirection)) {
+                    dragHelper.cancel()
+                    return 0
+                }
+
+                dragDirection = detectedDirection
+                isDragging = true
             }
-            return top.coerceIn(-height, height)
+
+            return when (dragDirection) {
+                Direction.UP -> top.coerceIn(-height, 0)
+                Direction.DOWN -> top.coerceIn(0, height)
+                else -> 0
+            }
         }
 
-        override fun onViewReleased(releasedChild: View, xvel: Float, yvel: Float) {
+        override fun onViewReleased(
+            releasedChild: View,
+            xvel: Float,
+            yvel: Float
+        ) {
             val width = releasedChild.width
             val height = releasedChild.height
-            val left = releasedChild.left
-            val top = releasedChild.top
 
             var finalLeft = 0
             var finalTop = 0
 
-            when (activeDirection) {
+            when (dragDirection) {
                 Direction.LEFT -> {
-                    if (left < 0 && ((-left) > width * 0.3f || xvel < -4000f)) {
-                        notifyDismiss = true
+                    if (
+                        releasedChild.left < 0 &&
+                        xvel < 0f &&
+                        (abs(releasedChild.left) > width * HORIZONTAL_DISMISS_THRESHOLD ||
+                                xvel < -MIN_FLING_VELOCITY)
+                    ) {
                         finalLeft = -width
+                        isDismissed = true
                     }
                 }
 
                 Direction.RIGHT -> {
-                    if (left > 0 && (left > width * 0.3f || xvel > 4000f)) {
-                        notifyDismiss = true
+                    if (
+                        releasedChild.left > 0 &&
+                        xvel > 0f &&
+                        (releasedChild.left > width * HORIZONTAL_DISMISS_THRESHOLD ||
+                                xvel > MIN_FLING_VELOCITY)
+                    ) {
                         finalLeft = width
+                        isDismissed = true
                     }
                 }
 
                 Direction.UP -> {
-                    if (top < 0 && ((-top) > height * 0.25f || yvel < -4000f)) {
-                        notifyDismiss = true
+                    if (
+                        releasedChild.top < 0 &&
+                        yvel < 0f &&
+                        (abs(releasedChild.top) > height * VERTICAL_DISMISS_THRESHOLD ||
+                                yvel < -MIN_FLING_VELOCITY)
+                    ) {
                         finalTop = -height
+                        isDismissed = true
                     }
                 }
 
                 Direction.DOWN -> {
-                    if (top > 0 && (top > height * 0.25f || yvel > 4000f)) {
-                        notifyDismiss = true
+                    if (
+                        releasedChild.top > 0 &&
+                        yvel > 0f &&
+                        (releasedChild.top > height * VERTICAL_DISMISS_THRESHOLD ||
+                                yvel > MIN_FLING_VELOCITY)
+                    ) {
                         finalTop = height
+                        isDismissed = true
                     }
                 }
             }
 
             dragHelper.settleCapturedViewAt(finalLeft, finalTop)
-            activeDirection = 0
+            dragDirection = 0
+            isDragging = false
+
             ViewCompat.postInvalidateOnAnimation(this@DragDismissLayout)
         }
+    }
+
+    private companion object {
+        const val HORIZONTAL_DISMISS_THRESHOLD = 0.30f
+        const val VERTICAL_DISMISS_THRESHOLD = 0.25f
+        const val MIN_FLING_VELOCITY = 4000f
     }
 }

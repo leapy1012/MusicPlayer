@@ -386,7 +386,7 @@ class DefaultThemeBinder : ThemeViewBinder {
         }
 
         if (tag == ThemeTags.LYRIC_VIEW && view is LyricView) {
-            view.setTextColor(titleColor)
+            view.setCurrentTextColor(titleColor)
             return true
         }
 

@@ -381,6 +381,11 @@
     <dimen name="lock_margin_32dp">20dp</dimen>
     <dimen name="lock_margin_6dp">4dp</dimen>
     <dimen name="lock_screen_item_height">48dp</dimen>
+    <dimen name="notification_icon_size">32dp</dimen>
+    <dimen name="notification_icon_padding_2">4.5dp</dimen>
+
 
     <dimen name="player_sheet_height">236dp</dimen>
+    <dimen name="notification_icon_padding">4dp</dimen>
+
 </resources>

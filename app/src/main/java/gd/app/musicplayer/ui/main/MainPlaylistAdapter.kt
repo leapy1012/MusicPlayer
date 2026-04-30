@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import gd.app.lib.view.square.FixedSizeMeasurePolicy
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.applyRoundedOutline
 import gd.app.musicplayer.core.extension.dpToPx
@@ -21,11 +22,6 @@ class MainPlaylistAdapter(
 ) : RecyclerView.Adapter<MainPlaylistAdapter.ViewHolder>() {
 
     private val playlists = mutableListOf<MusicSet.Playlist>()
-    private val itemSizePx: Int = run {
-        val columnCount = if (context.isTablet()) 6 else 3
-        val spacingPx = context.dpToPx(8f)
-        (context.screenWidth - (spacingPx * (columnCount + 1))) / columnCount
-    }
 
     init {
         setHasStableIds(true)
@@ -50,8 +46,6 @@ class MainPlaylistAdapter(
             parent,
             false
         )
-        binding.root.setSquare(itemSizePx)
-        binding.root.applyRoundedOutline(R.dimen.item_image_corner_radius)
         return ViewHolder(binding)
     }
 
@@ -87,6 +81,17 @@ class MainPlaylistAdapter(
     class ViewHolder(
         private val binding: FragmentMainPlaylistItemBinding
     ) : RecyclerView.ViewHolder(binding.root) {
+
+        init {
+            val itemSizePx: Int = run {
+                val columnCount = if (binding.root.context.isTablet()) 6 else 3
+                val spacingPx = binding.root.context.dpToPx(8f)
+                (binding.root.context.screenWidth - (spacingPx * (columnCount + 1))) / columnCount
+            }
+
+            binding.root.setSquare(FixedSizeMeasurePolicy(itemSizePx, itemSizePx))
+            binding.root.applyRoundedOutline(R.dimen.item_image_corner_radius)
+        }
 
         fun bindPlaylist(
             playlist: MusicSet.Playlist,

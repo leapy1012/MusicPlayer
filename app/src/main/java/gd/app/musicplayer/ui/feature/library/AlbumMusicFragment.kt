@@ -276,13 +276,16 @@ class AlbumMusicFragment :
                 // TODO: MusicSetShortcutHelper.pinShortcut(requireContext(), musicSet)
             }
 
+            MusicSetMenuAction.DeleteEmptyPlaylists -> {
+
+            }
+
             MusicSetMenuAction.DeletePlaylist,
             MusicSetMenuAction.ClearFavorites,
             MusicSetMenuAction.ClearRecentlyPlayed,
             MusicSetMenuAction.ClearMostPlayed,
             MusicSetMenuAction.BackupPlaylists,
             MusicSetMenuAction.RestorePlaylists,
-            MusicSetMenuAction.DeleteEmptyPlaylists,
             MusicSetMenuAction.ViewAsList,
             MusicSetMenuAction.ViewAsGrid -> {
                 // Not handled by AlbumMusicFragment.

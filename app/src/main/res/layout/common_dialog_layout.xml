@@ -19,8 +19,7 @@
                 android:id="@+id/common_dialog_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:fitsSystemWindows="true" />
+                android:layout_gravity="center" />
         </gd.app.lib.configuration.CommonContainerLayout>
     </gd.app.lib.view.InterceptTouchCoordinatorLayout>
 </FrameLayout>

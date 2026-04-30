@@ -8,8 +8,12 @@ import android.view.ViewGroup
 import android.widget.EditText
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.fragment.app.viewModels
 import androidx.fragment.app.setFragmentResult
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
@@ -18,23 +22,20 @@ import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.core.ui.drawable.ViewStateDrawables
 import gd.app.musicplayer.core.extension.applyLengthFilter
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelableArrayList
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.extension.hideKeyboard
 import gd.app.musicplayer.core.extension.showKeyboardDelayed
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class PlaylistInputDialog : BaseThemedDialogFragment() {
+    private val viewModel: PlaylistInputViewModel by viewModels()
 
     private lateinit var binding: DialogNewPlaylistBinding
     private var actionMode: Int = MODE_CREATE_AND_RETURN
     private var pendingTracks: List<Music> = emptyList()
     private var targetSet: MusicSet? = null
-    private val playlistRepo by lazy { requireContext().appDependencies.playlistRepo }
-    private val createPlaylist by lazy { requireContext().appDependencies.createPlaylistUseCase }
-    private val renamePlaylist by lazy { requireContext().appDependencies.renamePlaylistUseCase }
-    private val addTracksToPlaylists by lazy { requireContext().appDependencies.addTracksToPlaylistsUseCase }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,20 +59,23 @@ class PlaylistInputDialog : BaseThemedDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.dialogButtonOk.setOnClickListener { submit() }
+        binding.dialogButtonOk.setOnClickListener {
+            viewModel.submit(binding.newPlaylistEdittext.text.toString())
+        }
         binding.dialogButtonCancel.setOnClickListener { dismiss() }
 
         binding.newPlaylistEdittext.apply {
             applyLengthFilter(120)
             showKeyboardDelayed()
-            if (actionMode == MODE_RENAME_SET) {
-                setText((targetSet as? MusicSet.Playlist)?.name.orEmpty())
-            } else {
-                lifecycleScope.launch {
-                    setText(suggestNewPlaylistName())
-                }
-            }
         }
+
+        observeViewModel()
+        viewModel.initialize(
+            mode = actionMode,
+            targetSet = targetSet,
+            pendingTracks = pendingTracks,
+            newListLabel = getString(R.string.new_list)
+        )
 
         applyDialogWidth(0.88f)
         applyDialogBackground(view)
@@ -112,66 +116,37 @@ class PlaylistInputDialog : BaseThemedDialogFragment() {
         return super.applyTaggedStyle(tag, view, palette)
     }
 
-    private fun submit() {
-        val input = binding.newPlaylistEdittext.text.toString().trim()
-        if (input.isEmpty()) {
-            ToastUtil.show(requireContext(), R.string.equalizer_edit_input_error)
-            return
-        }
-
+    private fun observeViewModel() {
         lifecycleScope.launch {
-            val currentPlaylistId = (targetSet as? MusicSet.Playlist)?.id ?: -1L
-            if (playlistRepo.playlistNameExists(input, currentPlaylistId)) {
-                ToastUtil.show(requireContext(), R.string.name_exist)
-                return@launch
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.uiState.collect { state ->
+                        val currentInput = binding.newPlaylistEdittext.text?.toString().orEmpty()
+                        if (currentInput.isBlank() && state.suggestedName.isNotBlank()) {
+                            binding.newPlaylistEdittext.setText(state.suggestedName)
+                            binding.newPlaylistEdittext.setSelection(state.suggestedName.length)
+                        }
+                    }
+                }
+                launch {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            is PlaylistInputEvent.ShowToast -> ToastUtil.show(requireContext(), event.messageRes)
+                            is PlaylistInputEvent.ReturnCreatedPlaylist -> {
+                                setFragmentResult(
+                                    RESULT_REQUEST_KEY,
+                                    Bundle().apply {
+                                        putLong(RESULT_PLAYLIST_ID, event.playlistId)
+                                        putString(RESULT_PLAYLIST_NAME, event.playlistName)
+                                    }
+                                )
+                            }
+                            PlaylistInputEvent.Dismiss -> dismissAllowingStateLoss()
+                        }
+                    }
+                }
             }
-
-            when (actionMode) {
-                MODE_RENAME_SET -> renameSet(input)
-                MODE_ADD_TRACKS_TO_SET -> addTracksToPlaylist(input)
-                MODE_CREATE_AND_RETURN -> createPlaylistAndReturn(input)
-            }
-
-            dismissAllowingStateLoss()
         }
-    }
-
-    private suspend fun renameSet(newName: String) {
-        val playlist = targetSet as? MusicSet.Playlist ?: run {
-            ToastUtil.show(requireContext(), R.string.feature_not_implemented)
-            return
-        }
-        renamePlaylist(playlist.id, newName)
-        ToastUtil.show(requireContext(), R.string.rename_success)
-    }
-
-    private suspend fun addTracksToPlaylist(playlistName: String) {
-        val playlistId = createPlaylist(playlistName)
-        val added = addTracksToPlaylists(setOf(playlistId), pendingTracks)
-        ToastUtil.show(
-            requireContext(),
-            if (added > 0) R.string.succeed else R.string.list_contains_music
-        )
-    }
-
-    private suspend fun createPlaylistAndReturn(playlistName: String) {
-        val playlistId = createPlaylist(playlistName)
-
-        setFragmentResult(
-            RESULT_REQUEST_KEY,
-            Bundle().apply {
-                putLong(RESULT_PLAYLIST_ID, playlistId)
-                putString(RESULT_PLAYLIST_NAME, playlistName)
-            }
-        )
-    }
-
-    private suspend fun suggestNewPlaylistName(): String {
-        val names = playlistRepo.getAllPlaylistNames().toSet()
-        val base = "${getString(R.string.new_list)} "
-        var index = 1
-        while (names.contains("$base$index")) index++
-        return "$base$index"
     }
 
     companion object {

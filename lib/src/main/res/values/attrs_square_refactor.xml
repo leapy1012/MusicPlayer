@@ -1,0 +1,50 @@
+<resources>
+
+    <attr name="squareFactory">
+        <enum name="adjustWidth" value="0" />
+        <enum name="adjustHeight" value="1" />
+        <enum name="withMin" value="2" />
+    </attr>
+
+    <attr name="squareRatio" format="string" />
+
+    <attr name="corner_radius" format="dimension" />
+    <attr name="corner_radiusTopLeft" format="dimension" />
+    <attr name="corner_radiusTopRight" format="dimension" />
+    <attr name="corner_radiusBottomRight" format="dimension" />
+    <attr name="corner_radiusBottomLeft" format="dimension" />
+
+    <declare-styleable name="SquareRoundedFrameLayout">
+        <attr name="squareFactory" />
+        <attr name="squareRatio" />
+        <attr name="corner_radius" />
+        <attr name="corner_radiusTopLeft" />
+        <attr name="corner_radiusTopRight" />
+        <attr name="corner_radiusBottomRight" />
+        <attr name="corner_radiusBottomLeft" />
+    </declare-styleable>
+
+    <declare-styleable name="AspectRatioFrameLayout">
+        <attr name="squareFactory" />
+        <attr name="squareRatio" />
+    </declare-styleable>
+
+    <declare-styleable name="AspectRatioImageView">
+        <attr name="squareFactory" />
+        <attr name="squareRatio" />
+    </declare-styleable>
+
+    <declare-styleable name="AspectRatioRelativeLayout">
+        <attr name="squareFactory" />
+        <attr name="squareRatio" />
+    </declare-styleable>
+
+    <declare-styleable name="RoundedCornerFrameLayout">
+        <attr name="corner_radius" />
+        <attr name="corner_radiusTopLeft" />
+        <attr name="corner_radiusTopRight" />
+        <attr name="corner_radiusBottomRight" />
+        <attr name="corner_radiusBottomLeft" />
+    </declare-styleable>
+
+</resources>

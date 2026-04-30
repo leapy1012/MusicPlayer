@@ -18,11 +18,11 @@ object HeadsetMediaButtonHandler {
         val preferences = PreferenceUtil.getInstance(context)
         when {
             clickCount >= 3 && preferences.isHeadsetControlAllowed() ->
-                MusicPlaybackController.playPrevious(context)
+                PlaybackControllerProvider.playPrevious(context)
             clickCount == 2 && preferences.isHeadsetControlAllowed() ->
-                MusicPlaybackController.playNext(context)
+                PlaybackControllerProvider.playNext(context)
             clickCount >= 1 ->
-                MusicPlaybackController.togglePlayPause(context)
+                PlaybackControllerProvider.togglePlayPause(context)
         }
         clickCount = 0
         pendingContext = null
@@ -31,23 +31,23 @@ object HeadsetMediaButtonHandler {
     fun handle(context: Context, keyCode: Int): Boolean {
         return when (keyCode) {
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                MusicPlaybackController.play(context)
+                PlaybackControllerProvider.play(context)
                 true
             }
             KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                MusicPlaybackController.pause(context)
+                PlaybackControllerProvider.pause(context)
                 true
             }
             KeyEvent.KEYCODE_MEDIA_NEXT -> {
-                MusicPlaybackController.playNext(context)
+                PlaybackControllerProvider.playNext(context)
                 true
             }
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
-                MusicPlaybackController.playPrevious(context)
+                PlaybackControllerProvider.playPrevious(context)
                 true
             }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                MusicPlaybackController.togglePlayPause(context)
+                PlaybackControllerProvider.togglePlayPause(context)
                 true
             }
             KeyEvent.KEYCODE_HEADSETHOOK -> {
@@ -61,3 +61,4 @@ object HeadsetMediaButtonHandler {
         }
     }
 }
+

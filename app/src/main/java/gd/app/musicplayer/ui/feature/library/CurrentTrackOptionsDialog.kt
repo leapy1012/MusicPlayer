@@ -12,11 +12,12 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.setPadding
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.core.util.ToastUtil
@@ -27,27 +28,25 @@ import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.selection.MusicShareSupport
 import gd.app.musicplayer.ui.feature.sleep.SleepActivity
 import gd.app.musicplayer.ui.feature.tags.EditTagsActivity
-import gd.app.musicplayer.playback.SleepTimerManager
-import gd.app.musicplayer.playback.SleepTimerState
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
 import gd.app.musicplayer.core.ui.view.SeekBar
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+@AndroidEntryPoint
 class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
     private lateinit var music: Music
+    private val viewModel: CurrentTrackOptionsViewModel by viewModels()
     private lateinit var audioManager: AudioManager
     private var volumeSeekBar: SeekBar? = null
     private var volumeText: TextView? = null
     private var volumeIcon: ImageView? = null
     private var lastNonZeroVolume = 0
 
-    private val hiddenRepo by lazy { requireContext().appDependencies.hiddenRepo }
-    private val deleteTracks by lazy { requireContext().appDependencies.deleteTracksUseCase }
-
     override fun onReadArguments(arguments: Bundle) {
         music = arguments.parcelable(ARG_MUSIC) ?: error("Missing music")
+        viewModel.initialize(music)
     }
 
     override fun provideMenuItems(): List<MenuItem> = buildList {
@@ -55,7 +54,7 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         add(MenuItem.create(R.string.dlg_more_view_artist, R.drawable.ic_more_artist))
         add(MenuItem.create(R.string.dlg_more_view_album, R.drawable.ic_more_album))
         add(MenuItem.create(R.string.dlg_manage_artwork, R.drawable.ic_menu_artwork))
-        add(MenuItem.create(R.string.sleep_timer_2, R.drawable.vector_left_menu_sleep).withLabel(sleepTimerLabel()))
+        add(MenuItem.create(R.string.sleep_timer_2, R.drawable.vector_left_menu_sleep).withLabel(viewModel.uiState.value.sleepMenuLabel.ifBlank { getString(R.string.sleep_timer_2) }))
         add(MenuItem.create(R.string.dlg_ringtone_2, R.drawable.ic_menu_ringtone))
         add(MenuItem.create(R.string.hide_music, R.drawable.ic_menu_hide_folder))
         add(MenuItem.create(R.string.delete, R.drawable.ic_menu_delete))
@@ -64,16 +63,16 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
     override fun onMenuItemClicked(item: MenuItem) {
         dismiss()
         when (item.id) {
-            R.string.add_to -> ActivityPlaylistSelect.start(requireContext(), listOf(music))
-            R.string.dlg_more_view_artist -> openArtist()
-            R.string.dlg_more_view_album -> openAlbum()
+            R.string.add_to -> viewModel.onAddToClicked()
+            R.string.dlg_more_view_artist -> viewModel.onViewArtistClicked()
+            R.string.dlg_more_view_album -> viewModel.onViewAlbumClicked()
             R.string.dlg_manage_artwork -> {
                 ManageArtworkDialogFragment.newInstance(ArtworkRequest.Track(music))
                     .show(parentFragmentManager, ManageArtworkDialogFragment::class.java.simpleName)
             }
             R.string.sleep_timer_2 -> SleepActivity.start(requireContext())
             R.string.dlg_ringtone_2 -> ToastUtil.show(requireContext(), R.string.feature_not_implemented)
-            R.string.hide_music -> hideTrack()
+            R.string.hide_music -> viewModel.hideTrack()
             R.string.delete -> confirmDeleteTrack()
         }
     }
@@ -126,9 +125,14 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         super.onViewCreated(view, savedInstanceState)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                SleepTimerManager.state.collect {
-                    // Rebuild keeps the sleep menu label equivalent to the reference dialog.
-                    refreshMenuItems()
+                launch {
+                    viewModel.uiState.collect { state ->
+                        state.music?.let { music = it }
+                        refreshMenuItems()
+                    }
+                }
+                launch {
+                    viewModel.events.collect(::handleEvent)
                 }
             }
         }
@@ -223,71 +227,24 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         )
     }
 
-    private fun sleepTimerLabel(): String {
-        val state = SleepTimerManager.state.value
-        if (!state.isActive) return getString(R.string.sleep_timer_2)
-        val detail = when {
-            state.stopAfterCurrentTrack -> getString(R.string.sleep_end_stop)
-            state.action == SleepTimerState.ACTION_EXIT_PLAYER -> getString(R.string.sleep_end_exit)
-            else -> {
-                val minutes = (state.remainingMs / 60_000f).roundToInt().coerceAtLeast(1)
-                getString(R.string.sleep_mode_tips, minutes.toString())
-            }
-        }
-        return "${getString(R.string.sleep_timer_2)}\n$detail"
-    }
-
-    private fun openAlbum() {
-        val albumName = music.album.takeIf { it.isNotBlank() } ?: return
-        AlbumMusicActivity.start(
-            requireContext(),
-            MusicSet.Album(
-                id = music.albumId.toLongOrNull() ?: MusicSet.ALBUMS_ID,
-                name = albumName,
-                albumArt = music.albumPicture,
-                artist = music.artist,
-                musicCount = 0,
-                date = music.date ?: 0L
-            )
-        )
-    }
-
-    private fun openArtist() {
-        val artistName = music.artist.takeIf { it.isNotBlank() } ?: return
-        AlbumMusicActivity.start(
-            requireContext(),
-            MusicSet.Artist(
-                id = MusicSet.ARTISTS_ID,
-                name = artistName,
-                musicCount = 0,
-                albumCount = 0,
-                albumArt = music.albumPicture
-            )
-        )
-    }
-
-    private fun hideTrack() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            hiddenRepo.hideSelection(folderPaths = emptyList(), songIds = listOf(music.id))
-            ToastUtil.show(requireContext(), R.string.hidden_folders_tips)
-        }
-    }
-
     private fun confirmDeleteTrack() {
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.delete)
             .setMessage(music.title)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.delete) { _, _ ->
-                viewLifecycleOwner.lifecycleScope.launch {
-                    val deletedCount = deleteTracks(listOf(music))
-                    ToastUtil.show(
-                        requireContext(),
-                        if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
-                    )
-                }
+                viewModel.deleteTrack()
             }
             .show()
+    }
+
+    private fun handleEvent(event: CurrentTrackOptionsEvent) {
+        when (event) {
+            is CurrentTrackOptionsEvent.ShowToast -> ToastUtil.show(requireContext(), event.messageRes)
+            is CurrentTrackOptionsEvent.OpenAddTo -> ActivityPlaylistSelect.start(requireContext(), event.tracks)
+            is CurrentTrackOptionsEvent.OpenAlbum -> AlbumMusicActivity.start(requireContext(), event.album)
+            is CurrentTrackOptionsEvent.OpenArtist -> AlbumMusicActivity.start(requireContext(), event.artist)
+        }
     }
 
     private fun Context.dp(value: Float): Int = (value * resources.displayMetrics.density).roundToInt()

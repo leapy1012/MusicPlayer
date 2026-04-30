@@ -7,7 +7,7 @@ import android.content.Intent
 import android.os.Bundle
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.ui.feature.widget.WidgetConfigStore
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.playback.PlaybackMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,9 +46,10 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
             ACTION_TOGGLE_MODE -> {
                 val prefs = context.appDependencies.preferenceUtil
                 val nextMode = when (prefs.getPlayMode()) {
+                    PlaybackMode.SINGLE -> PlaybackMode.ORDER
                     PlaybackMode.ORDER -> PlaybackMode.LOOP_ALL
                     PlaybackMode.LOOP_ALL -> PlaybackMode.SHUFFLE_ALL
-                    else -> PlaybackMode.ORDER
+                    else -> PlaybackMode.SINGLE
                 }
                 prefs.setPlayMode(nextMode)
                 WidgetRenderer.updateAll(context)
@@ -56,14 +57,14 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
 
             ACTION_PLAY_QUEUE_INDEX -> {
                 val index = intent.getIntExtra(EXTRA_QUEUE_INDEX, -1)
-                val queue = MusicPlaybackController.state.value.queue
+                val queue = PlaybackControllerProvider.state.value.queue
                 if (index in queue.indices) {
-                    MusicPlaybackController.playQueue(context, queue, index)
+                    PlaybackControllerProvider.playQueue(context, queue, index)
                 }
             }
 
             ACTION_TOGGLE_FAVORITE -> {
-                val track = MusicPlaybackController.state.value.currentTrack ?: run {
+                val track = PlaybackControllerProvider.state.value.currentTrack ?: run {
                     WidgetRenderer.updateAll(context)
                     return
                 }
@@ -112,3 +113,4 @@ class Widget4x4Provider : BaseMusicAppWidgetProvider() {
 class WidgetListProvider : BaseMusicAppWidgetProvider() {
     override val classify: String = "List"
 }
+

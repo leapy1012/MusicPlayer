@@ -6,12 +6,13 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.PlaylistRepo
 import gd.app.musicplayer.domain.usecase.playlist.DeleteEmptyPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.DeletePlaylistUseCase
+import gd.app.musicplayer.domain.usecase.playlist.ObservePlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.playlist.UpdatePlaylistOrderUseCase
 import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
-import gd.app.musicplayer.util.PreferenceUtil
-import gd.app.musicplayer.util.SortPreferenceOps
+import gd.app.musicplayer.domain.usecase.preferences.ObservePlaylistSortUseCase
+import gd.app.musicplayer.domain.usecase.preferences.ResetPlaylistSortUseCase
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -25,11 +26,13 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
-    private val playlistRepo: PlaylistRepo,
-    private val preferenceUtil: PreferenceUtil,
+    private val observePlaylistsUseCase: ObservePlaylistsUseCase,
+    private val observePlaylistSortUseCase: ObservePlaylistSortUseCase,
+    private val resetPlaylistSortUseCase: ResetPlaylistSortUseCase,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val deleteEmptyPlaylistsUseCase: DeleteEmptyPlaylistsUseCase,
-    private val playlistBackupManager: PlaylistBackupManager
+    private val playlistBackupManager: PlaylistBackupManager,
+    private val updatePlaylistOrderUseCase: UpdatePlaylistOrderUseCase
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<PlaylistEvent>(
@@ -41,14 +44,8 @@ class PlaylistViewModel @Inject constructor(
 
     private val playlists: StateFlow<List<MusicSet.Playlist>> =
         combine(
-            playlistRepo.observePlaylists(),
-            preferenceUtil.observePreferenceChanges(
-                SortPreferenceOps.KEY_PLAYLIST_SORT_STYLE,
-                SortPreferenceOps.KEY_SELECTED_SORT_REVERSE
-            ).map {
-                preferenceUtil.getPlaylistSortStyle() to
-                        preferenceUtil.isPlaylistSortReversed()
-            }
+            observePlaylistsUseCase(),
+            observePlaylistSortUseCase()
         ) { playlists, (sortStyle, isReversed) ->
             sortPlaylists(
                 playlists = playlists,
@@ -104,9 +101,8 @@ class PlaylistViewModel @Inject constructor(
         if (playlistIdsInDisplayOrder.isEmpty()) return
 
         viewModelScope.launch {
-            preferenceUtil.setPlaylistSortStyle(SORT_STYLE_DEFAULT)
-            preferenceUtil.setPlaylistSortReversed(false)
-            playlistRepo.updatePlaylistOrder(playlistIdsInDisplayOrder)
+            resetPlaylistSortUseCase()
+            updatePlaylistOrderUseCase(playlistIdsInDisplayOrder)
         }
     }
 
@@ -206,7 +202,6 @@ class PlaylistViewModel @Inject constructor(
     private companion object {
         private const val STOP_TIMEOUT_MILLIS = 5_000L
 
-        private const val SORT_STYLE_DEFAULT = "default"
         private const val SORT_STYLE_NAME = "name"
         private const val SORT_STYLE_DATE = "date"
         private const val SORT_STYLE_AMOUNT = "amount"

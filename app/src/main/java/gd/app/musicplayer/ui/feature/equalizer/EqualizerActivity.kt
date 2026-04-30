@@ -18,7 +18,7 @@ import gd.app.musicplayer.core.theme.messageColor
 import gd.app.musicplayer.core.theme.titleColor
 import gd.app.musicplayer.databinding.ActivityEqualizerBinding
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.playback.SoundEffectPreferences
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.core.ui.dialog.BaseDialog
@@ -111,7 +111,7 @@ class EqualizerActivity : BaseActivity() {
                 BaseDialog.dismissAll(this@EqualizerActivity)
                 val updated = settings.copy(useTenBand = which == 1)
                 AudioEffectsManager.saveSettings(this@EqualizerActivity, updated)
-                MusicPlaybackController.applyAudioEffects(this@EqualizerActivity)
+                PlaybackControllerProvider.applyAudioEffects(this@EqualizerActivity)
                 equalizerFragment.reloadFromSettings()
             }
         }
@@ -148,3 +148,4 @@ class EqualizerActivity : BaseActivity() {
         }
     }
 }
+

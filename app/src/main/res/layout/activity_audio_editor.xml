@@ -76,6 +76,7 @@
         android:textSize="12dp" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/bottom_control"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/main_actionbar"

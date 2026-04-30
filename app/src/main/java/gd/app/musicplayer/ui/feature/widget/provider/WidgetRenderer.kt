@@ -21,7 +21,7 @@ import gd.app.musicplayer.ui.feature.widget.WidgetConfigActivity
 import gd.app.musicplayer.ui.feature.widget.WidgetConfigStore
 import gd.app.musicplayer.ui.feature.widget.WidgetQueueService
 import gd.app.musicplayer.playback.MusicPlaybackService
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.playback.MusicPlaybackState
 import gd.app.musicplayer.playback.PlaybackMode
 import gd.app.musicplayer.ui.shell.MainActivity
@@ -46,7 +46,7 @@ internal object WidgetRenderer {
         appWidgetIds: IntArray,
         classify: String
     ) {
-        val state = MusicPlaybackController.state.value
+        val state = PlaybackControllerProvider.state.value
         appWidgetIds.forEach { appWidgetId ->
             val remoteViews = buildRemoteViews(context, appWidgetId, classify, state)
             manager.updateAppWidget(appWidgetId, remoteViews)
@@ -301,9 +301,11 @@ internal object WidgetRenderer {
 
     private fun modeIcon(mode: Int): Int {
         return when (mode) {
-            PlaybackMode.LOOP_ALL -> R.drawable.widget_ic_mode_loop
-            PlaybackMode.SHUFFLE_ALL -> R.drawable.widget_ic_mode_random
-            else -> R.drawable.widget_ic_mode_order
+            PlaybackMode.SINGLE -> R.drawable.vector_mode_single
+            PlaybackMode.LOOP_ALL -> R.drawable.vector_mode_circle
+            PlaybackMode.SHUFFLE_ALL -> R.drawable.vector_mode_random
+            else -> R.drawable.vector_mode_order
         }
     }
 }
+

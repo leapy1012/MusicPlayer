@@ -24,7 +24,7 @@ import gd.app.musicplayer.databinding.ActivityEffectGroupBinding
 import gd.app.musicplayer.playback.AudioEffectsManager
 import gd.app.musicplayer.playback.EffectGroupPreset
 import gd.app.musicplayer.playback.EffectGroupPresets
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.ui.view.SelectBox
@@ -162,7 +162,7 @@ class EffectGroupActivity : BaseActivity() {
 
     private fun saveAndApply(settings: AudioEffectsManager.Settings) {
         AudioEffectsManager.saveSettings(this, settings)
-        MusicPlaybackController.applyAudioEffects(this)
+        PlaybackControllerProvider.applyAudioEffects(this)
         renderState()
     }
 
@@ -243,3 +243,4 @@ private class EffectGroupHeaderController(
         volumeSeek.setProgress(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
     }
 }
+

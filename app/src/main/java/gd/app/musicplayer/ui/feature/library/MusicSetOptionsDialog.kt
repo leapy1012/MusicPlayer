@@ -5,33 +5,30 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.ArtworkRequest
-import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
+import gd.app.musicplayer.ui.feature.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.ui.feature.selection.MusicShareSupport
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.ui.feature.shortcut.AppShortcutManager
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
 
     private lateinit var musicSet: MusicSet
-    private val playTracks by lazy { requireContext().appDependencies.playTracksUseCase }
-    private val playNextTracks by lazy { requireContext().appDependencies.playNextTracksUseCase }
-    private val enqueueTracks by lazy { requireContext().appDependencies.enqueueTracksUseCase }
-    private val deleteTracks by lazy { requireContext().appDependencies.deleteTracksUseCase }
-    private val hiddenRepo by lazy { requireContext().appDependencies.hiddenRepo }
-    private val deletePlaylist by lazy { requireContext().appDependencies.deletePlaylistUseCase }
-    private val libraryRepo by lazy { requireContext().appDependencies.libraryRepo }
-    private val preferenceUtil by lazy { requireContext().appDependencies.preferenceUtil }
+    private val viewModel: MusicSetOptionsViewModel by viewModels()
 
     override fun onReadArguments(arguments: Bundle) {
         musicSet = arguments.parcelable(ARG_MUSIC_SET) ?: error("Missing music set")
@@ -96,31 +93,43 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     override fun onMenuItemClicked(item: MenuItem) {
-        dismiss()
-
         when (item.id) {
             R.string.rename,
-            R.string.list_rename -> showRenameDialog()
+            R.string.list_rename -> {
+                dismiss()
+                showRenameDialog()
+            }
 
             R.string.dlg_manage_artwork -> {
-                ManageArtworkDialogFragment.newInstance(ArtworkRequest.MusicSetTarget(musicSet))
-                    .show(parentFragmentManager, ManageArtworkDialogFragment::class.java.simpleName)
+                dismiss()
+                showManageArtworkDialog()
             }
 
             R.string.home_screen -> {
-//                MusicSetShortcutHelper.pinShortcut(requireContext(), musicSet)
+                dismiss()
+                addToHomeScreen()
             }
 
             R.string.dlg_hide_folder -> {
-                (musicSet as? MusicSet.Folder)?.let(::hideFolder)
+                (musicSet as? MusicSet.Folder)?.let(viewModel::hideFolder)
             }
 
             R.string.list_delete,
             R.string.delete -> {
+                dismiss()
                 confirmDeleteSet()
             }
 
             else -> launchTrackAction(item.id)
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collect(::handleEvent)
+            }
         }
     }
 
@@ -145,41 +154,26 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
 
 
     private fun launchTrackAction(action: Int) {
-        lifecycleScope.launch {
-            val tracks = resolveTracks()
-            if (tracks.isEmpty()) {
-                ToastUtil.show(requireContext(), R.string.list_is_empty)
-                return@launch
-            }
+        viewModel.onTrackAction(action, musicSet)
+    }
 
-            when (action) {
-                R.string.operation_play -> playTracks(requireContext(), tracks, 0)
+    private fun showManageArtworkDialog() {
+        ManageArtworkDialogFragment
+            .newInstance(ArtworkRequest.MusicSetTarget(musicSet))
+            .show(parentFragmentManager, ManageArtworkDialogFragment::class.java.simpleName)
+    }
 
-                R.string.play_next_2 -> {
-                    playNextTracks(requireContext(), tracks)
-                    ToastUtil.show(
-                        requireContext(),
-                        getString(R.string.enqueue_msg_count, tracks.size)
-                    )
-                }
-
-                R.string.operation_enqueue -> {
-                    enqueueTracks(requireContext(), tracks)
-                    ToastUtil.show(
-                        requireContext(),
-                        getString(R.string.enqueue_msg_count, tracks.size)
-                    )
-                }
-
-                R.string.add_to -> {
-                    ActivityPlaylistSelect.start(requireContext(), tracks)
-                }
-
-                R.string.share -> {
-                    MusicShareSupport.share(requireContext(), tracks)
-                }
-            }
+    private fun addToHomeScreen() {
+        if (!MusicSetShortcutHelper.isPinShortcutSupported(requireContext())) {
+            ToastUtil.show(requireContext(), R.string.feature_not_implemented)
+            return
         }
+        val success = MusicSetShortcutHelper.requestPinnedShortcut(
+            context = requireContext(),
+            musicSet = musicSet,
+            title = musicSet.name
+        )
+        ToastUtil.show(requireContext(), if (success) R.string.succeed else R.string.feature_not_implemented)
     }
 
     private fun showRenameDialog() {
@@ -194,54 +188,31 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
         }
     }
 
-    private fun hideFolder(folder: MusicSet.Folder) {
-        lifecycleScope.launch {
-            hiddenRepo.hideSelection(folderPaths = listOf(folder.folderPath), songIds = emptyList())
-            ToastUtil.show(requireContext(), R.string.hidden_folders_tips)
-        }
-    }
-
     private fun confirmDeleteSet() {
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.delete)
             .setMessage(musicSet.name)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.delete) { _, _ ->
-                deleteSet()
+                viewModel.deleteSet(musicSet)
             }
             .show()
     }
 
-    private fun deleteSet() {
-        lifecycleScope.launch {
-            when (musicSet) {
-                is MusicSet.Playlist -> {
-                    deletePlaylist(musicSet.id)
-                    ToastUtil.show(requireContext(), R.string.succeed)
-                }
-
-                else -> {
-                    val tracks = resolveTracks()
-                    if (tracks.isEmpty()) {
-                        ToastUtil.show(requireContext(), R.string.list_is_empty)
-                        return@launch
-                    }
-                    val deletedCount = deleteTracks(tracks)
-                    ToastUtil.show(
-                        requireContext(),
-                        if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
-                    )
+    private fun handleEvent(event: MusicSetOptionsEvent) {
+        when (event) {
+            MusicSetOptionsEvent.Dismiss -> dismissAllowingStateLoss()
+            is MusicSetOptionsEvent.OpenAddTo -> ActivityPlaylistSelect.start(requireContext(), event.tracks)
+            is MusicSetOptionsEvent.ShareTracks -> MusicShareSupport.share(requireContext(), event.tracks)
+            is MusicSetOptionsEvent.ShowToast -> {
+                if (event.args.isEmpty()) {
+                    ToastUtil.show(requireContext(), event.messageRes)
+                } else {
+                    ToastUtil.show(requireContext(), getString(event.messageRes, *event.args.toTypedArray()))
                 }
             }
         }
     }
-
-    private suspend fun resolveTracks(): List<Music> =
-        libraryRepo.observeTracks(
-            musicSet = musicSet,
-            sortStyle = preferenceUtil.getSortStyle(musicSet),
-            sortDescending = preferenceUtil.isSortReversed(musicSet, false)
-        ).first()
 
     companion object {
 

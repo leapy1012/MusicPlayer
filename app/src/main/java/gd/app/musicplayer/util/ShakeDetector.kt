@@ -5,7 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 import kotlin.math.sqrt
 
 class ShakeDetector private constructor(
@@ -85,10 +85,10 @@ class ShakeDetector private constructor(
             if (
                 speed >= shakeThreshold &&
                 now - lastShakeTriggeredAtMs > MIN_SHAKE_GAP_MS &&
-                MusicPlaybackController.state.value.hasTrack
+                PlaybackControllerProvider.state.value.hasTrack
             ) {
                 lastShakeTriggeredAtMs = now
-                MusicPlaybackController.playNext(appContext)
+                PlaybackControllerProvider.playNext(appContext)
             }
         } else {
             hasReceivedFirstSample = true
@@ -116,3 +116,4 @@ class ShakeDetector private constructor(
         }
     }
 }
+

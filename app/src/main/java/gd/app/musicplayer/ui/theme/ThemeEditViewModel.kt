@@ -5,9 +5,9 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.repo.ThemeRepo
 import gd.app.musicplayer.data.repo.ThemeSettings
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.domain.usecase.theme.GetThemeSettingsUseCase
+import gd.app.musicplayer.domain.usecase.theme.UpdateThemeAppearanceUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,11 +30,11 @@ data class ThemeEditUiState(
 @HiltViewModel
 class ThemeEditViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val preferencesRepo: UserPreferencesRepo,
-    private val themeRepo: ThemeRepo
+    private val getThemeSettingsUseCase: GetThemeSettingsUseCase,
+    private val updateThemeAppearanceUseCase: UpdateThemeAppearanceUseCase
 ) : ViewModel() {
 
-    private val sourceSettings: ThemeSettings = preferencesRepo.getThemeSettings()
+    private val sourceSettings: ThemeSettings = getThemeSettingsUseCase()
     private val _uiState = MutableStateFlow(
         ThemeEditUiState(
             sourceImageName = sourceSettings.imageName,
@@ -78,7 +78,7 @@ class ThemeEditViewModel @Inject constructor(
 
     fun save() {
         val state = _uiState.value
-        themeRepo.updateThemeAppearance(
+        updateThemeAppearanceUseCase(
             context = appContext,
             imageName = state.imageName,
             overlayColor = state.overlayColor,

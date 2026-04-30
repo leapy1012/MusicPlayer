@@ -3,25 +3,27 @@ package gd.app.musicplayer.ui.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gd.app.musicplayer.app.AppDispatchers
-import gd.app.musicplayer.data.repo.MainRepo
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.R
-import gd.app.musicplayer.util.PreferenceUtil
-import gd.app.musicplayer.util.SmartPlaylistPreferenceOps
-import gd.app.musicplayer.util.SortPreferenceOps
+import gd.app.musicplayer.domain.usecase.main.ObserveFavoriteCountUseCase
+import gd.app.musicplayer.domain.usecase.main.ObserveFolderCountUseCase
+import gd.app.musicplayer.domain.usecase.main.ObserveMainPlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.main.ObserveMostPlayCountUseCase
+import gd.app.musicplayer.domain.usecase.main.ObserveRecentAddCountUseCase
+import gd.app.musicplayer.domain.usecase.main.ObserveRecentPlayCountUseCase
+import gd.app.musicplayer.domain.usecase.main.ObserveTracksCountUseCase
+import gd.app.musicplayer.domain.usecase.main.UpdateMainPlaylistOrderUseCase
+import gd.app.musicplayer.domain.usecase.preferences.ObservePlaylistSortUseCase
+import gd.app.musicplayer.domain.usecase.preferences.ObserveSmartPlaylistConfigUseCase
+import gd.app.musicplayer.domain.usecase.preferences.ResetPlaylistSortUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.Locale
 import javax.inject.Inject
 
 data class MainUiState(
@@ -33,20 +35,22 @@ data class MainUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val repo: MainRepo,
-    private val preferenceUtil: PreferenceUtil,
-    private val dispatchers: AppDispatchers
+    private val observeMainPlaylistsUseCase: ObserveMainPlaylistsUseCase,
+    private val observePlaylistSortUseCase: ObservePlaylistSortUseCase,
+    private val observeSmartPlaylistConfigUseCase: ObserveSmartPlaylistConfigUseCase,
+    private val observeTracksCountUseCase: ObserveTracksCountUseCase,
+    private val observeFolderCountUseCase: ObserveFolderCountUseCase,
+    private val observeFavoriteCountUseCase: ObserveFavoriteCountUseCase,
+    private val observeRecentPlayCountUseCase: ObserveRecentPlayCountUseCase,
+    private val observeRecentAddCountUseCase: ObserveRecentAddCountUseCase,
+    private val observeMostPlayCountUseCase: ObserveMostPlayCountUseCase,
+    private val updateMainPlaylistOrderUseCase: UpdateMainPlaylistOrderUseCase,
+    private val resetPlaylistSortUseCase: ResetPlaylistSortUseCase
 ) : ViewModel() {
-    private val playlistDisplayOrderIds = MutableStateFlow<List<Long>>(emptyList())
 
     val playlists: StateFlow<List<MusicSet.Playlist>> = combine(
-        repo.observePlaylists(),
-        preferenceUtil.observePreferenceChanges(
-            SortPreferenceOps.KEY_PLAYLIST_SORT_STYLE,
-            SortPreferenceOps.KEY_PLAYLIST_SORT_REVERSE
-        ).map {
-            preferenceUtil.getPlaylistSortStyle() to preferenceUtil.isPlaylistSortReversed()
-        }
+        observeMainPlaylistsUseCase(),
+        observePlaylistSortUseCase()
     ) { playlists, (style, reversed) ->
         sortPlaylists(playlists, style, reversed)
     }
@@ -56,30 +60,25 @@ class MainViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    private val smartPlaylistConfig: Flow<SmartPlaylistPreferenceOps.SmartPlaylistConfig> =
-        preferenceUtil.observePreferenceChanges(
-            SmartPlaylistPreferenceOps.KEY_PLAYLIST_TRACK_LIMIT_TIME,
-            SmartPlaylistPreferenceOps.KEY_PLAYLIST_TRACK_LIMIT
-        )
-            .map { preferenceUtil.getSmartPlaylistConfig() }
-            .distinctUntilChanged()
+    private val smartPlaylistConfig: Flow<gd.app.musicplayer.util.SmartPlaylistPreferenceOps.SmartPlaylistConfig> =
+        observeSmartPlaylistConfigUseCase()
 
     val items: StateFlow<List<MainItem>> = smartPlaylistConfig.flatMapLatest { config ->
         combine(
-            repo.observeTracksCount(),
-            repo.observeFolderCount(),
-            repo.observeFavoriteCount(),
-            repo.observeRecentPlayCount(
+            observeTracksCountUseCase(),
+            observeFolderCountUseCase(),
+            observeFavoriteCountUseCase(),
+            observeRecentPlayCountUseCase(
                 playlistWindowMs = config.windowDurationMs,
                 windowStartMs = config.windowStartMs,
                 playlistLimit = config.playlistLimit
             ),
-            repo.observeRecentAddCount(
+            observeRecentAddCountUseCase(
                 playlistWindowMs = config.windowDurationMs,
                 windowStartMs = config.windowStartMs,
                 playlistLimit = config.playlistLimit
             ),
-            repo.observeMostPlayCount(
+            observeMostPlayCountUseCase(
                 playlistWindowMs = config.windowDurationMs,
                 windowStartMs = config.windowStartMs,
                 playlistLimit = config.playlistLimit
@@ -107,11 +106,7 @@ class MainViewModel @Inject constructor(
         )
     )
 
-    val uiState: StateFlow<MainUiState> = combine(
-        items,
-        playlists,
-        playlistDisplayOrderIds
-    ) { items, playlists, displayOrderIds ->
+    val uiState: StateFlow<MainUiState> = combine(items, playlists) { items, playlists ->
         MainUiState(
             items = items,
             playlists = playlists,
@@ -177,9 +172,8 @@ class MainViewModel @Inject constructor(
         if (playlistIdsInDisplayOrder.isEmpty()) return
 
         viewModelScope.launch {
-            preferenceUtil.setPlaylistSortStyle("default")
-            preferenceUtil.setPlaylistSortReversed(false)
-            repo.updatePlaylistOrder(playlistIdsInDisplayOrder)
+            resetPlaylistSortUseCase()
+            updateMainPlaylistOrderUseCase(playlistIdsInDisplayOrder)
         }
     }
 

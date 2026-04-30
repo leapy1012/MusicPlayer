@@ -171,7 +171,12 @@
             android:taskAffinity="" />
 
         <activity
-            android:name=".ui.feature.player.ActivityPlayQueue"
+            android:name=".ui.feature.player.MusicPlayActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.feature.player.PlayQueueActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 

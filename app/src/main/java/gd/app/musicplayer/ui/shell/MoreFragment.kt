@@ -11,7 +11,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.FragmentMoreBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.feature.drivemode.DriveModeActivity
@@ -109,7 +108,7 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
 
     private fun renderState(state: MoreUiState) {
         val binding = requireBinding()
-        binding.slidingmenuModelImage.setImageResource(R.drawable.vector_mode_order)
+        binding.slidingmenuModelImage.setImageResource(state.playModeIconRes)
         binding.slidingmenuModelText.setText(state.playModeLabelRes)
         binding.slidingmenuSleepTime.text = state.sleepSummary
         binding.slidingmenuHiddenFolders.isVisible = state.isHiddenFoldersVisible

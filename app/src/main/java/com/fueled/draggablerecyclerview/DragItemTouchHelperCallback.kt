@@ -15,11 +15,13 @@ class DragItemTouchHelperCallback private constructor(
     private var dragEnabled: Boolean = false
     private var onItemDragListener: OnItemDragListener? = null
     private var dragEligibilityChecker: DragEligibilityChecker? = null
+    private var onDragFinishedListener: OnDragFinishedListener? = null
 
     private constructor(builder: Builder) : this(builder.dragDirs, builder.swipeDirs) {
         dragEnabled = builder.dragEnabled
         onItemDragListener = builder.onItemDragListener
         dragEligibilityChecker = builder.dragEligibilityChecker
+        onDragFinishedListener = builder.onDragFinishedListener
     }
 
     override fun isLongPressDragEnabled(): Boolean = dragEnabled
@@ -68,10 +70,15 @@ class DragItemTouchHelperCallback private constructor(
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         viewHolder.itemView.alpha = ALPHA_FULL
         super.clearView(recyclerView, viewHolder)
+        onDragFinishedListener?.onDragFinished()
     }
 
     fun interface OnItemDragListener {
         fun onItemDragged(indexFrom: Int, indexTo: Int)
+    }
+
+    fun interface OnDragFinishedListener {
+        fun onDragFinished()
     }
 
     class Builder(
@@ -81,6 +88,7 @@ class DragItemTouchHelperCallback private constructor(
         internal var onItemDragListener: OnItemDragListener? = null
         internal var dragEnabled: Boolean = false
         internal var dragEligibilityChecker: DragEligibilityChecker? = null
+        internal var onDragFinishedListener: OnDragFinishedListener? = null
 
         fun onItemDragListener(value: OnItemDragListener): Builder {
             onItemDragListener = value
@@ -94,6 +102,11 @@ class DragItemTouchHelperCallback private constructor(
 
         fun dragEligibilityChecker(value: DragEligibilityChecker): Builder {
             dragEligibilityChecker = value
+            return this
+        }
+
+        fun onDragFinishedListener(value: OnDragFinishedListener): Builder {
+            onDragFinishedListener = value
             return this
         }
 

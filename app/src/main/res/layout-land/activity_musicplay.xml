@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gd.app.lib.view.DragDismissLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drag_dismiss_layout"
+    android:tag="ignore"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <FrameLayout
+        android:background="@drawable/th_music_large"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <gd.app.lib.model.image.SkinImageView
+            android:id="@+id/music_play_skin"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"/>
+        <gd.app.lib.view.translucent.TranslucentBarFrameLayout
+            android:id="@+id/music_play_content"
+            android:background="#66000000"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:allowNavigationBarPaddingBottom="false"/>
+        <FrameLayout
+            android:id="@+id/music_play_lyric_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+    </FrameLayout>
+</gd.app.lib.view.DragDismissLayout>

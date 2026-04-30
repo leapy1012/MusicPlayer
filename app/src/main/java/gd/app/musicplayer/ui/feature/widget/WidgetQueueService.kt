@@ -7,7 +7,7 @@ import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import gd.app.musicplayer.R
 import gd.app.musicplayer.ui.feature.widget.provider.BaseMusicAppWidgetProvider
-import gd.app.musicplayer.playback.MusicPlaybackController
+import gd.app.musicplayer.playback.PlaybackControllerProvider
 
 class WidgetQueueService : RemoteViewsService() {
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
@@ -21,12 +21,12 @@ class WidgetQueueService : RemoteViewsService() {
         private val packageName: String,
         private val appWidgetId: Int
     ) : RemoteViewsFactory {
-        private var items = MusicPlaybackController.state.value.queue
+        private var items = PlaybackControllerProvider.state.value.queue
 
         override fun onCreate() = Unit
 
         override fun onDataSetChanged() {
-            items = MusicPlaybackController.state.value.queue
+            items = PlaybackControllerProvider.state.value.queue
         }
 
         override fun onDestroy() = Unit
@@ -60,3 +60,4 @@ class WidgetQueueService : RemoteViewsService() {
         override fun hasStableIds(): Boolean = true
     }
 }
+

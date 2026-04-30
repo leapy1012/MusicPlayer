@@ -33,7 +33,7 @@ class LibraryFragment : ViewBindingFragment<FragmentLibraryBinding>(), Toolbar.O
     override fun onBindingCreated(binding: FragmentLibraryBinding, savedInstanceState: Bundle?) {
         super.onBindingCreated(binding, savedInstanceState)
 
-        binding.root.applySystemBarInsets(binding.statusBarSpace, view)
+        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
         setupToolbar()
         setupTabs()
         setupBackPressHandler()

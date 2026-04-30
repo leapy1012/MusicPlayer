@@ -67,7 +67,7 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
         onBindingCreated(requireBinding(), savedInstanceState)
     }
 
-    final override fun onDestroyView() {
+    override fun onDestroyView() {
         super.onDestroyView()
         // Clear binding
         _binding = null

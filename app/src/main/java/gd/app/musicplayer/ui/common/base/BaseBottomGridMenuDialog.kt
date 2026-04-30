@@ -138,7 +138,7 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
     }
 
     protected open fun calculateTitleMaxWidth(configuration: Configuration): Int {
-        val activity = requireContext() as BaseActivity
+        val activity = requireActivity() as BaseActivity
         val baseWidth = if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             activity.getMaxScreenSize()
         } else {

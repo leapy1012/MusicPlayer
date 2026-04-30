@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.withStyledAttributes
 
