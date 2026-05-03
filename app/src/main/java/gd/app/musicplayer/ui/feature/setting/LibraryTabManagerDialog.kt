@@ -14,13 +14,13 @@ import gd.app.musicplayer.databinding.DialogTabManagerItemBinding
 import gd.app.musicplayer.ui.feature.selection.DragSwipeCallback
 import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
 import gd.app.musicplayer.ui.feature.selection.ItemTouchStateListener
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.util.LibraryTabConfig
 import gd.app.musicplayer.util.LibraryTabConfigStore
 import gd.app.musicplayer.util.PreferenceUtil
 import java.util.Collections
 
-class LibraryTabManagerDialog : BaseThemedDialogFragment(), View.OnClickListener {
+class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
 
     private var _binding: DialogTabManagerBinding? = null
     private val binding: DialogTabManagerBinding

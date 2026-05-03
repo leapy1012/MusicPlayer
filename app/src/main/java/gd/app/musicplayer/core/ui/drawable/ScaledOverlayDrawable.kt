@@ -9,56 +9,58 @@ import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.widget.ImageView
-import androidx.core.graphics.withClip
+import kotlin.math.max
+import kotlin.math.min
 
 class ScaledOverlayDrawable(
-    private val wrappedDrawable: Drawable?
+    private val sourceDrawable: Drawable?,
+    private val scaleType: ImageView.ScaleType = ImageView.ScaleType.CENTER_CROP,
 ) : Drawable() {
 
-    private val scaleType: ImageView.ScaleType = ImageView.ScaleType.CENTER_CROP
-
     private var foregroundOverlayColor: Int = 0
-    private var backgroundFillColor: Int = 0
-    private var includeExtraPixelForBounds: Boolean = false
+    private var backgroundOverlayColor: Int = 0
+    private var expandBoundsByOnePixel: Boolean = false
 
     fun setForegroundOverlayColor(color: Int) {
-        if (foregroundOverlayColor == color) return
         foregroundOverlayColor = color
         invalidateSelf()
     }
 
-    fun setBackgroundFillColor(color: Int) {
-        if (backgroundFillColor == color) return
-        backgroundFillColor = color
+    fun setBackgroundOverlayColor(color: Int) {
+        backgroundOverlayColor = color
         invalidateSelf()
     }
 
-    fun setIncludeExtraPixelForBounds(enabled: Boolean) {
-        includeExtraPixelForBounds = enabled
+    fun setExpandBoundsByOnePixel(enabled: Boolean) {
+        expandBoundsByOnePixel = enabled
+        onBoundsChange(bounds)
         invalidateSelf()
     }
 
     override fun draw(canvas: Canvas) {
-        canvas.withClip(bounds) {
-            if (backgroundFillColor != 0) {
-                drawColor(backgroundFillColor)
-            }
+        val saveCount = canvas.save()
 
-            try {
-                wrappedDrawable?.draw(this)
-            } catch (error: Exception) {
-                error.printStackTrace()
-            }
+        canvas.clipRect(bounds)
 
-            if (foregroundOverlayColor != 0) {
-                drawColor(foregroundOverlayColor)
-            }
+        if (backgroundOverlayColor != 0) {
+            canvas.drawColor(backgroundOverlayColor)
+        }
+
+        try {
+            sourceDrawable?.draw(canvas)
+        } catch (exception: Exception) {
 
         }
+
+        if (foregroundOverlayColor != 0) {
+            canvas.drawColor(foregroundOverlayColor)
+        }
+
+        canvas.restoreToCount(saveCount)
     }
 
     override fun onBoundsChange(bounds: Rect) {
-        val drawable = wrappedDrawable ?: return
+        val drawable = sourceDrawable ?: return
 
         if (scaleType != ImageView.ScaleType.CENTER_CROP &&
             scaleType != ImageView.ScaleType.FIT_CENTER
@@ -70,95 +72,104 @@ class ScaledOverlayDrawable(
         val intrinsicWidth = drawable.intrinsicWidth
         val intrinsicHeight = drawable.intrinsicHeight
 
-        val extra = if (includeExtraPixelForBounds) 1 else 0
-        val targetWidth = bounds.width() + extra
-        val targetHeight = bounds.height() + extra
+        val targetWidth = bounds.width() + if (expandBoundsByOnePixel) 1 else 0
+        val targetHeight = bounds.height() + if (expandBoundsByOnePixel) 1 else 0
 
-        if (intrinsicWidth <= 0 || intrinsicHeight <= 0 || targetWidth <= 0 || targetHeight <= 0) {
+        if (
+            intrinsicWidth <= 0 ||
+            intrinsicHeight <= 0 ||
+            targetWidth <= 0 ||
+            targetHeight <= 0
+        ) {
             drawable.bounds = bounds
             return
         }
 
-        val widthScale = intrinsicWidth.toFloat() / targetWidth.toFloat()
-        val heightScale = intrinsicHeight.toFloat() / targetHeight.toFloat()
+        val widthScale = intrinsicWidth.toFloat() / targetWidth
+        val heightScale = intrinsicHeight.toFloat() / targetHeight
 
         val scale = if (scaleType == ImageView.ScaleType.CENTER_CROP) {
-            minOf(widthScale, heightScale)
+            min(widthScale, heightScale)
         } else {
-            maxOf(widthScale, heightScale)
+            max(widthScale, heightScale)
         }
 
         val scaledWidth = (intrinsicWidth / scale + 0.5f).toInt()
         val scaledHeight = (intrinsicHeight / scale + 0.5f).toInt()
 
-        val scaledBounds = Rect(0, 0, scaledWidth, scaledHeight)
-        scaledBounds.offsetTo(
-            (bounds.centerX() - scaledBounds.width() / 2f).toInt(),
-            (bounds.centerY() - scaledBounds.height() / 2f).toInt()
-        )
+        val scaledBounds = Rect(0, 0, scaledWidth, scaledHeight).apply {
+            offsetTo(
+                (bounds.centerX() - width() / 2f).toInt(),
+                (bounds.centerY() - height() / 2f).toInt()
+            )
+        }
 
         drawable.bounds = scaledBounds
     }
 
-    override fun isStateful(): Boolean {
-        return wrappedDrawable?.isStateful == true
-    }
-
     override fun applyTheme(theme: Resources.Theme) {
-        wrappedDrawable?.applyTheme(theme)
+        sourceDrawable?.applyTheme(theme)
     }
 
     override fun clearColorFilter() {
-        wrappedDrawable?.clearColorFilter()
+        sourceDrawable?.clearColorFilter()
     }
 
     override fun getColorFilter(): ColorFilter? {
-        return wrappedDrawable?.colorFilter
+        return sourceDrawable?.colorFilter
     }
 
-    @Deprecated("Deprecated in Java")
     override fun getOpacity(): Int {
-        return wrappedDrawable?.opacity ?: PixelFormat.TRANSLUCENT
+        return sourceDrawable?.opacity ?: PixelFormat.TRANSLUCENT
     }
 
     override fun getState(): IntArray {
-        return wrappedDrawable?.state ?: super.getState()
+        return sourceDrawable?.state ?: super.getState()
     }
 
     override fun jumpToCurrentState() {
-        wrappedDrawable?.jumpToCurrentState()
+        sourceDrawable?.jumpToCurrentState()
     }
 
     override fun setAlpha(alpha: Int) {
-        wrappedDrawable?.alpha = alpha
+        sourceDrawable?.alpha = alpha
+        invalidateSelf()
     }
 
     override fun setColorFilter(colorFilter: ColorFilter?) {
-        wrappedDrawable?.colorFilter = colorFilter
+        sourceDrawable?.colorFilter = colorFilter
+        invalidateSelf()
     }
 
     override fun setState(stateSet: IntArray): Boolean {
-        return wrappedDrawable?.setState(stateSet) ?: false
+        return sourceDrawable?.setState(stateSet) ?: false
     }
 
     override fun setTint(tintColor: Int) {
-        wrappedDrawable?.setTint(tintColor)
+        sourceDrawable?.setTint(tintColor)
+        invalidateSelf()
     }
 
     override fun setTintList(tint: ColorStateList?) {
-        wrappedDrawable?.setTintList(tint)
+        sourceDrawable?.setTintList(tint)
+        invalidateSelf()
     }
 
     override fun setTintMode(tintMode: PorterDuff.Mode?) {
-        wrappedDrawable?.setTintMode(tintMode)
+        sourceDrawable?.setTintMode(tintMode)
+        invalidateSelf()
     }
 
     override fun setVisible(visible: Boolean, restart: Boolean): Boolean {
-        return wrappedDrawable?.setVisible(visible, restart) ?: false
+        return sourceDrawable?.setVisible(visible, restart) ?: false
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun setColorFilter(color: Int, mode: PorterDuff.Mode) {
-        wrappedDrawable?.setColorFilter(color, mode)
+    @Deprecated(
+        "Deprecated in Android framework",
+        ReplaceWith("setColorFilter(color, tintMode)")
+    )
+    override fun setColorFilter(color: Int, tintMode: PorterDuff.Mode) {
+        sourceDrawable?.setColorFilter(color, tintMode)
+        invalidateSelf()
     }
 }

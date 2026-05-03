@@ -8,6 +8,7 @@ import android.widget.AdapterView
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.core.extension.dpToPx
@@ -18,13 +19,14 @@ import gd.app.musicplayer.core.theme.messageColor
 import gd.app.musicplayer.core.theme.titleColor
 import gd.app.musicplayer.databinding.ActivityEqualizerBinding
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.playback.SoundEffectPreferences
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.core.ui.dialog.BaseDialog
 import gd.app.musicplayer.core.ui.dialog.OptionsListDialog
 import gd.app.musicplayer.util.PreferenceUtil
 
+@AndroidEntryPoint
 class EqualizerActivity : BaseActivity() {
 
     private lateinit var binding: ActivityEqualizerBinding
@@ -48,6 +50,11 @@ class EqualizerActivity : BaseActivity() {
         setupActions()
 
         applyTheme()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        equalizerFragment.reloadFromSettings()
     }
 
     private fun applyTheme() {
@@ -111,7 +118,7 @@ class EqualizerActivity : BaseActivity() {
                 BaseDialog.dismissAll(this@EqualizerActivity)
                 val updated = settings.copy(useTenBand = which == 1)
                 AudioEffectsManager.saveSettings(this@EqualizerActivity, updated)
-                PlaybackControllerProvider.applyAudioEffects(this@EqualizerActivity)
+                PlaybackGateway.applyAudioEffects(this@EqualizerActivity)
                 equalizerFragment.reloadFromSettings()
             }
         }

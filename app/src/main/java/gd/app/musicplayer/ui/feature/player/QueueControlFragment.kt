@@ -16,10 +16,8 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.loadMusicArtwork
-import gd.app.musicplayer.databinding.FragmentQueueBinding
 import gd.app.musicplayer.databinding.FragmentQueueControlBinding
 import gd.app.musicplayer.databinding.ItemMainControlPagerBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
@@ -109,8 +107,8 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
                 viewModel.playbackState.collect { state ->
                     val binding = requireBinding()
                     binding.mainControlPlayPause.isSelected = state.isPlaying
-                    binding.mainMusicProgress.setMax(state.durationMs.coerceAtLeast(1))
-                    binding.mainMusicProgress.setProgress(state.positionMs.coerceAtLeast(0))
+                    binding.mainMusicProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
+                    binding.mainMusicProgress.setProgress(state.positionMs.coerceAtLeast(0L).toInt())
 
                     val queue = state.queue.ifEmpty { listOf(placeholderMusic()) }
                     pagerAdapter.submitQueue(
@@ -223,3 +221,4 @@ private class QueueControlPagerAdapter(
 
     override fun getItemPosition(`object`: Any): Int = POSITION_NONE
 }
+

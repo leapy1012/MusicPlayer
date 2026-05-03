@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <include layout="@layout/layout_tag_edit_image" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:tag="itemTextExtraColor"
+        android:text="@string/dlg_title"
+        android:textSize="16sp"
+        app:textAllCaps="true" />
+
+    <EditText
+        android:id="@+id/music_edit_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/dialog_edit_normal"
+        android:cursorVisible="true"
+        android:lineSpacingMultiplier="1.2"
+        android:paddingBottom="6dp"
+        android:selectAllOnFocus="true"
+        android:tag="editText"
+        android:textColor="#666666"
+        android:textSize="16sp" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:fontFamily="sans-serif-medium"
+        android:tag="itemTextExtraColor"
+        android:text="@string/dlg_album"
+        android:textSize="16sp"
+        app:textAllCaps="true" />
+
+    <EditText
+        android:id="@+id/music_edit_album"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/dialog_edit_normal"
+        android:cursorVisible="true"
+        android:lineSpacingMultiplier="1.2"
+        android:paddingBottom="6dp"
+        android:selectAllOnFocus="true"
+        android:tag="editText"
+        android:textColor="#666666"
+        android:textSize="16sp" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:fontFamily="sans-serif-medium"
+        android:tag="itemTextExtraColor"
+        android:text="@string/dlg_artist"
+        android:textSize="16sp"
+        app:textAllCaps="true" />
+
+    <EditText
+        android:id="@+id/music_edit_artist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/dialog_edit_normal"
+        android:cursorVisible="true"
+        android:lineSpacingMultiplier="1.2"
+        android:paddingBottom="6dp"
+        android:selectAllOnFocus="true"
+        android:tag="editText"
+        android:textColor="#666666"
+        android:textSize="16sp" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:fontFamily="sans-serif-medium"
+        android:tag="itemTextExtraColor"
+        android:text="@string/dlg_genre"
+        android:textSize="16sp"
+        app:textAllCaps="true" />
+
+    <EditText
+        android:id="@+id/music_edit_genre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/dialog_edit_normal"
+        android:cursorVisible="true"
+        android:lineSpacingMultiplier="1.2"
+        android:paddingBottom="6dp"
+        android:selectAllOnFocus="true"
+        android:tag="editText"
+        android:textColor="#666666"
+        android:textSize="16sp" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:fontFamily="sans-serif-medium"
+        android:tag="itemTextExtraColor"
+        android:text="@string/track_number"
+        android:textSize="16sp"
+        app:textAllCaps="true" />
+
+    <EditText
+        android:id="@+id/music_edit_track_number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/dialog_edit_normal"
+        android:cursorVisible="true"
+        android:inputType="number"
+        android:lineSpacingMultiplier="1.2"
+        android:paddingBottom="6dp"
+        android:selectAllOnFocus="true"
+        android:tag="editText"
+        android:textColor="#666666"
+        android:textSize="16sp" />
+</LinearLayout>

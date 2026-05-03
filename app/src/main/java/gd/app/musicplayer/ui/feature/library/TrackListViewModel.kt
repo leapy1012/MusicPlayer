@@ -17,6 +17,7 @@ import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ShuffleTracksUseCase
+import gd.app.musicplayer.domain.usecase.library.ClearMusicSetUseCase
 import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -70,7 +71,8 @@ class TrackListViewModel @Inject constructor(
     private val playTracksUseCase: PlayTracksUseCase,
     private val shuffleTracksUseCase: ShuffleTracksUseCase,
     private val playNextTracksUseCase: PlayNextTracksUseCase,
-    private val enqueueTracksUseCase: EnqueueTracksUseCase
+    private val enqueueTracksUseCase: EnqueueTracksUseCase,
+    private val clearMusicSetUseCase: ClearMusicSetUseCase
 ) : ViewModel() {
 
     private val currentMusicSet = MutableStateFlow<MusicSet?>(null)
@@ -157,6 +159,13 @@ class TrackListViewModel @Inject constructor(
                 addToPlaylist()
             }
 
+            MusicSetMenuAction.ClearFavorites,
+            MusicSetMenuAction.ClearRecentlyAdded,
+            MusicSetMenuAction.ClearRecentlyPlayed,
+            MusicSetMenuAction.ClearMostPlayed -> {
+                clearCurrentSet()
+            }
+
             else -> Unit
         }
     }
@@ -208,6 +217,23 @@ class TrackListViewModel @Inject constructor(
 
             _events.emit(
                 TrackListEvent.OpenAddToPlaylist(tracks)
+            )
+        }
+    }
+
+    private fun clearCurrentSet() {
+        viewModelScope.launch {
+            val set = currentMusicSet.value ?: return@launch
+            val tracks = uiState.value.tracks
+            if (tracks.isEmpty()) {
+                _events.emit(TrackListEvent.ShowMessage(R.string.list_is_empty))
+                return@launch
+            }
+            val cleared = clearMusicSetUseCase(set)
+            _events.emit(
+                TrackListEvent.ShowMessage(
+                    if (cleared) R.string.succeed else R.string.feature_not_implemented
+                )
             )
         }
     }

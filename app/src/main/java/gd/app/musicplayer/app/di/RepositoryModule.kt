@@ -7,10 +7,14 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import gd.app.musicplayer.data.db.dao.MusicDao
+import gd.app.musicplayer.data.db.dao.PlaybackQueueDao
 import gd.app.musicplayer.data.repo.ArtworkRepo
+import gd.app.musicplayer.data.repo.EqualizerPresetRepo
 import gd.app.musicplayer.data.repo.HiddenRepo
 import gd.app.musicplayer.data.repo.LibraryRepo
 import gd.app.musicplayer.data.repo.MainRepo
+import gd.app.musicplayer.data.repo.MusicSetMetadataRepo
+import gd.app.musicplayer.data.repo.PlaybackQueueRepo
 import gd.app.musicplayer.data.repo.PlaylistRepo
 import gd.app.musicplayer.data.repo.ScanRepo
 import gd.app.musicplayer.data.repo.SearchRepo
@@ -38,8 +42,19 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun providePlaylistRepo(musicDao: MusicDao, artworkRepo: ArtworkRepo): PlaylistRepo =
-        PlaylistRepo(musicDao, artworkRepo)
+    fun providePlaylistRepo(
+        musicDao: MusicDao,
+        artworkRepo: ArtworkRepo,
+        preferenceUtil: PreferenceUtil
+    ): PlaylistRepo =
+        PlaylistRepo(musicDao, artworkRepo, preferenceUtil)
+
+    @Provides
+    @Singleton
+    fun providePlaybackQueueRepo(
+        dao: PlaybackQueueDao,
+        preferenceUtil: PreferenceUtil
+    ): PlaybackQueueRepo = PlaybackQueueRepo(dao, preferenceUtil)
 
     @Provides
     @Singleton
@@ -74,5 +89,17 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    fun provideMusicSetMetadataRepo(
+        musicDao: MusicDao,
+        artworkRepo: ArtworkRepo
+    ): MusicSetMetadataRepo = MusicSetMetadataRepo(musicDao, artworkRepo)
+
+    @Provides
+    @Singleton
     fun provideArtworkRepo(musicDao: MusicDao): ArtworkRepo = ArtworkRepo(musicDao)
+
+    @Provides
+    @Singleton
+    fun provideEqualizerPresetRepo(musicDao: MusicDao): EqualizerPresetRepo =
+        EqualizerPresetRepo(musicDao)
 }

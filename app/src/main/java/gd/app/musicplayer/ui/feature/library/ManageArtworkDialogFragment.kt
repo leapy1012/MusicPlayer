@@ -11,7 +11,6 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
@@ -57,6 +56,7 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
         super.onCreate(savedInstanceState)
         request = requireArguments().parcelable(ARG_REQUEST)
             ?: error("Missing artwork request")
+        applyToAll = requireArguments().getBoolean(ARG_DEFAULT_APPLY_TO_ALL, false)
 
     }
 
@@ -75,7 +75,6 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
         renderApplyAll()
         loadTrackAlbumArtwork()
 
-//        binding.sheetContent.setBackgroundColor(android.graphics.Color.RED)
     }
 
     override fun onDestroyView() {
@@ -232,7 +231,7 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
         val track = (request as? ArtworkRequest.Track)?.music ?: return
         viewLifecycleOwner.lifecycleScope.launch {
             trackAlbumArtworkPath = artworkRepo.getCollectionArtwork(
-                sourceId = MusicSet.ALBUMS_ID,
+                sourceId = MusicSet.ALBUMS,
                 sourceName = track.album
             )
 
@@ -256,17 +255,32 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
                     )
                 }
             }
+            parentFragmentManager.setFragmentResult(
+                RESULT_KEY_ARTWORK_APPLIED,
+                Bundle().apply {
+                    putParcelable(RESULT_REQUEST, request)
+                    putString(RESULT_ARTWORK_PATH, path)
+                }
+            )
             ToastUtil.show(appContext, R.string.succeed)
         }
     }
 
     companion object {
         private const val ARG_REQUEST = "artwork_request"
+        private const val ARG_DEFAULT_APPLY_TO_ALL = "default_apply_to_all"
+        const val RESULT_KEY_ARTWORK_APPLIED = "result_artwork_applied"
+        const val RESULT_REQUEST = "result_request"
+        const val RESULT_ARTWORK_PATH = "result_artwork_path"
 
-        fun newInstance(request: ArtworkRequest): ManageArtworkDialogFragment {
+        fun newInstance(
+            request: ArtworkRequest,
+            defaultApplyToAll: Boolean = false
+        ): ManageArtworkDialogFragment {
             return ManageArtworkDialogFragment().apply {
                 arguments = Bundle().apply {
                     putParcelable(ARG_REQUEST, request)
+                    putBoolean(ARG_DEFAULT_APPLY_TO_ALL, defaultApplyToAll)
                 }
             }
         }

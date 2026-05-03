@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="observeQueue">SELECT music.*, list.p_id AS p_id
+        FROM music_playlist map
+        LEFT JOIN (
+          SELECT *
+          FROM musictbl
+          WHERE hide_time = 0
+            AND `show` = 1
+            AND folder_path NOT IN (SELECT folder_path FROM hide_folder)
+        ) AS music ON music.[_id] = map.[m_id]
+        LEFT JOIN (
+          SELECT DISTINCT([m_id]), [p_id]
+          FROM music_playlist
+          WHERE music_playlist.p_id = 1
+        ) AS list ON music.[_id] = list.[m_id]
+        WHERE map.[p_id] = :queueId
+          AND music._id IS NOT NULL
+        ORDER BY map.sort ASC, map.rowid ASC</string>
+</resources>

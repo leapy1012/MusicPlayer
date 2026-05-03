@@ -14,7 +14,8 @@ data class EditableTrackMetadata(
     val title: String,
     val album: String,
     val artist: String,
-    val genre: String
+    val genre: String,
+    val track: Int
 )
 
 class TrackMetadataRepo(
@@ -31,6 +32,7 @@ class TrackMetadataRepo(
             put(MediaStore.Audio.Media.ALBUM, metadata.album)
             put(MediaStore.Audio.Media.ARTIST, metadata.artist)
             put(MediaStore.Audio.Media.GENRE, metadata.genre)
+            put(MediaStore.Audio.Media.TRACK, metadata.track)
         }
         val updatedRows = context.contentResolver.update(uri, values, null, null)
         if (updatedRows <= 0) return false

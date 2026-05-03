@@ -39,4 +39,3 @@ Activity / Fragment
 - Repositories should hide data/player/preference implementation details.
 - Use Hilt constructor injection.
 - Preserve existing behavior when refactoring.
-- Give complete code for every changed or new file.

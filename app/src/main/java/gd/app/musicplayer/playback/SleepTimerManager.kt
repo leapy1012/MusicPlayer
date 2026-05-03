@@ -55,7 +55,7 @@ object SleepTimerManager {
 
     fun cancel() {
         stopTicker()
-        appContext?.let { PlaybackControllerProvider.setStopAfterCurrentTrack(it, false) }
+        appContext?.let { PlaybackGateway.setStopAfterCurrentTrack(it, false) }
         mutableState.value = SleepTimerState()
     }
 
@@ -90,7 +90,7 @@ object SleepTimerManager {
     private fun fireAction(current: SleepTimerState) {
         val context = appContext ?: return
         if (current.stopAfterCurrentTrack) {
-            PlaybackControllerProvider.setStopAfterCurrentTrack(context, true)
+            PlaybackGateway.setStopAfterCurrentTrack(context, true)
             return
         }
         when (current.action) {

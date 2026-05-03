@@ -12,7 +12,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.setFragmentResult
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogLyricSettingBinding
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.core.ui.view.ColorSelectView
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.ui.view.SelectBox
@@ -20,7 +20,7 @@ import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.util.PreferenceUtil
 import gd.app.musicplayer.util.TrackLyricsStore
 
-class LyricSettingsDialogFragment : BaseThemedDialogFragment(), View.OnClickListener {
+class LyricSettingsDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     private var _binding: DialogLyricSettingBinding? = null
     private val binding get() = checkNotNull(_binding)

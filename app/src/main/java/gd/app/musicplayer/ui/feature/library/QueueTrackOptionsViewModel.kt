@@ -56,7 +56,7 @@ class QueueTrackOptionsViewModel @Inject constructor(
         emit(
             QueueTrackOptionsEvent.OpenAlbum(
                 MusicSet.Album(
-                    id = music.albumId.toLongOrNull() ?: MusicSet.ALBUMS_ID,
+                    id = music.albumId.toLongOrNull() ?: MusicSet.ALBUMS,
                     name = albumName,
                     albumArt = music.albumPicture,
                     artist = music.artist,
@@ -73,7 +73,7 @@ class QueueTrackOptionsViewModel @Inject constructor(
         emit(
             QueueTrackOptionsEvent.OpenArtist(
                 MusicSet.Artist(
-                    id = MusicSet.ARTISTS_ID,
+                    id = MusicSet.ARTISTS,
                     name = artistName,
                     musicCount = 0,
                     albumCount = 0,
@@ -128,3 +128,4 @@ class QueueTrackOptionsViewModel @Inject constructor(
         viewModelScope.launch { _events.emit(event) }
     }
 }
+

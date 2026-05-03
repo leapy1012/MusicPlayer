@@ -38,7 +38,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.flexbox)
-    api("com.github.wangchenyan:LrcView:2.2")
+    implementation("com.github.albfernandez:juniversalchardet:2.5.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

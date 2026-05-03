@@ -30,7 +30,7 @@ import gd.app.musicplayer.databinding.ActivitySettingBinding
 import gd.app.musicplayer.core.theme.*
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.playback.SoundEffectPreferences
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -311,14 +311,14 @@ class SettingActivity : BaseActivity() {
             if (enabled) {
                 SimultaneousTipDialog.newInstance().show(this@SettingActivity.supportFragmentManager, null)
             }
-            PlaybackControllerProvider.applyPlaybackTuning(this)
+            PlaybackGateway.applyPlaybackTuning(this)
         }
 
         binding.preferenceVolumeFade.setOnPreferenceChangedListener { _, enabled ->
             if (enabled) {
                 binding.preferenceGaplessPlayback.isSelected = false
             }
-            PlaybackControllerProvider.applyPlaybackTuning(this)
+            PlaybackGateway.applyPlaybackTuning(this)
         }
 
         binding.preferenceGaplessPlayback.setOnPreferenceChangedListener { _, z10 ->
@@ -326,7 +326,7 @@ class SettingActivity : BaseActivity() {
                 binding.preferenceCrossFade.isSelected = false
             }
             renderFadeControls(binding.preferenceCrossFade.isSelected)
-            PlaybackControllerProvider.applyPlaybackTuning(this)
+            PlaybackGateway.applyPlaybackTuning(this)
         }
 
         binding.preferenceCrossFade.setOnPreferenceChangedListener { _, z10 ->
@@ -334,7 +334,7 @@ class SettingActivity : BaseActivity() {
                 binding.preferenceGaplessPlayback.isSelected = false
             }
             renderFadeControls(z10)
-            PlaybackControllerProvider.applyPlaybackTuning(this)
+            PlaybackGateway.applyPlaybackTuning(this)
         }
 
         binding.preferenceFadeSeekBar.setOnSeekBarChangeListener(
@@ -348,7 +348,7 @@ class SettingActivity : BaseActivity() {
                     binding.preferenceFadeSeekText.text = formatSecondsLabel(seconds)
                     if (fromUser) {
                         viewModel.setFadeDurationSeconds(seconds)
-                        PlaybackControllerProvider.applyPlaybackTuning(this@SettingActivity)
+                        PlaybackGateway.applyPlaybackTuning(this@SettingActivity)
                     }
                 }
 
@@ -394,12 +394,12 @@ class SettingActivity : BaseActivity() {
             val enabled = !binding.preferenceUseOldNotification.isSelected
             viewModel.setOldNotificationEnabled(enabled)
             syncNotificationPreferences(currentUiState.copy(oldNotificationEnabled = enabled))
-            PlaybackControllerProvider.refreshNotificationStyle(this)
+            PlaybackGateway.refreshNotificationStyle(this)
         }
 
         binding.preferenceUseColorNotification.setOnPreferenceChangedListener { _, z10 ->
             viewModel.setColorNotificationEnabled(z10)
-            PlaybackControllerProvider.refreshNotificationStyle(this)
+            PlaybackGateway.refreshNotificationStyle(this)
         }
 
 //        binding.preferenceLockTimeFormat.setOnClickListener {
@@ -725,7 +725,7 @@ class SettingActivity : BaseActivity() {
             checkedIndex = checked
         ) { which ->
             viewModel.setReplayGainMode(which)
-            PlaybackControllerProvider.applyPlaybackTuning(this)
+            PlaybackGateway.applyPlaybackTuning(this)
         }
     }
 
@@ -815,7 +815,7 @@ class SettingActivity : BaseActivity() {
                 ,
                 progressToPreampDb(withoutTagSeek.getProgress(), withoutTagSeek.getMax())
             )
-            PlaybackControllerProvider.applyPlaybackTuning(this)
+            PlaybackGateway.applyPlaybackTuning(this)
             dialog.dismiss()
         }
         dialog.show()

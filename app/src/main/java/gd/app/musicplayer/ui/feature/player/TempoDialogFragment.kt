@@ -8,8 +8,8 @@ import android.widget.TextView
 import androidx.fragment.app.FragmentManager
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogTempoBinding
-import gd.app.musicplayer.playback.PlaybackControllerProvider
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.util.PreferenceUtil
 import java.util.Locale
@@ -18,7 +18,7 @@ import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-class TempoDialogFragment : BaseThemedDialogFragment(), SeekBar.OnSeekBarChangeListener {
+class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListener {
 
     private var _binding: DialogTempoBinding? = null
     private val binding: DialogTempoBinding
@@ -127,12 +127,12 @@ class TempoDialogFragment : BaseThemedDialogFragment(), SeekBar.OnSeekBarChangeL
 
     private fun persistPitch(factor: Float) {
         preferenceUtil.setPlayPitch(factor)
-        PlaybackControllerProvider.applyPlaybackTuning(requireContext())
+        PlaybackGateway.applyPlaybackTuning(requireContext())
     }
 
     private fun persistSpeed(factor: Float) {
         preferenceUtil.setPlaySpeed(factor)
-        PlaybackControllerProvider.applyPlaybackTuning(requireContext())
+        PlaybackGateway.applyPlaybackTuning(requireContext())
     }
 
     private fun factorToPitchProgress(factor: Float): Int {

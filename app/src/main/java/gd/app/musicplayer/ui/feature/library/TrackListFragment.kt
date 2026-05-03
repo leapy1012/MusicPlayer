@@ -21,10 +21,12 @@ import gd.app.musicplayer.ui.feature.player.PlayQueueActivity
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.menu.MusicSetContextMenu
 import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
+import gd.app.musicplayer.ui.feature.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -101,7 +103,7 @@ class TrackListFragment : BaseListFragment() {
 
     private fun observePlaybackState() {
         collectWhenStarted(
-            PlaybackControllerProvider.state
+            PlaybackGateway.state
                 .map { playbackState -> playbackState.currentTrack?.id to playbackState.isPlaying }
                 .distinctUntilChanged()
         ) { (currentTrackId, isPlaying) ->
@@ -145,7 +147,7 @@ class TrackListFragment : BaseListFragment() {
     }
 
     private fun updateCurrentPlaybackState() {
-        val playbackState = PlaybackControllerProvider.state.value
+        val playbackState = PlaybackGateway.state.value
         trackAdapter.updatePlaybackState(
             currentTrackId = playbackState.currentTrack?.id,
             isPlaying = playbackState.isPlaying
@@ -179,14 +181,14 @@ class TrackListFragment : BaseListFragment() {
     private fun onTrackClicked(track: Music) {
         val context = requireContext()
         val preferences = PreferenceUtil.getInstance(context)
-        val playbackState = PlaybackControllerProvider.state.value
+        val playbackState = PlaybackGateway.state.value
 
         val shouldRestartCurrentTrack =
             preferences.isReplaySongEnabled() &&
                     playbackState.currentTrack?.id == track.id
 
         if (shouldRestartCurrentTrack) {
-            PlaybackControllerProvider.restartCurrentTrack(context)
+            PlaybackGateway.restartCurrentTrack(context)
         } else {
             viewModel.onTrackClicked(track)
         }
@@ -239,7 +241,11 @@ class TrackListFragment : BaseListFragment() {
             MusicSetMenuAction.ShuffleAll,
             MusicSetMenuAction.PlayNext,
             MusicSetMenuAction.AddToQueue,
-            MusicSetMenuAction.AddToPlaylist -> viewModel.onMenuAction(action)
+            MusicSetMenuAction.AddToPlaylist,
+            MusicSetMenuAction.ClearFavorites,
+            MusicSetMenuAction.ClearRecentlyAdded,
+            MusicSetMenuAction.ClearRecentlyPlayed,
+            MusicSetMenuAction.ClearMostPlayed -> viewModel.onMenuAction(action)
 
             MusicSetMenuAction.Rename -> showRenameDialog()
 
@@ -254,13 +260,19 @@ class TrackListFragment : BaseListFragment() {
             }
 
             MusicSetMenuAction.AddToHomeScreen -> {
-                // TODO: MusicSetShortcutHelper.pinShortcut(requireContext(), musicSet)
+                val context = requireContext()
+                val success = MusicSetShortcutHelper.requestPinnedShortcut(
+                    context = context,
+                    musicSet = musicSet,
+                    title = musicSet.name
+                )
+                ToastUtil.show(
+                    context,
+                    if (success) R.string.succeed else R.string.feature_not_implemented
+                )
             }
 
             MusicSetMenuAction.DeletePlaylist,
-            MusicSetMenuAction.ClearFavorites,
-            MusicSetMenuAction.ClearRecentlyPlayed,
-            MusicSetMenuAction.ClearMostPlayed,
             MusicSetMenuAction.BackupPlaylists,
             MusicSetMenuAction.RestorePlaylists,
             MusicSetMenuAction.DeleteEmptyPlaylists,

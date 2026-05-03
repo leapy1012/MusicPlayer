@@ -2,6 +2,7 @@ package gd.app.musicplayer.playback
 
 import android.content.Context
 import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,12 +24,11 @@ class MusicPlaybackControllerImpl @Inject constructor(
         if (queue.isEmpty()) return
 
         val targetIndex = startIndex.coerceIn(0, queue.lastIndex)
-        val queueId = PlaybackQueueStore.put(queue)
 
         dispatcher.dispatch(
             context = context,
             command = PlaybackCommand.PlayFromQueue(
-                queueId = queueId,
+                queue = queue,
                 index = targetIndex
             )
         )
@@ -47,22 +47,18 @@ class MusicPlaybackControllerImpl @Inject constructor(
     override fun enqueue(context: Context, items: List<Music>) {
         if (items.isEmpty()) return
 
-        val queueId = PlaybackQueueStore.put(items)
-
         dispatcher.dispatch(
             context = context,
-            command = PlaybackCommand.Enqueue(queueId)
+            command = PlaybackCommand.Enqueue(items)
         )
     }
 
     override fun playNext(context: Context, items: List<Music>) {
         if (items.isEmpty()) return
 
-        val queueId = PlaybackQueueStore.put(items)
-
         dispatcher.dispatch(
             context = context,
-            command = PlaybackCommand.PlayNextItems(queueId)
+            command = PlaybackCommand.PlayNextItems(items)
         )
     }
 
@@ -117,12 +113,11 @@ class MusicPlaybackControllerImpl @Inject constructor(
         }
 
         val targetIndex = currentIndex.coerceIn(0, queue.lastIndex)
-        val queueId = PlaybackQueueStore.put(queue)
 
         dispatcher.dispatch(
             context = context,
             command = PlaybackCommand.ReplaceQueue(
-                queueId = queueId,
+                queue = queue,
                 index = targetIndex
             )
         )
@@ -150,5 +145,9 @@ class MusicPlaybackControllerImpl @Inject constructor(
 
     override fun cyclePlayMode(context: Context) {
         dispatcher.dispatch(context, PlaybackCommand.ChangeMode)
+    }
+
+    override fun setShuffleAllMode(context: Context) {
+        dispatcher.dispatch(context, PlaybackCommand.SetShuffleAllMode)
     }
 }

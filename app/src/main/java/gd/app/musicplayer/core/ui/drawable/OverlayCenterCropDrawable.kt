@@ -8,7 +8,6 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
-import android.util.Log
 import androidx.core.graphics.withClip
 
 class OverlayCenterCropDrawable(
@@ -26,6 +25,7 @@ class OverlayCenterCropDrawable(
         super.onBoundsChange(bounds)
 
         val bitmap = bitmap ?: return
+        if (bitmap.isRecycled || bounds.width() <= 0 || bounds.height() <= 0) return
         val src = RectF(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
 
         val drawableWidth = src.width()
@@ -50,9 +50,17 @@ class OverlayCenterCropDrawable(
     }
 
     override fun draw(canvas: Canvas) {
+        val srcBitmap = bitmap
+        if (srcBitmap == null || srcBitmap.isRecycled) {
+            if (overlayColor != 0) {
+                overlayPaint.color = overlayColor
+                canvas.drawRect(bounds, overlayPaint)
+            }
+            return
+        }
 
         canvas.withClip(bounds) {
-            drawBitmap(bitmap, drawMatrix, null)
+            drawBitmap(srcBitmap, drawMatrix, null)
 
             if (overlayColor != 0) {
                 overlayPaint.color = overlayColor

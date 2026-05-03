@@ -387,5 +387,10 @@
 
     <dimen name="player_sheet_height">236dp</dimen>
     <dimen name="notification_icon_padding">4dp</dimen>
+    <dimen name="h_dp_8">4.6dp</dimen>
+    <dimen name="h_dp_16">9.2dp</dimen>
+    <dimen name="h_dp_24">13.8dp</dimen>
+    <dimen name="sw_dp_32">28.44dp</dimen>
+    <dimen name="h_dp_32">18.4dp</dimen>
 
 </resources>

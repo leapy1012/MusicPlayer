@@ -398,7 +398,7 @@ class MusicSetEditActivity : BaseActivity() {
     }
 
     private fun resolveViewMode(setId: Int): Int =
-        if (setId == MusicSet.FOLDERS_ID.toInt()) {
+        if (setId == MusicSet.FOLDERS.toInt()) {
             MUSIC_SET_VIEW_MODE_LIST
         } else {
             preferenceUtil.getListViewMode(setId)

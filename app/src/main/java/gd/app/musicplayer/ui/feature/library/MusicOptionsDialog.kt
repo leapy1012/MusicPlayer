@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.feature.library
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.ui.drawable.ViewStateDrawables
 import gd.app.musicplayer.core.util.ToastUtil
@@ -41,6 +41,7 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
     companion object {
         private const val ARG_MUSIC = "music"
         private const val ARG_SET = "set"
+        private const val DELETE_CONFIRM_RESULT_KEY = "music_options_delete_confirm"
 
         fun newInstance(music: Music, musicSet: MusicSet): MusicOptionsDialog {
             return MusicOptionsDialog().apply {
@@ -77,32 +78,36 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     override fun onMenuItemClicked(item: MenuItem) {
-        dismiss()
-
         when (item.id) {
             R.string.operation_enqueue -> {
+                dismiss()
                 viewModel.enqueue()
             }
 
             R.string.dlg_manage_artwork -> {
+                dismiss()
                 ManageArtworkDialogFragment.newInstance(
                     ArtworkRequest.Track(music)
                 ).show(parentFragmentManager, ManageArtworkDialogFragment::class.java.simpleName)
             }
 
             R.string.add_to -> {
+                dismiss()
                 ActivityPlaylistSelect.start(requireContext(), listOf(music))
             }
 
             R.string.dlg_ringtone_2 -> {
+                dismiss()
                 ToastUtil.show(requireContext(), R.string.feature_not_implemented)
             }
 
             R.string.dlg_share_music -> {
+                dismiss()
                 MusicShareSupport.share(requireContext(), listOf(music))
             }
 
             R.string.remove -> {
+                dismiss()
                 viewModel.removeFromCurrentSet()
             }
 
@@ -111,10 +116,12 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
             }
 
             R.string.play_next_2 -> {
+                dismiss()
                 viewModel.playNext()
             }
 
             R.string.audio_editor_title -> {
+                dismiss()
                 ActivityAudioEditor.start(requireContext(), music)
             }
         }
@@ -190,14 +197,38 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     private fun confirmDeleteTrack() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.delete)
-            .setMessage(music.title)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                viewModel.deleteCurrentTrack()
+        val activity = requireActivity()
+        val targetMusic = music
+        parentFragmentManager.setFragmentResultListener(
+            DELETE_CONFIRM_RESULT_KEY,
+            activity
+        ) { _, bundle ->
+            if (bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
+                val deleteSourceFile = bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_EXTRA_CHECKED, true)
+                activity.lifecycleScope.launch {
+                    val success = if (deleteSourceFile) {
+                        activity.applicationContext.appDependencies.deleteTracksUseCase(listOf(targetMusic)) > 0
+                    } else {
+                        activity.applicationContext.appDependencies.trackMutationRepo
+                            .removeTracksFromLibraryOnly(
+                                trackIds = listOf(targetMusic.id),
+                                stateTime = System.currentTimeMillis()
+                            )
+                        true
+                    }
+                    ToastUtil.show(
+                        activity,
+                        if (success) R.string.succeed else R.string.feature_not_implemented
+                    )
+                }
             }
-            .show()
+        }
+
+        DeleteConfirmDialogFragment.forTrackDelete(
+            resultKey = DELETE_CONFIRM_RESULT_KEY,
+            trackTitle = music.title
+        ).show(parentFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
+        dismissAllowingStateLoss()
     }
 
     private fun handleEvent(event: MusicOptionsEvent) {

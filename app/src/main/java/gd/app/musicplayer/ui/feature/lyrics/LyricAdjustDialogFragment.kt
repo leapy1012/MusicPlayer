@@ -7,10 +7,10 @@ import android.view.ViewGroup
 import androidx.fragment.app.setFragmentResult
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogLyricAdjustBinding
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.util.TrackLyricsStore
 
-class LyricAdjustDialogFragment : BaseThemedDialogFragment(), View.OnClickListener {
+class LyricAdjustDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     private var _binding: DialogLyricAdjustBinding? = null
     private val binding get() = checkNotNull(_binding)

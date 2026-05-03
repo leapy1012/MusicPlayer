@@ -18,11 +18,11 @@ object HeadsetMediaButtonHandler {
         val preferences = PreferenceUtil.getInstance(context)
         when {
             clickCount >= 3 && preferences.isHeadsetControlAllowed() ->
-                PlaybackControllerProvider.playPrevious(context)
+                PlaybackGateway.playPrevious(context)
             clickCount == 2 && preferences.isHeadsetControlAllowed() ->
-                PlaybackControllerProvider.playNext(context)
+                PlaybackGateway.playNext(context)
             clickCount >= 1 ->
-                PlaybackControllerProvider.togglePlayPause(context)
+                PlaybackGateway.togglePlayPause(context)
         }
         clickCount = 0
         pendingContext = null
@@ -31,23 +31,23 @@ object HeadsetMediaButtonHandler {
     fun handle(context: Context, keyCode: Int): Boolean {
         return when (keyCode) {
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                PlaybackControllerProvider.play(context)
+                PlaybackGateway.play(context)
                 true
             }
             KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                PlaybackControllerProvider.pause(context)
+                PlaybackGateway.pause(context)
                 true
             }
             KeyEvent.KEYCODE_MEDIA_NEXT -> {
-                PlaybackControllerProvider.playNext(context)
+                PlaybackGateway.playNext(context)
                 true
             }
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
-                PlaybackControllerProvider.playPrevious(context)
+                PlaybackGateway.playPrevious(context)
                 true
             }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                PlaybackControllerProvider.togglePlayPause(context)
+                PlaybackGateway.togglePlayPause(context)
                 true
             }
             KeyEvent.KEYCODE_HEADSETHOOK -> {

@@ -6,22 +6,20 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
-import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.lib.view.DragDismissLayout
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.loadBlurredArtworkBackground
-import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityMusicplayBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.model.ViewFlipHelper
 import gd.app.musicplayer.ui.feature.lyrics.FullLyricFragment
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.queue.currentTrack
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -88,13 +86,13 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
     }
 
     private fun applyCurrentArtwork() {
-        binding.musicPlaySkin.loadBlurredArtworkBackground(PlaybackControllerProvider.state.value.currentTrack?.albumPicture)
+        binding.musicPlaySkin.loadBlurredArtworkBackground(PlaybackGateway.state.value.currentTrack?.albumPicture)
     }
 
     private fun observePlaybackArtwork() {
         playbackJob?.cancel()
         playbackJob = lifecycleScope.launch {
-            PlaybackControllerProvider.state.collect { state ->
+            PlaybackGateway.state.collect { state ->
                 binding.musicPlaySkin.loadBlurredArtworkBackground(state.currentTrack?.albumPicture)
             }
         }

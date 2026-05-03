@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
 import androidx.recyclerview.widget.GridLayoutManager
 import gd.app.musicplayer.databinding.DialogAccentColorPickerBinding
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.dpToPx
@@ -16,7 +16,7 @@ import gd.app.musicplayer.core.extension.screenHeight
 import gd.app.musicplayer.core.extension.screenWidth
 import gd.app.musicplayer.core.ui.view.ColorPickerView
 
-class SelectAccentColorDialog : BaseThemedDialogFragment(),
+class SelectAccentColorDialog : BaseDialogFragment(),
     View.OnClickListener,
     PresetColorAdapter.Callback {
 

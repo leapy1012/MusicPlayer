@@ -12,6 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/effect_group_bg_1"
+        android:fitsSystemWindows="true"
         android:gravity="center"
         android:orientation="vertical"
         app:layout_collapseMode="parallax"
@@ -60,7 +61,7 @@
             app:layout_constraintWidth_percent="0.45" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <gd.app.lib.view.square.SquareRoundedFrameLayout
+    <gd.app.lib.view.square.RoundedCornerFrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
@@ -78,7 +79,7 @@
             layout="@layout/activity_effect_group_header_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
-    </gd.app.lib.view.square.SquareRoundedFrameLayout>
+    </gd.app.lib.view.square.RoundedCornerFrameLayout>
 
     <androidx.appcompat.widget.AppCompatTextView
         android:layout_width="wrap_content"

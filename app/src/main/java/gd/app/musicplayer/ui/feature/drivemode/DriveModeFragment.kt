@@ -22,6 +22,7 @@ import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
 import gd.app.musicplayer.playback.PlaybackControlViewModel
+import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.core.ui.view.SeekBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -83,13 +84,16 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
         }
         binding.driveModeBackward.setOnClickListener {
             val current = viewModel.playbackState.value.positionMs
-            viewModel.seekTo(requireContext(), (current - skipDurationMs()).coerceAtLeast(0))
+            viewModel.seekTo(
+                requireContext(),
+                (current - skipDurationMs().toLong()).coerceAtLeast(0L).toInt()
+            )
         }
         binding.driveModeForward.setOnClickListener {
             val state = viewModel.playbackState.value
             viewModel.seekTo(
                 requireContext(),
-                (state.positionMs + skipDurationMs()).coerceAtMost(state.durationMs)
+                (state.positionMs + skipDurationMs().toLong()).coerceAtMost(state.durationMs).toInt()
             )
         }
         binding.driveModeFavorite.setOnClickListener {
@@ -125,12 +129,12 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
                     binding.driveModePlayPause.isSelected = state.isPlaying
                     binding.driveModeFavorite.isSelected = state.currentTrack?.isFavorite() == true
                     binding.driveModeProgress.isEnabled = state.durationMs > 0
-                    binding.driveModeProgress.setMax(state.durationMs.coerceAtLeast(1))
+                    binding.driveModeProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
                     if (!userSeeking) {
-                        binding.driveModeProgress.setProgress(state.positionMs)
+                        binding.driveModeProgress.setProgress(state.positionMs.toInt())
                     }
-                    binding.driveModeCurrTime.text = viewModel.formatTime(state.positionMs)
-                    binding.driveModeTotalTime.text = viewModel.formatTime(state.durationMs)
+                    binding.driveModeCurrTime.text = viewModel.formatTime(state.positionMs.toInt())
+                    binding.driveModeTotalTime.text = viewModel.formatTime(state.durationMs.toInt())
 
                     val queue = state.queue.ifEmpty { listOf(placeholderMusic(requireContext())) }
                     pagerAdapter.submitQueue(queue)
@@ -251,3 +255,4 @@ private class DriveModePagerAdapter : PagerAdapter() {
         return listOf(this[0], this[1], this[0], this[1])
     }
 }
+

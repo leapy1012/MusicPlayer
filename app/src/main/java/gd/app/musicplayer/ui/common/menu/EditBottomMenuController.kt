@@ -12,7 +12,8 @@ import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.data.model.MenuItemModel
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
@@ -166,13 +167,13 @@ class EditBottomMenuController(
 
                 is MusicSet.Favorites -> {
                     activity.applicationContext.appDependencies.playlistRepo
-                        .removeTracksFromPlaylist(MusicSet.FAVORITES_ID, songs.map(Music::id))
+                        .removeTracksFromPlaylist(MusicSet.FAVORITES, songs.map(Music::id))
                     ToastUtil.show(activity, R.string.succeed)
                 }
 
                 is MusicSet.Queue -> {
                     val selectedIds = songs.mapTo(hashSetOf(), Music::id)
-                    val state = PlaybackControllerProvider.state.value
+                    val state = PlaybackGateway.state.value
                     val newQueue = state.queue.filterNot { it.id in selectedIds }
                     val newIndex = when {
                         newQueue.isEmpty() -> -1
@@ -181,7 +182,7 @@ class EditBottomMenuController(
                             .takeIf { it >= 0 }
                             ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
                     }
-                    PlaybackControllerProvider.replaceQueue(activity, newQueue, newIndex)
+                    PlaybackGateway.replaceQueue(activity, newQueue, newIndex)
                     ToastUtil.show(activity, R.string.succeed)
                 }
 
@@ -223,7 +224,7 @@ class EditBottomMenuController(
         activity.lifecycleScope.launch {
             val songsToAdd = songs.filterNot { it.isFavorite() }
             val addedCount = activity.applicationContext.appDependencies.playlistRepo
-                .addTracksToPlaylists(listOf(MusicSet.FAVORITES_ID), songsToAdd)
+                .addTracksToPlaylists(listOf(MusicSet.FAVORITES), songsToAdd)
             ToastUtil.show(
                 activity,
                 if (addedCount > 0) R.string.succeed else R.string.list_contains_music
@@ -249,4 +250,5 @@ class EditBottomMenuController(
         }
     }
 }
+
 

@@ -7,26 +7,28 @@ import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import gd.app.musicplayer.R
 import gd.app.musicplayer.ui.feature.widget.provider.BaseMusicAppWidgetProvider
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.ui.feature.widget.provider.WidgetRenderer
 
 class WidgetQueueService : RemoteViewsService() {
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
         return QueueFactory(
             packageName = packageName,
-            appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 0)
+            appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 0),
+            service = this
         )
     }
 
     private class QueueFactory(
         private val packageName: String,
-        private val appWidgetId: Int
+        private val appWidgetId: Int,
+        private val service: WidgetQueueService
     ) : RemoteViewsFactory {
-        private var items = PlaybackControllerProvider.state.value.queue
+        private var items = emptyList<gd.app.musicplayer.data.model.Music>()
 
         override fun onCreate() = Unit
 
         override fun onDataSetChanged() {
-            items = PlaybackControllerProvider.state.value.queue
+            items = WidgetRenderer.loadPlaybackSnapshot(service.applicationContext).queue
         }
 
         override fun onDestroy() = Unit

@@ -22,7 +22,6 @@ import gd.app.musicplayer.databinding.ItemMainControlPagerBinding
 import gd.app.musicplayer.databinding.MainBottomControlPanelBinding
 import gd.app.musicplayer.playback.PlaybackControlViewModel
 import gd.app.musicplayer.ui.feature.player.MusicPlayActivity
-import gd.app.musicplayer.ui.feature.player.PlayQueueActivity
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.launch
 
@@ -80,14 +79,7 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
         })
 
         binding.mainControlPlayPause.setOnClickListener {
-            val state = viewModel.playbackState.value
-            if (state.queue.isEmpty()) {
-                viewLifecycleOwner.lifecycleScope.launch {
-                    viewModel.playAllTracks(requireContext())
-                }
-            } else {
-                viewModel.togglePlayPause(requireContext())
-            }
+            viewModel.togglePlayPause(requireContext())
         }
         binding.mainControlNext.setOnClickListener {
             viewModel.playNext(requireContext())
@@ -106,8 +98,8 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
                 viewModel.playbackState.collect { state ->
                     val binding = requireBinding()
                     binding.mainControlPlayPause.isSelected = state.isPlaying
-                    binding.mainMusicProgress.setMax(state.durationMs.coerceAtLeast(1))
-                    binding.mainMusicProgress.setProgress(state.positionMs.coerceAtLeast(0))
+                    binding.mainMusicProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
+                    binding.mainMusicProgress.setProgress(state.positionMs.coerceAtLeast(0L).toInt())
 
                     val hasQueue = state.queue.isNotEmpty()
                     val queue = if (hasQueue) state.queue else listOf(placeholderMusic())
@@ -239,3 +231,4 @@ private class MiniPlayerPagerAdapter(
         return listOf(this[0], this[1], this[0], this[1])
     }
 }
+

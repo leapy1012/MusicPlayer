@@ -3,20 +3,20 @@ package gd.app.musicplayer.playback
 sealed interface PlaybackCommand {
 
     data class PlayFromQueue(
-        val queueId: Long,
+        val queue: List<gd.app.musicplayer.data.model.Music>,
         val index: Int
     ) : PlaybackCommand
 
     data class Enqueue(
-        val queueId: Long
+        val queue: List<gd.app.musicplayer.data.model.Music>
     ) : PlaybackCommand
 
     data class PlayNextItems(
-        val queueId: Long
+        val queue: List<gd.app.musicplayer.data.model.Music>
     ) : PlaybackCommand
 
     data class ReplaceQueue(
-        val queueId: Long,
+        val queue: List<gd.app.musicplayer.data.model.Music>,
         val index: Int
     ) : PlaybackCommand
 
@@ -40,4 +40,5 @@ sealed interface PlaybackCommand {
     data object RefreshNotificationStyle : PlaybackCommand
     data object RestartCurrentTrack : PlaybackCommand
     data object ChangeMode : PlaybackCommand
+    data object SetShuffleAllMode : PlaybackCommand
 }

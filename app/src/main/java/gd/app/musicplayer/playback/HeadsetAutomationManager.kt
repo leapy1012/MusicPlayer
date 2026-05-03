@@ -84,10 +84,10 @@ object HeadsetAutomationManager {
         val preferences = PreferenceUtil.getInstance(context)
         if (connected) {
             if (preferences.shouldPlayWhenHeadsetConnected()) {
-                PlaybackControllerProvider.play(context)
+                PlaybackGateway.play(context)
             }
         } else if (preferences.shouldStopWhenHeadsetDisconnected()) {
-            PlaybackControllerProvider.pause(context)
+            PlaybackGateway.pause(context)
         }
     }
 
@@ -98,9 +98,9 @@ object HeadsetAutomationManager {
             return
         }
         if (bluetoothHeadsetOn && preferences.isBluetoothAutoStopEnabled()) {
-            PlaybackControllerProvider.pause(context)
+            PlaybackGateway.pause(context)
         } else if (preferences.shouldStopWhenHeadsetDisconnected()) {
-            PlaybackControllerProvider.pause(context)
+            PlaybackGateway.pause(context)
         }
     }
 
@@ -111,7 +111,7 @@ object HeadsetAutomationManager {
         val preferences = PreferenceUtil.getInstance(context)
         if (connected) {
             if (preferences.isBluetoothAutoStartEnabled()) {
-                PlaybackControllerProvider.play(context)
+                PlaybackGateway.play(context)
             }
         } else {
             maybeStopForBluetoothDisconnect(context)
@@ -120,7 +120,7 @@ object HeadsetAutomationManager {
 
     private fun maybeStopForBluetoothDisconnect(context: Context) {
         if (PreferenceUtil.getInstance(context).isBluetoothAutoStopEnabled()) {
-            PlaybackControllerProvider.pause(context)
+            PlaybackGateway.pause(context)
         }
     }
 

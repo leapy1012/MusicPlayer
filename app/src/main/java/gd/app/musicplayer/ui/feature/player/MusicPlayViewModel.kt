@@ -13,7 +13,7 @@ import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.SeekToPositionUseCase
 import gd.app.musicplayer.domain.usecase.playback.TogglePlayPauseUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
-import gd.app.musicplayer.playback.MusicPlaybackState
+import gd.app.musicplayer.playback.queue.PlaybackState
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
@@ -30,7 +30,7 @@ class MusicPlayViewModel @Inject constructor(
     private val formatPlaybackTimeUseCase: FormatPlaybackTimeUseCase
 ) : ViewModel() {
 
-    val playbackState: StateFlow<MusicPlaybackState> =
+    val playbackState: StateFlow<PlaybackState> =
         observePlaybackStateUseCase()
 
     fun togglePlayPause(context: Context) {

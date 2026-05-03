@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.data.repo.PlaybackQueueRepo
 import gd.app.musicplayer.domain.usecase.playback.ClearQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
@@ -15,19 +16,26 @@ import gd.app.musicplayer.domain.usecase.playmode.CyclePlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playmode.GetPlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playmode.ObservePlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
-import gd.app.musicplayer.playback.MusicPlaybackState
+import gd.app.musicplayer.playback.PlaybackController
+import gd.app.musicplayer.playback.queue.PlaybackState
+import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.common.playback.PlayModeUiMapper
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class PlaybackQueueBottomSheetUiState(
-    val playbackState: MusicPlaybackState = MusicPlaybackState()
+    val queue: List<Music> = emptyList(),
+    val currentIndex: Int = 0,
+    val currentMusic: Music? = null,
+    val isPlaying: Boolean = false
 )
 
 sealed interface PlaybackQueueBottomSheetEvent {
@@ -43,7 +51,9 @@ data class QueuePlayModeUiState(
 
 @HiltViewModel
 class PlaybackQueueBottomSheetViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
+    repository: PlaybackQueueRepo,
+    playbackController: PlaybackController,
     private val playTracksUseCase: PlayTracksUseCase,
     private val toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase,
     private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
@@ -54,7 +64,22 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
     private val cyclePlayModeUseCase: CyclePlayModeUseCase
 ) : ViewModel() {
 
-    val uiState = observePlaybackStateUseCase()
+    val uiState: StateFlow<PlaybackQueueBottomSheetUiState> =
+        combine(
+            repository.queue,
+            playbackController.state
+        ) { queue, playbackState ->
+            PlaybackQueueBottomSheetUiState(
+                queue = queue,
+                currentIndex = playbackState.currentIndex,
+                currentMusic = playbackState.currentMusic,
+                isPlaying = playbackState.isPlaying
+            )
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            PlaybackQueueBottomSheetUiState()
+        )
 
     private val _events = MutableSharedFlow<PlaybackQueueBottomSheetEvent>()
     val events: SharedFlow<PlaybackQueueBottomSheetEvent> = _events.asSharedFlow()
@@ -77,27 +102,27 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
             }
         )
 
-    fun playQueueAt(position: Int, state: MusicPlaybackState) {
+    fun playQueueAt(position: Int, state: PlaybackState) {
         val queue = state.queue
         if (position !in queue.indices) return
         playTracksUseCase(appContext, queue, position)
         emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
     }
 
-    fun saveQueueToPlaylist(state: MusicPlaybackState): List<Music>? {
+    fun saveQueueToPlaylist(state: PlaybackState): List<Music>? {
         val queue = state.queue
         if (queue.isEmpty()) return null
         emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
         return queue
     }
 
-    fun clearQueueOrDismiss(state: MusicPlaybackState) {
+    fun clearQueueOrDismiss(state: PlaybackState) {
         if (state.queue.isEmpty()) return
         clearQueueUseCase(appContext)
         emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
     }
 
-    fun removeQueueItem(position: Int, state: MusicPlaybackState) {
+    fun removeQueueItem(position: Int, state: PlaybackState) {
         val currentQueue = state.queue
         if (position !in currentQueue.indices) return
 
@@ -119,7 +144,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         replaceQueueUseCase(appContext, updatedQueue, nextIndex)
     }
 
-    fun replaceQueuePreservingCurrentTrack(updatedQueue: List<Music>, state: MusicPlaybackState) {
+    fun replaceQueuePreservingCurrentTrack(updatedQueue: List<Music>, state: PlaybackState) {
         if (updatedQueue.isEmpty()) {
             clearQueueUseCase(appContext)
             emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
@@ -134,7 +159,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         replaceQueueUseCase(appContext, updatedQueue, nextIndex)
     }
 
-    fun shuffleQueueKeepingCurrentTrack(state: MusicPlaybackState) {
+    fun shuffleQueueKeepingCurrentTrack(state: PlaybackState) {
         val queue = state.queue
         if (queue.size < 2) return
 
@@ -153,26 +178,26 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
     }
 
     fun toggleFavorite(track: Music) {
-        viewModelScope.launch {
-            val favorited = toggleFavoriteTrackUseCase(track.id)
-            val state = uiState.value
-            val queue = state.queue
-            if (queue.isNotEmpty()) {
-                val updatedQueue = queue.map { item ->
-                    if (item.id == track.id) {
-                        item.copy(playlistId = if (favorited) gd.app.musicplayer.data.model.MusicSet.FAVORITES_ID else 0L)
-                    } else {
-                        item
-                    }
-                }
-                val currentTrackId = state.currentTrack?.id
-                val nextIndex = updatedQueue.indexOfFirst { it.id == currentTrackId }
-                    .takeIf { it >= 0 }
-                    ?: state.currentIndex.coerceIn(0, updatedQueue.lastIndex)
-                replaceQueueUseCase(appContext, updatedQueue, nextIndex)
-            }
-            _events.emit(PlaybackQueueBottomSheetEvent.FavoriteChanged(track.id, favorited))
-        }
+//        viewModelScope.launch {
+//            val favorited = toggleFavoriteTrackUseCase(track.id)
+//            val state = uiState.value
+//            val queue = state.queue
+//            if (queue.isNotEmpty()) {
+//                val updatedQueue = queue.map { item ->
+//                    if (item.id == track.id) {
+//                        item.copy(playlistId = if (favorited) gd.app.musicplayer.data.model.MusicSet.FAVORITES else 0L)
+//                    } else {
+//                        item
+//                    }
+//                }
+//                val currentTrackId = state.currentTrack?.id
+//                val nextIndex = updatedQueue.indexOfFirst { it.id == currentTrackId }
+//                    .takeIf { it >= 0 }
+//                    ?: state.currentIndex.coerceIn(0, updatedQueue.lastIndex)
+//                replaceQueueUseCase(appContext, updatedQueue, nextIndex)
+//            }
+//            _events.emit(PlaybackQueueBottomSheetEvent.FavoriteChanged(track.id, favorited))
+//        }
     }
 
     fun cyclePlayMode() {
@@ -185,3 +210,4 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         }
     }
 }
+

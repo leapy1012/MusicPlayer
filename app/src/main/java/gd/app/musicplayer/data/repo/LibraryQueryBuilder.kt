@@ -22,7 +22,7 @@ internal object LibraryQueryBuilder {
                     .appendTrackOrder(
                         sortStyle = sortStyle,
                         sortDescending = sortDescending,
-                        sourceId = MusicSet.TRACKS_ID.toInt()
+                        sourceId = MusicSet.ALL_TRACKS.toInt()
                     )
             }
 
@@ -33,7 +33,7 @@ internal object LibraryQueryBuilder {
                     .appendTrackOrder(
                         sortStyle = sortStyle,
                         sortDescending = sortDescending,
-                        sourceId = MusicSet.ARTISTS_ID.toInt()
+                        sourceId = MusicSet.ARTISTS.toInt()
                     )
             }
 
@@ -51,7 +51,7 @@ internal object LibraryQueryBuilder {
                     .appendTrackOrder(
                         sortStyle = sortStyle,
                         sortDescending = sortDescending,
-                        sourceId = MusicSet.ALBUMS_ID.toInt()
+                        sourceId = MusicSet.ALBUMS.toInt()
                     )
             }
 
@@ -62,7 +62,7 @@ internal object LibraryQueryBuilder {
                     .appendTrackOrder(
                         sortStyle = sortStyle,
                         sortDescending = sortDescending,
-                        sourceId = MusicSet.GENRES_ID.toInt()
+                        sourceId = MusicSet.GENRES.toInt()
                     )
             }
 
@@ -73,7 +73,7 @@ internal object LibraryQueryBuilder {
                     .appendTrackOrder(
                         sortStyle = sortStyle,
                         sortDescending = sortDescending,
-                        sourceId = MusicSet.FOLDERS_ID.toInt()
+                        sourceId = MusicSet.FOLDERS.toInt()
                     )
             }
 
@@ -87,11 +87,11 @@ internal object LibraryQueryBuilder {
             }
 
             is MusicSet.Favorites -> {
-                args += MusicSet.FAVORITES_ID
+                args += MusicSet.FAVORITES
                 playlistTrackQuery().appendTrackOrder(
                     sortStyle = sortStyle,
                     sortDescending = sortDescending,
-                    sourceId = MusicSet.FAVORITES_ID.toInt()
+                    sourceId = MusicSet.FAVORITES.toInt()
                 )
             }
 
@@ -598,7 +598,7 @@ internal object LibraryQueryBuilder {
             "artist" -> "artist"
             "album" -> "album"
             "folder" -> {
-                if (sourceId == MusicSet.FOLDERS_ID.toInt()) {
+                if (sourceId == MusicSet.FOLDERS.toInt()) {
                     "title"
                 } else {
                     "folder_path"

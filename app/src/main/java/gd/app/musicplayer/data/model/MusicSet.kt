@@ -24,66 +24,66 @@ sealed class MusicSet : Parcelable {
     @Parcelize
     object Tracks : MusicSet(), TrackCollection {
         @IgnoredOnParcel
-        override val id: Long = TRACKS_ID
+        override val id: Long = ALL_TRACKS
     }
 
     @Parcelize
     object Artists : MusicSet(), BrowseCategory {
         @IgnoredOnParcel
-        override val id: Long = ARTISTS_ID
+        override val id: Long = ARTISTS
     }
 
     @Parcelize
     object Albums : MusicSet(), BrowseCategory {
         @IgnoredOnParcel
-        override val id: Long = ALBUMS_ID
+        override val id: Long = ALBUMS
     }
 
     @Parcelize
     object Genres : MusicSet(), BrowseCategory {
         @IgnoredOnParcel
-        override val id: Long = GENRES_ID
+        override val id: Long = GENRES
     }
 
     @Parcelize
     object Folders : MusicSet(), BrowseCategory {
         @IgnoredOnParcel
-        override val id: Long = FOLDERS_ID
+        override val id: Long = FOLDERS
     }
 
     @Parcelize
     object Playlists : MusicSet(), BrowseCategory {
         @IgnoredOnParcel
-        override val id: Long = PLAYLISTS_ID
+        override val id: Long = USER_PLAYLIST
     }
 
     @Parcelize
     object RecentlyAdded : MusicSet(), TrackCollection {
         @IgnoredOnParcel
-        override val id: Long = RECENTLY_ADDED_ID
+        override val id: Long = RECENT_ADDED
     }
 
     @Parcelize
     object RecentlyPlayed : MusicSet(), TrackCollection {
         @IgnoredOnParcel
-        override val id: Long = RECENTLY_PLAYED_ID
+        override val id: Long = RECENT_PLAYED
     }
 
     @Parcelize
     object MostPlayed : MusicSet(), TrackCollection {
         @IgnoredOnParcel
-        override val id: Long = MOST_PLAYED_ID
+        override val id: Long = MOST_PLAYED
     }
 
     object Favorites : MusicSet(), TrackCollection {
         @IgnoredOnParcel
-        override val id: Long = FAVORITES_ID
+        override val id: Long = FAVORITES
     }
 
     @Parcelize
     object Queue : MusicSet(), TrackCollection {
         @IgnoredOnParcel
-        override val id: Long = QUEUE_ID
+        override val id: Long = PLAYING_QUEUE
     }
 
     @Parcelize
@@ -140,17 +140,25 @@ sealed class MusicSet : Parcelable {
 
     companion object {
         const val UNKNOWN_ID = -1000L
-        const val TRACKS_ID = -1L
-        const val RECENTLY_PLAYED_ID = -2L
-        const val RECENTLY_ADDED_ID = -3L
-        const val ARTISTS_ID = -4L
-        const val ALBUMS_ID = -5L
-        const val FOLDERS_ID = -6L
-        const val MOST_PLAYED_ID = -7L
-        const val GENRES_ID = -8L
-        const val PLAYLISTS_ID = -9L
-        const val QUEUE_ID = -10L
-        const val FAVORITES_ID = 1L
+        const val FAVORITES = 1L
+        const val ALL_TRACKS = -1L
+        const val RECENT_PLAYED = -2L
+        const val RECENT_ADDED = -3L
+        const val ARTISTS = -4L
+        const val ALBUMS = -5L
+        const val FOLDERS = -6L
+        const val GENRES = -8L
+        const val PLAYING_QUEUE = -9L
+        const val MOST_PLAYED = -11L
+
+        // -12L (alternate queue/search queue bucket (handled same as playlist queue in SQL branch)
+        // -13L: rated songs
+        // -16L: raw musictbl mode (special internal set)
+        const val HIDDEN_FOLDERS = -14L
+        const val DELECTED_TRACKS = -15L
+        const val HIDDEN_TRACKS = -18L
+        const val USER_PLAYLIST = -9L
+
     }
 }
 

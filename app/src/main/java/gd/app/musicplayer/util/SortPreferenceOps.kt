@@ -1,6 +1,5 @@
 package gd.app.musicplayer.util
 
-import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 
 interface SortPreferenceOps : PreferenceAccess {
@@ -103,11 +102,11 @@ interface SortPreferenceOps : PreferenceAccess {
     fun isSortReversed(musicSet: MusicSet, selectionMode: Boolean): Boolean {
 
         val tabId = when(musicSet) {
-            is MusicSet.Folder -> MusicSet.FOLDERS_ID.toInt()
-            is MusicSet.Genre -> MusicSet.GENRES_ID.toInt()
-            is MusicSet.Artist -> MusicSet.ARTISTS_ID.toInt()
-            is MusicSet.Album -> MusicSet.ALBUMS_ID.toInt()
-            is MusicSet.Tracks -> MusicSet.TRACKS_ID.toInt()
+            is MusicSet.Folder -> MusicSet.FOLDERS.toInt()
+            is MusicSet.Genre -> MusicSet.GENRES.toInt()
+            is MusicSet.Artist -> MusicSet.ARTISTS.toInt()
+            is MusicSet.Album -> MusicSet.ALBUMS.toInt()
+            is MusicSet.Tracks -> MusicSet.ALL_TRACKS.toInt()
             else -> musicSet.id.toInt()
         }
 
@@ -116,11 +115,11 @@ interface SortPreferenceOps : PreferenceAccess {
 
     fun setSortReversed(musicSet: MusicSet, reversed: Boolean, selectionMode: Boolean) {
         val tabId = when(musicSet) {
-            is MusicSet.Folder -> MusicSet.FOLDERS_ID.toInt()
-            is MusicSet.Genre -> MusicSet.GENRES_ID.toInt()
-            is MusicSet.Artist -> MusicSet.ARTISTS_ID.toInt()
-            is MusicSet.Album -> MusicSet.ALBUMS_ID.toInt()
-            is MusicSet.Tracks -> MusicSet.TRACKS_ID.toInt()
+            is MusicSet.Folder -> MusicSet.FOLDERS.toInt()
+            is MusicSet.Genre -> MusicSet.GENRES.toInt()
+            is MusicSet.Artist -> MusicSet.ARTISTS.toInt()
+            is MusicSet.Album -> MusicSet.ALBUMS.toInt()
+            is MusicSet.Tracks -> MusicSet.ALL_TRACKS.toInt()
             else -> musicSet.id.toInt()
         }
         putBooleanPreference(keySortReverse(tabId, selectionMode), reversed)
@@ -131,11 +130,11 @@ interface SortPreferenceOps : PreferenceAccess {
 
     fun getSortStyle(musicSet: MusicSet, selectionMode: Boolean): String {
         val tabId = when(musicSet) {
-            is MusicSet.Folder -> MusicSet.FOLDERS_ID.toInt()
-            is MusicSet.Genre -> MusicSet.GENRES_ID.toInt()
-            is MusicSet.Artist -> MusicSet.ARTISTS_ID.toInt()
-            is MusicSet.Album -> MusicSet.ALBUMS_ID.toInt()
-            is MusicSet.Tracks -> MusicSet.TRACKS_ID.toInt()
+            is MusicSet.Folder -> MusicSet.FOLDERS.toInt()
+            is MusicSet.Genre -> MusicSet.GENRES.toInt()
+            is MusicSet.Artist -> MusicSet.ARTISTS.toInt()
+            is MusicSet.Album -> MusicSet.ALBUMS.toInt()
+            is MusicSet.Tracks -> MusicSet.ALL_TRACKS.toInt()
             else -> musicSet.id.toInt()
         }
 
@@ -153,11 +152,11 @@ interface SortPreferenceOps : PreferenceAccess {
 
     fun setSortStyle(musicSet: MusicSet, style: String, selectionMode: Boolean) {
         val tabId = when(musicSet) {
-            is MusicSet.Folder -> MusicSet.FOLDERS_ID.toInt()
-            is MusicSet.Genre -> MusicSet.GENRES_ID.toInt()
-            is MusicSet.Artist -> MusicSet.ARTISTS_ID.toInt()
-            is MusicSet.Album -> MusicSet.ALBUMS_ID.toInt()
-            is MusicSet.Tracks -> MusicSet.TRACKS_ID.toInt()
+            is MusicSet.Folder -> MusicSet.FOLDERS.toInt()
+            is MusicSet.Genre -> MusicSet.GENRES.toInt()
+            is MusicSet.Artist -> MusicSet.ARTISTS.toInt()
+            is MusicSet.Album -> MusicSet.ALBUMS.toInt()
+            is MusicSet.Tracks -> MusicSet.ALL_TRACKS.toInt()
             else -> musicSet.id.toInt()
         }
         putStringPreference(keySortStyle(tabId, selectionMode), style)

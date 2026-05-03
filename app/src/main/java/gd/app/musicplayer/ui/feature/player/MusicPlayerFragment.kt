@@ -8,7 +8,6 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
@@ -19,8 +18,6 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.lib.model.visualizer.AudioVisualizerManager
-import gd.app.lib.view.square.MeasurePolicyFactory
-import gd.app.lib.view.square.MeasureSpecPolicy
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.core.extension.isFavorite
@@ -44,6 +41,9 @@ import gd.app.musicplayer.ui.feature.library.CurrentTrackOptionsDialog
 import gd.app.musicplayer.ui.feature.lyrics.LyricAdjustDialogFragment
 import gd.app.musicplayer.ui.feature.lyrics.LyricSearchDialogFragment
 import gd.app.musicplayer.ui.feature.lyrics.LyricSettingsDialogFragment
+import gd.app.musicplayer.ui.feature.lyrics.a
+import gd.app.musicplayer.ui.feature.lyrics.hasTimedLyrics
+import gd.app.musicplayer.ui.feature.lyrics.setLyricText
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.PreferenceUtil
 import gd.app.musicplayer.util.TrackLyricsStore
@@ -280,8 +280,8 @@ class MusicPlayerFragment :
                     val lyricPageBinding = lyricBinding ?: return@collect
                     val infoPageBinding = infoBinding ?: return@collect
 
-                    currentTrack = state.currentTrack
-                    val track = state.currentTrack
+                    currentTrack = state.currentMusic
+                    val track = state.currentMusic
 
                     if (track == null) {
                         renderEmptyState(
@@ -291,7 +291,7 @@ class MusicPlayerFragment :
                         return@collect
                     }
 
-                    currentAudioSessionId = state.audioSessionId
+                    currentAudioSessionId = -1
                     isPlaybackActive = state.isPlaying
 
                     renderTrackState(
@@ -353,8 +353,8 @@ class MusicPlayerFragment :
         infoBinding: MusicPlayFragmentInfoBinding,
         lyricBinding: MusicPlayFragmentLrcBinding,
         track: Music,
-        positionMs: Int,
-        durationMs: Int,
+        positionMs: Long,
+        durationMs: Long,
         isPlaying: Boolean
     ) = with(binding) {
 
@@ -368,12 +368,14 @@ class MusicPlayerFragment :
         }
 
         musicPlayProgress.apply {
-            musicPlayTotalTime.text = viewModel.formatTime(durationMs)
-            musicPlayCurrTime.text = viewModel.formatTime(positionMs)
-            musicPlayProgress.setMax(durationMs.coerceAtLeast(1))
+            val durationInt = durationMs.coerceAtLeast(1L).toInt()
+            val positionInt = positionMs.coerceAtLeast(0L).toInt()
+            musicPlayTotalTime.text = viewModel.formatTime(durationInt)
+            musicPlayCurrTime.text = viewModel.formatTime(positionInt)
+            musicPlayProgress.setMax(durationInt)
 
             if (!userSeeking) {
-                musicPlayProgress.setProgress(positionMs)
+                musicPlayProgress.setProgress(positionInt)
             }
         }
 
@@ -447,7 +449,7 @@ class MusicPlayerFragment :
         val prefs = PreferenceUtil.getInstance(requireContext())
 
         lyricView.setCurrentTextColor(prefs.getLyricColor())
-        lyricView.setTextSize(prefs.getLyricTextSize().toFloat())
+        lyricView.setTextSize(prefs.getLyricTextSize())
         lyricView.setTextAlign(prefs.getLyricAlign())
         lyricView.setTextTypeface(prefs.getLyricStyle())
     }
@@ -558,7 +560,7 @@ class MusicPlayerFragment :
 
     private fun seekBy(deltaMs: Int) {
         val state = viewModel.playbackState.value
-        val target = (state.positionMs + deltaMs).coerceIn(0, state.durationMs)
+        val target = (state.positionMs + deltaMs.toLong()).coerceIn(0L, state.durationMs).toInt()
 
         viewModel.seekTo(requireContext(), target)
     }
@@ -650,7 +652,7 @@ class MusicPlayerFragment :
         AlbumMusicActivity.start(
             requireContext(),
             MusicSet.Artist(
-                id = MusicSet.ARTISTS_ID,
+                id = MusicSet.ARTISTS,
                 name = artistName,
                 musicCount = 0,
                 albumCount = 0,
@@ -769,3 +771,4 @@ class MusicPlayerFragment :
         private const val LYRIC_PAGE_EMPTY = 3
     }
 }
+

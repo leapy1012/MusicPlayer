@@ -5,8 +5,10 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import gd.app.musicplayer.data.db.dao.DatabaseMaintenanceDao
 import gd.app.musicplayer.data.db.dao.MusicDao
+import gd.app.musicplayer.data.db.dao.PlaybackQueueDao
 import gd.app.musicplayer.data.db.entity.AlbumPictureEntity
 import gd.app.musicplayer.data.db.entity.EffectPresetEntity
 import gd.app.musicplayer.data.db.entity.EffectTenPresetEntity
@@ -33,6 +35,8 @@ abstract class MusicDatabase : RoomDatabase() {
 
     abstract fun databaseMaintenanceDao(): DatabaseMaintenanceDao
     abstract fun musicDao(): MusicDao
+
+    abstract fun playbackQueueDao(): PlaybackQueueDao
 
     companion object {
         const val DATABASE_NAME = "musicplayer.db"
@@ -80,6 +84,12 @@ abstract class MusicDatabase : RoomDatabase() {
                 .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
                 .addMigrations(*DatabaseMigrations.all)
                 .addCallback(MusicDatabaseSeeder(context, seedProvider))
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        db.execSQL("PRAGMA foreign_keys=OFF")
+                    }
+                })
                 .build()
         }
     }

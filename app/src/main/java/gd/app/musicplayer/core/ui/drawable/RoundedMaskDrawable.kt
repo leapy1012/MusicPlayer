@@ -3,50 +3,42 @@ package gd.app.musicplayer.core.ui.drawable
 import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.Outline
+import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.DrawableWrapper
 import androidx.core.graphics.withSave
+import androidx.core.graphics.withClip
 
 class RoundedMaskDrawable(
-    private val base: Drawable,
-    private val cornerRadiusPx: Float
-) : Drawable() {
+    private val drawable: Drawable?,
+    private val cornerRadius: Float
+) : DrawableWrapper(drawable) {
 
-    override fun onBoundsChange(bounds: Rect) {
-        base.bounds = bounds
-    }
+    private val clipPath = Path()
 
     override fun draw(canvas: Canvas) {
-        canvas.withSave {
-            val path = android.graphics.Path().apply {
-                addRoundRect(
-                    bounds.left.toFloat(),
-                    bounds.top.toFloat(),
-                    bounds.right.toFloat(),
-                    bounds.bottom.toFloat(),
-                    cornerRadiusPx,
-                    cornerRadiusPx,
-                    android.graphics.Path.Direction.CW
-                )
-            }
-            canvas.clipPath(path)
-            base.draw(canvas)
+        canvas.withClip(clipPath) {
+
+            super.draw(canvas)
+
         }
     }
 
-    override fun getOutline(outline: Outline) {
-        outline.setRoundRect(bounds, cornerRadiusPx)
-    }
+    override fun onBoundsChange(bounds: Rect) {
+        super.onBoundsChange(bounds)
 
-    override fun setAlpha(alpha: Int) {
-        base.alpha = alpha
-    }
+        clipPath.reset()
 
-    override fun setColorFilter(colorFilter: ColorFilter?) {
-        base.colorFilter = colorFilter
+        clipPath.addRoundRect(
+            bounds.left.toFloat(),
+            bounds.top.toFloat(),
+            bounds.right.toFloat(),
+            bounds.bottom.toFloat(),
+            cornerRadius * 2,
+            cornerRadius * 2,
+            Path.Direction.CW
+        )
     }
-
-    @Deprecated("Deprecated in Java")
-    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }

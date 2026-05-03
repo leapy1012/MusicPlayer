@@ -1,8 +1,8 @@
 package gd.app.musicplayer.playback
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Build
+import gd.app.musicplayer.util.PreferenceStore
 
 object SoundEffectPreferences {
 
@@ -35,21 +35,21 @@ object SoundEffectPreferences {
         preferences(context).getBoolean(KEY_BASS_ENABLED, false)
 
     fun setBassEnabled(context: Context, enabled: Boolean) {
-        preferences(context).edit().putBoolean(KEY_BASS_ENABLED, enabled).apply()
+        preferences(context).putBoolean(KEY_BASS_ENABLED, enabled)
     }
 
     fun getBassProgress(context: Context): Float =
         preferences(context).getFloat(KEY_BASS_PROGRESS, 0f)
 
     fun setBassProgress(context: Context, progress: Float) {
-        preferences(context).edit().putFloat(KEY_BASS_PROGRESS, progress).apply()
+        preferences(context).putFloat(KEY_BASS_PROGRESS, progress)
     }
 
     fun getBassPresetId(context: Context): Int =
         preferences(context).getInt(KEY_BASS_PRESET_ID, -1)
 
     fun setBassPresetId(context: Context, presetId: Int) {
-        preferences(context).edit().putInt(KEY_BASS_PRESET_ID, presetId).apply()
+        preferences(context).putInt(KEY_BASS_PRESET_ID, presetId)
     }
 
     fun isSoundEffectEnabled(context: Context): Boolean {
@@ -61,14 +61,14 @@ object SoundEffectPreferences {
     }
 
     fun setSoundEffectEnabled(context: Context, enabled: Boolean) {
-        preferences(context).edit().putBoolean(KEY_EFFECT_ENABLED, enabled).apply()
+        preferences(context).putBoolean(KEY_EFFECT_ENABLED, enabled)
     }
 
     fun getGroupSoundEffectIndex(context: Context): Int =
         preferences(context).getInt(KEY_GROUP_SOUND_EFFECT_INDEX, 0)
 
     fun setGroupSoundEffectIndex(context: Context, index: Int) {
-        preferences(context).edit().putInt(KEY_GROUP_SOUND_EFFECT_INDEX, index).apply()
+        preferences(context).putInt(KEY_GROUP_SOUND_EFFECT_INDEX, index)
     }
 
     fun getEqualizerBandMode(context: Context): Int {
@@ -89,91 +89,91 @@ object SoundEffectPreferences {
     }
 
     fun setEqualizerBandMode(context: Context, bandMode: Int) {
-        preferences(context).edit().putBoolean(KEY_USE_TEN_BAND, bandMode == TEN_BAND_MODE).apply()
+        preferences(context).putBoolean(KEY_USE_TEN_BAND, bandMode == TEN_BAND_MODE)
     }
 
     fun getLastEffectId(context: Context, bandMode: Int): Int =
         preferences(context).getInt(effectIdKeyForMode(bandMode), 2)
 
     fun setLastEffectId(context: Context, bandMode: Int, effectId: Int) {
-        preferences(context).edit().putInt(effectIdKeyForMode(bandMode), effectId).apply()
+        preferences(context).putInt(effectIdKeyForMode(bandMode), effectId)
     }
 
     fun getLeftVolume(context: Context): Float =
         preferences(context).getFloat(KEY_LEFT_VOLUME, 1.0f)
 
     fun setLeftVolume(context: Context, value: Float) {
-        preferences(context).edit().putFloat(KEY_LEFT_VOLUME, value).apply()
+        preferences(context).putFloat(KEY_LEFT_VOLUME, value)
     }
 
     fun getLoudnessEnhancerProgress(context: Context): Float =
         preferences(context).getFloat(KEY_LOUDNESS_ENHANCER_PROGRESS, 0f)
 
     fun setLoudnessEnhancerProgress(context: Context, progress: Float) {
-        preferences(context).edit().putFloat(KEY_LOUDNESS_ENHANCER_PROGRESS, progress).apply()
+        preferences(context).putFloat(KEY_LOUDNESS_ENHANCER_PROGRESS, progress)
     }
 
     fun getReverbIndex(context: Context): Int =
         preferences(context).getInt(KEY_REVERB_INDEX, 0)
 
     fun setReverbIndex(context: Context, index: Int) {
-        preferences(context).edit().putInt(KEY_REVERB_INDEX, index).apply()
+        preferences(context).putInt(KEY_REVERB_INDEX, index)
     }
 
     fun getRightVolume(context: Context): Float =
         preferences(context).getFloat(KEY_RIGHT_VOLUME, 1.0f)
 
     fun setRightVolume(context: Context, value: Float) {
-        preferences(context).edit().putFloat(KEY_RIGHT_VOLUME, value).apply()
+        preferences(context).putFloat(KEY_RIGHT_VOLUME, value)
     }
 
     fun isSoundBalanceEnabled(context: Context): Boolean =
         preferences(context).getBoolean(KEY_SOUND_BALANCE_ENABLED, false)
 
     fun setSoundBalanceEnabled(context: Context, enabled: Boolean) {
-        preferences(context).edit().putBoolean(KEY_SOUND_BALANCE_ENABLED, enabled).apply()
+        preferences(context).putBoolean(KEY_SOUND_BALANCE_ENABLED, enabled)
     }
 
     fun isVirtualizerEnabled(context: Context): Boolean =
         preferences(context).getBoolean(KEY_VIRTUALIZER_ENABLED, false)
 
     fun setVirtualizerEnabled(context: Context, enabled: Boolean) {
-        preferences(context).edit().putBoolean(KEY_VIRTUALIZER_ENABLED, enabled).apply()
+        preferences(context).putBoolean(KEY_VIRTUALIZER_ENABLED, enabled)
     }
 
     fun getVirtualizerProgress(context: Context): Float =
         preferences(context).getFloat(KEY_VIRTUALIZER_PROGRESS, 0f)
 
     fun setVirtualizerProgress(context: Context, progress: Float) {
-        preferences(context).edit().putFloat(KEY_VIRTUALIZER_PROGRESS, progress).apply()
+        preferences(context).putFloat(KEY_VIRTUALIZER_PROGRESS, progress)
     }
 
     fun getVirtualizerPresetId(context: Context): Int =
         preferences(context).getInt(KEY_VIRTUALIZER_PRESET_ID, -1)
 
     fun setVirtualizerPresetId(context: Context, presetId: Int) {
-        preferences(context).edit().putInt(KEY_VIRTUALIZER_PRESET_ID, presetId).apply()
+        preferences(context).putInt(KEY_VIRTUALIZER_PRESET_ID, presetId)
     }
 
     fun isVolumeBoostEnabled(context: Context): Boolean =
         preferences(context).getBoolean(KEY_VOLUME_BOOST_ENABLED, false)
 
     fun setVolumeBoostEnabled(context: Context, enabled: Boolean) {
-        preferences(context).edit().putBoolean(KEY_VOLUME_BOOST_ENABLED, enabled).apply()
+        preferences(context).putBoolean(KEY_VOLUME_BOOST_ENABLED, enabled)
     }
 
     fun isGroupSoundEffectEnabled(context: Context): Boolean =
         preferences(context).getBoolean(KEY_GROUP_SOUND_EFFECT_ENABLED, false)
 
     fun setGroupSoundEffectEnabled(context: Context, enabled: Boolean) {
-        preferences(context).edit().putBoolean(KEY_GROUP_SOUND_EFFECT_ENABLED, enabled).apply()
+        preferences(context).putBoolean(KEY_GROUP_SOUND_EFFECT_ENABLED, enabled)
     }
 
     fun isErrorCorrected(context: Context): Boolean =
         preferences(context).getBoolean(KEY_ERROR_CORRECTED, false)
 
     fun setErrorCorrected(context: Context, enabled: Boolean) {
-        preferences(context).edit().putBoolean(KEY_ERROR_CORRECTED, enabled).apply()
+        preferences(context).putBoolean(KEY_ERROR_CORRECTED, enabled)
     }
 
     fun supportsTenBandEqualizer(): Boolean =
@@ -208,6 +208,8 @@ object SoundEffectPreferences {
     private fun effectIdKeyForMode(bandMode: Int): String =
         if (bandMode == TEN_BAND_MODE) KEY_LAST_TEN_BAND_EFFECT_ID else KEY_LAST_EFFECT_ID
 
-    private fun preferences(context: Context): SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREFERENCES_FILE_NAME, Context.MODE_PRIVATE)
+    private fun preferences(context: Context): PreferenceStore = PreferenceStore(
+        context = context,
+        fileName = PREFERENCES_FILE_NAME
+    )
 }

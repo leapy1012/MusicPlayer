@@ -50,7 +50,7 @@ class DefaultMusicNotificationContent(
     override fun createDesktopLyricsIntent(context: Context): PendingIntent =
         actionIntentFactory(MusicPlaybackService.ACTION_DESK_LRC_LOCK, REQUEST_DESK_LRC_LOCK)
 
-    override fun isFavorite(): Boolean = music?.playlistId == MusicSet.FAVORITES_ID
+    override fun isFavorite(): Boolean = music?.playlistId == MusicSet.FAVORITES
 
     override fun getAlbumArt(viewType: Int): NotificationAlbumArtwork = albumArt
 

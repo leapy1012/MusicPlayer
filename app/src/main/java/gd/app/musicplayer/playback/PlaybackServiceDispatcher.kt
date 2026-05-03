@@ -25,23 +25,35 @@ class PlaybackServiceDispatcher @Inject constructor() {
             when (val command = this@toIntent) {
                 is PlaybackCommand.PlayFromQueue -> {
                     action = MusicPlaybackService.ACTION_PLAY_FROM_QUEUE
-                    putExtra(MusicPlaybackService.EXTRA_QUEUE_ID, command.queueId)
+                    putParcelableArrayListExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
+                        ArrayList(command.queue)
+                    )
                     putExtra(MusicPlaybackService.EXTRA_INDEX, command.index)
                 }
 
                 is PlaybackCommand.Enqueue -> {
                     action = MusicPlaybackService.ACTION_ENQUEUE
-                    putExtra(MusicPlaybackService.EXTRA_QUEUE_ID, command.queueId)
+                    putParcelableArrayListExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
+                        ArrayList(command.queue)
+                    )
                 }
 
                 is PlaybackCommand.PlayNextItems -> {
                     action = MusicPlaybackService.ACTION_PLAY_NEXT
-                    putExtra(MusicPlaybackService.EXTRA_QUEUE_ID, command.queueId)
+                    putParcelableArrayListExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
+                        ArrayList(command.queue)
+                    )
                 }
 
                 is PlaybackCommand.ReplaceQueue -> {
                     action = MusicPlaybackService.ACTION_REPLACE_QUEUE
-                    putExtra(MusicPlaybackService.EXTRA_QUEUE_ID, command.queueId)
+                    putParcelableArrayListExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
+                        ArrayList(command.queue)
+                    )
                     putExtra(MusicPlaybackService.EXTRA_INDEX, command.index)
                 }
 
@@ -108,6 +120,10 @@ class PlaybackServiceDispatcher @Inject constructor() {
                 PlaybackCommand.ChangeMode -> {
                     action = MusicPlaybackService.ACTION_CHANGE_MODE
                 }
+
+                PlaybackCommand.SetShuffleAllMode -> {
+                    action = MusicPlaybackService.ACTION_MODE_RANDOM
+                }
             }
         }
     }
@@ -132,7 +148,8 @@ class PlaybackServiceDispatcher @Inject constructor() {
             PlaybackCommand.ApplyPlaybackTuning,
             PlaybackCommand.RefreshNotificationStyle,
             PlaybackCommand.RestartCurrentTrack,
-            PlaybackCommand.ChangeMode -> false
+            PlaybackCommand.ChangeMode,
+            PlaybackCommand.SetShuffleAllMode -> false
         }
     }
 }

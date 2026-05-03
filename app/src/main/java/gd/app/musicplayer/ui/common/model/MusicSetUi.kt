@@ -7,7 +7,7 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseActivity
 
 fun MusicSet.resolvePlaceholderRes(useTextVariant: Boolean): Int {
-    if (id == MusicSet.FAVORITES_ID) return R.drawable.main_favourite_simple
+    if (id == MusicSet.FAVORITES) return R.drawable.main_favourite_simple
     return when (this) {
         is MusicSet.Genre -> if (useTextVariant) R.drawable.th_genres_lang else R.drawable.main_genre_simple
         is MusicSet.Favorites -> R.drawable.main_favourite_simple

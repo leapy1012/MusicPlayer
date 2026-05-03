@@ -29,6 +29,7 @@ import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.feature.search.SearchActivity
 import gd.app.musicplayer.ui.feature.selection.ActivityMusicSelect
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
+import gd.app.musicplayer.ui.feature.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.menu.MusicSetContextMenu
 import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
@@ -252,7 +253,11 @@ class AlbumMusicFragment :
             MusicSetMenuAction.ShuffleAll,
             MusicSetMenuAction.PlayNext,
             MusicSetMenuAction.AddToQueue,
-            MusicSetMenuAction.AddToPlaylist -> {
+            MusicSetMenuAction.AddToPlaylist,
+            MusicSetMenuAction.ClearFavorites,
+            MusicSetMenuAction.ClearRecentlyAdded,
+            MusicSetMenuAction.ClearRecentlyPlayed,
+            MusicSetMenuAction.ClearMostPlayed -> {
                 childTrackListFragment?.handleMusicSetMenuAction(action)
             }
 
@@ -273,7 +278,16 @@ class AlbumMusicFragment :
             }
 
             MusicSetMenuAction.AddToHomeScreen -> {
-                // TODO: MusicSetShortcutHelper.pinShortcut(requireContext(), musicSet)
+                val context = requireContext()
+                val success = MusicSetShortcutHelper.requestPinnedShortcut(
+                    context = context,
+                    musicSet = musicSet,
+                    title = musicSet.name
+                )
+                ToastUtil.show(
+                    context,
+                    if (success) R.string.succeed else R.string.feature_not_implemented
+                )
             }
 
             MusicSetMenuAction.DeleteEmptyPlaylists -> {
@@ -281,9 +295,6 @@ class AlbumMusicFragment :
             }
 
             MusicSetMenuAction.DeletePlaylist,
-            MusicSetMenuAction.ClearFavorites,
-            MusicSetMenuAction.ClearRecentlyPlayed,
-            MusicSetMenuAction.ClearMostPlayed,
             MusicSetMenuAction.BackupPlaylists,
             MusicSetMenuAction.RestorePlaylists,
             MusicSetMenuAction.ViewAsList,
@@ -366,10 +377,10 @@ class AlbumMusicFragment :
     private val MusicSet.headerPlaceholderResId: Int
         get() {
             return when (id) {
-                MusicSet.ARTISTS_ID -> R.drawable.artist_large
-                MusicSet.GENRES_ID -> R.drawable.genre_large
-                MusicSet.FOLDERS_ID -> R.drawable.folder_large
-                MusicSet.PLAYLISTS_ID -> R.drawable.main_list_simple
+                MusicSet.ARTISTS -> R.drawable.artist_large
+                MusicSet.GENRES -> R.drawable.genre_large
+                MusicSet.FOLDERS -> R.drawable.folder_large
+                MusicSet.USER_PLAYLIST -> R.drawable.main_list_simple
                 else -> {
                     when (this) {
                         is MusicSet.Artist -> R.drawable.artist_large

@@ -14,6 +14,7 @@ sealed interface MusicSetMenuAction {
     data object ManageArtwork : MusicSetMenuAction
     data object DeletePlaylist : MusicSetMenuAction
     data object ClearFavorites : MusicSetMenuAction
+    data object ClearRecentlyAdded : MusicSetMenuAction
     data object ClearRecentlyPlayed : MusicSetMenuAction
     data object ClearMostPlayed : MusicSetMenuAction
     data object BackupPlaylists : MusicSetMenuAction

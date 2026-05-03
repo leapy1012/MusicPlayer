@@ -6,6 +6,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import gd.app.musicplayer.data.db.entity.MusicPlaylistEntity
 import gd.app.musicplayer.data.db.entity.PlaylistEntity
+import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import kotlinx.coroutines.flow.Flow
 
@@ -49,6 +50,22 @@ interface PlaylistDao {
         """
     )
     suspend fun getMaxPlaylistSort(playlistId: Long): Int
+
+    @Query(
+        """
+        SELECT COALESCE(MAX(sort), 1)
+        FROM music_playlist
+        """
+    )
+    suspend fun getGlobalMaxPlaylistSort(): Int
+
+    @Query(
+        """
+        SELECT COALESCE(MIN(sort), 1)
+        FROM music_playlist
+        """
+    )
+    suspend fun getGlobalMinPlaylistSort(): Int
 
     @Query(
         """
@@ -280,6 +297,47 @@ interface PlaylistDao {
         """
     )
     suspend fun getPlaylistTrackIds(playlistId: Long): List<Long>
+
+    @Query(
+        """
+        SELECT music.*, list.p_id AS p_id
+        FROM music_playlist map
+        LEFT JOIN (
+          SELECT *
+          FROM musictbl
+          WHERE hide_time = 0
+            AND `show` = 1
+            AND folder_path NOT IN (SELECT folder_path FROM hide_folder)
+        ) AS music ON music.[_id] = map.[m_id]
+        LEFT JOIN (
+          SELECT DISTINCT([m_id]), [p_id]
+          FROM music_playlist
+          WHERE music_playlist.p_id = 1
+        ) AS list ON music.[_id] = list.[m_id]
+        WHERE map.[p_id] = :playlistId
+          AND music._id IS NOT NULL
+        ORDER BY map.sort ASC, map.rowid ASC
+        """
+    )
+    suspend fun getPlaylistTracksBySort(playlistId: Long): List<Music>
+
+    @Transaction
+    suspend fun replacePlaylistTracks(
+        playlistId: Long,
+        musicIdsInOrder: List<Long>
+    ) {
+        deletePlaylistMusicRefs(playlistId)
+        if (musicIdsInOrder.isEmpty()) return
+        insertMusicPlaylistRefs(
+            musicIdsInOrder.mapIndexed { index, musicId ->
+                MusicPlaylistEntity(
+                    musicId = musicId,
+                    playlistId = playlistId,
+                    sort = index
+                )
+            }
+        )
+    }
 
     @Query(
         """

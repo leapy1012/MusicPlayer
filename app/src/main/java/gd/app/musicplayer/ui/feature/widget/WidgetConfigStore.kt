@@ -1,10 +1,10 @@
 package gd.app.musicplayer.ui.feature.widget
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.annotation.DrawableRes
 import androidx.annotation.LayoutRes
 import gd.app.musicplayer.R
+import gd.app.musicplayer.util.PreferenceStore
 import gd.app.musicplayer.ui.feature.widget.provider.Widget2x1Provider
 import gd.app.musicplayer.ui.feature.widget.provider.Widget3x2Provider
 import gd.app.musicplayer.ui.feature.widget.provider.Widget4x1Provider
@@ -16,20 +16,20 @@ import gd.app.musicplayer.ui.feature.widget.provider.WidgetListProvider
 data class WidgetThemeOption(
     val themeType: Int,
     val index: Int,
-    @DrawableRes val drawableRes: Int,
+    @param:DrawableRes val drawableRes: Int,
     val alpha: Float
 )
 
 data class WidgetStyleOption(
     val styleKey: String,
-    @LayoutRes val layoutRes: Int,
-    @DrawableRes val previewRes: Int
+    @param:LayoutRes val layoutRes: Int,
+    @param:DrawableRes val previewRes: Int
 )
 
 data class WidgetProviderSpec(
     val classify: String,
     val titleRes: Int,
-    @DrawableRes val previewRes: Int,
+    @param:DrawableRes val previewRes: Int,
     val providerClass: Class<*>,
     val styles: List<WidgetStyleOption>
 )
@@ -155,7 +155,7 @@ object WidgetCatalog {
             previewRes = R.drawable.widget_queue,
             providerClass = WidgetListProvider::class.java,
             styles = listOf(
-                WidgetStyleOption("list", R.layout.widget_queue, R.drawable.widget_queue)
+                WidgetStyleOption("LIST", R.layout.widget_queue, R.drawable.widget_queue)
             )
         )
     )
@@ -176,8 +176,10 @@ object WidgetCatalog {
 }
 
 class WidgetConfigStore(context: Context) {
-    private val preferences: SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val preferences = PreferenceStore(
+        context = context,
+        fileName = PREFS_NAME
+    )
 
     fun load(appWidgetId: Int, classify: String): WidgetConfig {
         val defaultStyle = WidgetCatalog.defaultStyle(classify)
@@ -191,23 +193,21 @@ class WidgetConfigStore(context: Context) {
     }
 
     fun save(appWidgetId: Int, config: WidgetConfig) {
-        preferences.edit()
-            .putString(key(KEY_CLASSIFY, appWidgetId), config.classify)
-            .putString(key(KEY_STYLE, appWidgetId), config.styleKey)
-            .putInt(key(KEY_THEME_TYPE, appWidgetId), config.themeType)
-            .putInt(key(KEY_THEME_INDEX, appWidgetId), config.themeIndex)
-            .putFloat(key(KEY_ALPHA, appWidgetId), config.alpha)
-            .apply()
+        preferences.putString(key(KEY_CLASSIFY, appWidgetId), config.classify)
+        preferences.putString(key(KEY_STYLE, appWidgetId), config.styleKey)
+        preferences.putInt(key(KEY_THEME_TYPE, appWidgetId), config.themeType)
+        preferences.putInt(key(KEY_THEME_INDEX, appWidgetId), config.themeIndex)
+        preferences.putFloat(key(KEY_ALPHA, appWidgetId), config.alpha)
     }
 
     fun delete(appWidgetId: Int) {
-        preferences.edit()
-            .remove(key(KEY_CLASSIFY, appWidgetId))
-            .remove(key(KEY_STYLE, appWidgetId))
-            .remove(key(KEY_THEME_TYPE, appWidgetId))
-            .remove(key(KEY_THEME_INDEX, appWidgetId))
-            .remove(key(KEY_ALPHA, appWidgetId))
-            .apply()
+        preferences.remove(
+            key(KEY_CLASSIFY, appWidgetId),
+            key(KEY_STYLE, appWidgetId),
+            key(KEY_THEME_TYPE, appWidgetId),
+            key(KEY_THEME_INDEX, appWidgetId),
+            key(KEY_ALPHA, appWidgetId)
+        )
     }
 
     fun loadClassify(appWidgetId: Int): String? =

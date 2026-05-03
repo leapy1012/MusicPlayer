@@ -12,6 +12,7 @@ import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.ListView
 import android.widget.TextView
+import android.widget.ViewFlipper
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,7 +24,6 @@ import gd.app.musicplayer.databinding.ActivityWidgetConfigStyleItemBinding
 import gd.app.musicplayer.databinding.ActivityWidgetConfigThemeItemBinding
 import gd.app.musicplayer.ui.feature.widget.provider.WidgetRenderer
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.ui.theme.applyCurrentTheme
 
@@ -46,11 +46,15 @@ class WidgetConfigActivity : BaseActivity() {
 
     companion object {
         private const val EXTRA_CLASSIFY = "widget_classify"
+        private const val EXTRA_CLASSIFY_LEGACY = "KEY_WIDGET_CLASSIFY"
+        private const val EXTRA_APP_WIDGET_ID_LEGACY = "appWidgetId"
 
         fun intent(context: Context, appWidgetId: Int, classify: String): Intent {
             return Intent(context, WidgetConfigActivity::class.java).apply {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 putExtra(EXTRA_CLASSIFY, classify)
+                putExtra(EXTRA_CLASSIFY_LEGACY, classify)
+                putExtra(EXTRA_APP_WIDGET_ID_LEGACY, appWidgetId)
             }
         }
     }
@@ -61,23 +65,22 @@ class WidgetConfigActivity : BaseActivity() {
         setContentView(binding.root)
         applyCurrentTheme(binding.root)
         binding.root.visibility = View.VISIBLE
-        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.widgetBottomLayout)
+        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
         binding.widgetBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-        val classify = resolveClassify(intent) ?: run {
-            finish()
-            return
-        }
-        spec = WidgetCatalog.specForClassify(classify)
         store = WidgetConfigStore(this)
+        appWidgetId = intent.getIntExtra(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            intent.getIntExtra(EXTRA_APP_WIDGET_ID_LEGACY, AppWidgetManager.INVALID_APPWIDGET_ID)
+        )
+        if (!handleIntent(intent)) return
 
         if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
             setResult(RESULT_CANCELED)
         }
 
-        val currentConfig = store.load(appWidgetId, classify)
-        selectedStyle = spec.styles.firstOrNull { it.styleKey == currentConfig.styleKey } ?: spec.styles.first()
+        val currentConfig = store.load(appWidgetId, spec.classify)
+        selectedStyle = resolveStyleOption(spec, currentConfig.styleKey)
         selectedTheme = WidgetCatalog.themeOption(currentConfig.themeType, currentConfig.themeIndex)
 
         setupThemeRecycler()
@@ -88,10 +91,25 @@ class WidgetConfigActivity : BaseActivity() {
         binding.widgetSave.setOnClickListener { saveAndFinish() }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent): Boolean {
+        val classify = resolveClassify(intent) ?: run {
+            finish()
+            return false
+        }
+        spec = WidgetCatalog.specForClassify(classify)
+        return true
+    }
+
     private fun resolveClassify(intent: Intent): String? {
         intent.getStringExtra(EXTRA_CLASSIFY)?.let { return it }
+        intent.getStringExtra(EXTRA_CLASSIFY_LEGACY)?.let { return it }
         if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            store = WidgetConfigStore(this)
             store.loadClassify(appWidgetId)?.let { return it }
             val providerInfo = AppWidgetManager.getInstance(this).getAppWidgetInfo(appWidgetId)
             if (providerInfo != null) {
@@ -106,7 +124,10 @@ class WidgetConfigActivity : BaseActivity() {
             LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
         if (binding.widgetThemeRecycler.itemDecorationCount == 0) {
             binding.widgetThemeRecycler.addItemDecoration(
-                SpacingItemDecoration.right(resources.getDimensionPixelSize(R.dimen.widget_config_item_space))
+                EdgeSpacingItemDecoration(
+                    edge = resources.getDimensionPixelSize(R.dimen.widget_config_content_margin_start),
+                    spacing = resources.getDimensionPixelSize(R.dimen.widget_config_item_space)
+                )
             )
         }
         lateinit var adapter: ThemeAdapter
@@ -128,7 +149,10 @@ class WidgetConfigActivity : BaseActivity() {
             LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
         if (binding.widgetStyleRecycler.itemDecorationCount == 0) {
             binding.widgetStyleRecycler.addItemDecoration(
-                SpacingItemDecoration.right(resources.getDimensionPixelSize(R.dimen.widget_config_item_space))
+                EdgeSpacingItemDecoration(
+                    edge = resources.getDimensionPixelSize(R.dimen.widget_config_content_margin_start),
+                    spacing = resources.getDimensionPixelSize(R.dimen.widget_config_item_space)
+                )
             )
         }
         lateinit var adapter: StyleAdapter
@@ -185,7 +209,8 @@ class WidgetConfigActivity : BaseActivity() {
         binding.widgetPreviewContainer.addView(preview, previewLayoutParams(spec.classify))
         applyPreviewTheme(preview, theme)
         if (spec.classify == CLASSIFY_LIST) {
-            (preview.findViewById<ListView>(R.id.widget_queue))?.adapter = PreviewQueueAdapter(this)
+            (preview.findViewById<ListView>(R.id.widget_queue))?.adapter =
+                PreviewQueueAdapter(this, theme.drawableRes == R.drawable.widget_color_bg_012)
         }
         applyCurrentTheme(binding.root)
     }
@@ -222,6 +247,8 @@ class WidgetConfigActivity : BaseActivity() {
         root.findViewById<ImageView?>(R.id.widget_favorite_selected)
             ?.setColorFilter(ContextCompat.getColor(this, R.color.color_theme))
 
+        root.findViewById<ViewFlipper?>(R.id.widget_progress_flipper)?.displayedChild =
+            if (useDarkForeground) 1 else 0
         root.findViewById<View?>(R.id.widget_play)?.visibility = View.GONE
         root.findViewById<View?>(R.id.widget_pause)?.visibility = View.VISIBLE
     }
@@ -266,10 +293,24 @@ class WidgetConfigActivity : BaseActivity() {
             )
             setResult(
                 RESULT_OK,
-                Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                Intent()
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                    .putExtra(EXTRA_APP_WIDGET_ID_LEGACY, appWidgetId)
             )
         }
         finish()
+    }
+
+    private fun resolveStyleOption(spec: WidgetProviderSpec, rawStyleKey: String): WidgetStyleOption {
+        val normalized = normalizeStyleKey(rawStyleKey)
+        return spec.styles.firstOrNull { normalizeStyleKey(it.styleKey) == normalized } ?: spec.styles.first()
+    }
+
+    private fun normalizeStyleKey(styleKey: String): String {
+        val key = styleKey.trim()
+        if (key.equals("list", ignoreCase = true)) return "LIST"
+        if (key.startsWith("3x2_", ignoreCase = true)) return key.replace("3x2_", "3X2_", ignoreCase = true)
+        return key.uppercase()
     }
 }
 
@@ -361,7 +402,8 @@ private class StyleAdapter(
 }
 
 private class PreviewQueueAdapter(
-    private val context: Context
+    private val context: Context,
+    private val useDarkForeground: Boolean
 ) : BaseAdapter() {
     private val items = listOf(
         context.getString(R.string.music) to context.getString(R.string.artist),
@@ -381,6 +423,11 @@ private class PreviewQueueAdapter(
         holder.position.text = (position + 1).toString()
         holder.title.text = items[position].first
         holder.artist.text = items[position].second
+        val mainColor = if (useDarkForeground) Color.BLACK else Color.WHITE
+        val subColor = if (useDarkForeground) 0x99000000.toInt() else 0xB3FFFFFF.toInt()
+        holder.position.setTextColor(subColor)
+        holder.title.setTextColor(mainColor)
+        holder.artist.setTextColor(subColor)
         holder.divider.visibility =
             if (position == items.lastIndex) View.GONE else View.VISIBLE
         return view
@@ -391,5 +438,23 @@ private class PreviewQueueAdapter(
         val title: TextView = root.findViewById(R.id.widget_queue_item_title)
         val artist: TextView = root.findViewById(R.id.widget_queue_item_artist)
         val divider: View = root.findViewById(R.id.widget_queue_item_divider)
+    }
+}
+
+private class EdgeSpacingItemDecoration(
+    private val edge: Int,
+    private val spacing: Int
+) : RecyclerView.ItemDecoration() {
+    override fun getItemOffsets(
+        outRect: android.graphics.Rect,
+        view: View,
+        parent: RecyclerView,
+        state: RecyclerView.State
+    ) {
+        val position = parent.getChildAdapterPosition(view)
+        val count = parent.adapter?.itemCount ?: 0
+        if (position == RecyclerView.NO_POSITION || count == 0) return
+        outRect.left = if (position == 0) edge else spacing
+        outRect.right = if (position == count - 1) edge else spacing
     }
 }

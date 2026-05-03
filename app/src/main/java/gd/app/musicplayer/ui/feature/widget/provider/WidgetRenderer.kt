@@ -14,20 +14,22 @@ import android.view.View
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.isFavorite
+import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.playback.MusicPlaybackService
+import gd.app.musicplayer.playback.PlaybackMode
 import gd.app.musicplayer.ui.feature.widget.WidgetCatalog
 import gd.app.musicplayer.ui.feature.widget.WidgetConfigActivity
 import gd.app.musicplayer.ui.feature.widget.WidgetConfigStore
 import gd.app.musicplayer.ui.feature.widget.WidgetQueueService
-import gd.app.musicplayer.playback.MusicPlaybackService
-import gd.app.musicplayer.playback.PlaybackControllerProvider
-import gd.app.musicplayer.playback.MusicPlaybackState
-import gd.app.musicplayer.playback.PlaybackMode
 import gd.app.musicplayer.ui.shell.MainActivity
 import gd.app.musicplayer.util.PreferenceUtil
 import java.io.File
 import java.io.InputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 internal object WidgetRenderer {
     fun updateAll(context: Context) {
@@ -46,26 +48,53 @@ internal object WidgetRenderer {
         appWidgetIds: IntArray,
         classify: String
     ) {
-        val state = PlaybackControllerProvider.state.value
+        val snapshot = loadPlaybackSnapshot(context)
         appWidgetIds.forEach { appWidgetId ->
-            val remoteViews = buildRemoteViews(context, appWidgetId, classify, state)
+            val remoteViews = buildRemoteViews(context, appWidgetId, classify, snapshot)
             manager.updateAppWidget(appWidgetId, remoteViews)
             manager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_queue)
         }
+    }
+
+    internal fun loadPlaybackSnapshot(context: Context): WidgetPlaybackSnapshot = runBlocking(Dispatchers.IO) {
+        val dependencies = context.appDependencies
+        val queue = dependencies.playbackQueueRepo.getQueue()
+        val session = dependencies.playbackSessionStore.session.first()
+
+        val currentTrack = when {
+            session?.currentIndex != null && session.currentIndex in queue.indices -> {
+                queue[session.currentIndex]
+            }
+            session?.musicId != null -> {
+                queue.firstOrNull { it.id == session.musicId }
+            }
+            else -> null
+        }
+
+        val resolvedIndex = currentTrack
+            ?.let { track -> queue.indexOfFirst { queued -> queued.id == track.id } }
+            ?: -1
+
+        WidgetPlaybackSnapshot(
+            queue = queue,
+            currentTrack = currentTrack,
+            currentIndex = resolvedIndex,
+            positionMs = session?.positionMs ?: 0L
+        )
     }
 
     private fun buildRemoteViews(
         context: Context,
         appWidgetId: Int,
         classify: String,
-        state: MusicPlaybackState
+        snapshot: WidgetPlaybackSnapshot
     ): RemoteViews {
         val store = WidgetConfigStore(context)
         val config = store.load(appWidgetId, classify)
         val spec = WidgetCatalog.specForClassify(classify)
         val style = spec.styles.firstOrNull { it.styleKey == config.styleKey } ?: spec.styles.first()
         val theme = WidgetCatalog.themeOption(config.themeType, config.themeIndex)
-        val track = state.currentTrack
+        val track = snapshot.currentTrack
         val remoteViews = RemoteViews(context.packageName, style.layoutRes)
         val useDarkForeground = theme.drawableRes == R.drawable.widget_color_bg_012
         val textColor = if (useDarkForeground) Color.BLACK else Color.WHITE
@@ -81,13 +110,13 @@ internal object WidgetRenderer {
         )
         remoteViews.setTextViewText(
             R.id.widget_queue_info,
-            if (state.hasTrack) "${state.currentIndex + 1}/${state.queue.size}" else "0/0"
+            if (snapshot.hasTrack) "${snapshot.currentIndex + 1}/${snapshot.queue.size}" else "0/0"
         )
         remoteViews.setTextColor(R.id.widget_title, textColor)
         remoteViews.setTextColor(R.id.widget_artist, secondaryTextColor)
         remoteViews.setTextColor(R.id.widget_queue_info, secondaryTextColor)
-        remoteViews.setViewVisibility(R.id.widget_play, if (state.isPlaying) View.GONE else View.VISIBLE)
-        remoteViews.setViewVisibility(R.id.widget_pause, if (state.isPlaying) View.VISIBLE else View.GONE)
+        remoteViews.setViewVisibility(R.id.widget_play, if (snapshot.isPlaying) View.GONE else View.VISIBLE)
+        remoteViews.setViewVisibility(R.id.widget_pause, if (snapshot.isPlaying) View.VISIBLE else View.GONE)
         remoteViews.setViewVisibility(
             R.id.widget_favorite_selected,
             if (track?.isFavorite() == true) View.VISIBLE else View.GONE
@@ -106,8 +135,8 @@ internal object WidgetRenderer {
         tintControl(remoteViews, R.id.widget_favorite_selected, ContextCompat.getColor(context, R.color.color_theme))
         tintControl(remoteViews, R.id.widget_favorite_unselected, iconColor)
 
-        val progress = if (state.durationMs > 0) {
-            (state.positionMs * 100 / state.durationMs).coerceIn(0, 100)
+        val progress = if (track != null && track.duration > 0) {
+            (snapshot.positionMs * 100 / track.duration.toLong()).coerceIn(0L, 100L).toInt()
         } else {
             0
         }
@@ -129,7 +158,7 @@ internal object WidgetRenderer {
             remoteViews.setImageViewResource(R.id.widget_album_image, R.drawable.default_album_identify)
         }
 
-        bindActions(context, remoteViews, appWidgetId, classify, state, spec.providerClass)
+        bindActions(context, remoteViews, appWidgetId, classify, snapshot, spec.providerClass)
         return remoteViews
     }
 
@@ -138,7 +167,7 @@ internal object WidgetRenderer {
         remoteViews: RemoteViews,
         appWidgetId: Int,
         classify: String,
-        state: MusicPlaybackState,
+        snapshot: WidgetPlaybackSnapshot,
         providerClass: Class<*>
     ) {
         val mainIntent = Intent(context, MainActivity::class.java).apply {
@@ -169,6 +198,10 @@ internal object WidgetRenderer {
         remoteViews.setOnClickPendingIntent(
             R.id.widget_pause,
             serviceAction(context, MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE, appWidgetId * 100 + 5)
+        )
+        remoteViews.setOnClickPendingIntent(
+            R.id.widget_flipper_play_pause,
+            serviceAction(context, MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE, appWidgetId * 100 + 13)
         )
         remoteViews.setOnClickPendingIntent(
             R.id.widget_mode,
@@ -210,6 +243,16 @@ internal object WidgetRenderer {
             )
         )
         remoteViews.setOnClickPendingIntent(
+            R.id.widget_flipper_favorite,
+            widgetBroadcast(
+                context = context,
+                providerClass = providerClass,
+                requestCode = appWidgetId * 100 + 14,
+                action = BaseMusicAppWidgetProvider.ACTION_TOGGLE_FAVORITE,
+                appWidgetId = appWidgetId
+            )
+        )
+        remoteViews.setOnClickPendingIntent(
             R.id.widget_visualizer,
             PendingIntent.getActivity(
                 context,
@@ -236,7 +279,7 @@ internal object WidgetRenderer {
                     appWidgetId = appWidgetId
                 )
             )
-        } else if (!state.hasTrack) {
+        } else if (!snapshot.hasTrack) {
             remoteViews.setOnClickPendingIntent(
                 R.id.widget_content,
                 PendingIntent.getActivity(
@@ -309,3 +352,15 @@ internal object WidgetRenderer {
     }
 }
 
+internal data class WidgetPlaybackSnapshot(
+    val queue: List<Music>,
+    val currentTrack: Music?,
+    val currentIndex: Int,
+    val positionMs: Long
+) {
+    val hasTrack: Boolean
+        get() = currentTrack != null && currentIndex in queue.indices
+
+    val isPlaying: Boolean
+        get() = hasTrack
+}

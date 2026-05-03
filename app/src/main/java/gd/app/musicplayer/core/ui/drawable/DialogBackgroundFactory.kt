@@ -14,7 +14,7 @@ object DialogBackgroundFactory {
     const val THEME_TYPE_PICTURE = 2
     const val THEME_TYPE_NIGHT = 99
 
-    private const val COLOR_PICTURE_FALLBACK = 0xFFF9F9F9.toInt()  // -394759
+    private const val COLOR_PICTURE_FALLBACK = -394759  // -394759
     private const val COLOR_PICTURE_OVERLAY = 0xBF2A3139.toInt()   // -1087753927
 
     /**
@@ -49,7 +49,9 @@ object DialogBackgroundFactory {
         val base: Drawable = if (blurredThemeBitmap == null) {
             COLOR_PICTURE_FALLBACK.toDrawable()
         } else {
-            OverlayCenterCropDrawable(context.resources, blurredThemeBitmap, COLOR_PICTURE_OVERLAY)
+            ScaledOverlayDrawable(blurredThemeBitmap.toDrawable(context.resources)).apply {
+                setForegroundOverlayColor(COLOR_PICTURE_OVERLAY)
+            }
         }
 
         return RoundedMaskDrawable(base, context.dpToPx(12f).toFloat())

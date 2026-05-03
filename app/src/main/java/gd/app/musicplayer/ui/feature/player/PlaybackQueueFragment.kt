@@ -35,8 +35,9 @@ import gd.app.musicplayer.databinding.MusicPlayFragmentListItemBinding
 import gd.app.musicplayer.ui.feature.library.QueueTrackOptionsDialog
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
-import gd.app.musicplayer.playback.PlaybackControllerProvider
-import gd.app.musicplayer.playback.MusicPlaybackState
+import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.queue.PlaybackState
+import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.core.ui.view.MusicRecyclerView
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
@@ -57,7 +58,8 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     private lateinit var emptyStateController: RecyclerEmptyStateController
     private lateinit var recyclerView: MusicRecyclerView
     private lateinit var emptyViewStub: ViewStub
-    private var playbackState = PlaybackControllerProvider.state.value
+    private var playbackState = PlaybackGateway.state.value
+    private var localQueueOverride: List<Music>? = null
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentQueueBinding =
         FragmentQueueBinding.inflate(inflater)
@@ -109,7 +111,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     private fun buildAdapter(): QueueListAdapter =
         QueueListAdapter(
             onTrackClicked = { position ->
-                val queue = playbackState.queue
+                val queue = localQueueOverride ?: playbackState.queue
                 if (position in queue.indices) {
                     viewModel.playQueue(requireContext(), queue, position)
                 }
@@ -133,22 +135,23 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.playbackState.collect { state ->
                     playbackState = state
+                    val queue = localQueueOverride ?: state.queue
                     val binding = requireBinding()
-                    adapter.submitQueue(state.queue, state.currentIndex)
-                    val isEmpty = state.queue.isEmpty()
+                    adapter.submitQueue(queue, state.currentIndex)
+                    val isEmpty = queue.isEmpty()
                     binding.queueBannerLayout.isGone = isEmpty
-                    emptyStateController.setVisible(state.queue.isEmpty())
+                    emptyStateController.setVisible(queue.isEmpty())
                     binding.collapsingToolbar.isTitleEnabled = isEmpty.not()
                     updateCollapsingHeight(isEmpty)
-                    updateQueueInfo(state)
+                    updateQueueInfo(state, queue)
                 }
             }
         }
     }
 
-    private fun updateQueueInfo(state: MusicPlaybackState) {
+    private fun updateQueueInfo(state: PlaybackState, queue: List<Music>) {
         val binding = requireBinding()
-        val count = state.queue.size
+        val count = queue.size
         val current = if (count == 0) 0 else (state.currentIndex + 1).coerceIn(1, count)
         binding.queueInfo.text = "$current/$count"
     }
@@ -163,11 +166,12 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             .takeIf { it >= 0 }
             ?: playbackState.currentIndex.coerceIn(0, updatedQueue.lastIndex)
         viewModel.replaceQueue(requireContext(), updatedQueue, nextIndex)
+        localQueueOverride = null
     }
 
     private fun onTrackMovedLocally(updatedQueue: List<Music>) {
-        playbackState = playbackState.copy(queue = updatedQueue)
-        updateQueueInfo(playbackState)
+        localQueueOverride = updatedQueue
+        updateQueueInfo(playbackState, updatedQueue)
     }
 
     private fun updateCollapsingHeight(isEmpty: Boolean) {
@@ -199,7 +203,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                 if (playbackState.queue.isEmpty()) {
                     ToastUtil.show(requireContext(), R.string.list_is_empty)
                 } else {
-                    ActivityPlaylistSelect.start(requireContext(), playbackState.queue)
+                    ActivityPlaylistSelect.start(requireContext(), localQueueOverride ?: playbackState.queue)
                 }
             }
         }
@@ -317,7 +321,7 @@ private class QueueListAdapter(
             binding.musicItemExtra.text = music.artist
             binding.musicItemTitle.setTextColor(titleColor)
             binding.musicItemExtra.setTextColor(extraColor)
-            binding.musicItemTime.text = PlaybackControllerProvider.formatTime(music.duration)
+            binding.musicItemTime.text = PlaybackGateway.formatTime(music.duration)
             binding.musicItemFavorite.visibility = if (isCurrent) View.VISIBLE else View.GONE
             binding.musicItemFavorite.isSelected = music.isFavorite()
             binding.musicItemFavorite.imageTintList = ColorStateList.valueOf(
@@ -347,4 +351,5 @@ private class QueueListAdapter(
         )
     }
 }
+
 

@@ -112,6 +112,11 @@ class MusicSetContextMenu(
                 onAction(MusicSetMenuAction.ClearFavorites)
             }
 
+            R.string.clear_recent_add -> {
+                dismiss()
+                onAction(MusicSetMenuAction.ClearRecentlyAdded)
+            }
+
             R.string.clear_recent_play -> {
                 dismiss()
                 onAction(MusicSetMenuAction.ClearRecentlyPlayed)
@@ -194,6 +199,7 @@ class MusicSetContextMenu(
 
         when (musicSet) {
             is MusicSet.Favorites -> addMenuItem(R.string.clear_favorite)
+            is MusicSet.RecentlyAdded -> addMenuItem(R.string.clear_recent_add)
             is MusicSet.Playlist -> addMenuItem(R.string.list_delete)
             is MusicSet.RecentlyPlayed -> addMenuItem(R.string.clear_recent_play)
             is MusicSet.MostPlayed -> addMenuItem(R.string.clear_most_play)

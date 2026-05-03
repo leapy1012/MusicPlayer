@@ -15,6 +15,7 @@ import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
 import gd.app.musicplayer.domain.usecase.playlist.DeletePlaylistUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+import gd.app.musicplayer.domain.usecase.track.RemoveTracksFromLibraryUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -36,6 +37,7 @@ class MusicSetOptionsViewModel @Inject constructor(
     private val playNextTracksUseCase: PlayNextTracksUseCase,
     private val enqueueTracksUseCase: EnqueueTracksUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
+    private val removeTracksFromLibraryUseCase: RemoveTracksFromLibraryUseCase,
     private val hideSelectionUseCase: HideSelectionUseCase,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val observeTracksUseCase: ObserveTracksUseCase
@@ -90,7 +92,7 @@ class MusicSetOptionsViewModel @Inject constructor(
         }
     }
 
-    fun deleteSet(musicSet: MusicSet) {
+    fun deleteSet(musicSet: MusicSet, deleteSourceFile: Boolean) {
         viewModelScope.launch {
             when (musicSet) {
                 is MusicSet.Playlist -> {
@@ -104,7 +106,12 @@ class MusicSetOptionsViewModel @Inject constructor(
                         _events.emit(MusicSetOptionsEvent.ShowToast(R.string.list_is_empty))
                         return@launch
                     }
-                    val deletedCount = deleteTracksUseCase(tracks)
+                    val deletedCount = if (deleteSourceFile) {
+                        deleteTracksUseCase(tracks)
+                    } else {
+                        removeTracksFromLibraryUseCase(tracks.map { it.id })
+                        tracks.size
+                    }
                     _events.emit(
                         MusicSetOptionsEvent.ShowToast(
                             if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented

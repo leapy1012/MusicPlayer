@@ -1,19 +1,20 @@
 package gd.app.musicplayer.playback
 
 import android.content.Context
+import gd.app.musicplayer.app.MusicPlayerApp
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.data.model.Music
-import kotlinx.coroutines.flow.MutableStateFlow
+import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import java.util.Locale
 
-object PlaybackControllerProvider {
-    private val mutableState = MutableStateFlow(MusicPlaybackState())
-    val state: StateFlow<MusicPlaybackState> = mutableState.asStateFlow()
+object PlaybackGateway {
+    val state: StateFlow<MusicPlaybackState>
+        get() = appDependencies.playbackRuntimeStateStore.state
 
     private fun controller(context: Context): PlaybackController =
         context.applicationContext.appDependencies.playbackController
+    private val appDependencies
+        get() = MusicPlayerApp.instance.appDependencies
 
     fun playQueue(context: Context, queue: List<Music>, startIndex: Int) =
         controller(context).playQueue(context, queue, startIndex)
@@ -60,18 +61,8 @@ object PlaybackControllerProvider {
 
     fun cyclePlayMode(context: Context) = controller(context).cyclePlayMode(context)
 
-    fun formatTime(timeMs: Int): String {
-        val totalSeconds = (timeMs.coerceAtLeast(0) / 1000)
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
-    }
+    fun setShuffleAllMode(context: Context) = controller(context).setShuffleAllMode(context)
 
-    internal fun publishState(state: MusicPlaybackState) {
-        mutableState.value = state
-    }
-
-    internal fun resetState() {
-        mutableState.value = MusicPlaybackState()
-    }
+    fun formatTime(timeMs: Int): String =
+        appDependencies.playbackTimeFormatter.format(timeMs)
 }

@@ -12,7 +12,7 @@ class MainRepo(
     artworkRepo: ArtworkRepo
 ) {
     private val libraryRepo = LibraryRepo(musicDao, preferenceUtil)
-    private val playlistRepo = PlaylistRepo(musicDao, artworkRepo)
+    private val playlistRepo = PlaylistRepo(musicDao, artworkRepo, preferenceUtil)
     private val searchRepo = SearchRepo(musicDao)
     private val statsRepo = StatsRepo(musicDao)
 

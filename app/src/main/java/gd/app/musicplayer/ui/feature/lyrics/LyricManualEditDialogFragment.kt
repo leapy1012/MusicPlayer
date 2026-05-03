@@ -11,7 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.databinding.DialogLyricManualEditBinding
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.TrackLyricsStore
 import java.io.File
@@ -19,7 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class LyricManualEditDialogFragment : BaseThemedDialogFragment(), View.OnClickListener {
+class LyricManualEditDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     private var _binding: DialogLyricManualEditBinding? = null
     private val binding get() = checkNotNull(_binding)

@@ -79,7 +79,7 @@ class CurrentTrackOptionsViewModel @Inject constructor(
             eventsChannel.send(
                 CurrentTrackOptionsEvent.OpenArtist(
                     MusicSet.Artist(
-                        id = MusicSet.ARTISTS_ID,
+                        id = MusicSet.ARTISTS,
                         name = artistName,
                         musicCount = 0,
                         albumCount = 0,
@@ -97,7 +97,7 @@ class CurrentTrackOptionsViewModel @Inject constructor(
             eventsChannel.send(
                 CurrentTrackOptionsEvent.OpenAlbum(
                     MusicSet.Album(
-                        id = music.albumId.toLongOrNull() ?: MusicSet.ALBUMS_ID,
+                        id = music.albumId.toLongOrNull() ?: MusicSet.ALBUMS,
                         name = albumName,
                         albumArt = music.albumPicture,
                         artist = music.artist,

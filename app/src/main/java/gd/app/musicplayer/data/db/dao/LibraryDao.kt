@@ -7,6 +7,8 @@ import androidx.room.Insert
 import androidx.room.Upsert
 import androidx.sqlite.db.SupportSQLiteQuery
 import gd.app.musicplayer.data.db.entity.AlbumPictureEntity
+import gd.app.musicplayer.data.db.entity.EffectPresetEntity
+import gd.app.musicplayer.data.db.entity.EffectTenPresetEntity
 import gd.app.musicplayer.data.db.entity.HiddenFolderEntity
 import gd.app.musicplayer.data.db.entity.MusicEntity
 import gd.app.musicplayer.data.db.entity.MusicPlaylistEntity
@@ -18,6 +20,107 @@ interface LibraryDao {
 
     @Upsert
     suspend fun upsertAll(items: List<MusicEntity>)
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET `show` = :visibleState,
+            state_time = :stateTime,
+            hide_time = 0
+        WHERE _id IN (:musicIds)
+        """
+    )
+    suspend fun updateMusicVisibleState(
+        visibleState: Int,
+        stateTime: Long,
+        musicIds: List<Long>
+    )
+
+    @Query(
+        """
+        DELETE FROM music_playlist
+        WHERE m_id IN (:musicIds)
+        """
+    )
+    suspend fun deleteMusicPlaylistRefsByTrackIds(musicIds: List<Long>)
+
+    @Query("SELECT * FROM effect ORDER BY _id ASC")
+    suspend fun getEffectPresets(): List<EffectPresetEntity>
+
+    @Query("SELECT * FROM effect_ten ORDER BY _id ASC")
+    suspend fun getEffectTenPresets(): List<EffectTenPresetEntity>
+
+    @Query("SELECT * FROM effect WHERE _id = :id LIMIT 1")
+    suspend fun getEffectPresetById(id: Long): EffectPresetEntity?
+
+    @Query("SELECT * FROM effect_ten WHERE _id = :id LIMIT 1")
+    suspend fun getEffectTenPresetById(id: Long): EffectTenPresetEntity?
+
+    @Insert
+    suspend fun insertEffectPreset(item: EffectPresetEntity): Long
+
+    @Insert
+    suspend fun insertEffectTenPreset(item: EffectTenPresetEntity): Long
+
+    @Query(
+        """
+        UPDATE effect
+        SET name = :name,
+            b1 = :b1,
+            b2 = :b2,
+            b3 = :b3,
+            b4 = :b4,
+            b5 = :b5
+        WHERE _id = :id
+        """
+    )
+    suspend fun updateEffectPreset(
+        id: Long,
+        name: String,
+        b1: Int,
+        b2: Int,
+        b3: Int,
+        b4: Int,
+        b5: Int
+    )
+
+    @Query(
+        """
+        UPDATE effect_ten
+        SET name = :name,
+            b1 = :b1,
+            b2 = :b2,
+            b3 = :b3,
+            b4 = :b4,
+            b5 = :b5,
+            b6 = :b6,
+            b7 = :b7,
+            b8 = :b8,
+            b9 = :b9,
+            b10 = :b10
+        WHERE _id = :id
+        """
+    )
+    suspend fun updateEffectTenPreset(
+        id: Long,
+        name: String,
+        b1: Int,
+        b2: Int,
+        b3: Int,
+        b4: Int,
+        b5: Int,
+        b6: Int,
+        b7: Int,
+        b8: Int,
+        b9: Int,
+        b10: Int
+    )
+
+    @Query("DELETE FROM effect WHERE _id = :id")
+    suspend fun deleteEffectPresetById(id: Long)
+
+    @Query("DELETE FROM effect_ten WHERE _id = :id")
+    suspend fun deleteEffectTenPresetById(id: Long)
 
     @Upsert
     suspend fun upsertHiddenFolders(items: List<HiddenFolderEntity>)
@@ -167,6 +270,23 @@ interface LibraryDao {
     @Query(
         """
         UPDATE musictbl
+        SET date = 0
+        WHERE date != 0
+        """
+    )
+    suspend fun clearRecentlyAddedStats()
+
+    @Query(
+        """
+        DELETE FROM music_playlist
+        WHERE p_id = :playlistId
+        """
+    )
+    suspend fun clearPlaylistEntries(playlistId: Long)
+
+    @Query(
+        """
+        UPDATE musictbl
         SET album_pic = :artworkPath
         WHERE album = :albumName
         """
@@ -190,6 +310,42 @@ interface LibraryDao {
         """
     )
     suspend fun updateTrackArtworkByGenre(genreName: String, artworkPath: String?)
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET album = :newAlbum,
+            artist = :newArtist,
+            genres = :newGenre,
+            year = :newYear
+        WHERE album = :oldAlbum
+        """
+    )
+    suspend fun updateTracksByAlbumName(
+        oldAlbum: String,
+        newAlbum: String,
+        newArtist: String,
+        newGenre: String,
+        newYear: Int
+    )
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET artist = :newArtist
+        WHERE artist = :oldArtist
+        """
+    )
+    suspend fun updateTracksByArtistName(oldArtist: String, newArtist: String)
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET genres = :newGenre
+        WHERE genres = :oldGenre
+        """
+    )
+    suspend fun updateTracksByGenreName(oldGenre: String, newGenre: String)
 
     @Query(
         """

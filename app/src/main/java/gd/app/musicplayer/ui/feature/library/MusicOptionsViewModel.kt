@@ -16,6 +16,7 @@ import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+import gd.app.musicplayer.domain.usecase.track.RemoveTracksFromLibraryUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +42,7 @@ class MusicOptionsViewModel @Inject constructor(
     private val enqueueTracksUseCase: EnqueueTracksUseCase,
     private val toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
+    private val removeTracksFromLibraryUseCase: RemoveTracksFromLibraryUseCase,
     private val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase,
     private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase
@@ -58,7 +60,7 @@ class MusicOptionsViewModel @Inject constructor(
         musicSet = set
         _uiState.value = MusicOptionsUiState(
             music = music,
-            isFavorite = music.playlistId == MusicSet.FAVORITES_ID
+            isFavorite = music.playlistId == MusicSet.FAVORITES
         )
     }
 
@@ -67,7 +69,7 @@ class MusicOptionsViewModel @Inject constructor(
         if (current.id != updatedMusic.id) return
         _uiState.value = _uiState.value.copy(
             music = updatedMusic,
-            isFavorite = updatedMusic.playlistId == MusicSet.FAVORITES_ID
+            isFavorite = updatedMusic.playlistId == MusicSet.FAVORITES
         )
     }
 
@@ -92,7 +94,7 @@ class MusicOptionsViewModel @Inject constructor(
         viewModelScope.launch {
             val selected = toggleFavoriteTrackUseCase(music.id)
             _uiState.value = _uiState.value.copy(
-                music = music.copy(playlistId = if (selected) MusicSet.FAVORITES_ID else 0L),
+                music = music.copy(playlistId = if (selected) MusicSet.FAVORITES else 0L),
                 isFavorite = selected
             )
         }
@@ -108,7 +110,7 @@ class MusicOptionsViewModel @Inject constructor(
                 }
 
                 is MusicSet.Favorites -> {
-                    if (music.playlistId == MusicSet.FAVORITES_ID) {
+                    if (music.playlistId == MusicSet.FAVORITES) {
                         toggleFavoriteTrackUseCase(music.id)
                     }
                     _uiState.value = _uiState.value.copy(
@@ -139,10 +141,16 @@ class MusicOptionsViewModel @Inject constructor(
         }
     }
 
-    fun deleteCurrentTrack() {
+    fun deleteCurrentTrack(deleteSourceFile: Boolean) {
+        android.util.Log.e("Leapy:", "delete Current Track:" + _uiState.value.music.toString())
         val music = _uiState.value.music ?: return
         viewModelScope.launch {
-            val deletedCount = deleteTracksUseCase(listOf(music))
+            val deletedCount = if (deleteSourceFile) {
+                deleteTracksUseCase(listOf(music))
+            } else {
+                removeTracksFromLibraryUseCase(listOf(music.id))
+                1
+            }
             eventsChannel.send(
                 MusicOptionsEvent.ShowToast(
                     if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
@@ -151,3 +159,4 @@ class MusicOptionsViewModel @Inject constructor(
         }
     }
 }
+

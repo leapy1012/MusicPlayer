@@ -66,10 +66,8 @@ class PreferenceItemView @JvmOverloads constructor(
         typedArray.recycle()
 
         preferenceStore = PreferenceStore(
-            context.getSharedPreferences(
-                preferenceFileName ?: DEFAULT_PREFERENCE_FILE,
-                Context.MODE_PRIVATE
-            )
+            context = context,
+            fileName = preferenceFileName ?: DEFAULT_PREFERENCE_FILE
         )
 
         titleView = findViewById(R.id.title)

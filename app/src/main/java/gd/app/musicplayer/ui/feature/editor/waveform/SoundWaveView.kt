@@ -2,15 +2,19 @@ package gd.app.musicplayer.ui.feature.editor.waveform
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.RectF
+import android.graphics.Rect
+import android.graphics.Shader
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
-import android.widget.OverScroller
+import android.widget.Scroller
+import gd.app.musicplayer.R
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -18,7 +22,7 @@ import kotlin.math.roundToInt
 class SoundWaveView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : View(context, attrs) {
+) : View(context, attrs), GestureDetector.OnGestureListener {
 
     interface OnClipChangedListener {
         fun onClipEndChanged(timeMs: Int)
@@ -26,525 +30,425 @@ class SoundWaveView @JvmOverloads constructor(
         fun onSeekRequested(timeMs: Int)
     }
 
-    private enum class DragMode {
-        NONE, LEFT, RIGHT, SCROLL
-    }
+    private enum class DragMode { LEFT, RIGHT }
 
-    private val waveformPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        strokeWidth = 1f
-    }
     private val baselinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xDEFFFFFF.toInt()
         strokeWidth = 1f
-    }
-    private val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xCCFFFFFF.toInt()
-        strokeWidth = context.resources.displayMetrics.density * 1.5f
-    }
-    private val progressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.RED
-        strokeWidth = context.resources.displayMetrics.density * 1.5f
-    }
-    private val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x2A000000
-    }
-    private val selectionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x00000000
-    }
-    private val rulerTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xDEFFFFFF.toInt()
-        textAlign = Paint.Align.CENTER
         textSize = 10f * resources.displayMetrics.scaledDensity
+        textAlign = Paint.Align.CENTER
     }
+    private val wavePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = 1f }
+    private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = resources.displayMetrics.density }
+    private val gestureDetector = GestureDetector(context, this)
+    private val scroller = Scroller(context)
+    private val oscillator = GradientOscillator(intArrayOf(-9624065, -55863, -49371, -30208, -131496, -16711924, -11075842))
+    private val model = SoundWaveViewportModel()
 
-    private val gestureDetector = GestureDetector(context, GestureListener())
-    private val scroller = OverScroller(context)
-    private val leftHandleRect = RectF()
-    private val rightHandleRect = RectF()
+    private val leftMaskRect = Rect()
+    private val rightMaskRect = Rect()
+    private val selectedRect = Rect()
+    private val leftHandleRect = Rect()
+    private val rightHandleRect = Rect()
+    private var leftClipDrawable: Drawable? =
+        context.getDrawable(R.drawable.sound_clip_minus) ?: context.getDrawable(android.R.drawable.arrow_up_float)
+    private var rightClipDrawable: Drawable? =
+        context.getDrawable(R.drawable.sound_clip_plus) ?: context.getDrawable(android.R.drawable.arrow_up_float)
 
-    private var dragMode = DragMode.NONE
+    private var dragMode = DragMode.LEFT
+    private var scrollTapMode = false
+    private var initialized = false
+    private var showSeek = false
+
+    private var clipLeftX = 0f
+    private var clipRightX = 0f
+    private var progressX = 0f
+
+    private var baseLineColor = -553648129
+    private var clipLineColor = -855638017
+    private var activeClipLineColor = -16711681
+    private var progressLineColor = -65536
+    private var overlayColor = 0x2A000000
+    private var overlaySelectedColor = 0
+
+    private var listener: OnClipChangedListener? = null
+
+    fun canZoomIn(): Boolean = model.canZoomIn()
+    fun canZoomOut(): Boolean = model.canZoomOut()
+    fun getClipDuration(): Int = model.clipDurationMs(clipRightX - clipLeftX)
+    fun getClipLeftMilliseconds(): Int = (((clipLeftX - paddingLeft) / model.pxPerMs())).toInt().coerceAtLeast(0)
+    fun getClipRightMilliseconds(): Int = (((clipRightX - paddingLeft) / model.pxPerMs())).toInt().coerceAtLeast(0)
+    fun getDuration(): Int = model.durationMs().toInt()
+    fun getEndFrame(): Int = model.frameAt(clipRightX - paddingLeft)
+    fun getMinRangeTime(): Float = 0f
+    fun getProgressMilliseconds(): Int = (((progressX - paddingLeft) / model.pxPerMs())).toInt().coerceAtLeast(0)
+    fun getSoundFile(): SoundWaveData? = soundFile
+    fun getStartFrame(): Int = model.frameAt(clipLeftX - paddingLeft)
+
     private var soundFile: SoundWaveData? = null
-    private var bars = IntArray(0)
-    private var zoomLevel = DEFAULT_ZOOM_LEVEL
-    private var scrollOffsetPx = 0
-    private var clipLeftMs = 0
-    private var clipRightMs = 0
-    private var progressMs = 0
-    private var seekVisible = false
-    private var clipChangedListener: OnClipChangedListener? = null
-
-    fun canZoomIn(): Boolean = zoomLevel > 0
 
     override fun computeScroll() {
-        if (!scroller.computeScrollOffset()) return
-        scrollOffsetPx = scroller.currX
-        invalidate()
-        postInvalidateOnAnimation()
-    }
-
-    fun canZoomOut(): Boolean = soundFile != null && zoomLevel < MAX_ZOOM_LEVEL && maxScrollOffset() > 0
-
-    fun getClipDuration(): Int = (clipRightMs - clipLeftMs).coerceAtLeast(0)
-
-    fun getClipLeftMilliseconds(): Int = clipLeftMs
-
-    fun getClipRightMilliseconds(): Int = clipRightMs
-
-    fun getDuration(): Int = soundFile?.durationMs ?: 0
-
-    fun getEndFrame(): Int = timeToFrame(clipRightMs)
-
-    fun getMinRangeTime(): Float = 0f
-
-    fun getProgressMilliseconds(): Int = progressMs
-
-    fun getSoundFile(): SoundWaveData? = soundFile
-
-    fun getStartFrame(): Int = timeToFrame(clipLeftMs)
-
-    fun setClipLeft(timeMs: Int, keepRange: Boolean) {
-        val range = (clipRightMs - clipLeftMs).coerceAtLeast(0)
-        val newLeft = timeMs.coerceIn(0, clipRightMs)
-        clipLeftMs = newLeft
-        if (keepRange) {
-            clipRightMs = (newLeft + range).coerceAtMost(getDuration())
+        if (scroller.computeScrollOffset()) {
+            scrollTo(scroller.currX, 0)
+            postInvalidate()
         }
-        if (clipRightMs < clipLeftMs) {
-            clipRightMs = clipLeftMs
-        }
-        clampProgress()
-        ensurePositionVisible(clipLeftMs)
-        updateHandleRects()
-        invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-
-        val data = soundFile
-        if (data == null || bars.isEmpty()) {
-            val centerY = height / 2f
-            canvas.drawLine(0f, centerY, width.toFloat(), centerY, baselinePaint)
+        baselinePaint.color = baseLineColor
+        val start = max(0, scrollX - paddingLeft)
+        val lines = model.visibleLines(start, start + width)
+        if (lines.isEmpty()) {
+            canvas.drawLine(0f, height / 2f, width.toFloat(), height / 2f, baselinePaint)
+            canvas.drawColor(overlayColor)
             return
         }
+        canvas.drawLines(lines, wavePaint)
 
-        val rulerBottom = rulerBottom()
-        val contentTop = rulerBottom + 8f * resources.displayMetrics.density
-        val contentBottom = height.toFloat()
-        val centerY = (contentTop + contentBottom) / 2f
-        val contentHeight = (contentBottom - contentTop).coerceAtLeast(1f)
+        val rulerTop = baselinePaint.textSize + 4f
+        val rulerBottom = rulerTop + 16f * resources.displayMetrics.density
+        model.rulerPoints().forEach { (label, x) ->
+            canvas.drawText(label, x, baselinePaint.textSize, baselinePaint)
+            canvas.drawLine(x, rulerTop, x, rulerBottom, baselinePaint)
+        }
+        canvas.drawLine(paddingLeft.toFloat(), rulerBottom, (paddingLeft + model.contentWidth()).toFloat(), rulerBottom, baselinePaint)
 
-        canvas.save()
-        canvas.translate(-scrollOffsetPx.toFloat(), 0f)
+        baselinePaint.color = overlayColor
+        canvas.drawRect(leftMaskRect, baselinePaint)
+        canvas.drawRect(rightMaskRect, baselinePaint)
+        baselinePaint.color = overlaySelectedColor
+        canvas.drawRect(selectedRect, baselinePaint)
 
-        drawRuler(canvas)
+        markerPaint.color = if (dragMode == DragMode.LEFT) activeClipLineColor else clipLineColor
+        canvas.drawLine(clipLeftX, 0f, clipLeftX, height.toFloat(), markerPaint)
+        markerPaint.color = if (dragMode == DragMode.RIGHT) activeClipLineColor else clipLineColor
+        canvas.drawLine(clipRightX, 0f, clipRightX, height.toFloat(), markerPaint)
 
-        val totalWidth = contentWidthPx()
-        val clipLeftX = msToContentX(clipLeftMs)
-        val clipRightX = msToContentX(clipRightMs)
-        canvas.drawRect(0f, 0f, clipLeftX, contentBottom, overlayPaint)
-        canvas.drawRect(
-            clipRightX,
-            0f,
-            totalWidth + paddingLeft + paddingRight,
-            contentBottom,
-            overlayPaint
-        )
-        if (selectionPaint.color != Color.TRANSPARENT) {
-            canvas.drawRect(clipLeftX, 0f, clipRightX, contentBottom, selectionPaint)
+        if (showSeek) {
+            markerPaint.color = progressLineColor
+            canvas.drawLine(progressX, 0f, progressX, height.toFloat(), markerPaint)
         }
 
-        val startBar = max(0, scrollOffsetPx - paddingLeft)
-        val endBar = min(bars.size, startBar + width - paddingLeft - paddingRight + 2)
-        for (index in startBar until endBar) {
-            val barHeight = ((bars[index] / 255f) * contentHeight * 0.9f).coerceAtLeast(1f)
-            val x = paddingLeft + index.toFloat()
-            canvas.drawLine(x, centerY - barHeight / 2f, x, centerY + barHeight / 2f, waveformPaint)
-        }
-        canvas.drawLine(
-            paddingLeft.toFloat(),
-            contentTop,
-            paddingLeft + totalWidth,
-            contentTop,
-            baselinePaint
-        )
-
-        canvas.drawLine(clipLeftX, 0f, clipLeftX, contentBottom, clipPaint)
-        canvas.drawLine(clipRightX, 0f, clipRightX, contentBottom, clipPaint)
-        if (seekVisible) {
-            canvas.drawLine(
-                msToContentX(progressMs),
-                0f,
-                msToContentX(progressMs),
-                contentBottom,
-                progressPaint
-            )
-        }
-
-        drawHandles(canvas, clipLeftX, clipRightX, rulerBottom, contentBottom)
-
-        canvas.restore()
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        rebuildBars()
-        scrollOffsetPx = scrollOffsetPx.coerceIn(0, maxScrollOffset())
-        updateHandleRects()
+        drawHandles(canvas)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (soundFile == null) return false
+        return gestureDetector.onTouchEvent(event)
+    }
 
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                parent?.requestDisallowInterceptTouchEvent(true)
-                scroller.abortAnimation()
-                val contentX = event.x + scrollOffsetPx
-                dragMode = when {
-                    abs(contentX - msToContentX(clipLeftMs)) <= HANDLE_TOUCH_TOLERANCE_DP * resources.displayMetrics.density -> DragMode.LEFT
-                    abs(contentX - msToContentX(clipRightMs)) <= HANDLE_TOUCH_TOLERANCE_DP * resources.displayMetrics.density -> DragMode.RIGHT
-                    else -> DragMode.SCROLL
-                }
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (w <= 0) return
+        val widthChanged = model.setViewport(
+            width = w,
+            height = h,
+            topInset = baselinePaint.textSize + 4f + 16f * resources.displayMetrics.density,
+            leftInset = paddingLeft.toFloat(),
+            rightInset = paddingRight.toFloat()
+        )
+        if (soundFile != null) {
+            if (initialized) {
+                setClipRight(getClipRightMilliseconds())
+                setClipLeft(getClipLeftMilliseconds(), false)
+            } else {
+                initialized = true
+                setClipRight((w / 2f / model.pxPerMs().coerceAtLeast(1f)).toInt())
+                setClipLeft(0, false)
             }
-
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                parent?.requestDisallowInterceptTouchEvent(false)
-                dragMode = DragMode.NONE
+            if (widthChanged) {
+                listener?.onClipStartChanged(getClipLeftMilliseconds())
+                listener?.onClipEndChanged(getClipRightMilliseconds())
             }
         }
-
-        return gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
-    }
-
-    fun zoomIn() {
-        if (!canZoomIn()) return
-        zoomLevel -= 1
-        rebuildBars()
-        ensurePositionVisible(progressMs)
-        invalidate()
-    }
-
-    fun zoomOut() {
-        if (!canZoomOut()) return
-        zoomLevel += 1
-        rebuildBars()
-        ensurePositionVisible(progressMs)
-        invalidate()
+        buildWaveShader()
     }
 
     fun setBaseLineColor(color: Int) {
-        baselinePaint.color = color
-        rulerTextPaint.color = color
+        baseLineColor = color
         invalidate()
     }
 
     fun setClipColor(color: Int) {
-        clipPaint.color = color
+        clipLineColor = color
         invalidate()
     }
 
     fun setClipLeft(timeMs: Int) {
-        clipLeftMs = timeMs.coerceIn(0, clipRightMs)
-        clampProgress()
-        ensurePositionVisible(clipLeftMs)
-        updateHandleRects()
-        invalidate()
+        setClipLeft(timeMs, true)
+    }
+
+    fun setClipLeft(timeMs: Int, keepRange: Boolean) {
+        val px = timeMs * model.pxPerMs() + paddingLeft
+        moveLeft(px, true, keepRange)
     }
 
     fun setClipRight(timeMs: Int) {
-        val duration = getDuration()
-        clipRightMs = timeMs.coerceIn(clipLeftMs, duration)
-        clampProgress()
-        ensurePositionVisible(clipRightMs)
-        updateHandleRects()
-        invalidate()
+        val px = timeMs * model.pxPerMs() + paddingLeft
+        moveRight(px, true)
     }
 
     fun setEditorState(other: SoundWaveView) {
-        zoomLevel = other.zoomLevel
-        scrollOffsetPx = other.scrollOffsetPx
-        clipLeftMs = other.clipLeftMs
-        clipRightMs = other.clipRightMs
-        progressMs = other.progressMs
-        seekVisible = other.seekVisible
+        clipRightX = other.clipRightX
+        clipLeftX = other.clipLeftX
+        progressX = other.progressX
+        dragMode = other.dragMode
+        showSeek = other.showSeek
+        scrollTapMode = other.scrollTapMode
+        initialized = true
         setSoundFile(other.soundFile)
+        model.setLevel(other.model.level())
+        post { animateTo(other.scroller.finalX, false) }
     }
 
     fun setOnClipChangedListener(listener: OnClipChangedListener?) {
-        clipChangedListener = listener
+        this.listener = listener
     }
 
     fun setOverlayColor(color: Int) {
-        overlayPaint.color = color
+        overlayColor = color
         invalidate()
     }
 
     fun setOverlaySelectColor(color: Int) {
-        selectionPaint.color = color
+        overlaySelectedColor = color
         invalidate()
     }
 
     fun setProgress(timeMs: Int) {
-        progressMs = timeMs.coerceIn(0, getDuration())
-        ensurePositionVisible(progressMs)
-        invalidate()
+        moveProgress(timeMs * model.pxPerMs() + paddingLeft, false)
     }
 
     fun setProgressLineColor(color: Int) {
-        progressPaint.color = color
-        invalidate()
-    }
-
-    fun setWaveColor(color: Int) {
-        waveformPaint.color = color
+        progressLineColor = color
         invalidate()
     }
 
     fun setSeek(enabled: Boolean) {
-        seekVisible = enabled
+        showSeek = enabled
         invalidate()
     }
 
     fun setSoundFile(data: SoundWaveData?) {
         soundFile = data
-        clipLeftMs = 0
-        clipRightMs = data?.durationMs ?: 0
-        progressMs = 0
-        zoomLevel = DEFAULT_ZOOM_LEVEL
-        scrollOffsetPx = 0
-        rebuildBars()
-        clipChangedListener?.onClipStartChanged(clipLeftMs)
-        clipChangedListener?.onClipEndChanged(clipRightMs)
-        invalidate()
-    }
-
-    private fun clampProgress() {
-        progressMs = progressMs.coerceIn(0, getDuration())
-    }
-
-    private fun contentWidthPx(): Float = max(bars.size, availableWidth()).toFloat()
-
-    private fun availableWidth(): Int = (width - paddingLeft - paddingRight).coerceAtLeast(1)
-
-    private fun drawHandles(
-        canvas: Canvas,
-        clipLeftX: Float,
-        clipRightX: Float,
-        rulerBottom: Float,
-        contentBottom: Float
-    ) {
-        val handleWidth = 12f * resources.displayMetrics.density
-        val handleHeight =
-            (contentBottom - rulerBottom - 8f * resources.displayMetrics.density).coerceAtLeast(
-                handleWidth
-            )
-        leftHandleRect.set(
-            clipLeftX - handleWidth / 2f,
-            rulerBottom,
-            clipLeftX + handleWidth / 2f,
-            rulerBottom + handleHeight
-        )
-        rightHandleRect.set(
-            clipRightX - handleWidth / 2f,
-            contentBottom - handleHeight,
-            clipRightX + handleWidth / 2f,
-            contentBottom
-        )
-        canvas.drawRoundRect(leftHandleRect, handleWidth / 2f, handleWidth / 2f, clipPaint)
-        canvas.drawRoundRect(rightHandleRect, handleWidth / 2f, handleWidth / 2f, clipPaint)
-    }
-
-    private fun drawRuler(canvas: Canvas) {
-        val duration = getDuration()
-        if (duration <= 0) return
-
-        val intervalMs = when {
-            duration <= 30_000 -> 5_000
-            duration <= 120_000 -> 10_000
-            else -> 30_000
-        }
-        val bottom = rulerBottom()
-        var timeMs = 0
-        while (timeMs <= duration) {
-            val x = msToContentX(timeMs)
-            canvas.drawText(
-                formatRulerTime(timeMs),
-                x,
-                rulerTextPaint.textSize,
-                rulerTextPaint
-            )
-            canvas.drawLine(x, rulerTextPaint.textSize + 4f, x, bottom, baselinePaint)
-            timeMs += intervalMs
-        }
-    }
-
-    private fun ensurePositionVisible(timeMs: Int) {
-        val x = msToContentX(timeMs).roundToInt()
-        val minVisible = scrollOffsetPx + width / 5
-        val maxVisible = scrollOffsetPx + width - width / 5
-        when {
-            x < minVisible -> scrollOffsetPx = (x - width / 2).coerceIn(0, maxScrollOffset())
-            x > maxVisible -> scrollOffsetPx = (x - width / 2).coerceIn(0, maxScrollOffset())
-        }
-    }
-
-    private fun formatRulerTime(timeMs: Int): String {
-        val totalSeconds = timeMs / 1000
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        return "%d:%02d".format(minutes, seconds)
-    }
-
-    private fun maxScrollOffset(): Int =
-        ((paddingLeft + contentWidthPx() + paddingRight) - width).roundToInt().coerceAtLeast(0)
-
-    private fun msToContentX(timeMs: Int): Float {
-        val duration = getDuration().coerceAtLeast(1)
-        return paddingLeft + (timeMs / duration.toFloat()) * contentWidthPx()
-    }
-
-    private fun rebuildBars() {
-        val data = soundFile
-        if (data == null || width <= 0) {
-            bars = IntArray(0)
-            return
-        }
-        val groupSize = 1 shl zoomLevel
-        val source = data.sampleGains
-        val targetSize = (source.size + groupSize - 1) / groupSize
-        bars = IntArray(targetSize)
-        var targetIndex = 0
-        var sourceIndex = 0
-        while (sourceIndex < source.size) {
-            var sum = 0
-            var count = 0
-            val end = min(source.size, sourceIndex + groupSize)
-            while (sourceIndex < end) {
-                sum += source[sourceIndex]
-                count += 1
-                sourceIndex += 1
+        model.setData(data)
+        if (width > 0) {
+            if (initialized) {
+                setClipRight(getClipRightMilliseconds())
+                setClipLeft(getClipLeftMilliseconds(), false)
+            } else {
+                initialized = true
+                setClipRight((width / 2f / model.pxPerMs().coerceAtLeast(1f)).toInt())
+                setClipLeft(0, false)
             }
-            bars[targetIndex] = if (count == 0) 0 else sum / count
-            targetIndex += 1
+            listener?.onClipStartChanged(getClipLeftMilliseconds())
+            listener?.onClipEndChanged(getClipRightMilliseconds())
         }
-        scrollOffsetPx = scrollOffsetPx.coerceIn(0, maxScrollOffset())
-        updateHandleRects()
-    }
-
-    private fun rulerBottom(): Float =
-        rulerTextPaint.textSize + 16f * resources.displayMetrics.density
-
-    private fun scrollByDistance(distanceX: Float) {
-        scrollOffsetPx = (scrollOffsetPx + distanceX).roundToInt().coerceIn(0, maxScrollOffset())
-        updateHandleRects()
+        buildWaveShader()
         invalidate()
     }
 
-    private fun timeToFrame(timeMs: Int): Int {
-        val data = soundFile ?: return 0
-        if (data.sampleTimesMs.isEmpty()) return 0
-        val index = data.sampleTimesMs.binarySearch(timeMs)
-        return when {
-            index >= 0 -> index
-            else -> (-index - 1).coerceIn(0, data.sampleTimesMs.lastIndex)
+    fun setWaveColor(color: Int) {
+        wavePaint.shader = null
+        wavePaint.color = color
+        invalidate()
+    }
+
+    fun setClipIcon(drawable: Drawable?) {
+        leftClipDrawable = drawable ?: leftClipDrawable
+        rightClipDrawable = drawable ?: rightClipDrawable
+        invalidate()
+    }
+
+    fun zoomIn() {
+        val oldLevel = model.level()
+        model.zoomIn()
+        if (oldLevel != model.level()) {
+            val ratio = (1 shl oldLevel).toFloat() / (1 shl model.level()).toFloat()
+            preserveViewport(ratio)
         }
     }
 
-    private fun updateHandleRects() {
-        val handleWidth = 12f * resources.displayMetrics.density
-        val leftX = msToContentX(clipLeftMs) - scrollOffsetPx
-        val rightX = msToContentX(clipRightMs) - scrollOffsetPx
-        val rulerBottom = rulerBottom()
-        leftHandleRect.set(
-            leftX - handleWidth / 2f,
-            rulerBottom,
-            leftX + handleWidth / 2f,
-            height.toFloat()
+    fun zoomOut() {
+        val oldLevel = model.level()
+        model.zoomOut()
+        if (oldLevel != model.level()) {
+            val ratio = (1 shl oldLevel).toFloat() / (1 shl model.level()).toFloat()
+            preserveViewport(ratio)
+        }
+    }
+
+    private fun animateBy(dx: Int) = animateTo(scroller.finalX + dx, true)
+
+    private fun animateTo(target: Int, smooth: Boolean) {
+        val old = scroller.finalX
+        val max = ((model.contentWidth() - width) + paddingLeft + paddingRight).coerceAtLeast(0)
+        val clamped = target.coerceIn(0, max)
+        scroller.abortAnimation()
+        scroller.startScroll(
+            old,
+            0,
+            clamped - old,
+            0,
+            if (smooth) (abs(clamped - old) * 3f).roundToInt() else 0
         )
-        rightHandleRect.set(
-            rightX - handleWidth / 2f,
+        postInvalidate()
+    }
+
+    private fun buildWaveShader() {
+        oscillator.reset()
+        val total = model.contentWidth().toFloat()
+        if (total <= 0f || width <= 0) return
+        val segment = ceil(total / ((width / oscillator.size()) / max(1, (1 shl model.level())).toFloat())).toInt()
+        val c = IntArray(segment + 1) { oscillator.next() }
+        val p = FloatArray(segment + 1) { it * (1f / segment.coerceAtLeast(1)) }
+        wavePaint.shader = LinearGradient(
+            paddingLeft.toFloat(),
             0f,
-            rightX + handleWidth / 2f,
-            height.toFloat()
+            total + paddingLeft,
+            0f,
+            c,
+            p,
+            Shader.TileMode.CLAMP
         )
     }
 
-    private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
-        override fun onDown(e: MotionEvent): Boolean = true
+    private fun drawHandles(canvas: Canvas) {
+        val leftIcon = leftClipDrawable ?: return
+        val rightIcon = rightClipDrawable ?: leftIcon
+        val halfW = leftIcon.intrinsicWidth / 2
+        val leftY = (baselinePaint.textSize + 4f + 16f * resources.displayMetrics.density).roundToInt()
+        leftHandleRect.set(
+            (clipLeftX - halfW).toInt(),
+            leftY,
+            (clipLeftX + halfW).toInt(),
+            leftY + leftIcon.intrinsicHeight
+        )
+        rightHandleRect.set(
+            (clipRightX - halfW).toInt(),
+            (height - rightIcon.intrinsicHeight - leftY).coerceAtLeast(0),
+            (clipRightX + halfW).toInt(),
+            (height - leftY).coerceAtMost(height)
+        )
+        leftIcon.bounds = leftHandleRect
+        leftIcon.state = if (dragMode == DragMode.LEFT) intArrayOf(android.R.attr.state_selected) else intArrayOf()
+        leftIcon.draw(canvas)
+        rightIcon.bounds = rightHandleRect
+        rightIcon.state = if (dragMode == DragMode.RIGHT) intArrayOf(android.R.attr.state_selected) else intArrayOf()
+        rightIcon.draw(canvas)
+    }
 
-        override fun onFling(
-            e1: MotionEvent?,
-            e2: MotionEvent,
-            velocityX: Float,
-            velocityY: Float
-        ): Boolean {
-            if (dragMode != DragMode.SCROLL) return true
-            scroller.fling(
-                scrollOffsetPx,
-                0,
-                (-velocityX / 2f).roundToInt(),
-                0,
-                0,
-                maxScrollOffset(),
-                0,
-                0
-            )
-            postInvalidateOnAnimation()
+    private fun layoutRects() {
+        leftMaskRect.set(0, 0, clipLeftX.toInt(), height)
+        rightMaskRect.set(clipRightX.toInt(), 0, paddingLeft + paddingRight + model.contentWidth(), height)
+        selectedRect.set(leftMaskRect.right, 0, rightMaskRect.left, height)
+        postInvalidate()
+    }
+
+    private fun moveLeft(x: Float, scrollIfNeeded: Boolean, keepRange: Boolean) {
+        val oldLeft = clipLeftX
+        val range = max(0f, clipRightX - clipLeftX)
+        clipLeftX = when {
+            x < paddingLeft -> paddingLeft.toFloat()
+            keepRange && x > model.contentWidth() + paddingLeft -> (model.contentWidth() + paddingLeft).toFloat()
+            !keepRange && x > clipRightX -> clipRightX
+            else -> x
+        }
+        if (keepRange) clipRightX = min((model.contentWidth() + paddingLeft).toFloat(), clipLeftX + range)
+        if (x > clipRightX) {
+            clipRightX = (x + (clipRightX - oldLeft)).coerceIn(clipLeftX, (model.contentWidth() + paddingLeft).toFloat())
+            listener?.onClipEndChanged(getClipRightMilliseconds())
+        }
+        if (scrollIfNeeded) ensureVisible(clipLeftX)
+        layoutRects()
+    }
+
+    private fun moveRight(x: Float, scrollIfNeeded: Boolean) {
+        clipRightX = x.coerceIn(clipLeftX, (model.contentWidth() + paddingLeft).toFloat())
+        if (scrollIfNeeded) ensureVisible(clipRightX)
+        layoutRects()
+    }
+
+    private fun moveProgress(x: Float, scrollIfNeeded: Boolean) {
+        progressX = x.coerceIn(paddingLeft.toFloat(), (model.contentWidth() + paddingLeft).toFloat())
+        if (scrollIfNeeded) ensureVisible(progressX)
+        invalidate()
+    }
+
+    private fun preserveViewport(ratio: Float) {
+        clipLeftX = ((clipLeftX - paddingLeft) * ratio) + paddingLeft
+        clipRightX = ((clipRightX - paddingLeft) * ratio) + paddingLeft
+        moveLeft(clipLeftX, false, false)
+        moveRight(clipRightX, false)
+        val center = width / 2f
+        animateTo(((ratio * (scroller.finalX + center)) - center).toInt(), false)
+        buildWaveShader()
+        invalidate()
+    }
+
+    private fun ensureVisible(x: Float) {
+        val guard = width / 5
+        if (x > (scroller.finalX + width) - guard) {
+            animateTo((x - (width / 2f)).toInt(), true)
+        } else if (x < scroller.finalX + guard) {
+            animateTo((x - (width / 2f)).toInt(), true)
+        }
+    }
+
+    override fun onDown(e: MotionEvent): Boolean {
+        val x = (scroller.finalX + e.x).toInt()
+        val y = e.y.toInt()
+        val hitSlop = (8 * resources.displayMetrics.density).toInt()
+        scrollTapMode = false
+        when {
+            hitRect(leftHandleRect, x, y, hitSlop) -> dragMode = DragMode.LEFT
+            hitRect(rightHandleRect, x, y, hitSlop) -> dragMode = DragMode.RIGHT
+            else -> scrollTapMode = true
+        }
+        invalidate()
+        return true
+    }
+
+    override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+        if (!scrollTapMode) return true
+        if (velocityX in -80f..80f) return true
+        animateBy((-velocityX / 8f).toInt())
+        return true
+    }
+
+    override fun onLongPress(e: MotionEvent) = Unit
+
+    override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+        if (scrollTapMode) {
+            animateBy(distanceX.toInt())
             return true
         }
-
-        override fun onScroll(
-            e1: MotionEvent?,
-            e2: MotionEvent,
-            distanceX: Float,
-            distanceY: Float
-        ): Boolean {
-            val duration = getDuration()
-            val contentX = e2.x + scrollOffsetPx
-            when (dragMode) {
-                DragMode.LEFT -> {
-                    clipLeftMs = contentXToTime(contentX).coerceIn(0, clipRightMs)
-                    clipChangedListener?.onClipStartChanged(clipLeftMs)
-                    ensurePositionVisible(clipLeftMs)
-                }
-
-                DragMode.RIGHT -> {
-                    clipRightMs = contentXToTime(contentX).coerceIn(clipLeftMs, duration)
-                    clipChangedListener?.onClipEndChanged(clipRightMs)
-                    ensurePositionVisible(clipRightMs)
-                }
-
-                DragMode.SCROLL -> scrollByDistance(distanceX)
-                DragMode.NONE -> Unit
+        when (dragMode) {
+            DragMode.LEFT -> {
+                val oldLeft = clipLeftX
+                val oldRight = clipRightX
+                moveLeft(oldLeft - distanceX, true, true)
+                if (oldLeft != clipLeftX) listener?.onClipStartChanged(getClipLeftMilliseconds())
+                if (oldRight != clipRightX) listener?.onClipEndChanged(getClipRightMilliseconds())
             }
-            updateHandleRects()
-            invalidate()
-            return true
-        }
 
-        override fun onSingleTapUp(e: MotionEvent): Boolean {
-            if (dragMode != DragMode.SCROLL) return true
-            progressMs = contentXToTime(e.x + scrollOffsetPx)
-            clipChangedListener?.onSeekRequested(progressMs)
-            ensurePositionVisible(progressMs)
-            invalidate()
-            return true
+            DragMode.RIGHT -> {
+                val old = clipRightX
+                moveRight(old - distanceX, true)
+                if (old != clipRightX) listener?.onClipEndChanged(getClipRightMilliseconds())
+            }
         }
-
-        private fun contentXToTime(contentX: Float): Int {
-            val duration = getDuration().coerceAtLeast(1)
-            val contentWidth = contentWidthPx().coerceAtLeast(1f)
-            return (((contentX - paddingLeft) / contentWidth) * duration)
-                .roundToInt()
-                .coerceIn(0, duration)
-        }
+        return true
     }
 
-    private companion object {
-        const val DEFAULT_ZOOM_LEVEL = 2
-        const val MAX_ZOOM_LEVEL = 5
-        const val HANDLE_TOUCH_TOLERANCE_DP = 24
+    override fun onShowPress(e: MotionEvent) = Unit
+
+    override fun onSingleTapUp(e: MotionEvent): Boolean {
+        if (!scrollTapMode) return true
+        moveProgress(e.x + scroller.finalX, true)
+        listener?.onSeekRequested(getProgressMilliseconds())
+        return true
     }
+
+    private fun hitRect(rect: Rect, x: Int, y: Int, extra: Int): Boolean =
+        x >= rect.left - extra && x < rect.right + extra && y >= rect.top - extra && y < rect.bottom + extra
 }

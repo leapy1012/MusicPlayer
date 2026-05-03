@@ -4,16 +4,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.albumArtSource
 import gd.app.musicplayer.core.extension.loadBlurredArtworkBackground
-import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityPlayQueueBinding
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -66,7 +64,7 @@ class PlayQueueActivity : BaseActivity() {
     }
 
     private fun applyCurrentArtwork() {
-        val track = PlaybackControllerProvider.state.value.currentTrack ?: return
+        val track = PlaybackGateway.state.value.currentTrack ?: return
         binding.musicPlaySkin.loadBlurredArtworkBackground(track.albumPicture)
     }
 
@@ -74,7 +72,7 @@ class PlayQueueActivity : BaseActivity() {
         artworkJob?.cancel()
         if (!isFromMusicPlayActivity) return
         artworkJob = lifecycleScope.launch {
-            PlaybackControllerProvider.state.collect { state ->
+            PlaybackGateway.state.collect { state ->
                 binding.musicPlaySkin.loadBlurredArtworkBackground(state.currentTrack?.albumPicture)
             }
         }

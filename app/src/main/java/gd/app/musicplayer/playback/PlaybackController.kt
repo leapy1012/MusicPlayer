@@ -2,6 +2,7 @@ package gd.app.musicplayer.playback
 
 import android.content.Context
 import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.flow.StateFlow
 
 interface PlaybackController {
@@ -45,4 +46,6 @@ interface PlaybackController {
     fun restartCurrentTrack(context: Context)
 
     fun cyclePlayMode(context: Context)
+
+    fun setShuffleAllMode(context: Context)
 }

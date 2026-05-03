@@ -5,11 +5,13 @@ import gd.app.musicplayer.data.db.entity.MusicPlaylistEntity
 import gd.app.musicplayer.data.db.entity.PlaylistEntity
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.flow.Flow
 
 class PlaylistRepo(
     private val playlistDao: PlaylistDao,
-    private val artworkRepo: ArtworkRepo
+    private val artworkRepo: ArtworkRepo,
+    private val preferenceUtil: PreferenceUtil
 ) {
     fun observePlaylists(): Flow<List<MusicSet.Playlist>> =
         playlistDao.observePlaylists()
@@ -80,23 +82,11 @@ class PlaylistRepo(
             .groupBy { it.playlistId }
             .mapValues { (_, refs) -> refs.mapTo(hashSetOf()) { it.musicId } }
 
-        val newRefs = buildList {
-            normalizedPlaylistIds.forEach { playlistId ->
-                var nextSort = playlistDao.getMaxPlaylistSort(playlistId)
-                val existingSongIds = existingRefs[playlistId].orEmpty()
-                trackIds.forEach { songId ->
-                    if (songId !in existingSongIds) {
-                        nextSort += 1
-                        add(
-                            MusicPlaylistEntity(
-                                musicId = songId,
-                                playlistId = playlistId,
-                                sort = nextSort
-                            )
-                        )
-                    }
-                }
-            }
+        val addToEnd = preferenceUtil.getPlaylistAddPosition() == 1
+        val newRefs = if (addToEnd) {
+            buildAppendRefs(normalizedPlaylistIds, trackIds, existingRefs)
+        } else {
+            buildPrependRefs(normalizedPlaylistIds, trackIds, existingRefs)
         }
 
         if (newRefs.isNotEmpty()) {
@@ -104,6 +94,45 @@ class PlaylistRepo(
         }
 
         return newRefs.size
+    }
+
+    private suspend fun buildAppendRefs(
+        playlistIds: List<Long>,
+        trackIds: List<Long>,
+        existingRefs: Map<Long, Set<Long>>
+    ): List<MusicPlaylistEntity> {
+        var nextSort = playlistDao.getGlobalMaxPlaylistSort()
+        return buildList {
+            playlistIds.forEach { playlistId ->
+                val existingSongIds = existingRefs[playlistId].orEmpty()
+                trackIds.forEach { songId ->
+                    if (songId !in existingSongIds) {
+                        nextSort += 1
+                        add(MusicPlaylistEntity(musicId = songId, playlistId = playlistId, sort = nextSort))
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun buildPrependRefs(
+        playlistIds: List<Long>,
+        trackIds: List<Long>,
+        existingRefs: Map<Long, Set<Long>>
+    ): List<MusicPlaylistEntity> {
+        var nextSort = playlistDao.getGlobalMinPlaylistSort()
+        return buildList {
+            playlistIds.forEach { playlistId ->
+                val existingSongIds = existingRefs[playlistId].orEmpty()
+                for (index in trackIds.lastIndex downTo 0) {
+                    val songId = trackIds[index]
+                    if (songId !in existingSongIds) {
+                        nextSort -= 1
+                        add(MusicPlaylistEntity(musicId = songId, playlistId = playlistId, sort = nextSort))
+                    }
+                }
+            }
+        }
     }
 
     suspend fun getPlaylistSongMatchCounts(songIds: Collection<Long>): Map<Long, Int> {

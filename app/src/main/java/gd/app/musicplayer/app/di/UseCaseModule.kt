@@ -24,6 +24,7 @@ import gd.app.musicplayer.domain.usecase.playback.SeekToPositionUseCase
 import gd.app.musicplayer.domain.usecase.playback.ShuffleTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.TogglePlayPauseUseCase
 import gd.app.musicplayer.domain.usecase.library.GetAllTracksByCurrentSortUseCase
+import gd.app.musicplayer.domain.usecase.library.ClearMusicSetUseCase
 import gd.app.musicplayer.domain.usecase.playmode.CyclePlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playmode.GetPlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playmode.ObservePlayModeUseCase
@@ -41,6 +42,7 @@ import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.domain.usecase.playlist.UpdatePlaylistOrderUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.domain.usecase.track.HideTracksUseCase
+import gd.app.musicplayer.domain.usecase.track.RemoveTracksFromLibraryUseCase
 import gd.app.musicplayer.data.repo.UserPreferencesRepo
 import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
 import gd.app.musicplayer.domain.usecase.hidden.ObserveHiddenFoldersUseCase
@@ -102,6 +104,11 @@ object UseCaseModule {
     @Singleton
     fun provideHideTracksUseCase(hiddenRepo: HiddenRepo): HideTracksUseCase =
         HideTracksUseCase(hiddenRepo)
+
+    @Provides
+    @Singleton
+    fun provideRemoveTracksFromLibraryUseCase(trackMutationRepo: TrackMutationRepo): RemoveTracksFromLibraryUseCase =
+        RemoveTracksFromLibraryUseCase(trackMutationRepo)
 
     @Provides
     @Singleton
@@ -174,6 +181,11 @@ object UseCaseModule {
     @Singleton
     fun provideGetAllTracksByCurrentSortUseCase(mainRepo: MainRepo): GetAllTracksByCurrentSortUseCase =
         GetAllTracksByCurrentSortUseCase(mainRepo)
+
+    @Provides
+    @Singleton
+    fun provideClearMusicSetUseCase(trackMutationRepo: TrackMutationRepo): ClearMusicSetUseCase =
+        ClearMusicSetUseCase(trackMutationRepo)
 
     @Provides
     @Singleton

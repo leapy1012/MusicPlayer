@@ -21,6 +21,7 @@ import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.playback.PlaybackControlViewModel
+import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.shell.MainActivity
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -146,11 +147,13 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
     private fun renderTrackState(
         binding: FragmentMainControl2Binding,
         track: Music,
-        positionMs: Int,
-        durationMs: Int,
+        positionMs: Long,
+        durationMs: Long,
         isPlaying: Boolean
     ) = with(binding) {
-        val resolvedDurationMs = track.duration.coerceAtLeast(durationMs).coerceAtLeast(1)
+        val resolvedDurationMs = track.duration.toLong().coerceAtLeast(durationMs).coerceAtLeast(1L)
+        val resolvedDurationInt = resolvedDurationMs.toInt()
+        val positionInt = positionMs.coerceAtLeast(0L).toInt()
         val resolvedFavorite = favoriteOverride ?: track.isFavorite()
 
         mainControlTitle.text = track.title
@@ -158,14 +161,14 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
             getString(R.string.artist)
         }
 
-        mainControlCurrTime.text = viewModel.formatTime(positionMs)
-        mainControlTotalTime.text = viewModel.formatTime(resolvedDurationMs)
+        mainControlCurrTime.text = viewModel.formatTime(positionInt)
+        mainControlTotalTime.text = viewModel.formatTime(resolvedDurationInt)
 
-        mainControlProgress.setMax(resolvedDurationMs)
+        mainControlProgress.setMax(resolvedDurationInt)
         mainControlProgress.isEnabled = !track.data.isNullOrBlank()
 
         if (!userSeeking) {
-            mainControlProgress.setProgress(positionMs.coerceAtLeast(0))
+            mainControlProgress.setProgress(positionInt)
         }
 
         mainControlPlayPause.isSelected = isPlaying
@@ -233,3 +236,4 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
         private const val DEFAULT_PROGRESS_MAX = 100
     }
 }
+

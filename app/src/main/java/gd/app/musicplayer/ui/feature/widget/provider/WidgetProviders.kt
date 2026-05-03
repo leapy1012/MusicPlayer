@@ -7,11 +7,12 @@ import android.content.Intent
 import android.os.Bundle
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.ui.feature.widget.WidgetConfigStore
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.playback.PlaybackMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
     abstract val classify: String
@@ -57,14 +58,18 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
 
             ACTION_PLAY_QUEUE_INDEX -> {
                 val index = intent.getIntExtra(EXTRA_QUEUE_INDEX, -1)
-                val queue = PlaybackControllerProvider.state.value.queue
+                val queue = runBlocking(Dispatchers.IO) {
+                    context.appDependencies.playbackQueueRepo.getQueue()
+                }
                 if (index in queue.indices) {
-                    PlaybackControllerProvider.playQueue(context, queue, index)
+                    PlaybackGateway.playQueue(context, queue, index)
                 }
             }
 
             ACTION_TOGGLE_FAVORITE -> {
-                val track = PlaybackControllerProvider.state.value.currentTrack ?: run {
+                val track = runBlocking(Dispatchers.IO) {
+                    WidgetRenderer.loadPlaybackSnapshot(context).currentTrack
+                } ?: run {
                     WidgetRenderer.updateAll(context)
                     return
                 }
@@ -74,6 +79,10 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
                 }
                 return
             }
+
+            ACTION_PLAYBACK_SESSION_UPDATED -> {
+                WidgetRenderer.updateAll(context)
+            }
         }
         super.onReceive(context, intent)
     }
@@ -82,6 +91,8 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
         const val ACTION_TOGGLE_MODE = "gd.app.musicplayer.action.WIDGET_TOGGLE_MODE"
         const val ACTION_PLAY_QUEUE_INDEX = "gd.app.musicplayer.action.WIDGET_PLAY_QUEUE_INDEX"
         const val ACTION_TOGGLE_FAVORITE = "gd.app.musicplayer.action.WIDGET_TOGGLE_FAVORITE"
+        const val ACTION_PLAYBACK_SESSION_UPDATED =
+            "gd.app.musicplayer.action.WIDGET_PLAYBACK_SESSION_UPDATED"
         const val EXTRA_QUEUE_INDEX = "widget_queue_index"
     }
 }

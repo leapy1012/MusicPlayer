@@ -12,10 +12,10 @@ import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogShuffleSettingBinding
 import gd.app.musicplayer.databinding.DialogShuffleSettingItemBinding
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.util.PreferenceUtil
 
-class ShuffleButtonSettingsDialog : BaseThemedDialogFragment(), View.OnClickListener {
+class ShuffleButtonSettingsDialog : BaseDialogFragment(), View.OnClickListener {
 
     private var _binding: DialogShuffleSettingBinding? = null
     private val binding: DialogShuffleSettingBinding

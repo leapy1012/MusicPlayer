@@ -7,6 +7,6 @@ class ToggleFavoriteTrackUseCase(
     private val playlistRepo: PlaylistRepo
 ) {
     suspend operator fun invoke(trackId: Long): Boolean {
-        return playlistRepo.toggleTrackInPlaylist(MusicSet.FAVORITES_ID, trackId)
+        return playlistRepo.toggleTrackInPlaylist(MusicSet.FAVORITES, trackId)
     }
 }

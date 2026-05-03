@@ -25,9 +25,10 @@ class ArtworkRepo(
         applyToAll: Boolean
     ) {
         val sourceName = musicSet.nameForArtworkSource() ?: return
-        val previousPath = libraryDao.getAlbumPicture(musicSet.id, sourceName)
+        val sourceId = musicSet.sourceIdForArtwork()
+        val previousPath = libraryDao.getAlbumPicture(sourceId, sourceName)
         upsertSetArtworkInternal(
-            sourceId = musicSet.id,
+            sourceId = sourceId,
             sourceName = sourceName,
             artworkPath = artworkPath
         )
@@ -104,6 +105,16 @@ class ArtworkRepo(
 
     private fun isManagedArtworkPath(path: String): Boolean =
         !path.startsWith("content://") && File(path).isAbsolute
+
+    private fun MusicSet.sourceIdForArtwork(): Long =
+        when (this) {
+            is MusicSet.Album -> MusicSet.ALBUMS
+            is MusicSet.Artist -> MusicSet.ARTISTS
+            is MusicSet.Genre -> MusicSet.GENRES
+            is MusicSet.Folder -> MusicSet.FOLDERS
+            is MusicSet.Playlist -> id
+            else -> id
+        }
 
     private fun MusicSet.nameForArtworkSource(): String? =
         when (this) {

@@ -1,7 +1,6 @@
 package gd.app.musicplayer.ui.common.base
 
 import android.content.Context
-import android.content.DialogInterface
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
@@ -28,11 +27,8 @@ import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.core.ui.dialog.BaseBottomSheetDialogFragment
-import gd.app.musicplayer.core.ui.dialog.MessageDialog
 import gd.app.musicplayer.databinding.DialogQueueListBinding
 import gd.app.musicplayer.databinding.DialogQueueListItemBinding
-import gd.app.musicplayer.playback.MusicPlaybackState
-import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
 import gd.app.musicplayer.ui.feature.selection.ItemTouchStateListener
 import gd.app.musicplayer.ui.theme.applyCurrentTheme
@@ -48,7 +44,6 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         get() = requireNotNull(_binding)
 
     private lateinit var adapter: QueueAdapter
-    private var playbackState: MusicPlaybackState = MusicPlaybackState()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -59,9 +54,9 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         applyCurrentTheme(view)
 
         adapter = QueueAdapter(
-            onTrackClicked = { position -> viewModel.playQueueAt(position, playbackState) },
-            onTrackRemoved = { position -> viewModel.removeQueueItem(position, playbackState) },
-            onTrackMoved = { queue -> viewModel.replaceQueuePreservingCurrentTrack(queue, playbackState) },
+            onTrackClicked = { /* position -> viewModel.playQueueAt(position, playbackState) */ },
+            onTrackRemoved = { /* position -> viewModel.removeQueueItem(position, playbackState) */ },
+            onTrackMoved = { /* queue -> viewModel.replaceQueuePreservingCurrentTrack(queue, playbackState) */},
             onToggleFavorite = viewModel::toggleFavorite
         )
 
@@ -72,24 +67,24 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         binding.currentListClose.setOnClickListener {
             dismissAllowingStateLoss()
         }
-        binding.currentListSave.setOnClickListener {
-            val queue = viewModel.saveQueueToPlaylist(playbackState) ?: return@setOnClickListener
-            ActivityPlaylistSelect.start(requireContext(), queue)
-        }
-        binding.currentListDelete.setOnClickListener {
-            if (playbackState.queue.isEmpty()) return@setOnClickListener
-            val config = MessageDialog.Config.create(requireContext()).apply {
-                titleText = getString(R.string.clear)
-                messageText = getString(R.string.clear_message)
-                negativeButtonText = getString(R.string.cancel)
-                positiveButtonText = getString(R.string.clear)
-                positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
-                    viewModel.clearQueueOrDismiss(playbackState)
-                    dialog.dismiss()
-                }
-            }
-            MessageDialog.show(requireActivity(), config)
-        }
+//        binding.currentListSave.setOnClickListener {
+//            val queue = viewModel.saveQueueToPlaylist(playbackState) ?: return@setOnClickListener
+//            ActivityPlaylistSelect.start(requireContext(), queue)
+//        }
+//        binding.currentListDelete.setOnClickListener {
+//            if (playbackState.queue.isEmpty()) return@setOnClickListener
+//            val config = MessageDialog.Config.create(requireContext()).apply {
+//                titleText = getString(R.string.clear)
+//                messageText = getString(R.string.clear_message)
+//                negativeButtonText = getString(R.string.cancel)
+//                positiveButtonText = getString(R.string.clear)
+//                positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
+//                    viewModel.clearQueueOrDismiss(playbackState)
+//                    dialog.dismiss()
+//                }
+//            }
+//            MessageDialog.show(requireActivity(), config)
+//        }
         binding.currentListMode.setOnClickListener {
             viewModel.cyclePlayMode()
         }
@@ -134,8 +129,7 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         return binding.root
     }
 
-    private fun render(state: MusicPlaybackState) {
-        playbackState = state
+    private fun render(state: PlaybackQueueBottomSheetUiState) {
         binding.currentListTitle.text = getString(R.string.music_queue, state.queue.size)
         binding.currentListSave.isEnabled = state.queue.isNotEmpty()
         binding.currentListDelete.isEnabled = state.queue.isNotEmpty()
@@ -342,3 +336,4 @@ private class QueueAdapter(
         }
     }
 }
+

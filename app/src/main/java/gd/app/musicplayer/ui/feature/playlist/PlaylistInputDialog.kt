@@ -18,7 +18,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.DialogNewPlaylistBinding
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.core.ui.drawable.ViewStateDrawables
 import gd.app.musicplayer.core.extension.applyLengthFilter
@@ -29,7 +29,7 @@ import gd.app.musicplayer.core.extension.showKeyboardDelayed
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class PlaylistInputDialog : BaseThemedDialogFragment() {
+class PlaylistInputDialog : BaseDialogFragment() {
     private val viewModel: PlaylistInputViewModel by viewModels()
 
     private lateinit var binding: DialogNewPlaylistBinding

@@ -15,7 +15,7 @@ import gd.app.musicplayer.core.extension.formatDuration
 import gd.app.musicplayer.core.extension.formatFileSize
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.databinding.DialogMusicDetailBinding
-import gd.app.musicplayer.ui.common.base.BaseThemedDialogFragment
+import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.ui.feature.tags.EditTagsActivity
 import gd.app.musicplayer.core.extension.parcelable
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +25,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MusicDetailDialogFragment : BaseThemedDialogFragment(), View.OnClickListener {
+class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     private var _binding: DialogMusicDetailBinding? = null
     private val binding: DialogMusicDetailBinding

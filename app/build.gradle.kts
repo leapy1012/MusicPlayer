@@ -54,6 +54,7 @@ dependencies {
     implementation("androidx.media:media:1.7.0")
     implementation(libs.hilt.android)
     implementation(libs.glide)
+    implementation(libs.androidx.datastore.preferences)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)

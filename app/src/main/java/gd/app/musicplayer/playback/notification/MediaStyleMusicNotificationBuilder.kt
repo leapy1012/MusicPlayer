@@ -13,7 +13,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import gd.app.musicplayer.R
-import gd.app.musicplayer.playback.MusicPlaybackService
 import java.lang.ref.SoftReference
 
 class MediaStyleMusicNotificationBuilder(

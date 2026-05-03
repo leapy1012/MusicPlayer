@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.feature.library
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -18,6 +17,7 @@ import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.feature.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.ui.feature.selection.MusicShareSupport
+import gd.app.musicplayer.ui.feature.tags.EditTagsActivity
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.util.ToastUtil
@@ -29,6 +29,9 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
 
     private lateinit var musicSet: MusicSet
     private val viewModel: MusicSetOptionsViewModel by viewModels()
+    private val deleteConfirmResultKey: String by lazy {
+        "music_set_delete_confirm_${hashCode()}"
+    }
 
     override fun onReadArguments(arguments: Bundle) {
         musicSet = arguments.parcelable(ARG_MUSIC_SET) ?: error("Missing music set")
@@ -116,7 +119,6 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
 
             R.string.list_delete,
             R.string.delete -> {
-                dismiss()
                 confirmDeleteSet()
             }
 
@@ -139,15 +141,28 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
             is MusicSet.Artist, is MusicSet.Album, is MusicSet.Genre -> {
                 titleIconView.setImageResource(R.drawable.ic_menu_edit_tags)
                 titleIconView.visibility = View.VISIBLE
+                val clickListener = View.OnClickListener {
+                    dismissAllowingStateLoss()
+                    EditTagsActivity.start(requireContext(), musicSet)
+                }
+                titleIconView.setOnClickListener(clickListener)
+                titleView.setOnClickListener(clickListener)
             }
 
             is MusicSet.Folder -> {
                 titleIconView.setImageResource(R.drawable.ic_menu_share_2)
                 titleIconView.visibility = View.VISIBLE
+                val clickListener = View.OnClickListener {
+                    launchTrackAction(R.string.share)
+                }
+                titleIconView.setOnClickListener(clickListener)
+                titleView.setOnClickListener(clickListener)
             }
 
             else -> {
                 titleIconView.visibility = View.GONE
+                titleView.setOnClickListener(null)
+                titleIconView.setOnClickListener(null)
             }
         }
     }
@@ -189,14 +204,23 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     private fun confirmDeleteSet() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.delete)
-            .setMessage(musicSet.name)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                viewModel.deleteSet(musicSet)
+        parentFragmentManager.setFragmentResultListener(
+            deleteConfirmResultKey,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            if (bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
+                val deleteSourceFile = bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_EXTRA_CHECKED, true)
+                viewModel.deleteSet(musicSet, deleteSourceFile)
+                dismissAllowingStateLoss()
             }
-            .show()
+        }
+
+        val isPlaylist = musicSet is MusicSet.Playlist
+        DeleteConfirmDialogFragment.forSetDelete(
+            resultKey = deleteConfirmResultKey,
+            setName = musicSet.name,
+            isPlaylist = isPlaylist
+        ).show(parentFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
     }
 
     private fun handleEvent(event: MusicSetOptionsEvent) {

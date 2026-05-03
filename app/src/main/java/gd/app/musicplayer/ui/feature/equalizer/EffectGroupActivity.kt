@@ -24,7 +24,7 @@ import gd.app.musicplayer.databinding.ActivityEffectGroupBinding
 import gd.app.musicplayer.playback.AudioEffectsManager
 import gd.app.musicplayer.playback.EffectGroupPreset
 import gd.app.musicplayer.playback.EffectGroupPresets
-import gd.app.musicplayer.playback.PlaybackControllerProvider
+import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.ui.view.SelectBox
@@ -162,7 +162,7 @@ class EffectGroupActivity : BaseActivity() {
 
     private fun saveAndApply(settings: AudioEffectsManager.Settings) {
         AudioEffectsManager.saveSettings(this, settings)
-        PlaybackControllerProvider.applyAudioEffects(this)
+        PlaybackGateway.applyAudioEffects(this)
         renderState()
     }
 
@@ -195,6 +195,7 @@ private class EffectGroupHeaderController(
 
     init {
         view.findViewById<View>(R.id.status_bar_space).applyStatusBarInsetHeight()
+        view.findViewById<View>(R.id.status_bar_space_parent).applyStatusBarInsetHeight()
         activity.appDependencies.themeEngine.apply(view)
 
         effectSelect.setOnSelectChangedListener(object : SelectBox.OnSelectChangedListener {

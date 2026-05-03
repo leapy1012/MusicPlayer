@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import gd.app.musicplayer.data.db.MusicDatabase
 import gd.app.musicplayer.data.db.dao.MusicDao
+import gd.app.musicplayer.data.db.dao.PlaybackQueueDao
 import javax.inject.Singleton
 
 @Module
@@ -23,4 +24,11 @@ object DatabaseModule {
     @Singleton
     fun provideMusicDao(database: MusicDatabase): MusicDao =
         database.musicDao()
+
+    @Provides
+    fun providePlaybackQueueDao(
+        database: MusicDatabase
+    ): PlaybackQueueDao {
+        return database.playbackQueueDao()
+    }
 }

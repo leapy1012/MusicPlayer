@@ -1,11 +1,21 @@
 package gd.app.musicplayer.util
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
-import kotlinx.coroutines.channels.awaitClose
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 object PreferenceUtil :
     ThemePreferenceOps,
@@ -15,21 +25,21 @@ object PreferenceUtil :
     AppPreferenceOps {
 
     @Volatile
-    private var preferencesHolder: SharedPreferences? = null
+    private var dataStoreHolder: DataStore<Preferences>? = null
+    private val preferenceChanges = MutableSharedFlow<String>(extraBufferCapacity = 128)
 
     fun getInstance(context: Context): PreferenceUtil = apply {
         ensureInitialized(context)
     }
 
     private fun ensureInitialized(context: Context) {
-        if (preferencesHolder != null) return
+        if (dataStoreHolder != null) return
 
         synchronized(this) {
-            if (preferencesHolder != null) return
-
-            preferencesHolder = context.applicationContext.getSharedPreferences(
-                PREFS_FILE_NAME,
-                Context.MODE_PRIVATE
+            if (dataStoreHolder != null) return
+            dataStoreHolder = PreferenceStoreDataStoreRegistry.getDataStore(
+                context = context.applicationContext,
+                fileName = PREFS_FILE_NAME
             )
         }
 
@@ -37,69 +47,94 @@ object PreferenceUtil :
         ensureInstallVersionInitialized()
     }
 
-    private val preferences: SharedPreferences
-        get() = checkNotNull(preferencesHolder) {
+    private val dataStore: DataStore<Preferences>
+        get() = checkNotNull(dataStoreHolder) {
             "PreferenceUtil has not been initialized. Call PreferenceUtil.getInstance(context) first."
         }
 
     override fun containsPreference(key: String): Boolean =
-        preferences.contains(key)
+        runBlocking { dataStore.data.first().asMap().keys.any { it.name == key } }
 
     override fun removePreferences(vararg keys: String) {
-        preferences.edit {
-            keys.forEach(::remove)
+        runBlocking {
+            dataStore.edit { preferences ->
+                keys.forEach { key ->
+                    preferences.remove(stringPreferencesKey(key))
+                    preferences.remove(booleanPreferencesKey(key))
+                    preferences.remove(intPreferencesKey(key))
+                    preferences.remove(longPreferencesKey(key))
+                    preferences.remove(floatPreferencesKey(key))
+                }
+            }
         }
+        keys.forEach(preferenceChanges::tryEmit)
     }
 
     override fun getBooleanPreference(key: String, defaultValue: Boolean): Boolean =
-        preferences.getBoolean(key, defaultValue)
+        runBlocking { dataStore.data.first()[booleanPreferencesKey(key)] ?: defaultValue }
 
     override fun getFloatPreference(key: String, defaultValue: Float): Float =
-        preferences.getFloat(key, defaultValue)
+        runBlocking { dataStore.data.first()[floatPreferencesKey(key)] ?: defaultValue }
 
     override fun getIntPreference(key: String, defaultValue: Int): Int =
-        preferences.getInt(key, defaultValue)
+        runBlocking { dataStore.data.first()[intPreferencesKey(key)] ?: defaultValue }
 
     override fun getLongPreference(key: String, defaultValue: Long): Long =
-        preferences.getLong(key, defaultValue)
+        runBlocking { dataStore.data.first()[longPreferencesKey(key)] ?: defaultValue }
 
     override fun getStringPreference(key: String, defaultValue: String): String =
-        preferences.getString(key, defaultValue) ?: defaultValue
+        runBlocking { dataStore.data.first()[stringPreferencesKey(key)] ?: defaultValue }
 
     override fun getNullableStringPreference(key: String): String? =
-        preferences.getString(key, null)
+        runBlocking { dataStore.data.first()[stringPreferencesKey(key)] }
 
     override fun putBooleanPreference(key: String, value: Boolean) {
-        preferences.edit { putBoolean(key, value) }
+        runBlocking {
+            dataStore.edit { it[booleanPreferencesKey(key)] = value }
+        }
+        preferenceChanges.tryEmit(key)
     }
 
     override fun putFloatPreference(key: String, value: Float) {
-        preferences.edit { putFloat(key, value) }
+        runBlocking {
+            dataStore.edit { it[floatPreferencesKey(key)] = value }
+        }
+        preferenceChanges.tryEmit(key)
     }
 
     override fun putIntPreference(key: String, value: Int) {
-        preferences.edit { putInt(key, value) }
+        runBlocking {
+            dataStore.edit { it[intPreferencesKey(key)] = value }
+        }
+        preferenceChanges.tryEmit(key)
     }
 
     override fun putLongPreference(key: String, value: Long) {
-        preferences.edit { putLong(key, value) }
+        runBlocking {
+            dataStore.edit { it[longPreferencesKey(key)] = value }
+        }
+        preferenceChanges.tryEmit(key)
     }
 
     override fun putStringPreference(key: String, value: String) {
-        preferences.edit { putString(key, value) }
+        runBlocking {
+            dataStore.edit { it[stringPreferencesKey(key)] = value }
+        }
+        preferenceChanges.tryEmit(key)
     }
 
     fun observePreferenceChanges(vararg keys: String): Flow<Unit> = callbackFlow {
         val keySet = keys.toSet()
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
-            if (keySet.isEmpty() || changedKey in keySet) {
-                trySend(Unit)
+        val collectorJob = launch {
+            preferenceChanges.collect { changedKey ->
+                if (keySet.isEmpty() || changedKey in keySet) {
+                    trySend(Unit)
+                }
             }
         }
-        preferences.registerOnSharedPreferenceChangeListener(listener)
         trySend(Unit)
         awaitClose {
-            preferences.unregisterOnSharedPreferenceChangeListener(listener)
+            collectorJob.cancel()
         }
     }
 

@@ -6,7 +6,9 @@ import gd.app.musicplayer.data.repo.ArtworkRepo
 import gd.app.musicplayer.data.repo.HiddenRepo
 import gd.app.musicplayer.data.repo.LibraryRepo
 import gd.app.musicplayer.data.repo.MainRepo
+import gd.app.musicplayer.data.repo.MusicSetMetadataRepo
 import gd.app.musicplayer.data.repo.PlaylistRepo
+import gd.app.musicplayer.data.repo.PlaybackQueueRepo
 import gd.app.musicplayer.data.repo.ScanRepo
 import gd.app.musicplayer.data.repo.SearchRepo
 import gd.app.musicplayer.data.repo.ThemeRepo
@@ -16,6 +18,9 @@ import gd.app.musicplayer.data.repo.UserPreferencesRepo
 import gd.app.musicplayer.core.theme.ThemeManager
 import gd.app.musicplayer.core.theme.ThemeRegistry
 import gd.app.musicplayer.playback.PlaybackController
+import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
+import gd.app.musicplayer.playback.PlaybackSessionStore
+import gd.app.musicplayer.playback.PlaybackTimeFormatter
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTrackUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
@@ -41,6 +46,10 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface AppDependenciesEntryPoint {
     val playbackController: PlaybackController
+    val playbackRuntimeStateStore: PlaybackRuntimeStateStore
+    val playbackTimeFormatter: PlaybackTimeFormatter
+    val playbackQueueRepo: PlaybackQueueRepo
+    val playbackSessionStore: PlaybackSessionStore
     val musicDao: MusicDao
     val preferenceUtil: PreferenceUtil
     val themeRegistry: ThemeRegistry
@@ -56,6 +65,7 @@ interface AppDependenciesEntryPoint {
     val trackMutationRepo: TrackMutationRepo
     val hiddenRepo: HiddenRepo
     val trackMetadataRepo: TrackMetadataRepo
+    val musicSetMetadataRepo: MusicSetMetadataRepo
     val artworkRepo: ArtworkRepo
     val addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase
     val createPlaylistUseCase: CreatePlaylistUseCase

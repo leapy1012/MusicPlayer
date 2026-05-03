@@ -16,6 +16,7 @@ import gd.app.musicplayer.domain.usecase.main.UpdateMainPlaylistOrderUseCase
 import gd.app.musicplayer.domain.usecase.preferences.ObservePlaylistSortUseCase
 import gd.app.musicplayer.domain.usecase.preferences.ObserveSmartPlaylistConfigUseCase
 import gd.app.musicplayer.domain.usecase.preferences.ResetPlaylistSortUseCase
+import gd.app.musicplayer.playback.PlaybackStartupInitializer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,8 +46,15 @@ class MainViewModel @Inject constructor(
     private val observeRecentAddCountUseCase: ObserveRecentAddCountUseCase,
     private val observeMostPlayCountUseCase: ObserveMostPlayCountUseCase,
     private val updateMainPlaylistOrderUseCase: UpdateMainPlaylistOrderUseCase,
-    private val resetPlaylistSortUseCase: ResetPlaylistSortUseCase
+    private val resetPlaylistSortUseCase: ResetPlaylistSortUseCase,
+    private val playbackStartupInitializer: PlaybackStartupInitializer
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            playbackStartupInitializer.initialize()
+        }
+    }
 
     val playlists: StateFlow<List<MusicSet.Playlist>> = combine(
         observeMainPlaylistsUseCase(),
