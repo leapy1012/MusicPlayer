@@ -4,17 +4,21 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.viewModels
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.databinding.FragmentSoundEffectBinding
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.view.EqualizerSingleGroup
 import gd.app.musicplayer.core.ui.view.RotateStepBar
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.ui.view.SelectBox
 import kotlin.math.roundToInt
 
+@AndroidEntryPoint
 class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentSoundEffectBinding =
         FragmentSoundEffectBinding.inflate(inflater)
@@ -198,7 +202,7 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
 
     private fun persistAndApply() {
         AudioEffectsManager.saveSettings(requireContext(), settings)
-        PlaybackGateway.applyAudioEffects(requireContext())
+        playerViewModel.applyAudioEffects(requireContext())
     }
 
     private fun updateContentHeight() {

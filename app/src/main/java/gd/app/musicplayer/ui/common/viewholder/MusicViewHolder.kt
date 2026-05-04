@@ -1,9 +1,7 @@
 package gd.app.musicplayer.ui.common.viewholder
 
-import android.text.format.Formatter
 import android.view.View
 import androidx.core.graphics.ColorUtils
-import androidx.core.view.isVisible
 import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
@@ -14,10 +12,6 @@ import gd.app.musicplayer.core.extension.formatAddedDate
 import gd.app.musicplayer.core.extension.formatDuration
 import gd.app.musicplayer.core.extension.formatFileSize
 import gd.app.musicplayer.core.theme.*
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
 
 class MusicViewHolder(
     val binding: FragmentMusicListItemBinding,

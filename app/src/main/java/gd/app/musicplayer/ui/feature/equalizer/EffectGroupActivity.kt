@@ -11,10 +11,12 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
+import androidx.activity.viewModels
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.applyStatusBarInsetHeight
@@ -24,12 +26,15 @@ import gd.app.musicplayer.databinding.ActivityEffectGroupBinding
 import gd.app.musicplayer.playback.AudioEffectsManager
 import gd.app.musicplayer.playback.EffectGroupPreset
 import gd.app.musicplayer.playback.EffectGroupPresets
-import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.ui.view.SelectBox
 
+@AndroidEntryPoint
 class EffectGroupActivity : BaseActivity() {
+
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     private lateinit var binding: ActivityEffectGroupBinding
     private lateinit var headerController: EffectGroupHeaderController
@@ -162,7 +167,7 @@ class EffectGroupActivity : BaseActivity() {
 
     private fun saveAndApply(settings: AudioEffectsManager.Settings) {
         AudioEffectsManager.saveSettings(this, settings)
-        PlaybackGateway.applyAudioEffects(this)
+        playerViewModel.applyAudioEffects(this)
         renderState()
     }
 

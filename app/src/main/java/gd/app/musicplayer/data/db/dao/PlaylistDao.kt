@@ -351,4 +351,19 @@ interface PlaylistDao {
         playlistIds: List<Long>,
         songIds: List<Long>
     ): List<PlaylistSongRef>
+
+    @Query(
+        """
+    SELECT EXISTS(
+        SELECT 1
+        FROM music_playlist
+        WHERE m_id = :musicId
+          AND p_id = :favoritePlaylistId
+    )
+    """
+    )
+    fun observeIsFavorite(
+        musicId: Long,
+        favoritePlaylistId: Long = MusicSet.FAVORITES
+    ): Flow<Boolean>
 }

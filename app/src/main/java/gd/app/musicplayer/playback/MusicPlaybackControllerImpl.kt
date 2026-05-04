@@ -21,6 +21,7 @@ class MusicPlaybackControllerImpl @Inject constructor(
         queue: List<Music>,
         startIndex: Int
     ) {
+        android.util.Log.e("Leapy", "MusicPlaybackControllerImpl + playQueue()")
         if (queue.isEmpty()) return
 
         val targetIndex = startIndex.coerceIn(0, queue.lastIndex)

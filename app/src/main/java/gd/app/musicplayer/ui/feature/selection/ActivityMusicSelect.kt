@@ -23,6 +23,8 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSelectBinding
+import gd.app.musicplayer.domain.usecase.selection.MusicSelectConfirmRequest
+import gd.app.musicplayer.domain.usecase.selection.MusicSelectLoadRequest
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar

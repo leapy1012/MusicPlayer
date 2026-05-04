@@ -3,15 +3,15 @@ package gd.app.musicplayer.ui.common.base
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.fragment.app.Fragment
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.ui.view.PlayerSheetDragInsetReceiver
 import gd.app.musicplayer.core.ui.view.PlayerSheetInsetHost
-import gd.app.musicplayer.core.ui.view.MusicRecyclerView
 
 abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
 
@@ -39,6 +39,12 @@ abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
             object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onStateChanged(bottomSheet: View, newState: Int) {
                     renderPlayerSheetForState(newState)
+                    if (
+                        newState == BottomSheetBehavior.STATE_DRAGGING ||
+                        newState == BottomSheetBehavior.STATE_SETTLING
+                    ) {
+                        notifyMainFragmentDraggingInsets()
+                    }
                 }
 
                 override fun onSlide(bottomSheet: View, slideOffset: Float) {
@@ -46,6 +52,7 @@ abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
 
                     miniPlayer.alpha = 1f - progress
                     fullPlayer.alpha = progress
+                    notifyMainFragmentDraggingInsets()
                 }
             }
         )
@@ -135,33 +142,20 @@ abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
         return (parent.height - playerSheet.top).coerceAtLeast(0)
     }
 
-    private fun View.findMusicRecyclerViews(): List<MusicRecyclerView> {
-        val matches = mutableListOf<MusicRecyclerView>()
-
-        fun collect(view: View) {
-            if (view is MusicRecyclerView) {
-                matches += view
-            }
-
-            if (view is ViewGroup) {
-                for (index in 0 until view.childCount) {
-                    collect(view.getChildAt(index))
-                }
-            }
+    private fun notifyMainFragmentDraggingInsets() {
+        supportFragmentManager.fragments.forEach { fragment ->
+            notifyDraggingInsetsRecursively(fragment)
         }
-
-        collect(this)
-        return matches
     }
 
-    private fun View.isDescendantOf(parentView: View): Boolean {
-        var currentParent = parent
-
-        while (currentParent is View) {
-            if (currentParent == parentView) return true
-            currentParent = currentParent.parent
+    private fun notifyDraggingInsetsRecursively(fragment: Fragment) {
+        if (!fragment.isAdded) return
+        if (fragment is PlayerSheetDragInsetReceiver) {
+            fragment.onPlayerSheetDragging()
         }
-
-        return false
+        fragment.childFragmentManager.fragments.forEach { child ->
+            notifyDraggingInsetsRecursively(child)
+        }
     }
+
 }

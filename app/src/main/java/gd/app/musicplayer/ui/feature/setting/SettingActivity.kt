@@ -30,10 +30,10 @@ import gd.app.musicplayer.databinding.ActivitySettingBinding
 import gd.app.musicplayer.core.theme.*
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.playback.SoundEffectPreferences
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.dialog.OptionsListDialog
 import gd.app.musicplayer.core.ui.dialog.DialogRegistry
 import gd.app.musicplayer.core.ui.dialog.MessageDialog
@@ -56,6 +56,7 @@ class SettingActivity : BaseActivity() {
     private lateinit var binding: ActivitySettingBinding
     private val preferenceUtil by lazy { PreferenceUtil.getInstance(this) }
     private val viewModel: SettingViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     private var pendingBluetoothAutoStartEnable = false
     private var pendingNotificationPermissionRefresh = false
@@ -311,14 +312,14 @@ class SettingActivity : BaseActivity() {
             if (enabled) {
                 SimultaneousTipDialog.newInstance().show(this@SettingActivity.supportFragmentManager, null)
             }
-            PlaybackGateway.applyPlaybackTuning(this)
+            playerViewModel.applyPlaybackTuning(this)
         }
 
         binding.preferenceVolumeFade.setOnPreferenceChangedListener { _, enabled ->
             if (enabled) {
                 binding.preferenceGaplessPlayback.isSelected = false
             }
-            PlaybackGateway.applyPlaybackTuning(this)
+            playerViewModel.applyPlaybackTuning(this)
         }
 
         binding.preferenceGaplessPlayback.setOnPreferenceChangedListener { _, z10 ->
@@ -326,7 +327,7 @@ class SettingActivity : BaseActivity() {
                 binding.preferenceCrossFade.isSelected = false
             }
             renderFadeControls(binding.preferenceCrossFade.isSelected)
-            PlaybackGateway.applyPlaybackTuning(this)
+            playerViewModel.applyPlaybackTuning(this)
         }
 
         binding.preferenceCrossFade.setOnPreferenceChangedListener { _, z10 ->
@@ -334,7 +335,7 @@ class SettingActivity : BaseActivity() {
                 binding.preferenceGaplessPlayback.isSelected = false
             }
             renderFadeControls(z10)
-            PlaybackGateway.applyPlaybackTuning(this)
+            playerViewModel.applyPlaybackTuning(this)
         }
 
         binding.preferenceFadeSeekBar.setOnSeekBarChangeListener(
@@ -348,7 +349,7 @@ class SettingActivity : BaseActivity() {
                     binding.preferenceFadeSeekText.text = formatSecondsLabel(seconds)
                     if (fromUser) {
                         viewModel.setFadeDurationSeconds(seconds)
-                        PlaybackGateway.applyPlaybackTuning(this@SettingActivity)
+                        playerViewModel.applyPlaybackTuning(this@SettingActivity)
                     }
                 }
 
@@ -394,12 +395,12 @@ class SettingActivity : BaseActivity() {
             val enabled = !binding.preferenceUseOldNotification.isSelected
             viewModel.setOldNotificationEnabled(enabled)
             syncNotificationPreferences(currentUiState.copy(oldNotificationEnabled = enabled))
-            PlaybackGateway.refreshNotificationStyle(this)
+            playerViewModel.refreshNotificationStyle(this)
         }
 
         binding.preferenceUseColorNotification.setOnPreferenceChangedListener { _, z10 ->
             viewModel.setColorNotificationEnabled(z10)
-            PlaybackGateway.refreshNotificationStyle(this)
+            playerViewModel.refreshNotificationStyle(this)
         }
 
 //        binding.preferenceLockTimeFormat.setOnClickListener {
@@ -725,7 +726,7 @@ class SettingActivity : BaseActivity() {
             checkedIndex = checked
         ) { which ->
             viewModel.setReplayGainMode(which)
-            PlaybackGateway.applyPlaybackTuning(this)
+            playerViewModel.applyPlaybackTuning(this)
         }
     }
 
@@ -815,7 +816,7 @@ class SettingActivity : BaseActivity() {
                 ,
                 progressToPreampDb(withoutTagSeek.getProgress(), withoutTagSeek.getMax())
             )
-            PlaybackGateway.applyPlaybackTuning(this)
+            playerViewModel.applyPlaybackTuning(this)
             dialog.dismiss()
         }
         dialog.show()

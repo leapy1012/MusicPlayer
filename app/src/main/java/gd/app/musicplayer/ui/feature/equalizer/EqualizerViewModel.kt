@@ -12,8 +12,8 @@ import gd.app.musicplayer.domain.usecase.equalizer.DeleteEqualizerPresetUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.GetEqualizerPresetByIdUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.LoadEqualizerPresetsUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.UpdateEqualizerPresetUseCase
+import gd.app.musicplayer.domain.usecase.playback.ApplyAudioEffectsUseCase
 import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.PlaybackGateway
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,6 +46,7 @@ class EqualizerViewModel @Inject constructor(
     private val createEqualizerPresetUseCase: CreateEqualizerPresetUseCase,
     private val updateEqualizerPresetUseCase: UpdateEqualizerPresetUseCase,
     private val deleteEqualizerPresetUseCase: DeleteEqualizerPresetUseCase,
+    private val applyAudioEffectsUseCase: ApplyAudioEffectsUseCase,
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
 
@@ -111,7 +112,7 @@ class EqualizerViewModel @Inject constructor(
             val id = createEqualizerPresetUseCase(name, bands, settings.useTenBand, preset = 0)
             val updated = if (settings.useTenBand) settings.copy(selectedPresetIndexTenBand = id.toInt()) else settings.copy(selectedPresetIndexFiveBand = id.toInt())
             AudioEffectsManager.saveSettings(appContext, updated)
-            PlaybackGateway.applyAudioEffects(appContext)
+            applyAudioEffectsUseCase(appContext)
             _state.value = EqualizerScreenState(settings = updated, presets = load(updated.useTenBand))
             withContext(dispatchers.main) { onDone() }
         }
@@ -141,7 +142,7 @@ class EqualizerViewModel @Inject constructor(
                         updatedSettings.copy(customFiveBandLevels = fallback.bands.copyOf(), selectedPresetIndexFiveBand = fallback.id.toInt())
                     }
                     AudioEffectsManager.saveSettings(appContext, updatedSettings)
-                    PlaybackGateway.applyAudioEffects(appContext)
+                    applyAudioEffectsUseCase(appContext)
                 }
             }
             _state.value = EqualizerScreenState(settings = updatedSettings, presets = load(updatedSettings.useTenBand))
@@ -173,6 +174,6 @@ class EqualizerViewModel @Inject constructor(
 
     private fun persistAndApply(settings: AudioEffectsManager.Settings) {
         AudioEffectsManager.saveSettings(appContext, settings)
-        PlaybackGateway.applyAudioEffects(appContext)
+        applyAudioEffectsUseCase(appContext)
     }
 }

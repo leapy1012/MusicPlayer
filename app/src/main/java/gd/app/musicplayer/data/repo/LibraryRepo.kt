@@ -12,10 +12,6 @@ class LibraryRepo(
     private val libraryDao: LibraryDao,
     private val preferenceUtil: PreferenceUtil
 ) {
-    data class SavedFolderScrollPosition(
-        val position: Int,
-        val offset: Int
-    )
 
     fun observeTracks(
         musicSet: MusicSet,
@@ -89,22 +85,4 @@ class LibraryRepo(
     fun shouldShowHiddenFoldersEntry(): Boolean =
         preferenceUtil.getBooleanPreference(PreferenceKeys.KEY_SHOW_HIDDEN_FOLDERS, true)
 
-    fun saveFolderScrollPosition(position: Int, offset: Int) {
-        preferenceUtil.putIntPreference(KEY_FOLDER_SCROLL_POSITION, position)
-        preferenceUtil.putIntPreference(KEY_FOLDER_SCROLL_OFFSET, offset)
-    }
-
-    fun getSavedFolderScrollPosition(): SavedFolderScrollPosition? {
-        val position = preferenceUtil.getIntPreference(KEY_FOLDER_SCROLL_POSITION, -1)
-        if (position < 0) return null
-        return SavedFolderScrollPosition(
-            position = position,
-            offset = preferenceUtil.getIntPreference(KEY_FOLDER_SCROLL_OFFSET, 0)
-        )
-    }
-
-    private companion object {
-        const val KEY_FOLDER_SCROLL_POSITION = "folder_scroll_position"
-        const val KEY_FOLDER_SCROLL_OFFSET = "folder_scroll_offset"
-    }
 }

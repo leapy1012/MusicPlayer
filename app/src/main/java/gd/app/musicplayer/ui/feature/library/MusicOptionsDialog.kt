@@ -209,11 +209,9 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
                     val success = if (deleteSourceFile) {
                         activity.applicationContext.appDependencies.deleteTracksUseCase(listOf(targetMusic)) > 0
                     } else {
-                        activity.applicationContext.appDependencies.trackMutationRepo
-                            .removeTracksFromLibraryOnly(
-                                trackIds = listOf(targetMusic.id),
-                                stateTime = System.currentTimeMillis()
-                            )
+                        activity.applicationContext.appDependencies.removeTracksFromLibraryUseCase(
+                            listOf(targetMusic.id)
+                        )
                         true
                     }
                     ToastUtil.show(

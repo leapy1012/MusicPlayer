@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.repo.PlaybackQueueRepo
 import gd.app.musicplayer.domain.usecase.playback.ClearQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
@@ -35,7 +36,8 @@ class QueueTrackOptionsViewModel @Inject constructor(
     private val deleteTracksUseCase: DeleteTracksUseCase,
     private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val clearQueueUseCase: ClearQueueUseCase,
-    private val replaceQueueUseCase: ReplaceQueueUseCase
+    private val replaceQueueUseCase: ReplaceQueueUseCase,
+    private val playbackQueueRepo: PlaybackQueueRepo
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<QueueTrackOptionsEvent>()
@@ -90,26 +92,29 @@ class QueueTrackOptionsViewModel @Inject constructor(
     }
 
     fun onRemoveFromQueue(music: Music) {
-        val state = observePlaybackStateUseCase().value
-        val index = state.queue.indexOfFirst { it.id == music.id }
-        if (index < 0) return
+        viewModelScope.launch {
+            val queue = playbackQueueRepo.getQueue()
+            val state = observePlaybackStateUseCase().value
+            val index = queue.indexOfFirst { it.id == music.id }
+            if (index < 0) return@launch
 
-        val newQueue = state.queue.toMutableList().apply { removeAt(index) }
-        if (newQueue.isEmpty()) {
-            clearQueueUseCase(appContext)
+            val newQueue = queue.toMutableList().apply { removeAt(index) }
+            if (newQueue.isEmpty()) {
+                clearQueueUseCase(appContext)
+                emit(QueueTrackOptionsEvent.ShowToast(R.string.succeed))
+                emit(QueueTrackOptionsEvent.Dismiss)
+                return@launch
+            }
+
+            val newIndex = when {
+                index < state.currentIndex -> state.currentIndex - 1
+                state.currentIndex >= newQueue.size -> newQueue.lastIndex
+                else -> state.currentIndex
+            }
+            replaceQueueUseCase(appContext, newQueue, newIndex)
             emit(QueueTrackOptionsEvent.ShowToast(R.string.succeed))
             emit(QueueTrackOptionsEvent.Dismiss)
-            return
         }
-
-        val newIndex = when {
-            index < state.currentIndex -> state.currentIndex - 1
-            state.currentIndex >= newQueue.size -> newQueue.lastIndex
-            else -> state.currentIndex
-        }
-        replaceQueueUseCase(appContext, newQueue, newIndex)
-        emit(QueueTrackOptionsEvent.ShowToast(R.string.succeed))
-        emit(QueueTrackOptionsEvent.Dismiss)
     }
 
     fun onDeleteConfirmed(music: Music) {

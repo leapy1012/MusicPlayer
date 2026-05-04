@@ -18,8 +18,8 @@ import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.databinding.ActivityThemeEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.common.base.BottomMiniPlayerFragment
-import gd.app.musicplayer.ui.feature.player.BottomPlayerFragment
+import gd.app.musicplayer.ui.player.BottomMiniPlayerFragment
+import gd.app.musicplayer.ui.player.BottomPlayerFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.ui.feature.library.ArtworkCropActivity
 import kotlinx.coroutines.Dispatchers

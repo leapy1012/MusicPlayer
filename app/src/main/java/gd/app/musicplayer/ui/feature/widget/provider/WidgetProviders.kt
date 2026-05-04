@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Bundle
 import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.ui.feature.widget.WidgetConfigStore
-import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.playback.PlaybackMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,7 +61,7 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
                     context.appDependencies.playbackQueueRepo.getQueue()
                 }
                 if (index in queue.indices) {
-                    PlaybackGateway.playQueue(context, queue, index)
+                    context.appDependencies.playTracksUseCase(context, queue, index)
                 }
             }
 

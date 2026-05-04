@@ -2,6 +2,7 @@ package gd.app.musicplayer.ui.feature.library
 
 import android.os.Bundle
 import android.view.View
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -21,11 +22,10 @@ import gd.app.musicplayer.ui.feature.player.PlayQueueActivity
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
-import gd.app.musicplayer.playback.PlaybackGateway
-import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.menu.MusicSetContextMenu
 import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.ui.feature.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 class TrackListFragment : BaseListFragment() {
 
     private val viewModel: TrackListViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by activityViewModels ()
 
     private lateinit var trackAdapter: TrackAdapter
     private lateinit var concatAdapter: ConcatAdapter
@@ -57,7 +58,7 @@ class TrackListFragment : BaseListFragment() {
 
         observeUiState()
         observeEvents()
-        observePlaybackState()
+        observeCurrentTrack()
 
         viewModel.bind(musicSet)
     }
@@ -101,16 +102,13 @@ class TrackListFragment : BaseListFragment() {
         collectWhenStarted(viewModel.events, ::handleEvent)
     }
 
-    private fun observePlaybackState() {
-        collectWhenStarted(
-            PlaybackGateway.state
-                .map { playbackState -> playbackState.currentTrack?.id to playbackState.isPlaying }
-                .distinctUntilChanged()
-        ) { (currentTrackId, isPlaying) ->
-            trackAdapter.updatePlaybackState(
-                currentTrackId = currentTrackId,
-                isPlaying = isPlaying
-            )
+    private fun observeCurrentTrack() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playerViewModel.playbackHighlightState.collect { state ->
+                    trackAdapter.submitPlaybackHighlight(state.currentMusicId, state.isPlaying)
+                }
+            }
         }
     }
 
@@ -122,8 +120,6 @@ class TrackListFragment : BaseListFragment() {
         trackAdapter.setMetadataDisplayMode(state.trackMetadataDisplayMode)
         trackAdapter.submitList(state.tracks)
         artistAlbumHeaderAdapter?.submitAlbums(state.artistAlbums)
-
-        updateCurrentPlaybackState()
     }
 
     private fun handleEvent(event: TrackListEvent) {
@@ -144,14 +140,6 @@ class TrackListFragment : BaseListFragment() {
                 )
             }
         }
-    }
-
-    private fun updateCurrentPlaybackState() {
-        val playbackState = PlaybackGateway.state.value
-        trackAdapter.updatePlaybackState(
-            currentTrackId = playbackState.currentTrack?.id,
-            isPlaying = playbackState.isPlaying
-        )
     }
 
     private fun RecyclerEmptyStateController.configureForMusicSet() {
@@ -181,21 +169,32 @@ class TrackListFragment : BaseListFragment() {
     private fun onTrackClicked(track: Music) {
         val context = requireContext()
         val preferences = PreferenceUtil.getInstance(context)
-        val playbackState = PlaybackGateway.state.value
 
         val shouldRestartCurrentTrack =
             preferences.isReplaySongEnabled() &&
-                    playbackState.currentTrack?.id == track.id
+                    playerViewModel.playbackHighlightState.value.currentMusicId == track.id
 
         if (shouldRestartCurrentTrack) {
-            PlaybackGateway.restartCurrentTrack(context)
+            playerViewModel.restartCurrentTrack(context)
         } else {
-            viewModel.onTrackClicked(track)
+            playTrackFromCurrentList(track)
         }
 
         if (preferences.isTrackClickOperationEnabled()) {
             PlayQueueActivity.start(context)
         }
+    }
+
+    private fun playTrackFromCurrentList(track: Music) {
+        val startIndex = currentTracks.indexOfFirst { it.id == track.id }
+
+        if (startIndex == -1) return
+
+        playerViewModel.playQueue(
+            context = requireContext(),
+            queue = currentTracks,
+            startIndex = startIndex
+        )
     }
 
     private fun showMusicOptionsDialog(music: Music) {
@@ -284,7 +283,7 @@ class TrackListFragment : BaseListFragment() {
     }
 
     fun onSortChanged() {
-        viewModel.onSortChanged()
+//        viewModel.onSortChanged()
     }
 
     private fun openSelection() {
@@ -325,10 +324,6 @@ class TrackListFragment : BaseListFragment() {
                 parentFragmentManager,
                 ManageArtworkDialogFragment::class.java.simpleName
             )
-    }
-
-    fun getCurrentTracks(): List<Music> {
-        return currentTracks
     }
 
     private fun showNotImplemented() {

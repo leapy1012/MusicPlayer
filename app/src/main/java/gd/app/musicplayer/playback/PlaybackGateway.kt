@@ -16,8 +16,8 @@ object PlaybackGateway {
     private val appDependencies
         get() = MusicPlayerApp.instance.appDependencies
 
-    fun playQueue(context: Context, queue: List<Music>, startIndex: Int) =
-        controller(context).playQueue(context, queue, startIndex)
+//    fun playQueue(context: Context, queue: List<Music>, startIndex: Int) =
+//        controller(context).playQueue(context, queue, startIndex)
 
     fun shufflePlay(context: Context, queue: List<Music>) =
         controller(context).shufflePlay(context, queue)

@@ -4,14 +4,15 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.viewModels
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.FragmentPlayFullLyricBinding
-import gd.app.musicplayer.playback.PlaybackGateway
-import gd.app.musicplayer.playback.queue.currentTrack
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.ui.feature.player.MusicPlayActivity
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.PreferenceUtil
@@ -19,6 +20,7 @@ import gd.app.musicplayer.util.TrackLyricsStore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class FullLyricFragment : Fragment() {
 
     private var _binding: FragmentPlayFullLyricBinding? = null
@@ -29,6 +31,7 @@ class FullLyricFragment : Fragment() {
     private var isPlaybackActive = false
     private var isAutoScrollPreferenceEnabled = false
     private var isAutoScrollAllowedByScreen = true
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -75,27 +78,27 @@ class FullLyricFragment : Fragment() {
     }
 
     private fun observePlayback() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                PlaybackGateway.state.collect { state ->
-                    isPlaybackActive = state.isPlaying
-                    val track = state.currentTrack
-                    if (track == null) {
-                        updateLyricAutoScroll()
-                        return@collect
-                    }
-                    binding.fullLyricTitle.text = track.title
-                    binding.fullLyricArtist.text =
-                        track.artist.ifBlank { getString(R.string.artist) }
-                    binding.fullLyricView.setCurrentTime(state.positionMs.toLong())
-                    binding.fullLyricView.setTimeOffset(
-                        TrackLyricsStore.from(requireContext()).getTrackLyricOffset(track.id)
-                    )
-                    updateLyricAutoScroll()
-                    maybeLoadLyrics(track.id, track.data)
-                }
-            }
-        }
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+//                playerViewModel.playbackState.collect { state ->
+//                    isPlaybackActive = state.isPlaying
+//                    val track = state.currentTrack
+//                    if (track == null) {
+//                        updateLyricAutoScroll()
+//                        return@collect
+//                    }
+//                    binding.fullLyricTitle.text = track.title
+//                    binding.fullLyricArtist.text =
+//                        track.artist.ifBlank { getString(R.string.artist) }
+//                    binding.fullLyricView.setCurrentTime(state.positionMs.toLong())
+//                    binding.fullLyricView.setTimeOffset(
+//                        TrackLyricsStore.from(requireContext()).getTrackLyricOffset(track.id)
+//                    )
+//                    updateLyricAutoScroll()
+//                    maybeLoadLyrics(track.id, track.data)
+//                }
+//            }
+//        }
     }
 
     private fun observeLyricPreferenceChanges() {

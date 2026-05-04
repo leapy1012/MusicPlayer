@@ -16,13 +16,13 @@ import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.loadMusicArtwork
+import gd.app.musicplayer.core.extension.toDurationString
 import gd.app.musicplayer.databinding.ActivityDriveModeItemBinding
 import gd.app.musicplayer.databinding.FragmentDriveModeBinding
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
-import gd.app.musicplayer.playback.PlaybackControlViewModel
-import gd.app.musicplayer.playback.queue.currentTrack
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.view.SeekBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,7 +32,7 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     private var userSeeking = false
     private var pagerSyncFromState = false
     private val pagerAdapter = DriveModePagerAdapter()
-    private val viewModel: PlaybackControlViewModel by viewModels()
+    private val viewModel: PlayerViewModel by viewModels()
     private val playModeViewModel: PlayModeViewModel by viewModels()
     private val preferenceUtil by lazy { requireContext().appDependencies.preferenceUtil }
     private val toggleFavoriteTrack by lazy {
@@ -52,11 +52,11 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             override fun onPageScrollStateChanged(state: Int) = Unit
 
             override fun onPageSelected(position: Int) {
-                if (pagerSyncFromState) return
-                val state = viewModel.playbackState.value
-                if (state.queue.isNotEmpty() && position in state.queue.indices) {
-                    viewModel.playQueue(requireContext(), state.queue, position)
-                }
+//                if (pagerSyncFromState) return
+//                val state = viewModel.playbackState.value
+//                if (state.queue.isNotEmpty() && position in state.queue.indices) {
+//                    viewModel.playQueue(requireContext(), state.queue, position)
+//                }
             }
         })
 
@@ -67,14 +67,14 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             PlaybackQueueBottomSheetFragment.show(parentFragmentManager)
         }
         binding.driveModePlayPause.setOnClickListener {
-            val state = viewModel.playbackState.value
-            if (state.queue.isEmpty()) {
-                viewLifecycleOwner.lifecycleScope.launch {
-                    viewModel.playAllTracks(requireContext())
-                }
-            } else {
-                viewModel.togglePlayPause(requireContext())
-            }
+//            val state = viewModel.playbackState.value
+//            if (state.queue.isEmpty()) {
+//                viewLifecycleOwner.lifecycleScope.launch {
+//                    viewModel.playAllTracks(requireContext())
+//                }
+//            } else {
+//                viewModel.togglePlayPause(requireContext())
+//            }
         }
         binding.driveModePrevious.setOnClickListener {
             viewModel.playPrevious(requireContext())
@@ -83,18 +83,18 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             viewModel.playNext(requireContext())
         }
         binding.driveModeBackward.setOnClickListener {
-            val current = viewModel.playbackState.value.positionMs
-            viewModel.seekTo(
-                requireContext(),
-                (current - skipDurationMs().toLong()).coerceAtLeast(0L).toInt()
-            )
+//            val current = viewModel.playbackState.value.positionMs
+//            viewModel.seekTo(
+//                requireContext(),
+//                (current - skipDurationMs().toLong()).coerceAtLeast(0L).toInt()
+//            )
         }
         binding.driveModeForward.setOnClickListener {
-            val state = viewModel.playbackState.value
-            viewModel.seekTo(
-                requireContext(),
-                (state.positionMs + skipDurationMs().toLong()).coerceAtMost(state.durationMs).toInt()
-            )
+//            val state = viewModel.playbackState.value
+//            viewModel.seekTo(
+//                requireContext(),
+//                (state.positionMs + skipDurationMs().toLong()).coerceAtMost(state.durationMs).toInt()
+//            )
         }
         binding.driveModeFavorite.setOnClickListener {
             toggleFavorite()
@@ -121,32 +121,32 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     }
 
     private fun observePlayback() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.playbackState.collect { state ->
-                    val binding = requireBinding()
-
-                    binding.driveModePlayPause.isSelected = state.isPlaying
-                    binding.driveModeFavorite.isSelected = state.currentTrack?.isFavorite() == true
-                    binding.driveModeProgress.isEnabled = state.durationMs > 0
-                    binding.driveModeProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
-                    if (!userSeeking) {
-                        binding.driveModeProgress.setProgress(state.positionMs.toInt())
-                    }
-                    binding.driveModeCurrTime.text = viewModel.formatTime(state.positionMs.toInt())
-                    binding.driveModeTotalTime.text = viewModel.formatTime(state.durationMs.toInt())
-
-                    val queue = state.queue.ifEmpty { listOf(placeholderMusic(requireContext())) }
-                    pagerAdapter.submitQueue(queue)
-                    val targetIndex = state.currentIndex.takeIf { it in queue.indices } ?: 0
-                    if (binding.musicInfoPager.currentItem != targetIndex) {
-                        pagerSyncFromState = true
-                        binding.musicInfoPager.setCurrentItem(targetIndex, false)
-                        pagerSyncFromState = false
-                    }
-                }
-            }
-        }
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+//                viewModel.playbackState.collect { state ->
+//                    val binding = requireBinding()
+//
+//                    binding.driveModePlayPause.isSelected = state.isPlaying
+//                    binding.driveModeFavorite.isSelected = state.currentTrack?.isFavorite() == true
+//                    binding.driveModeProgress.isEnabled = state.durationMs > 0
+//                    binding.driveModeProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
+//                    if (!userSeeking) {
+//                        binding.driveModeProgress.setProgress(state.positionMs.toInt())
+//                    }
+//                    binding.driveModeCurrTime.text = state.positionMs.toDurationString()
+//                    binding.driveModeTotalTime.text = state.durationMs.toDurationString()
+//
+//                    val queue = state.queue.ifEmpty { listOf(placeholderMusic(requireContext())) }
+//                    pagerAdapter.submitQueue(queue)
+//                    val targetIndex = state.currentIndex.takeIf { it in queue.indices } ?: 0
+//                    if (binding.musicInfoPager.currentItem != targetIndex) {
+//                        pagerSyncFromState = true
+//                        binding.musicInfoPager.setCurrentItem(targetIndex, false)
+//                        pagerSyncFromState = false
+//                    }
+//                }
+//            }
+//        }
     }
 
     private fun observePlayMode() {
@@ -160,14 +160,14 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     }
 
     private fun toggleFavorite() {
-        val track = viewModel.playbackState.value.currentTrack ?: return
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val favorited = toggleFavoriteTrack(track.id)
-            launch(Dispatchers.Main) {
-                requireBinding().driveModeFavorite.isSelected = favorited
-                pagerAdapter.updateFavorite(track.id, favorited)
-            }
-        }
+//        val track = viewModel.playbackState.value.currentTrack ?: return
+//        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+//            val favorited = toggleFavoriteTrack(track.id)
+//            launch(Dispatchers.Main) {
+//                requireBinding().driveModeFavorite.isSelected = favorited
+//                pagerAdapter.updateFavorite(track.id, favorited)
+//            }
+//        }
     }
 
     private fun skipDurationMs(): Int {

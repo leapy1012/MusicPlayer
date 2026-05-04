@@ -119,27 +119,6 @@ class TrackListViewModel @Inject constructor(
         currentMusicSet.value = musicSet
     }
 
-    fun onSortChanged() {
-//        bind(curr)
-    }
-
-    fun onTrackClicked(track: Music) {
-        val tracks = uiState.value.tracks
-
-        if (tracks.isEmpty()) return
-
-        val startIndex = tracks.indexOfFirst { music ->
-            music.id == track.id
-        }.takeIf { index ->
-            index >= 0
-        } ?: 0
-
-        playTracksUseCase(
-            context = appContext,
-            tracks = tracks,
-            startIndex = startIndex
-        )
-    }
 
     fun onMenuAction(action: MusicSetMenuAction) {
         when (action) {

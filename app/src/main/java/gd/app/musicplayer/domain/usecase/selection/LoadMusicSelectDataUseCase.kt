@@ -1,6 +1,5 @@
-package gd.app.musicplayer.ui.feature.selection
+package gd.app.musicplayer.domain.usecase.selection
 
-import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.data.repo.LibraryRepo
 import gd.app.musicplayer.data.repo.PlaylistRepo
@@ -20,22 +19,18 @@ class LoadMusicSelectDataUseCase @Inject constructor(
                 libraryRepo.observeMusicSets(MusicSet.Folders).first().filterIsInstance<MusicSet.Folder>(),
                 MusicSet.Folders
             )
-            return MusicSelectLoadResult(
-                sourceSets = sourceSets
-            )
+            return MusicSelectLoadResult(sourceSets = sourceSets)
         }
 
-        val normalizedSet = normalizeSongsSetForSort(request.selectedSet)
+        val normalizedSet = if (request.selectedSet is MusicSet.TrackCollection) {
+            request.selectedSet
+        } else {
+            MusicSet.Tracks
+        }
         val selectedSetSongs = libraryRepo.observeTracks(
             musicSet = normalizedSet,
-            sortStyle = preferenceUtil.getSortStyle(
-                normalizedSet,
-                selectionMode = true
-            ),
-            sortDescending = preferenceUtil.isSortReversed(
-                normalizedSet,
-                selectionMode = true
-            )
+            sortStyle = preferenceUtil.getSortStyle(normalizedSet, selectionMode = true),
+            sortDescending = preferenceUtil.isSortReversed(normalizedSet, selectionMode = true)
         ).first()
 
         val targetSetSongs = request.targetSet
@@ -66,10 +61,6 @@ class LoadMusicSelectDataUseCase @Inject constructor(
         )
     }
 
-    private fun normalizeSongsSetForSort(set: MusicSet): MusicSet {
-        return if (set is MusicSet.TrackCollection) set else MusicSet.Tracks
-    }
-
     private fun sortSourceItems(items: List<MusicSet>, sourceCategory: MusicSet): List<MusicSet> {
         return when (sourceCategory) {
             is MusicSet.Folders -> {
@@ -77,22 +68,9 @@ class LoadMusicSelectDataUseCase @Inject constructor(
                 val style = preferenceUtil.getFolderSortStyle(selectionMode = true)
                 val reversed = preferenceUtil.isFolderSortReversed(selectionMode = true)
                 val comparator = when (style) {
-                    "track_count" -> compareBy<MusicSet.Folder>(
-                        { it.musicCount },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    "date" -> compareBy<MusicSet.Folder>(
-                        { it.date },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    else -> compareBy<MusicSet.Folder>(
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
+                    "track_count" -> compareBy<MusicSet.Folder>({ it.musicCount }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    "date" -> compareBy<MusicSet.Folder>({ it.date }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    else -> compareBy<MusicSet.Folder>({ it.name.lowercase(Locale.getDefault()) }, { it.id })
                 }
                 val sorted = folders.sortedWith(comparator)
                 when {
@@ -107,22 +85,9 @@ class LoadMusicSelectDataUseCase @Inject constructor(
                 val style = preferenceUtil.getArtistSortStyle()
                 val reversed = preferenceUtil.isArtistSortReversed()
                 val comparator = when (style) {
-                    "track_count" -> compareBy<MusicSet.Artist>(
-                        { it.musicCount },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    "album_count" -> compareBy<MusicSet.Artist>(
-                        { it.albumCount },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    else -> compareBy<MusicSet.Artist>(
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
+                    "track_count" -> compareBy<MusicSet.Artist>({ it.musicCount }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    "album_count" -> compareBy<MusicSet.Artist>({ it.albumCount }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    else -> compareBy<MusicSet.Artist>({ it.name.lowercase(Locale.getDefault()) }, { it.id })
                 }
                 val sorted = artists.sortedWith(comparator)
                 when {
@@ -137,34 +102,11 @@ class LoadMusicSelectDataUseCase @Inject constructor(
                 val style = preferenceUtil.getAlbumSortStyle()
                 val reversed = preferenceUtil.isAlbumSortReversed()
                 val comparator = when (style) {
-                    "year" -> compareBy<MusicSet.Album>(
-                        { it.year },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    "artist" -> compareBy<MusicSet.Album>(
-                        { it.artist.lowercase(Locale.getDefault()) },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    "track_count" -> compareBy<MusicSet.Album>(
-                        { it.musicCount },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    "date" -> compareBy<MusicSet.Album>(
-                        { it.date },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    else -> compareBy<MusicSet.Album>(
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
+                    "year" -> compareBy<MusicSet.Album>({ it.year }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    "artist" -> compareBy<MusicSet.Album>({ it.artist.lowercase(Locale.getDefault()) }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    "track_count" -> compareBy<MusicSet.Album>({ it.musicCount }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    "date" -> compareBy<MusicSet.Album>({ it.date }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    else -> compareBy<MusicSet.Album>({ it.name.lowercase(Locale.getDefault()) }, { it.id })
                 }
                 val sorted = albums.sortedWith(comparator)
                 when {
@@ -179,16 +121,8 @@ class LoadMusicSelectDataUseCase @Inject constructor(
                 val style = preferenceUtil.getSortStyle(sourceCategory, false)
                 val reversed = preferenceUtil.isSortReversed(sourceCategory, false)
                 val comparator = when (style) {
-                    "track_count" -> compareBy<MusicSet.Genre>(
-                        { it.musicCount },
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
-
-                    else -> compareBy<MusicSet.Genre>(
-                        { it.name.lowercase(Locale.getDefault()) },
-                        { it.id }
-                    )
+                    "track_count" -> compareBy<MusicSet.Genre>({ it.musicCount }, { it.name.lowercase(Locale.getDefault()) }, { it.id })
+                    else -> compareBy<MusicSet.Genre>({ it.name.lowercase(Locale.getDefault()) }, { it.id })
                 }
                 val sorted = genres.sortedWith(comparator)
                 when {
@@ -200,27 +134,5 @@ class LoadMusicSelectDataUseCase @Inject constructor(
 
             else -> items.sortedBy { it.name.lowercase(Locale.getDefault()) }
         }
-    }
-}
-
-class ConfirmMusicSelectUseCase @Inject constructor(
-    private val playlistRepo: PlaylistRepo
-) {
-    suspend operator fun invoke(request: MusicSelectConfirmRequest): MusicSelectConfirmResult {
-        val targetPlaylistId = request.targetSet.id
-        val songIds = request.selectedSongs.map(Music::id).distinct()
-        if (songIds.isEmpty() || targetPlaylistId <= 0L) {
-            return MusicSelectConfirmResult(insertedCount = 0, skippedCount = songIds.size)
-        }
-
-        val insertedCount = playlistRepo.addTracksToPlaylists(
-            playlistIds = listOf(targetPlaylistId),
-            tracks = request.selectedSongs
-        )
-
-        return MusicSelectConfirmResult(
-            insertedCount = insertedCount,
-            skippedCount = songIds.size - insertedCount
-        )
     }
 }

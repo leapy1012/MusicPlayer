@@ -28,6 +28,7 @@ import gd.app.musicplayer.core.extension.navigateBack
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.isFavorite
+import gd.app.musicplayer.core.extension.toDurationString
 import gd.app.musicplayer.core.theme.messageColor
 import gd.app.musicplayer.core.theme.titleColor
 import gd.app.musicplayer.databinding.FragmentQueueBinding
@@ -35,15 +36,13 @@ import gd.app.musicplayer.databinding.MusicPlayFragmentListItemBinding
 import gd.app.musicplayer.ui.feature.library.QueueTrackOptionsDialog
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
-import gd.app.musicplayer.playback.PlaybackGateway
-import gd.app.musicplayer.playback.queue.PlaybackState
-import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.core.ui.view.MusicRecyclerView
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
-import gd.app.musicplayer.playback.PlaybackControlViewModel
+import gd.app.musicplayer.ui.player.PlayerViewModel
+import gd.app.musicplayer.ui.player.QueueViewModel
 import kotlinx.coroutines.launch
 import java.util.Collections
 
@@ -51,14 +50,16 @@ import java.util.Collections
 class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     Toolbar.OnMenuItemClickListener {
 
-    private val viewModel: PlaybackControlViewModel by viewModels()
+    private val viewModel: PlayerViewModel by viewModels()
+    private val queueViewModel: QueueViewModel by viewModels()
     private val playModeViewModel: PlayModeViewModel by viewModels()
 
     private lateinit var adapter: QueueListAdapter
     private lateinit var emptyStateController: RecyclerEmptyStateController
     private lateinit var recyclerView: MusicRecyclerView
     private lateinit var emptyViewStub: ViewStub
-    private var playbackState = PlaybackGateway.state.value
+    private var currentQueue: List<Music> = emptyList()
+    private var currentIndex: Int = -1
     private var localQueueOverride: List<Music>? = null
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentQueueBinding =
@@ -100,7 +101,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         binding.toolbar.inflateMenu(R.menu.menu_fragment_queue)
         binding.toolbar.setOnMenuItemClickListener(this)
         binding.queueClear.setOnClickListener {
-            if (playbackState.queue.isEmpty()) {
+            if (resolveQueue().isEmpty()) {
                 ToastUtil.show(requireContext(), R.string.list_is_empty)
             } else {
                 viewModel.clearQueue(requireContext())
@@ -111,7 +112,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     private fun buildAdapter(): QueueListAdapter =
         QueueListAdapter(
             onTrackClicked = { position ->
-                val queue = localQueueOverride ?: playbackState.queue
+                val queue = resolveQueue()
                 if (position in queue.indices) {
                     viewModel.playQueue(requireContext(), queue, position)
                 }
@@ -124,6 +125,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             },
             onTrackMoved = ::onTrackMovedLocally,
             onTrackMoveFinished = ::replaceQueuePreservingCurrentTrack,
+            formatDuration = { durationMs -> durationMs.toLong().toDurationString() },
             onTrackMenu = { track ->
                 QueueTrackOptionsDialog.newInstance(track)
                     .show(parentFragmentManager, QueueTrackOptionsDialog::class.java.simpleName)
@@ -133,26 +135,27 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     private fun observePlayback() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.playbackState.collect { state ->
-                    playbackState = state
-                    val queue = localQueueOverride ?: state.queue
+                queueViewModel.queueState.collect { state ->
+                    currentQueue = state.queue
+                    currentIndex = state.currentIndex
+                    val queue = resolveQueue()
                     val binding = requireBinding()
-                    adapter.submitQueue(queue, state.currentIndex)
+                    adapter.submitQueue(queue, currentIndex)
                     val isEmpty = queue.isEmpty()
                     binding.queueBannerLayout.isGone = isEmpty
-                    emptyStateController.setVisible(queue.isEmpty())
+                    emptyStateController.setVisible(isEmpty)
                     binding.collapsingToolbar.isTitleEnabled = isEmpty.not()
                     updateCollapsingHeight(isEmpty)
-                    updateQueueInfo(state, queue)
+                    updateQueueInfo(queue)
                 }
             }
         }
     }
 
-    private fun updateQueueInfo(state: PlaybackState, queue: List<Music>) {
+    private fun updateQueueInfo(queue: List<Music>) {
         val binding = requireBinding()
         val count = queue.size
-        val current = if (count == 0) 0 else (state.currentIndex + 1).coerceIn(1, count)
+        val current = if (count == 0) 0 else (currentIndex + 1).coerceIn(1, count)
         binding.queueInfo.text = "$current/$count"
     }
 
@@ -161,17 +164,17 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             viewModel.clearQueue(requireContext())
             return
         }
-        val currentTrackId = playbackState.currentTrack?.id
+        val currentTrackId = currentQueue.getOrNull(currentIndex)?.id
         val nextIndex = updatedQueue.indexOfFirst { it.id == currentTrackId }
             .takeIf { it >= 0 }
-            ?: playbackState.currentIndex.coerceIn(0, updatedQueue.lastIndex)
+            ?: currentIndex.coerceIn(0, updatedQueue.lastIndex)
         viewModel.replaceQueue(requireContext(), updatedQueue, nextIndex)
         localQueueOverride = null
     }
 
     private fun onTrackMovedLocally(updatedQueue: List<Music>) {
         localQueueOverride = updatedQueue
-        updateQueueInfo(playbackState, updatedQueue)
+        updateQueueInfo(updatedQueue)
     }
 
     private fun updateCollapsingHeight(isEmpty: Boolean) {
@@ -185,8 +188,9 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     }
 
     fun scrollToCurrentTrack() {
-        val index = playbackState.currentIndex
-        if (index !in playbackState.queue.indices) {
+        val queue = resolveQueue()
+        val index = currentIndex
+        if (index !in queue.indices) {
             ToastUtil.show(requireContext(), R.string.no_music_enqueue)
             return
         }
@@ -200,15 +204,18 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             }
 
             R.id.menu_add_to -> {
-                if (playbackState.queue.isEmpty()) {
+                val queue = resolveQueue()
+                if (queue.isEmpty()) {
                     ToastUtil.show(requireContext(), R.string.list_is_empty)
                 } else {
-                    ActivityPlaylistSelect.start(requireContext(), localQueueOverride ?: playbackState.queue)
+                    ActivityPlaylistSelect.start(requireContext(), queue)
                 }
             }
         }
         return true
     }
+
+    private fun resolveQueue(): List<Music> = localQueueOverride ?: currentQueue
 
     private fun observePlayMode() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -226,6 +233,7 @@ private class QueueListAdapter(
     private val onToggleFavorite: (Music) -> Unit,
     private val onTrackMoved: (List<Music>) -> Unit,
     private val onTrackMoveFinished: (List<Music>) -> Unit,
+    private val formatDuration: (Int) -> String,
     private val onTrackMenu: (Music) -> Unit
 ) : RecyclerView.Adapter<QueueListAdapter.QueueViewHolder>(), ItemMoveListener {
 
@@ -307,6 +315,7 @@ private class QueueListAdapter(
         fun bind(
             music: Music,
             isCurrent: Boolean,
+            formatDuration: (Int) -> String,
             onClick: () -> Unit,
             onFavoriteClick: () -> Unit,
             onMenuClick: () -> Unit
@@ -321,7 +330,7 @@ private class QueueListAdapter(
             binding.musicItemExtra.text = music.artist
             binding.musicItemTitle.setTextColor(titleColor)
             binding.musicItemExtra.setTextColor(extraColor)
-            binding.musicItemTime.text = PlaybackGateway.formatTime(music.duration)
+            binding.musicItemTime.text = formatDuration(music.duration)
             binding.musicItemFavorite.visibility = if (isCurrent) View.VISIBLE else View.GONE
             binding.musicItemFavorite.isSelected = music.isFavorite()
             binding.musicItemFavorite.imageTintList = ColorStateList.valueOf(
@@ -345,6 +354,7 @@ private class QueueListAdapter(
         holder.bind(
             music = queue[position],
             isCurrent = position == currentIndex,
+            formatDuration = formatDuration,
             onClick = { onTrackClicked(position) },
             onFavoriteClick = { onToggleFavorite(queue[position]) },
             onMenuClick = { onTrackMenu(queue[position]) }

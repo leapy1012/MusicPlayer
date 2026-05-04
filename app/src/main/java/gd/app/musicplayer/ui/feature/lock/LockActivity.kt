@@ -22,11 +22,10 @@ import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.core.extension.loadMusicArtwork
+import gd.app.musicplayer.core.extension.toDurationString
 import gd.app.musicplayer.ui.feature.library.MusicOptionsDialog
-import gd.app.musicplayer.playback.PlaybackGateway
-import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
-import gd.app.musicplayer.playback.PlaybackControlViewModel
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
@@ -38,6 +37,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.toDuration
 
 @AndroidEntryPoint
 class LockActivity : BaseActivity(),
@@ -63,7 +63,7 @@ class LockActivity : BaseActivity(),
     private val preferenceUtil by lazy { PreferenceUtil.getInstance(this) }
     private val toggleFavoriteTrack by lazy { appDependencies.toggleFavoriteTrackUseCase }
     private val playModeViewModel: PlayModeViewModel by viewModels()
-    private val playbackControlViewModel: PlaybackControlViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     private var currentTrack: Music? = null
     private var userSeeking = false
@@ -101,26 +101,26 @@ class LockActivity : BaseActivity(),
             R.id.lock_play_favourite -> toggleFavorite()
             R.id.lock_play_queue -> PlaybackQueueBottomSheetFragment.show(supportFragmentManager)
             R.id.control_mode -> cyclePlayMode()
-            R.id.control_previous -> PlaybackGateway.playPrevious(this)
+            R.id.control_previous -> playerViewModel.playPrevious(this)
             R.id.control_play_pause -> {
-                val state = PlaybackGateway.state.value
-                if (state.queue.isEmpty()) {
-                    lifecycleScope.launch {
-                        playbackControlViewModel.playAllTracks(this@LockActivity)
-                    }
-                } else {
-                    PlaybackGateway.togglePlayPause(this)
-                }
+//                val state = playerViewModel.playbackState.value
+//                if (state.queue.isEmpty()) {
+//                    lifecycleScope.launch {
+//                        playerViewModel.playAllTracks(this@LockActivity)
+//                    }
+//                } else {
+//                    playerViewModel.togglePlayPause(this)
+//                }
             }
-            R.id.control_next -> PlaybackGateway.playNext(this)
+            R.id.control_next -> playerViewModel.playNext(this)
         }
     }
 
     override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
         if (!fromUser) return
-        currentTimeView.text = PlaybackGateway.formatTime(progress)
+        currentTimeView.text = progress.toLong().toDurationString()
         lyricView.setCurrentTime(progress.toLong())
-        PlaybackGateway.seekTo(this, progress)
+        playerViewModel.seekTo(this, progress)
     }
 
     override fun onStartTrackingTouch(seekBar: SeekBar) {
@@ -182,29 +182,29 @@ class LockActivity : BaseActivity(),
     }
 
     private fun observePlayback() {
-        lifecycleScope.launch {
-            PlaybackGateway.state.collect { state ->
-                val track = state.currentTrack ?: run {
-                    finish()
-                    return@collect
-                }
-                currentTrack = track
-                titleView.text = track.title
-                artistView.text = track.artist.ifBlank { getString(android.R.string.unknownName) }
-                favoriteView.isSelected = track.isFavorite()
-                playPauseView.isSelected = state.isPlaying
-                totalTimeView.text = PlaybackGateway.formatTime(track.duration)
-                progressView.setMax(track.duration.coerceAtLeast(1))
-                progressView.isEnabled = !track.data.isNullOrBlank()
-                if (!userSeeking) {
-                    progressView.setProgress(state.positionMs.coerceAtLeast(0L).toInt())
-                    currentTimeView.text = PlaybackGateway.formatTime(state.positionMs.toInt())
-                }
-                lyricView.setCurrentTime(state.positionMs.toLong())
-                track.loadMusicArtwork(albumImage)
-                updateBackground(track)
-            }
-        }
+//        lifecycleScope.launch {
+//            playerViewModel.playbackState.collect { state ->
+//                val track = state.currentTrack ?: run {
+//                    finish()
+//                    return@collect
+//                }
+//                currentTrack = track
+//                titleView.text = track.title
+//                artistView.text = track.artist.ifBlank { getString(android.R.string.unknownName) }
+//                favoriteView.isSelected = track.isFavorite()
+//                playPauseView.isSelected = state.isPlaying
+//                totalTimeView.text = track.duration.toLong().toDurationString()
+//                progressView.setMax(track.duration.coerceAtLeast(1))
+//                progressView.isEnabled = !track.data.isNullOrBlank()
+//                if (!userSeeking) {
+//                    progressView.setProgress(state.positionMs.coerceAtLeast(0L).toInt())
+//                    currentTimeView.text = state.positionMs.toDurationString()
+//                }
+//                lyricView.setCurrentTime(state.positionMs)
+//                track.loadMusicArtwork(albumImage)
+//                updateBackground(track)
+//            }
+//        }
     }
 
     private fun updateBackground(track: Music) {

@@ -28,7 +28,6 @@ import gd.app.musicplayer.util.PreferenceUtil
 import java.io.File
 import java.io.InputStream
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 internal object WidgetRenderer {
@@ -59,17 +58,8 @@ internal object WidgetRenderer {
     internal fun loadPlaybackSnapshot(context: Context): WidgetPlaybackSnapshot = runBlocking(Dispatchers.IO) {
         val dependencies = context.appDependencies
         val queue = dependencies.playbackQueueRepo.getQueue()
-        val session = dependencies.playbackSessionStore.session.first()
-
-        val currentTrack = when {
-            session?.currentIndex != null && session.currentIndex in queue.indices -> {
-                queue[session.currentIndex]
-            }
-            session?.musicId != null -> {
-                queue.firstOrNull { it.id == session.musicId }
-            }
-            else -> null
-        }
+        val runtimeState = dependencies.playbackRuntimeStateStore.state.value
+        val currentTrack = runtimeState.currentTrack
 
         val resolvedIndex = currentTrack
             ?.let { track -> queue.indexOfFirst { queued -> queued.id == track.id } }
@@ -79,7 +69,8 @@ internal object WidgetRenderer {
             queue = queue,
             currentTrack = currentTrack,
             currentIndex = resolvedIndex,
-            positionMs = session?.positionMs ?: 0L
+            positionMs = runtimeState.positionMs,
+            isPlaying = runtimeState.isPlaying
         )
     }
 
@@ -356,11 +347,9 @@ internal data class WidgetPlaybackSnapshot(
     val queue: List<Music>,
     val currentTrack: Music?,
     val currentIndex: Int,
-    val positionMs: Long
+    val positionMs: Long,
+    val isPlaying: Boolean
 ) {
     val hasTrack: Boolean
         get() = currentTrack != null && currentIndex in queue.indices
-
-    val isPlaying: Boolean
-        get() = hasTrack
 }

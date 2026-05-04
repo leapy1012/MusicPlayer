@@ -8,6 +8,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -17,17 +18,18 @@ import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.core.ui.dialog.OptionsListDialog
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.databinding.ActivitySleepBinding
-import gd.app.musicplayer.playback.PlaybackGateway
 import gd.app.musicplayer.playback.SleepTimerManager
 import gd.app.musicplayer.playback.SleepTimerState
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.launch
 
 class SleepActivity : BaseActivity(), View.OnClickListener {
 
     private lateinit var binding: ActivitySleepBinding
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     private var selectedMinutes: Int = 0
     private var hasPendingChange: Boolean = false
@@ -151,7 +153,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
                 val isSelected = !wasSelected
                 binding.sleepItemOperationSelect.isSelected = isSelected
                 if (wasSelected) {
-                    PlaybackGateway.setStopAfterCurrentTrack(this, false)
+                    playerViewModel.setStopAfterCurrentTrack(this, false)
                 }
             }
         }

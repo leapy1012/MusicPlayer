@@ -17,8 +17,6 @@ import gd.app.musicplayer.domain.usecase.playmode.GetPlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playmode.ObservePlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.playback.PlaybackController
-import gd.app.musicplayer.playback.queue.PlaybackState
-import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.common.playback.PlayModeUiMapper
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -72,7 +70,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
             PlaybackQueueBottomSheetUiState(
                 queue = queue,
                 currentIndex = playbackState.currentIndex,
-                currentMusic = playbackState.currentMusic,
+                currentMusic = playbackState.currentTrack,
                 isPlaying = playbackState.isPlaying
             )
         }.stateIn(
@@ -102,27 +100,27 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
             }
         )
 
-    fun playQueueAt(position: Int, state: PlaybackState) {
+    fun playQueueAt(position: Int, state: PlaybackQueueBottomSheetUiState) {
         val queue = state.queue
         if (position !in queue.indices) return
         playTracksUseCase(appContext, queue, position)
         emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
     }
 
-    fun saveQueueToPlaylist(state: PlaybackState): List<Music>? {
+    fun saveQueueToPlaylist(state: PlaybackQueueBottomSheetUiState): List<Music>? {
         val queue = state.queue
         if (queue.isEmpty()) return null
         emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
         return queue
     }
 
-    fun clearQueueOrDismiss(state: PlaybackState) {
+    fun clearQueueOrDismiss(state: PlaybackQueueBottomSheetUiState) {
         if (state.queue.isEmpty()) return
         clearQueueUseCase(appContext)
         emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
     }
 
-    fun removeQueueItem(position: Int, state: PlaybackState) {
+    fun removeQueueItem(position: Int, state: PlaybackQueueBottomSheetUiState) {
         val currentQueue = state.queue
         if (position !in currentQueue.indices) return
 
@@ -144,14 +142,14 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         replaceQueueUseCase(appContext, updatedQueue, nextIndex)
     }
 
-    fun replaceQueuePreservingCurrentTrack(updatedQueue: List<Music>, state: PlaybackState) {
+    fun replaceQueuePreservingCurrentTrack(updatedQueue: List<Music>, state: PlaybackQueueBottomSheetUiState) {
         if (updatedQueue.isEmpty()) {
             clearQueueUseCase(appContext)
             emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
             return
         }
 
-        val currentTrackId = state.currentTrack?.id
+        val currentTrackId = state.currentMusic?.id
         val nextIndex = updatedQueue.indexOfFirst { it.id == currentTrackId }
             .takeIf { it >= 0 }
             ?: state.currentIndex.coerceIn(0, updatedQueue.lastIndex)
@@ -159,11 +157,11 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         replaceQueueUseCase(appContext, updatedQueue, nextIndex)
     }
 
-    fun shuffleQueueKeepingCurrentTrack(state: PlaybackState) {
+    fun shuffleQueueKeepingCurrentTrack(state: PlaybackQueueBottomSheetUiState) {
         val queue = state.queue
         if (queue.size < 2) return
 
-        val currentTrack = state.currentTrack
+        val currentTrack = state.currentMusic
         val shuffledQueue = if (currentTrack == null) {
             queue.shuffled()
         } else {

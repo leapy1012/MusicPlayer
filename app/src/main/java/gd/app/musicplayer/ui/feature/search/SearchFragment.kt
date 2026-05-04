@@ -18,8 +18,6 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentSearchBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.data.model.isConcreteCollection
-import gd.app.musicplayer.playback.PlaybackGateway
-import gd.app.musicplayer.playback.queue.currentTrack
 import gd.app.musicplayer.ui.feature.library.AlbumMusicActivity
 import gd.app.musicplayer.ui.feature.library.MusicOptionsDialog
 import gd.app.musicplayer.ui.feature.player.PlayQueueActivity
@@ -119,7 +117,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
 
     override fun onSongClicked(song: Music) {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.onSongClicked(song, PlaybackGateway.state.value.currentTrack?.id)
+            viewModel.onSongClicked(song, viewModel.currentTrackId.value)
         }
     }
 

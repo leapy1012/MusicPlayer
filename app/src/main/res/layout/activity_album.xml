@@ -25,7 +25,7 @@
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/bottomPlayer"
-            android:name="gd.app.musicplayer.ui.feature.player.BottomPlayerFragment"
+            android:name="gd.app.musicplayer.ui.player.BottomPlayerFragment"
             android:layout_width="match_parent"
             android:layout_height="236dp"
             android:clipToPadding="false"
@@ -33,7 +33,7 @@
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/miniPlayer"
-            android:name="gd.app.musicplayer.ui.common.base.BottomMiniPlayerFragment"
+            android:name="gd.app.musicplayer.ui.player.BottomMiniPlayerFragment"
             android:layout_width="match_parent"
             android:layout_height="@dimen/main_control_banner_height"
             android:clipToPadding="false" />

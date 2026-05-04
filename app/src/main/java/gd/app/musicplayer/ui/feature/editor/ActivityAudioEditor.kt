@@ -404,7 +404,7 @@ class ActivityAudioEditor : BaseActivity(),
             if (insertedId != null) {
                 withContext(Dispatchers.IO) {
                     MediaStoreMusicImporter().queryMusicById(this@ActivityAudioEditor, insertedId)
-                        ?.let { appDependencies.scanRepo.upsertTracks(listOf(it)) }
+                        ?.let { appDependencies.upsertScannedTracksUseCase(listOf(it)) }
                 }
                 ToastUtil.show(this@ActivityAudioEditor, R.string.audio_editor_succeed)
                 finish()

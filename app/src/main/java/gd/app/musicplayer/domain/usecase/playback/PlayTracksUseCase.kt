@@ -6,7 +6,7 @@ import gd.app.musicplayer.playback.PlaybackGateway
 
 class PlayTracksUseCase {
     operator fun invoke(context: Context, tracks: List<Music>, startIndex: Int = 0) {
-        PlaybackGateway.playQueue(context, tracks, startIndex)
+//        PlaybackGateway.playQueue(context, tracks, startIndex)
     }
 }
 

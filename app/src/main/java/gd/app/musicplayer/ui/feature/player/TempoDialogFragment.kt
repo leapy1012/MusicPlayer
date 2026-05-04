@@ -5,10 +5,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.fragment.app.viewModels
 import androidx.fragment.app.FragmentManager
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogTempoBinding
-import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.util.PreferenceUtil
@@ -18,6 +20,7 @@ import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
+@AndroidEntryPoint
 class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListener {
 
     private var _binding: DialogTempoBinding? = null
@@ -25,6 +28,7 @@ class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListene
         get() = checkNotNull(_binding)
 
     private val preferenceUtil by lazy { PreferenceUtil.getInstance(requireContext()) }
+    private val playbackViewModel: PlayerViewModel by viewModels()
     private lateinit var speedButtons: List<TextView>
 
     override fun onCreateView(
@@ -127,12 +131,12 @@ class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListene
 
     private fun persistPitch(factor: Float) {
         preferenceUtil.setPlayPitch(factor)
-        PlaybackGateway.applyPlaybackTuning(requireContext())
+        playbackViewModel.applyPlaybackTuning(requireContext())
     }
 
     private fun persistSpeed(factor: Float) {
         preferenceUtil.setPlaySpeed(factor)
-        PlaybackGateway.applyPlaybackTuning(requireContext())
+        playbackViewModel.applyPlaybackTuning(requireContext())
     }
 
     private fun factorToPitchProgress(factor: Float): Int {

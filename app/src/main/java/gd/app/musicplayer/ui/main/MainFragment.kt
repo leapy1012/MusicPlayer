@@ -3,6 +3,11 @@ package gd.app.musicplayer.ui.main
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.view.ViewGroup
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -27,7 +32,8 @@ import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
+class MainFragment :
+    ViewBindingFragment<FragmentMainBinding>() {
     private val viewModel: MainViewModel by viewModels()
 
     private val mainAdapter by lazy(LazyThreadSafetyMode.NONE) {
@@ -64,6 +70,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
     private fun setupInsets(binding: FragmentMainBinding) = with(binding) {
         root.applySystemBarInsets(statusBarSpace, root)
     }
+
 
     private fun setupToolbar(binding: FragmentMainBinding) = with(binding.toolbar) {
         setOnMenuItemClickListener(::onMenuItemClick)

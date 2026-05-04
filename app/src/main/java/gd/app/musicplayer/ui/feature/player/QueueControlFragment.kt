@@ -21,13 +21,13 @@ import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.FragmentQueueControlBinding
 import gd.app.musicplayer.databinding.ItemMainControlPagerBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.playback.PlaybackControlViewModel
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.util.PreferenceUtil
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() {
-    private val viewModel: PlaybackControlViewModel by viewModels()
+    private val viewModel: PlayerViewModel by viewModels()
     private val pagerAdapter by lazy { QueueControlPagerAdapter { PlayQueueActivity.start(requireContext()) } }
     private val preferenceUtil by lazy { PreferenceUtil.getInstance(requireContext()) }
 
@@ -55,22 +55,22 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
                     preferenceUtil.setSlidingSwitchEnabled(false)
                     pagerAdapter.updateSlideHintEnabled(false)
                 }
-                val state = viewModel.playbackState.value
-                if (state.queue.isNotEmpty() && position in state.queue.indices) {
-                    viewModel.playQueue(requireContext(), state.queue, position)
-                }
+//                val state = viewModel.playbackState.value
+//                if (state.queue.isNotEmpty() && position in state.queue.indices) {
+//                    viewModel.playQueue(requireContext(), state.queue, position)
+//                }
             }
         })
 
         binding.mainControlPlayPause.setOnClickListener {
-            val state = viewModel.playbackState.value
-            if (state.queue.isEmpty()) {
-                viewLifecycleOwner.lifecycleScope.launch {
-                    viewModel.playAllTracks(requireContext())
-                }
-            } else {
-                viewModel.togglePlayPause(requireContext())
-            }
+//            val state = viewModel.playbackState.value
+//            if (state.queue.isEmpty()) {
+//                viewLifecycleOwner.lifecycleScope.launch {
+//                    viewModel.playAllTracks(requireContext())
+//                }
+//            } else {
+//                viewModel.togglePlayPause(requireContext())
+//            }
         }
         binding.mainControlLocation.setOnClickListener {
             (parentFragmentManager.findFragmentByTag(PlaybackQueueFragment::class.java.simpleName) as? PlaybackQueueFragment)
@@ -102,29 +102,29 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
     }
 
     private fun observePlayback() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.playbackState.collect { state ->
-                    val binding = requireBinding()
-                    binding.mainControlPlayPause.isSelected = state.isPlaying
-                    binding.mainMusicProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
-                    binding.mainMusicProgress.setProgress(state.positionMs.coerceAtLeast(0L).toInt())
-
-                    val queue = state.queue.ifEmpty { listOf(placeholderMusic()) }
-                    pagerAdapter.submitQueue(
-                        queue = queue,
-                        swipeEnabled = preferenceUtil.getBooleanPreference(KEY_SWIPE_CHANGE_SONGS, true),
-                        showSlideHint = preferenceUtil.isSlidingSwitchEnabled()
-                    )
-                    val targetIndex = state.currentIndex.takeIf { it in queue.indices } ?: 0
-                    if (binding.mainControlPager.currentItem != targetIndex) {
-                        pagerSyncFromState = true
-                        binding.mainControlPager.setCurrentItem(targetIndex, false)
-                        pagerSyncFromState = false
-                    }
-                }
-            }
-        }
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+//                viewModel.playbackState.collect { state ->
+//                    val binding = requireBinding()
+//                    binding.mainControlPlayPause.isSelected = state.isPlaying
+//                    binding.mainMusicProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
+//                    binding.mainMusicProgress.setProgress(state.positionMs.coerceAtLeast(0L).toInt())
+//
+//                    val queue = state.queue.ifEmpty { listOf(placeholderMusic()) }
+//                    pagerAdapter.submitQueue(
+//                        queue = queue,
+//                        swipeEnabled = preferenceUtil.getBooleanPreference(KEY_SWIPE_CHANGE_SONGS, true),
+//                        showSlideHint = preferenceUtil.isSlidingSwitchEnabled()
+//                    )
+//                    val targetIndex = state.currentIndex.takeIf { it in queue.indices } ?: 0
+//                    if (binding.mainControlPager.currentItem != targetIndex) {
+//                        pagerSyncFromState = true
+//                        binding.mainControlPager.setCurrentItem(targetIndex, false)
+//                        pagerSyncFromState = false
+//                    }
+//                }
+//            }
+//        }
     }
 
     private fun observePreferences() {

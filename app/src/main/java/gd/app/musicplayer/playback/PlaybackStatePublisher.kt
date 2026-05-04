@@ -2,30 +2,21 @@ package gd.app.musicplayer.playback
 
 import android.content.Context
 import android.content.Intent
-import android.os.SystemClock
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
-import gd.app.musicplayer.playback.PlaybackSessionStore
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import gd.app.musicplayer.ui.feature.widget.WidgetCatalog
 import gd.app.musicplayer.ui.feature.widget.provider.BaseMusicAppWidgetProvider
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 class PlaybackStatePublisher(
     private val context: Context,
     private val player: ExoPlayer,
     private val runtimeStateStore: PlaybackRuntimeStateStore,
-    private val sessionStore: PlaybackSessionStore,
-    private val scope: CoroutineScope,
     private val queueProvider: () -> List<Music>,
     private val currentIndexProvider: () -> Int,
 ) {
-    private var lastStateSaveElapsedMs = 0L
-
     fun publish() {
         val queue = queueProvider()
         val currentIndex = currentIndexProvider()
@@ -35,60 +26,36 @@ class PlaybackStatePublisher(
 
         val state = MusicPlaybackState(
             currentIndex = currentIndex,
-            queue = queue,
-            currentMusic = queue.getOrNull(currentIndex),
+            currentTrack = queue.getOrNull(currentIndex),
             isPlaying = player.isPlaying || transitionPlaying,
             positionMs = positionMs,
-            durationMs = durationMs
+            durationMs = durationMs,
+            audioSessionId = player.audioSessionId
         )
 
         runtimeStateStore.setState(state)
-        maybePersist(positionMs)
+        notifyWidgets()
     }
 
     fun publishRestored(restoredIndex: Int, restoredPositionMs: Long, restoredQueue: List<Music>) {
         val transitionPlaying = player.playWhenReady && restoredIndex in restoredQueue.indices && player.playbackState != Player.STATE_IDLE
+
+        val music = restoredQueue.getOrNull(restoredIndex) ?: return
+
         val state = MusicPlaybackState(
             currentIndex = restoredIndex,
-            queue = restoredQueue,
-            currentMusic = restoredQueue.getOrNull(restoredIndex),
+            currentTrack = music,
             isPlaying = player.isPlaying || transitionPlaying,
             positionMs = restoredPositionMs,
-            durationMs = restoredPositionMs * 2
+            durationMs = music.duration.toLong(),
+            audioSessionId = player.audioSessionId
         )
         runtimeStateStore.setState(state)
-        persistSessionAndNotifyWidgets(state.currentMusic?.id, state.currentIndex, state.positionMs)
-    }
-
-    fun persistNow(positionMs: Long = player.safePositionMs(player.safeDurationMs())) {
-        lastStateSaveElapsedMs = SystemClock.elapsedRealtime()
-        val queue = queueProvider()
-        val currentIndex = currentIndexProvider()
-        persistSessionAndNotifyWidgets(queue.getOrNull(currentIndex)?.id, currentIndex, positionMs)
+        notifyWidgets()
     }
 
     fun reset() {
         runtimeStateStore.reset()
-    }
-
-    private fun maybePersist(positionMs: Long) {
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastStateSaveElapsedMs < STATE_SAVE_INTERVAL_MS) return
-        lastStateSaveElapsedMs = now
-        val queue = queueProvider()
-        val currentIndex = currentIndexProvider()
-        persistSessionAndNotifyWidgets(queue.getOrNull(currentIndex)?.id, currentIndex, positionMs)
-    }
-
-    private fun persistSessionAndNotifyWidgets(currentMusicId: Long?, currentIndex: Int, positionMs: Long) {
-        scope.launch {
-            if (currentMusicId == null || currentIndex < 0) {
-                sessionStore.clearSession()
-            } else {
-                sessionStore.saveSession(currentMusicId, positionMs.coerceAtLeast(0L), currentIndex)
-            }
-            notifyWidgets()
-        }
     }
 
     private fun notifyWidgets() {
@@ -109,7 +76,4 @@ class PlaybackStatePublisher(
         currentPosition.coerceIn(0L, durationMs)
     }.getOrDefault(0L)
 
-    companion object {
-        private const val STATE_SAVE_INTERVAL_MS = 1_000L
-    }
 }

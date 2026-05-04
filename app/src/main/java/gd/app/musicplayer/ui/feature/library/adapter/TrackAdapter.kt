@@ -86,7 +86,7 @@ class TrackAdapter(
         )
     }
 
-    fun updatePlaybackState(
+    fun submitPlaybackHighlight(
         currentTrackId: Long?,
         isPlaying: Boolean
     ) {

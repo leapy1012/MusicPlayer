@@ -12,24 +12,34 @@ import javax.inject.Singleton
 class PlaybackRuntimeStateStore @Inject constructor() {
 
     private val _state = MutableStateFlow(MusicPlaybackState())
-
     val state: StateFlow<MusicPlaybackState> = _state.asStateFlow()
-
-    fun update(transform: (MusicPlaybackState) -> MusicPlaybackState) {
-        _state.update(transform)
-    }
 
     fun setState(state: MusicPlaybackState) {
         _state.value = state
     }
 
-    // Compatibility wrapper for previous call sites.
-    fun publish(state: MusicPlaybackState) {
-        setState(state)
+    fun update(block: (MusicPlaybackState) -> MusicPlaybackState) {
+        _state.update(block)
     }
 
-    // Compatibility wrapper for previous call sites.
     fun reset() {
         _state.value = MusicPlaybackState()
+    }
+
+    fun initializeIfNeeded() {
+        if (!_state.value.initialized) {
+            _state.value = MusicPlaybackState(initialized = true)
+        }
+    }
+
+    fun isInitialized(): Boolean {
+        return _state.value.initialized
+    }
+
+    fun hasActiveState(): Boolean {
+        val state = _state.value
+
+        return state.initialized &&
+                state.currentTrack != null
     }
 }

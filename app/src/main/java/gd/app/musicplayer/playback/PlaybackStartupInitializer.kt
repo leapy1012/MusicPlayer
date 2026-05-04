@@ -2,45 +2,62 @@ package gd.app.musicplayer.playback
 
 import gd.app.musicplayer.data.repo.PlaybackQueueRepo
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
-
 @Singleton
 class PlaybackStartupInitializer @Inject constructor(
     private val playbackSessionStore: PlaybackSessionStore,
     private val playbackQueueRepo: PlaybackQueueRepo,
     private val stateStore: PlaybackRuntimeStateStore
 ) {
+    private val mutex = Mutex()
     private var initialized = false
 
     suspend fun initialize() {
-        if (initialized) return
-        initialized = true
+        mutex.withLock {
+            if (initialized) return
 
+            // If service already published live state, do nothing.
+            if (stateStore.hasActiveState()) {
+                initialized = true
+                return
+            }
+
+            val restoredState = buildRestoredState()
+
+            if (restoredState == null) {
+                stateStore.initializeIfNeeded()
+            } else {
+                stateStore.setState(restoredState)
+            }
+
+            initialized = true
+        }
+    }
+
+    private suspend fun buildRestoredState(): MusicPlaybackState? {
         val session = playbackSessionStore.getLastSession()
-            ?: return
+            ?: return null
 
         val queue = playbackQueueRepo.getQueue()
+        if (queue.isEmpty()) return null
 
-        if (queue.isEmpty()) return
+        val index = queue.indexOfFirst { it.id == session.musicId }
+            .takeIf { it >= 0 }
+            ?: session.currentIndex.coerceIn(0, queue.lastIndex)
 
-        val index = queue.indexOfFirst { music ->
-            music.id == session.musicId
-        }
+        val music = queue.getOrNull(index) ?: return null
 
-        if (index == -1) return
-
-        val music = queue[index]
-
-        stateStore.setState(
-            MusicPlaybackState(
-                currentIndex = index,
-                queue = queue,
-                currentMusic = music,
-                isPlaying = false,
-                positionMs = session.positionMs.coerceAtLeast(0L),
-                durationMs = music.duration.toLong()
-            )
+        return MusicPlaybackState(
+            initialized = true,
+            currentIndex = index,
+            currentTrack = music,
+            isPlaying = false,
+            positionMs = session.positionMs.coerceAtLeast(0L),
+            durationMs = music.duration.toLong(),
+            audioSessionId = -1
         )
     }
 }

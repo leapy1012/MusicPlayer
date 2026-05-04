@@ -10,20 +10,23 @@ import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
+import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.lib.model.visualizer.AudioVisualizerManager
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.applySystemBarInsets
-import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.core.extension.isLandscape
+import gd.app.musicplayer.core.extension.loadCircularArtwork
 import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.core.extension.navigateBack
+import gd.app.musicplayer.core.extension.toDurationString
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.Music
@@ -44,10 +47,13 @@ import gd.app.musicplayer.ui.feature.lyrics.LyricSettingsDialogFragment
 import gd.app.musicplayer.ui.feature.lyrics.a
 import gd.app.musicplayer.ui.feature.lyrics.hasTimedLyrics
 import gd.app.musicplayer.ui.feature.lyrics.setLyricText
+import gd.app.musicplayer.ui.player.PlaybackProgressUiState
+import gd.app.musicplayer.ui.player.PlayerViewModel
+import gd.app.musicplayer.ui.player.TrackUiState
+import gd.app.musicplayer.ui.player.VisualizerUiState
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.PreferenceUtil
 import gd.app.musicplayer.util.TrackLyricsStore
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -58,7 +64,7 @@ class MusicPlayerFragment :
     SeekBar.OnSeekBarChangeListener,
     ViewPager.OnPageChangeListener {
 
-    private val viewModel: MusicPlayViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by activityViewModels()
     private val playModeViewModel: PlayModeViewModel by viewModels()
 
     private var visualizerBinding: FragmentMusicPlayVisualizerBinding? = null
@@ -66,14 +72,14 @@ class MusicPlayerFragment :
     private var lyricBinding: MusicPlayFragmentLrcBinding? = null
 
     private var pagerIndex = PAGE_ALBUM
-    private var currentTrack: Music? = null
+//    private var currentTrack: Music? = null
     private var userSeeking = false
-    private var favoriteOverride: Boolean? = null
-    private var currentAudioSessionId: Int = -1
-    private var isPlaybackActive: Boolean = false
     private var hasVisualizerPermission = false
     private var lyricLoadJob: Job? = null
     private var currentLyricSource: String? = null
+    private var pendingSeekPositionMs: Int? = null
+
+    private var latestVisualizerState = VisualizerUiState()
 
     private val visualizerPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -96,42 +102,43 @@ class MusicPlayerFragment :
 
         setupUi(binding)
         setupFragmentResults()
-        observePlayback()
+        observeTrackMetadata()
+        observePlaybackProgress()
+        observeVisualizerState()
+        observePlayMode()
         observeLyricPreferenceChanges()
     }
 
     private fun setupUi(binding: FragmentPlayContentBinding) {
         binding.root.applySystemBarInsets(binding.statusBarSpace)
-
         setupToolbar(binding)
         setupPager(binding)
         setupControls(binding)
-
         applyLyricPreferences()
         updateForwardBackwardVisibility()
-        observePlayMode()
     }
 
     private fun setupToolbar(binding: FragmentPlayContentBinding) {
         binding.toolbar.navigateBack(this)
         binding.toolbar.inflateMenu(R.menu.menu_activity_music_play)
         binding.toolbar.setOnMenuItemClickListener { item: MenuItem ->
-            if (item.itemId == R.id.menu_list_menu) {
-                PlayQueueActivity.startQueue(requireContext())
+            when (item.itemId) {
+                R.id.menu_list_menu -> {
+                    PlayQueueActivity.startQueue(requireContext())
+                    true
+                }
+                else -> false
             }
-            true
         }
     }
 
     private fun setupControls(binding: FragmentPlayContentBinding) = with(binding) {
-
-        musicPlayProgress.apply {
-            musicPlayProgress.setThumbColor(
-                ContextCompat.getColor(requireContext(), android.R.color.white)
-            )
-            musicPlayProgress.setOnSeekBarChangeListener(this@MusicPlayerFragment)
-            musicPlayTempo.setOnClickListener(this@MusicPlayerFragment)
+        musicPlayProgress.musicPlayProgress.apply {
+            setThumbColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+            setOnSeekBarChangeListener(this@MusicPlayerFragment)
         }
+
+        musicPlayProgress.musicPlayTempo.setOnClickListener(this@MusicPlayerFragment)
 
         musicPlayController.apply {
             controlPlayPause.setOnClickListener(this@MusicPlayerFragment)
@@ -142,8 +149,6 @@ class MusicPlayerFragment :
             controlForward.setOnClickListener(this@MusicPlayerFragment)
             controlEqualizer.setOnClickListener(this@MusicPlayerFragment)
         }
-
-
 
         musicPlayFavourite.setOnClickListener(this@MusicPlayerFragment)
         musicPlaySoundEffect.setOnClickListener(this@MusicPlayerFragment)
@@ -156,58 +161,39 @@ class MusicPlayerFragment :
     private fun setupPager(binding: FragmentPlayContentBinding) {
         val inflater = LayoutInflater.from(requireContext())
 
-        val visualizerPageBinding = FragmentMusicPlayVisualizerBinding.inflate(
+        val visualizerPage = FragmentMusicPlayVisualizerBinding.inflate(
+            inflater,
+            binding.musicPlayPager,
+            false
+        )
+        val infoPage = MusicPlayFragmentInfoBinding.inflate(
+            inflater,
+            binding.musicPlayPager,
+            false
+        )
+        val lyricPage = MusicPlayFragmentLrcBinding.inflate(
             inflater,
             binding.musicPlayPager,
             false
         )
 
-        val infoPageBinding = MusicPlayFragmentInfoBinding.inflate(
-            inflater,
-            binding.musicPlayPager,
-            false
+        visualizerBinding = visualizerPage
+        infoBinding = infoPage
+        lyricBinding = lyricPage
+
+        setupAlbumPage(infoPage)
+        setupLyricPage(lyricPage)
+
+        binding.musicPlayPager.adapter = SimpleViewPagerAdapter(
+            pages = listOf(
+                visualizerPage.root,
+                infoPage.root,
+                lyricPage.root
+            )
         )
-
-        val lyricPageBinding = MusicPlayFragmentLrcBinding.inflate(
-            inflater,
-            binding.musicPlayPager,
-            false
-        )
-
-        visualizerBinding = visualizerPageBinding
-        infoBinding = infoPageBinding
-        lyricBinding = lyricPageBinding
-
-        setupAlbumPage(infoPageBinding)
-        setupLyricPage(lyricPageBinding)
-
-        val pages = listOf(
-            visualizerPageBinding.root,
-            infoPageBinding.root,
-            lyricPageBinding.root
-        )
-
-        binding.musicPlayPager.adapter = object : PagerAdapter() {
-            override fun getCount(): Int = pages.size
-
-            override fun isViewFromObject(view: View, obj: Any): Boolean {
-                return view === obj
-            }
-
-            override fun instantiateItem(container: ViewGroup, position: Int): Any {
-                val page = pages[position]
-                container.addView(page)
-                return page
-            }
-
-            override fun destroyItem(container: ViewGroup, position: Int, obj: Any) {
-                container.removeView(obj as View)
-            }
-        }
 
         binding.musicPlayPagerIndicator.setViewPager(binding.musicPlayPager)
         binding.musicPlayPagerIndicator.setOnPageChangeListener(this)
-
         binding.musicPlayPager.currentItem = pagerIndex
         onPageSelected(pagerIndex)
     }
@@ -215,25 +201,18 @@ class MusicPlayerFragment :
     private fun setupAlbumPage(binding: MusicPlayFragmentInfoBinding) = with(binding) {
         layoutMusicPlayAlbumParent.setSquare { widthMeasureSpec, heightMeasureSpec ->
             val availableSize = minOf(widthMeasureSpec, heightMeasureSpec)
-
             val targetSize = if (requireContext().isLandscape()) {
                 availableSize
             } else {
                 availableSize * 8 / 9
             }
-
-            val exactSpec = View.MeasureSpec.makeMeasureSpec(
-                targetSize,
-                View.MeasureSpec.EXACTLY
-            )
-
+            val exactSpec = View.MeasureSpec.makeMeasureSpec(targetSize, View.MeasureSpec.EXACTLY)
             intArrayOf(exactSpec, exactSpec)
         }
     }
 
     private fun setupLyricPage(binding: MusicPlayFragmentLrcBinding) = with(binding) {
         musicPlayLrcSearch.setOnClickListener(this@MusicPlayerFragment)
-
         musicPlayLrc.setOnClickListener {
             if (musicPlayLrc.a()) {
                 (activity as? MusicPlayActivity)?.showLyrics()
@@ -255,56 +234,46 @@ class MusicPlayerFragment :
             viewLifecycleOwner
         ) { _, _ ->
             val lyricView = lyricBinding?.musicPlayLrc ?: return@setFragmentResultListener
-            val track = currentTrack ?: return@setFragmentResultListener
-
-            lyricView.setTimeOffset(
-                TrackLyricsStore.from(requireContext()).getTrackLyricOffset(track.id)
-            )
-            maybeLoadLyrics(track)
+//            val track = currentTrack ?: return@setFragmentResultListener
+//            lyricView.setTimeOffset(
+//                TrackLyricsStore.from(requireContext()).getTrackLyricOffset(track.id)
+//            )
+//            reloadLyrics(track)
         }
 
         childFragmentManager.setFragmentResultListener(
             LyricSearchDialogFragment.RESULT_KEY,
             viewLifecycleOwner
         ) { _, _ ->
-            currentLyricSource = null
-            currentTrack?.let(::maybeLoadLyrics)
+//            currentTrack?.let(::reloadLyrics)
         }
     }
 
-    private fun observePlayback() {
+    /**
+     * PlayerViewModel.trackUiState should already use distinctUntilChanged by track/favorite/artwork.
+     * That removes the need for favoriteOverride and lastRenderedTrackId/lastRenderedArtworkTrackId here.
+     */
+    private fun observeTrackMetadata() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.playbackState.collect { state ->
-                    val binding = binding ?: return@collect
-                    val lyricPageBinding = lyricBinding ?: return@collect
-                    val infoPageBinding = infoBinding ?: return@collect
+                playerViewModel.trackUiState.collect(::renderTrackMetadata)
+            }
+        }
+    }
 
-                    currentTrack = state.currentMusic
-                    val track = state.currentMusic
+    private fun observePlaybackProgress() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playerViewModel.progressUiState.collect(::renderPlaybackProgress)
+            }
+        }
+    }
 
-                    if (track == null) {
-                        renderEmptyState(
-                            binding = binding,
-                            lyricBinding = lyricPageBinding
-                        )
-                        return@collect
-                    }
-
-                    currentAudioSessionId = -1
-                    isPlaybackActive = state.isPlaying
-
-                    renderTrackState(
-                        binding = binding,
-                        infoBinding = infoPageBinding,
-                        lyricBinding = lyricPageBinding,
-                        track = track,
-                        positionMs = state.positionMs,
-                        durationMs = state.durationMs,
-                        isPlaying = state.isPlaying
-                    )
-
-                    maybeLoadLyrics(track)
+    private fun observeVisualizerState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playerViewModel.visualizerUiState.collect { state ->
+                    latestVisualizerState = state
                     updateLyricAutoScroll()
                     updateVisualizerState()
                 }
@@ -312,81 +281,68 @@ class MusicPlayerFragment :
         }
     }
 
-    private fun renderEmptyState(
-        binding: FragmentPlayContentBinding,
-        lyricBinding: MusicPlayFragmentLrcBinding
-    ) = with(binding) {
-        lyricLoadJob?.cancel()
-        currentLyricSource = null
-        currentAudioSessionId = -1
-        isPlaybackActive = false
-        favoriteOverride = null
+    private fun renderTrackMetadata(state: TrackUiState) {
+        val binding = binding ?: return
+//        val lyricPage = lyricBinding ?: return
 
-        musicPlayContentTitle.apply {
-            musicPlayName.text = getString(R.string.music)
-            musicPlayArtist.text = getString(R.string.artist)
-        }
+        binding.musicPlayContentTitle.musicPlayName.text =
+            state.title.ifBlank { getString(R.string.music) }
+        binding.musicPlayContentTitle.musicPlayArtist.text =
+            state.artist.ifBlank { getString(R.string.artist) }
+        binding.musicPlayFavourite.isSelected = state.isFavorite
+        Glide.with(this)
+            .load(state.artworkSource)
+            .placeholder(R.drawable.default_album_identify)
+            .error(R.drawable.default_album_identify)
+            .into(infoBinding?.musicPlayAlbum?:return)
 
-        musicPlayProgress.apply {
-            musicPlayCurrTime.text = viewModel.formatTime(0)
-            musicPlayTotalTime.text = viewModel.formatTime(0)
-
-            musicPlayProgress.setMax(1)
-            musicPlayProgress.setProgress(0)
-        }
-
-        musicPlayController.apply {
-            controlPlayPause.isSelected = false
-        }
-
-
-        musicPlayFavourite.isSelected = false
-
-        lyricBinding.musicPlayLrc.setLyricText(null)
-        lyricBinding.root.displayedChild = LYRIC_PAGE_LOADING
-
-        updateVisualizerState()
+//        maybeLoadLyrics(track)
     }
 
-    private fun renderTrackState(
+    private fun renderEmptyTrackMetadata(
         binding: FragmentPlayContentBinding,
-        infoBinding: MusicPlayFragmentInfoBinding,
-        lyricBinding: MusicPlayFragmentLrcBinding,
-        track: Music,
-        positionMs: Long,
-        durationMs: Long,
-        isPlaying: Boolean
-    ) = with(binding) {
+        lyricPage: MusicPlayFragmentLrcBinding
+    ) {
+        currentLyricSource = null
+        lyricLoadJob?.cancel()
+        lyricLoadJob = null
 
-        musicPlayContentTitle.apply {
-            musicPlayName.text = track.title
-            musicPlayArtist.text = track.artist.ifBlank { getString(R.string.artist) }
+        binding.musicPlayContentTitle.musicPlayName.text = getString(R.string.music)
+        binding.musicPlayContentTitle.musicPlayArtist.text = getString(R.string.artist)
+        binding.musicPlayFavourite.isSelected = false
+
+        infoBinding?.musicPlayAlbum?.setImageResource(R.drawable.default_album_identify_large)
+
+        lyricPage.musicPlayLrc.setLyricText(null)
+        lyricPage.root.displayedChild = LYRIC_PAGE_EMPTY
+    }
+
+    private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
+        val binding = binding ?: return
+
+        val duration = state.durationMs.coerceAtLeast(1L)
+        val position = state.positionMs.coerceIn(0L, duration)
+
+        binding.musicPlayController.controlPlayPause.isSelected = state.isPlaying
+        binding.musicPlayProgress.musicPlayTotalTime.text = duration.toDurationString()
+        binding.musicPlayProgress.musicPlayCurrTime.text = position.toDurationString()
+        binding.musicPlayProgress.musicPlayProgress.setMax(duration.toInt())
+
+        if (!userSeeking) {
+            binding.musicPlayProgress.musicPlayProgress.setProgress(position.toInt())
         }
 
-        musicPlayController.apply {
-            controlPlayPause.isSelected = isPlaying
-        }
+        lyricBinding?.musicPlayLrc?.setCurrentTime(position)
+    }
 
-        musicPlayProgress.apply {
-            val durationInt = durationMs.coerceAtLeast(1L).toInt()
-            val positionInt = positionMs.coerceAtLeast(0L).toInt()
-            musicPlayTotalTime.text = viewModel.formatTime(durationInt)
-            musicPlayCurrTime.text = viewModel.formatTime(positionInt)
-            musicPlayProgress.setMax(durationInt)
-
-            if (!userSeeking) {
-                musicPlayProgress.setProgress(positionInt)
+    private fun observePlayMode() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playModeViewModel.uiState.collect { state ->
+                    binding?.musicPlayController?.controlMode?.setImageResource(state.iconRes)
+                }
             }
         }
-
-
-
-        lyricBinding.musicPlayLrc.setCurrentTime(positionMs.toLong())
-
-        val isFavorite = favoriteOverride ?: track.isFavorite()
-        musicPlayFavourite.isSelected = isFavorite
-
-        track.loadMusicArtwork(infoBinding.musicPlayAlbum)
     }
 
     private fun observeLyricPreferenceChanges() {
@@ -409,27 +365,26 @@ class MusicPlayerFragment :
     }
 
     private fun updateVisualizerState() {
-        visualizerBinding ?: return
+        if (visualizerBinding == null) return
 
         val shouldUseVisualizer =
             isResumed &&
                     pagerIndex == PAGE_VISUALIZER &&
-                    isPlaybackActive &&
-                    currentAudioSessionId > 0
+                    latestVisualizerState.isPlaying &&
+                    latestVisualizerState.audioSessionId != INVALID_AUDIO_SESSION_ID
 
         if (shouldUseVisualizer && !hasVisualizerPermission) {
             requestVisualizerPermission()
         }
 
-        AudioVisualizerManager.setAudioSessionId(currentAudioSessionId)
-        AudioVisualizerManager.setPlaybackActive(isPlaybackActive)
+        AudioVisualizerManager.setAudioSessionId(latestVisualizerState.audioSessionId)
+        AudioVisualizerManager.setPlaybackActive(latestVisualizerState.isPlaying)
         AudioVisualizerManager.setUserEnabled(shouldUseVisualizer)
         AudioVisualizerManager.setUseRealAudioData(hasVisualizerPermission)
     }
 
     private fun hasVisualizerPermission(): Boolean {
         val context = context ?: return false
-
         return ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.RECORD_AUDIO
@@ -438,7 +393,6 @@ class MusicPlayerFragment :
 
     private fun requestVisualizerPermission() {
         if (!isAdded || hasVisualizerPermission) return
-
         visualizerPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
@@ -447,7 +401,6 @@ class MusicPlayerFragment :
         if (!isAdded) return
 
         val prefs = PreferenceUtil.getInstance(requireContext())
-
         lyricView.setCurrentTextColor(prefs.getLyricColor())
         lyricView.setTextSize(prefs.getLyricTextSize())
         lyricView.setTextAlign(prefs.getLyricAlign())
@@ -459,14 +412,18 @@ class MusicPlayerFragment :
         if (!isAdded) return
 
         val prefs = PreferenceUtil.getInstance(requireContext())
-
         lyricView.setAutoScroll(
             pagerIndex == PAGE_LYRIC &&
                     isResumed &&
-                    isPlaybackActive &&
+                    latestVisualizerState.isPlaying &&
                     lyricView.hasTimedLyrics() &&
                     prefs.isLyricAutoScrollEnabled()
         )
+    }
+
+    private fun reloadLyrics(track: Music) {
+        currentLyricSource = null
+        maybeLoadLyrics(track)
     }
 
     private fun maybeLoadLyrics(track: Music) {
@@ -475,9 +432,10 @@ class MusicPlayerFragment :
         val source = track.data
 
         if (source == currentLyricSource) {
-            when {
-                lyricView.a() -> lyricPageBinding.root.displayedChild = LYRIC_PAGE_CONTENT
-                source.isNullOrBlank() -> lyricPageBinding.root.displayedChild = LYRIC_PAGE_EMPTY
+            lyricPageBinding.root.displayedChild = when {
+                lyricView.a() -> LYRIC_PAGE_CONTENT
+                source.isNullOrBlank() -> LYRIC_PAGE_EMPTY
+                else -> lyricPageBinding.root.displayedChild
             }
             return
         }
@@ -507,11 +465,11 @@ class MusicPlayerFragment :
                 TrackLyricsStore.from(requireContext()).getTrackLyricOffset(track.id)
             )
 
-            if (!result.hasLyrics) {
-                lyricPageBinding.root.displayedChild = LYRIC_PAGE_EMPTY
-            } else {
+            if (result.hasLyrics) {
                 lyricView.setLyricText(result.text)
                 lyricPageBinding.root.displayedChild = LYRIC_PAGE_CONTENT
+            } else {
+                lyricPageBinding.root.displayedChild = LYRIC_PAGE_EMPTY
             }
 
             applyLyricPreferences()
@@ -522,8 +480,8 @@ class MusicPlayerFragment :
     override fun onClick(view: View) {
         when (view.id) {
             R.id.control_play_pause -> onPlayPauseClicked()
-            R.id.control_previous -> viewModel.playPrevious(requireContext())
-            R.id.control_next -> viewModel.playNext(requireContext())
+            R.id.control_previous -> playerViewModel.playPrevious(requireContext())
+            R.id.control_next -> playerViewModel.playNext(requireContext())
             R.id.control_backward -> seekBy(-seekIncrementMs())
             R.id.control_forward -> seekBy(seekIncrementMs())
             R.id.control_equalizer -> EqualizerActivity.start(requireContext())
@@ -534,61 +492,62 @@ class MusicPlayerFragment :
             R.id.music_play_lyric_search -> openLyricSearch()
             R.id.music_lyric_setting -> openLyricSettings()
             R.id.music_play_tempo -> TempoDialogFragment.show(childFragmentManager)
-            R.id.music_play_favourite -> toggleFavorite()
+            R.id.music_play_favourite -> playerViewModel.toggleFavorite()
             R.id.music_play_artist -> openArtist()
         }
     }
 
     private fun onPlayPauseClicked() {
-        val state = viewModel.playbackState.value
+        val currentTrackId = playerViewModel.trackUiState.value.musicId
 
-        if (state.queue.isEmpty()) {
+        if (currentTrackId == null) {
             viewLifecycleOwner.lifecycleScope.launch {
-                viewModel.playAllTracks(requireContext())
+                playerViewModel.playAllTracks(requireContext())
             }
         } else {
-            viewModel.togglePlayPause(requireContext())
+            playerViewModel.togglePlayPause(requireContext())
         }
     }
 
     private fun openTrackOptions() {
-        val track = currentTrack ?: return
-
-        CurrentTrackOptionsDialog.newInstance(track)
-            .show(parentFragmentManager, CurrentTrackOptionsDialog::class.java.simpleName)
+//        CurrentTrackOptionsDialog.newInstance(track)
+//            .show(parentFragmentManager, CurrentTrackOptionsDialog::class.java.simpleName)
     }
 
     private fun seekBy(deltaMs: Int) {
-        val state = viewModel.playbackState.value
-        val target = (state.positionMs + deltaMs.toLong()).coerceIn(0L, state.durationMs).toInt()
-
-        viewModel.seekTo(requireContext(), target)
+        val progress = playerViewModel.progressUiState.value
+        val target = (progress.positionMs + deltaMs.toLong())
+            .coerceIn(0L, progress.durationMs)
+            .toInt()
+        playerViewModel.seekTo(requireContext(), target)
     }
 
     private fun openLyricSearch() {
-        val track = currentTrack ?: run {
+        val currentTrackId = playerViewModel.trackUiState.value.musicId
+
+        if (currentTrackId == null) {
             ToastUtil.show(requireContext(), getString(R.string.list_is_empty))
             return
         }
 
-        LyricSearchDialogFragment.newInstance(
-            track.id,
-            track.title,
-            track.artist,
-            track.data
-        ).show(childFragmentManager, LyricSearchDialogFragment.TAG)
+//        LyricSearchDialogFragment.newInstance(
+//            currentTrackId,
+//            playerViewModel.trackUiState.value.title,
+//            playerViewModel.trackUiState.value.artist,
+//            track.data
+//        ).show(childFragmentManager, LyricSearchDialogFragment.TAG)
     }
 
     private fun openLyricSettings() {
-        val track = currentTrack ?: run {
+        val currentTrackId = playerViewModel.trackUiState.value.musicId
+        if (currentTrackId == null) {
             ToastUtil.show(requireContext(), getString(R.string.list_is_empty))
             return
         }
 
         val lyricView = lyricBinding?.musicPlayLrc ?: return
-
         LyricSettingsDialogFragment.newInstance(
-            track.id,
+            currentTrackId,
             lyricView.hasTimedLyrics()
         ).show(childFragmentManager, LyricSettingsDialogFragment.TAG)
     }
@@ -596,58 +555,26 @@ class MusicPlayerFragment :
     private fun seekIncrementMs(): Int {
         val seconds = PreferenceUtil.getInstance(requireContext())
             .getIntPreference("time_forward_backward", 15)
-
         return seconds.coerceIn(5, 60) * 1_000
     }
 
     private fun updateForwardBackwardVisibility() {
         val binding = binding ?: return
         val prefs = PreferenceUtil.getInstance(requireContext())
-
         val enabled = prefs.getBooleanPreference("show_forward_backward", false)
         val seconds = prefs.getIntPreference("time_forward_backward", 15)
 
-        binding.musicPlayController.apply {
-            controlBackward.isVisible = enabled
-            controlForward.isVisible = enabled
-        }
+        binding.musicPlayController.controlBackward.isVisible = enabled
+        binding.musicPlayController.controlForward.isVisible = enabled
 
         if (!enabled) return
 
-        binding.musicPlayController.apply {
-            controlBackward.setImageResource(seconds.toBackwardIconRes())
-            controlForward.setImageResource(seconds.toForwardIconRes())
-        }
-
-
-    }
-
-    private fun observePlayMode() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                playModeViewModel.uiState.collect { state ->
-                    binding?.musicPlayController?.controlMode?.setImageResource(state.iconRes)
-                }
-            }
-        }
-    }
-
-    private fun toggleFavorite() {
-        val binding = binding ?: return
-        val track = currentTrack ?: return
-
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            favoriteOverride = viewModel.toggleFavorite(track.id)
-
-            launch(Dispatchers.Main) {
-                binding.musicPlayFavourite.isSelected = favoriteOverride == true
-            }
-        }
+        binding.musicPlayController.controlBackward.setImageResource(seconds.toBackwardIconRes())
+        binding.musicPlayController.controlForward.setImageResource(seconds.toForwardIconRes())
     }
 
     private fun openArtist() {
-        val track = currentTrack ?: return
-        val artistName = track.artist.takeIf { it.isNotBlank() } ?: return
+        val artistName = playerViewModel.trackUiState.value.artist
 
         AlbumMusicActivity.start(
             requireContext(),
@@ -668,25 +595,27 @@ class MusicPlayerFragment :
     ) {
         if (!fromUser) return
 
-        binding?.musicPlayProgress?.musicPlayCurrTime?.text = viewModel.formatTime(progress)
-        viewModel.seekTo(requireContext(), progress)
-    }
-
-    override fun onStopTrackingTouch(seekBar: SeekBar) {
-        userSeeking = false
+        val binding = requireBinding()
+        binding.musicPlayProgress.musicPlayCurrTime.text = progress.toLong().toDurationString()
+        pendingSeekPositionMs = progress
     }
 
     override fun onStartTrackingTouch(seekBar: SeekBar) {
         userSeeking = true
     }
 
+    override fun onStopTrackingTouch(seekBar: SeekBar) {
+        userSeeking = false
+        val target = pendingSeekPositionMs ?: return
+        pendingSeekPositionMs = null
+        playerViewModel.seekTo(requireContext(), target)
+    }
+
     override fun onPageSelected(position: Int) {
         val binding = binding ?: return
-
         pagerIndex = position
 
         val lyricPage = position == PAGE_LYRIC
-
         binding.musicPlaySoundEffect.isVisible = !lyricPage
         binding.musicPlayLyricSearch.isVisible = lyricPage
         binding.musicLyricSetting.isVisible = lyricPage
@@ -710,9 +639,7 @@ class MusicPlayerFragment :
 
     override fun onResume() {
         super.onResume()
-
         hasVisualizerPermission = hasVisualizerPermission()
-
         applyLyricPreferences()
         updateForwardBackwardVisibility()
         updateLyricAutoScroll()
@@ -722,18 +649,21 @@ class MusicPlayerFragment :
     override fun onPause() {
         lyricBinding?.musicPlayLrc?.setAutoScroll(false)
         AudioVisualizerManager.setUserEnabled(false)
-
         super.onPause()
     }
 
     override fun onDestroyView() {
         lyricLoadJob?.cancel()
         lyricLoadJob = null
+        currentLyricSource = null
+        pendingSeekPositionMs = null
+        latestVisualizerState = VisualizerUiState()
 
         visualizerBinding = null
         infoBinding = null
         lyricBinding = null
 
+        AudioVisualizerManager.setUserEnabled(false)
         super.onDestroyView()
     }
 
@@ -759,6 +689,27 @@ class MusicPlayerFragment :
         }
     }
 
+    private class SimpleViewPagerAdapter(
+        private val pages: List<View>
+    ) : PagerAdapter() {
+
+        override fun getCount(): Int = pages.size
+
+        override fun isViewFromObject(view: View, obj: Any): Boolean {
+            return view === obj
+        }
+
+        override fun instantiateItem(container: ViewGroup, position: Int): Any {
+            val page = pages[position]
+            container.addView(page)
+            return page
+        }
+
+        override fun destroyItem(container: ViewGroup, position: Int, obj: Any) {
+            container.removeView(obj as View)
+        }
+    }
+
     private companion object {
         private const val KEY_PAGER_INDEX = "pager_index"
 
@@ -769,6 +720,7 @@ class MusicPlayerFragment :
         private const val LYRIC_PAGE_LOADING = 0
         private const val LYRIC_PAGE_CONTENT = 1
         private const val LYRIC_PAGE_EMPTY = 3
+
+        private const val INVALID_AUDIO_SESSION_ID = -1
     }
 }
-

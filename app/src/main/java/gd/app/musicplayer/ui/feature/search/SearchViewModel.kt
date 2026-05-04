@@ -12,6 +12,7 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.GetAllTracksByCurrentSortUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.RestartCurrentTrackUseCase
+import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.preferences.GetQueueForSearchingModeUseCase
 import gd.app.musicplayer.domain.usecase.preferences.IsReplaySongEnabledUseCase
 import gd.app.musicplayer.domain.usecase.preferences.IsTrackClickOperationEnabledUseCase
@@ -54,12 +55,17 @@ class SearchViewModel @Inject constructor(
     private val sortSearchResultsUseCase: SortSearchResultsUseCase,
     private val playTracksUseCase: PlayTracksUseCase,
     private val restartCurrentTrackUseCase: RestartCurrentTrackUseCase,
+    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val getAllTracksByCurrentSortUseCase: GetAllTracksByCurrentSortUseCase
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val sortVersion = MutableStateFlow(0)
     private val _events = MutableSharedFlow<SearchEvent>()
     val events: SharedFlow<SearchEvent> = _events.asSharedFlow()
+    val currentTrackId: StateFlow<Long?> =
+        observePlaybackStateUseCase()
+            .map { it.currentTrack?.id }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private data class SearchSource(
         val tracks: List<Music>,

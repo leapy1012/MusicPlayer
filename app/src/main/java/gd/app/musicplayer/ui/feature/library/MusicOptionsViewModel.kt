@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.repo.PlaybackQueueRepo
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
@@ -45,7 +46,8 @@ class MusicOptionsViewModel @Inject constructor(
     private val removeTracksFromLibraryUseCase: RemoveTracksFromLibraryUseCase,
     private val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase,
     private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
-    private val replaceQueueUseCase: ReplaceQueueUseCase
+    private val replaceQueueUseCase: ReplaceQueueUseCase,
+    private val playbackQueueRepo: PlaybackQueueRepo
 ) : ViewModel() {
 
     private var musicSet: MusicSet? = null
@@ -121,10 +123,11 @@ class MusicOptionsViewModel @Inject constructor(
                 }
 
                 is MusicSet.Queue -> {
+                    val queue = playbackQueueRepo.getQueue()
                     val state = observePlaybackStateUseCase().value
-                    val index = state.queue.indexOfFirst { it.id == music.id }
+                    val index = queue.indexOfFirst { it.id == music.id }
                     if (index >= 0) {
-                        val newQueue = state.queue.toMutableList().apply { removeAt(index) }
+                        val newQueue = queue.toMutableList().apply { removeAt(index) }
                         val newIndex = when {
                             newQueue.isEmpty() -> -1
                             index < state.currentIndex -> state.currentIndex - 1

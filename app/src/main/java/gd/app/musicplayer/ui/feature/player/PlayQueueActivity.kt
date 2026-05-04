@@ -4,14 +4,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.loadBlurredArtworkBackground
 import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityPlayQueueBinding
-import gd.app.musicplayer.playback.PlaybackGateway
-import gd.app.musicplayer.playback.queue.currentTrack
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class PlayQueueActivity : BaseActivity() {
 
+    private val playbackViewModel: PlayerViewModel by viewModels()
     private lateinit var binding: ActivityPlayQueueBinding
     private var isFromMusicPlayActivity = false
     private var artworkJob: Job? = null
@@ -64,18 +65,18 @@ class PlayQueueActivity : BaseActivity() {
     }
 
     private fun applyCurrentArtwork() {
-        val track = PlaybackGateway.state.value.currentTrack ?: return
-        binding.musicPlaySkin.loadBlurredArtworkBackground(track.albumPicture)
+//        val track = playbackViewModel.playbackState.value.currentTrack ?: return
+//        binding.musicPlaySkin.loadBlurredArtworkBackground(track.albumPicture)
     }
 
     private fun observeArtworkIfNeeded() {
-        artworkJob?.cancel()
-        if (!isFromMusicPlayActivity) return
-        artworkJob = lifecycleScope.launch {
-            PlaybackGateway.state.collect { state ->
-                binding.musicPlaySkin.loadBlurredArtworkBackground(state.currentTrack?.albumPicture)
-            }
-        }
+//        artworkJob?.cancel()
+//        if (!isFromMusicPlayActivity) return
+//        artworkJob = lifecycleScope.launch {
+//            playbackViewModel.playbackState.collect { state ->
+//                binding.musicPlaySkin.loadBlurredArtworkBackground(state.currentTrack?.albumPicture)
+//            }
+//        }
     }
 
     private fun showQueueScreen() {

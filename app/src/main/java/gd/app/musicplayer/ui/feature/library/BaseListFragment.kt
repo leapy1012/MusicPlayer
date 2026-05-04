@@ -11,7 +11,6 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.LayoutRecyclerviewBinding
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.core.ui.view.PlayerSheetInsetHost
 import gd.app.musicplayer.core.ui.view.MusicRecyclerView
 import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.core.extension.isTablet

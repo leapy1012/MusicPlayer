@@ -26,6 +26,8 @@ import gd.app.musicplayer.domain.usecase.playback.PlayNextTrackUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayPreviousTrackUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
+import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.SeekToPositionUseCase
 import gd.app.musicplayer.domain.usecase.playback.ShuffleTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.TogglePlayPauseUseCase
@@ -33,9 +35,13 @@ import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.CreatePlaylistUseCase
 import gd.app.musicplayer.domain.usecase.playlist.DeleteEmptyPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.DeletePlaylistUseCase
+import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RenamePlaylistUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
+import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
+import gd.app.musicplayer.domain.usecase.scan.UpsertScannedTracksUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+import gd.app.musicplayer.domain.usecase.track.RemoveTracksFromLibraryUseCase
 import gd.app.musicplayer.ui.theme.ThemeEngine
 import gd.app.musicplayer.util.PreferenceUtil
 import dagger.hilt.EntryPoint
@@ -82,5 +88,11 @@ interface AppDependenciesEntryPoint {
     val playNextTrackUseCase: PlayNextTrackUseCase
     val seekToPositionUseCase: SeekToPositionUseCase
     val shuffleTracksUseCase: ShuffleTracksUseCase
+    val replaceQueueUseCase: ReplaceQueueUseCase
+    val observePlaybackStateUseCase: ObservePlaybackStateUseCase
+    val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase
+    val hideSelectionUseCase: HideSelectionUseCase
+    val upsertScannedTracksUseCase: UpsertScannedTracksUseCase
+    val removeTracksFromLibraryUseCase: RemoveTracksFromLibraryUseCase
     val dispatchers: AppDispatchers
 }

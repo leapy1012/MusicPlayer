@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
+import androidx.activity.viewModels
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -18,14 +19,14 @@ import gd.app.musicplayer.databinding.ActivityMusicplayBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.model.ViewFlipHelper
 import gd.app.musicplayer.ui.feature.lyrics.FullLyricFragment
-import gd.app.musicplayer.playback.PlaybackGateway
-import gd.app.musicplayer.playback.queue.currentTrack
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
 
+    private val playbackViewModel: PlayerViewModel by viewModels()
     private lateinit var binding: ActivityMusicplayBinding
     private lateinit var backgroundImage: View
     private val viewFlipper = ViewFlipHelper()
@@ -86,16 +87,16 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
     }
 
     private fun applyCurrentArtwork() {
-        binding.musicPlaySkin.loadBlurredArtworkBackground(PlaybackGateway.state.value.currentTrack?.albumPicture)
+//        binding.musicPlaySkin.loadBlurredArtworkBackground(playbackViewModel.playbackState.value.currentTrack?.albumPicture)
     }
 
     private fun observePlaybackArtwork() {
-        playbackJob?.cancel()
-        playbackJob = lifecycleScope.launch {
-            PlaybackGateway.state.collect { state ->
-                binding.musicPlaySkin.loadBlurredArtworkBackground(state.currentTrack?.albumPicture)
-            }
-        }
+//        playbackJob?.cancel()
+//        playbackJob = lifecycleScope.launch {
+//            playbackViewModel.playbackState.collect { state ->
+//                binding.musicPlaySkin.loadBlurredArtworkBackground(state.currentTrack?.albumPicture)
+//            }
+//        }
     }
 
     fun showLyrics() {
