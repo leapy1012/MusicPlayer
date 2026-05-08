@@ -3,13 +3,13 @@ package gd.app.musicplayer.playback
 import android.content.Context
 import android.media.AudioManager
 import android.os.SystemClock
-import gd.app.musicplayer.util.PreferenceUtil
 
 class AudioFocusController(
     private val context: Context,
     private val isPlaying: () -> Boolean,
     private val pausePlayback: () -> Unit,
     private val resumePlayback: () -> Unit,
+    private val isSimultaneousPlayEnabled: () -> Boolean
 ) {
     private var hasAudioFocus = false
     private var shouldResumeAfterTransientLoss = false
@@ -19,7 +19,7 @@ class AudioFocusController(
         get() = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
     private val listener = AudioManager.OnAudioFocusChangeListener { focusChange ->
-        if (PreferenceUtil.getInstance(context).getBooleanPreference(KEY_SIMULTANEOUS_PLAY, false)) {
+        if (isSimultaneousPlayEnabled()) {
             return@OnAudioFocusChangeListener
         }
 
@@ -53,7 +53,7 @@ class AudioFocusController(
     }
 
     fun request(): Boolean {
-        if (PreferenceUtil.getInstance(context).getBooleanPreference(KEY_SIMULTANEOUS_PLAY, false)) {
+        if (isSimultaneousPlayEnabled()) {
             hasAudioFocus = false
             return true
         }
@@ -75,7 +75,6 @@ class AudioFocusController(
     }
 
     companion object {
-        private const val KEY_SIMULTANEOUS_PLAY = "simultaneous_play"
         private const val AUDIO_FOCUS_AUTO_RESUME_WINDOW_MS = 5 * 60 * 1000L
     }
 }

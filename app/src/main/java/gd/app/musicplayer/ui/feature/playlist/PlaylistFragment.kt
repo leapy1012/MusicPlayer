@@ -19,6 +19,7 @@ import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.core.extension.navigateBack
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.repository.ThemeRepo
 import gd.app.musicplayer.databinding.FragmentAlbumListItemBinding
 import gd.app.musicplayer.databinding.FragmentPlaylistBinding
 import gd.app.musicplayer.ui.feature.library.AlbumMusicActivity
@@ -29,15 +30,17 @@ import gd.app.musicplayer.ui.feature.selection.MusicSetEditActivity
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
-import gd.app.musicplayer.ui.common.menu.MusicSetContextMenu
-import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.ui.common.menu.ContextMenu
+import gd.app.musicplayer.ui.common.menu.ContextMenuAction
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class PlaylistFragment :
     ViewBindingFragment<FragmentPlaylistBinding>(),
     ListMoreMenuHost {
+
+    @Inject lateinit var themeRepo: ThemeRepo
 
     private val viewModel: PlaylistViewModel by viewModels()
 
@@ -175,23 +178,32 @@ class PlaylistFragment :
     }
 
     override fun showMoreMenu(anchor: View) {
-        MusicSetContextMenu(
+        val state = viewModel.uiState.value
+        android.util.Log.e("Leapy", "showMoreMenu + " + state.toString())
+        ContextMenu(
             context = requireContext(),
             musicSet = MusicSet.Playlists,
-            onAction = ::handlePlaylistMenuAction
+            theme = themeRepo.getCorePalette(),
+            onAction = ::handlePlaylistMenuAction,
+            currentSortStyle = state.sortStyle,
+            currentSortDescending = state.sortDescending
         ).show(anchor)
     }
 
-    private fun handlePlaylistMenuAction(action: MusicSetMenuAction) {
+    private fun handlePlaylistMenuAction(action: ContextMenuAction) {
         when (action) {
-            MusicSetMenuAction.Select -> {
+            ContextMenuAction.Select -> {
                 openPlaylistSelection()
             }
 
-            MusicSetMenuAction.BackupPlaylists,
-            MusicSetMenuAction.RestorePlaylists,
-            MusicSetMenuAction.DeleteEmptyPlaylists -> {
+            ContextMenuAction.BackupPlaylists,
+            ContextMenuAction.RestorePlaylists,
+            ContextMenuAction.DeleteEmptyPlaylists -> {
                 viewModel.onMenuAction(action)
+            }
+
+            is ContextMenuAction.SortChanged -> {
+                viewModel.onSortChanged(action.sortKey, action.descending)
             }
 
             else -> Unit
@@ -214,8 +226,7 @@ class PlaylistFragment :
     }
 
     private fun showPlaylistItemMenu(
-        playlist: MusicSet.Playlist,
-        anchor: View
+        playlist: MusicSet.Playlist
     ) {
         MusicSetOptionsDialog
             .newInstance(playlist)
@@ -227,7 +238,7 @@ class PlaylistFragment :
 
     private class PlaylistAdapter(
         private val onPlaylistClick: (MusicSet.Playlist) -> Unit,
-        private val onPlaylistMenuClick: (MusicSet.Playlist, View) -> Unit,
+        private val onPlaylistMenuClick: (MusicSet.Playlist) -> Unit,
         private val onPlaylistOrderChanged: (List<Long>) -> Unit
     ) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
 
@@ -254,8 +265,6 @@ class PlaylistFragment :
                 parent,
                 false
             )
-
-            applyCurrentTheme(binding.root)
 
             return ViewHolder(
                 binding = binding,
@@ -317,7 +326,7 @@ class PlaylistFragment :
         class ViewHolder(
             private val binding: FragmentAlbumListItemBinding,
             private val onPlaylistClick: (MusicSet.Playlist) -> Unit,
-            private val onPlaylistMenuClick: (MusicSet.Playlist, View) -> Unit
+            private val onPlaylistMenuClick: (MusicSet.Playlist) -> Unit
         ) : RecyclerView.ViewHolder(binding.root) {
 
             private var currentItem: MusicSet.Playlist? = null
@@ -327,11 +336,10 @@ class PlaylistFragment :
                     currentItem?.let(onPlaylistClick)
                 }
 
-                binding.musicItemMenu.setOnClickListener { anchor ->
+                binding.musicItemMenu.setOnClickListener { _ ->
                     currentItem?.let { playlist ->
                         onPlaylistMenuClick(
-                            playlist,
-                            anchor
+                            playlist
                         )
                     }
                 }

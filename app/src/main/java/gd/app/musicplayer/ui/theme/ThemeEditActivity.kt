@@ -15,21 +15,29 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.core.extension.startActivityCompat
+import gd.app.musicplayer.core.theme.ThemeBitmapLoader
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.databinding.ActivityThemeEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.player.BottomMiniPlayerFragment
 import gd.app.musicplayer.ui.player.BottomPlayerFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
+import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
 import gd.app.musicplayer.ui.feature.library.ArtworkCropActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class ThemeEditActivity : BaseActivity() {
+
+    @Inject
+    lateinit var themeBitmapLoader: ThemeBitmapLoader
+
+    @Inject lateinit var themeSettingPreferenceStore: ThemeSettingPreferenceStore
 
     private val viewModel: ThemeEditViewModel by viewModels()
     private lateinit var binding: ActivityThemeEditBinding
@@ -87,7 +95,10 @@ class ThemeEditActivity : BaseActivity() {
         binding = ActivityThemeEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        savedImageName = appDependencies.preferenceUtil.getThemeImageName()
+        lifecycleScope.launch {
+            val settings = themeSettingPreferenceStore.getSettingsSnapshot()
+            savedImageName = settings.imageName
+        }
 
         setupInsets()
         setupViews()
@@ -161,7 +172,11 @@ class ThemeEditActivity : BaseActivity() {
         previewJob?.cancel()
         previewJob = lifecycleScope.launch {
             val bitmap = withContext(Dispatchers.Default) {
-                DrawableUtil.loadBitmap(this@ThemeEditActivity, imageName, blur)
+                themeBitmapLoader.loadBitmap(
+                    context = this@ThemeEditActivity,
+                    imageName = imageName,
+                    blurRadius = blur
+                )
             }
             if (latestPreviewToken != token || bitmap == null) return@launch
             binding.skinImageView.setImageBitmap(bitmap)
@@ -170,15 +185,19 @@ class ThemeEditActivity : BaseActivity() {
     }
 
     private fun saveTheme() {
-        val state = viewModel.uiState.value
-        val resolvedImageName = commitDraftImageIfNeeded(state.imageName)
-        viewModel.onImageChanged(resolvedImageName)
-        viewModel.save()
-        savedImageName = resolvedImageName
-        finish()
+        lifecycleScope.launch {
+            val state = viewModel.uiState.value
+            val resolvedImageName = commitDraftImageIfNeeded(state.imageName)
+
+            viewModel.onImageChanged(resolvedImageName)
+            viewModel.save()
+
+            savedImageName = resolvedImageName
+            finish()
+        }
     }
 
-    private fun commitDraftImageIfNeeded(imageName: String): String {
+    private suspend fun commitDraftImageIfNeeded(imageName: String): String {
         if (!ThemeBackgroundStore.isManagedThemePath(this, imageName)) {
             return imageName
         }
@@ -200,16 +219,20 @@ class ThemeEditActivity : BaseActivity() {
             }
         }
 
-        appDependencies.preferenceUtil.addThemeImageUri(savedFile.absolutePath)
+        themeSettingPreferenceStore.addThemeImageUri(savedFile.absolutePath)
 
         return savedFile.absolutePath
     }
 
     private fun cleanupTransientDraft() {
         val draftImageName = viewModel.uiState.value.imageName
-        val persistedImageName = savedImageName ?: appDependencies.preferenceUtil.getThemeImageName()
+        val persistedImageName = savedImageName ?: return
+
         if (draftImageName == persistedImageName) return
         if (!ThemeBackgroundStore.isDraftThemePath(this, draftImageName)) return
-        runCatching { File(draftImageName).delete() }
+
+        runCatching {
+            File(draftImageName).delete()
+        }
     }
 }

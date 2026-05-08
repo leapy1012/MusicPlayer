@@ -5,15 +5,23 @@ import android.content.Intent
 import android.view.View
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
+import dagger.hilt.android.EntryPointAccessors
 import gd.app.musicplayer.R
+import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.ui.feature.widget.provider.BaseMusicAppWidgetProvider
-import gd.app.musicplayer.ui.feature.widget.provider.WidgetRenderer
+import gd.app.musicplayer.ui.feature.widget.provider.WidgetPlaybackSnapshotLoader
+import gd.app.musicplayer.ui.feature.widget.provider.WidgetProviderEntryPoint
+import kotlinx.coroutines.runBlocking
 
 class WidgetQueueService : RemoteViewsService() {
+
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
         return QueueFactory(
             packageName = packageName,
-            appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 0),
+            appWidgetId = intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            ),
             service = this
         )
     }
@@ -23,29 +31,55 @@ class WidgetQueueService : RemoteViewsService() {
         private val appWidgetId: Int,
         private val service: WidgetQueueService
     ) : RemoteViewsFactory {
-        private var items = emptyList<gd.app.musicplayer.data.model.Music>()
+
+        private var items: List<Music> = emptyList()
 
         override fun onCreate() = Unit
 
         override fun onDataSetChanged() {
-            items = WidgetRenderer.loadPlaybackSnapshot(service.applicationContext).queue
+            items = runBlocking {
+                snapshotLoader(service).load().queue
+            }
         }
 
-        override fun onDestroy() = Unit
+        override fun onDestroy() {
+            items = emptyList()
+        }
 
-        override fun getCount(): Int = items.size
+        override fun getCount(): Int {
+            return items.size
+        }
 
         override fun getViewAt(position: Int): RemoteViews {
-            val track = items.getOrNull(position) ?: return RemoteViews(packageName, R.layout.widget_queue_item)
+            val track = items.getOrNull(position)
+                ?: return RemoteViews(packageName, R.layout.widget_queue_item)
+
+            val fillInIntent = Intent().putExtra(
+                BaseMusicAppWidgetProvider.EXTRA_QUEUE_INDEX,
+                position
+            )
+
             return RemoteViews(packageName, R.layout.widget_queue_item).apply {
-                setTextViewText(R.id.widget_queue_item_position, (position + 1).toString())
-                setTextViewText(R.id.widget_queue_item_title, track.title)
-                setTextViewText(R.id.widget_queue_item_artist, track.artist)
+                setTextViewText(
+                    R.id.widget_queue_item_position,
+                    (position + 1).toString()
+                )
+
+                setTextViewText(
+                    R.id.widget_queue_item_title,
+                    track.title
+                )
+
+                setTextViewText(
+                    R.id.widget_queue_item_artist,
+                    track.artist
+                )
+
                 setViewVisibility(
                     R.id.widget_queue_item_divider,
                     if (position == items.lastIndex) View.GONE else View.VISIBLE
                 )
-                val fillInIntent = Intent().putExtra(BaseMusicAppWidgetProvider.EXTRA_QUEUE_INDEX, position)
+
                 setOnClickFillInIntent(R.id.widget_queue_item, fillInIntent)
                 setOnClickFillInIntent(R.id.widget_queue_item_title, fillInIntent)
                 setOnClickFillInIntent(R.id.widget_queue_item_artist, fillInIntent)
@@ -53,13 +87,31 @@ class WidgetQueueService : RemoteViewsService() {
             }
         }
 
-        override fun getLoadingView(): RemoteViews = RemoteViews(packageName, R.layout.widget_queue_item)
+        override fun getLoadingView(): RemoteViews {
+            return RemoteViews(packageName, R.layout.widget_queue_item)
+        }
 
-        override fun getViewTypeCount(): Int = 1
+        override fun getViewTypeCount(): Int {
+            return 1
+        }
 
-        override fun getItemId(position: Int): Long = items.getOrNull(position)?.id ?: position.toLong()
+        override fun getItemId(position: Int): Long {
+            return items.getOrNull(position)?.id ?: position.toLong()
+        }
 
-        override fun hasStableIds(): Boolean = true
+        override fun hasStableIds(): Boolean {
+            return true
+        }
+
+        private fun snapshotLoader(
+            service: WidgetQueueService
+        ): WidgetPlaybackSnapshotLoader {
+            return EntryPointAccessors
+                .fromApplication(
+                    service.applicationContext,
+                    WidgetProviderEntryPoint::class.java
+                )
+                .widgetPlaybackSnapshotLoader()
+        }
     }
 }
-

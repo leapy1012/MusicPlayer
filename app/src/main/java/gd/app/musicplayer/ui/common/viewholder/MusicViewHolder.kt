@@ -7,7 +7,6 @@ import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.FragmentMusicListItemBinding
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.formatAddedDate
 import gd.app.musicplayer.core.extension.formatDuration
 import gd.app.musicplayer.core.extension.formatFileSize
@@ -16,6 +15,7 @@ import gd.app.musicplayer.core.theme.*
 class MusicViewHolder(
     val binding: FragmentMusicListItemBinding,
     private val musicSet: MusicSet,
+    private val theme: ThemePalette,
     val onItemClick: ((Music) -> Unit)?,
     val onItemLongClick: ((Music) -> Unit)?,
     val onMenuClick: ((Music) -> Unit)?
@@ -105,10 +105,6 @@ class MusicViewHolder(
     }
 
     private fun renderTextColors(isCurrentTrack: Boolean) {
-        val context = binding.root.context
-        val theme = context.appDependencies.themeRepo
-            .getCorePalette(context)
-
         binding.musicItemTitle.setTextColor(
             if (isCurrentTrack) theme.accentColor else theme.itemTextColor
         )

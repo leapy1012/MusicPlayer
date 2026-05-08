@@ -2,18 +2,17 @@ package gd.app.musicplayer.domain.usecase.library
 
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.LibraryRepo
-import javax.inject.Inject
+import gd.app.musicplayer.data.repository.LibraryRepo
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
 class ObserveTracksUseCase @Inject constructor(
     private val libraryRepo: LibraryRepo
 ) {
-    operator fun invoke(musicSet: MusicSet): Flow<List<Music>> = libraryRepo.observeTracks(musicSet)
-
     operator fun invoke(
         musicSet: MusicSet,
-        sortStyle: String,
-        sortDescending: Boolean
-    ): Flow<List<Music>> = libraryRepo.observeTracks(musicSet, sortStyle, sortDescending)
+        isSelectionMode: Boolean = false
+    ): Flow<List<Music>> {
+        return libraryRepo.observeTracks(musicSet, isSelectionMode)
+    }
 }

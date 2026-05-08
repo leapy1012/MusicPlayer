@@ -35,7 +35,7 @@ fun View.applySystemBarInsets(
         statusBarView?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             height = systemBars.top
         }
-        bottomPaddingView?.updatePadding(bottom = systemBars.bottom + context.dpToPx(60f))
+        bottomPaddingView?.updatePadding(bottom = systemBars.bottom)
         insets
     }
     ViewCompat.requestApplyInsets(this)

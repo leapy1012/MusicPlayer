@@ -9,7 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.PlaybackQueueRepo
+import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
@@ -17,7 +17,7 @@ import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
-import gd.app.musicplayer.domain.usecase.track.RemoveTracksFromLibraryUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,11 +43,11 @@ class MusicOptionsViewModel @Inject constructor(
     private val enqueueTracksUseCase: EnqueueTracksUseCase,
     private val toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
-    private val removeTracksFromLibraryUseCase: RemoveTracksFromLibraryUseCase,
+    private val deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase,
     private val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase,
-    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase,
-    private val playbackQueueRepo: PlaybackQueueRepo
+    private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
+    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase
 ) : ViewModel() {
 
     private var musicSet: MusicSet? = null
@@ -123,7 +123,7 @@ class MusicOptionsViewModel @Inject constructor(
                 }
 
                 is MusicSet.Queue -> {
-                    val queue = playbackQueueRepo.getQueue()
+                    val queue = getPlaybackQueueUseCase()
                     val state = observePlaybackStateUseCase().value
                     val index = queue.indexOfFirst { it.id == music.id }
                     if (index >= 0) {
@@ -151,7 +151,7 @@ class MusicOptionsViewModel @Inject constructor(
             val deletedCount = if (deleteSourceFile) {
                 deleteTracksUseCase(listOf(music))
             } else {
-                removeTracksFromLibraryUseCase(listOf(music.id))
+                deleteTracksFromLibraryUseCase(listOf(music.id))
                 1
             }
             eventsChannel.send(

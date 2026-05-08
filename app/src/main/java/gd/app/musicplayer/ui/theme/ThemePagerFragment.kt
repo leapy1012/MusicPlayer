@@ -65,7 +65,7 @@ class ThemePagerFragment : ViewBindingFragment<FragmentThemePagerItemBinding>() 
                     val items = ThemeItemMapper.buildItems(
                         themes = state.themes,
                         selectedImageName = state.settings?.imageName.orEmpty(),
-                        customImageNames = state.settings?.customImageNames.orEmpty(),
+                        customImageNames = state.settings?.imageUris.orEmpty(),
                         selectedTabIndex = state.selectedTabIndex,
                         tabIndex = tabIndex
                     )

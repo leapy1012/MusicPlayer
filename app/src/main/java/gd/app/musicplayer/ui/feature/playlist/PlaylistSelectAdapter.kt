@@ -17,17 +17,12 @@ import gd.app.musicplayer.databinding.FragmentPlaylistAddItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 import gd.app.musicplayer.ui.common.viewholder.toDisplayInfo
-import gd.app.musicplayer.core.extension.appDependencies
 
 class PlaylistSelectAdapter(
-    private val inflater: LayoutInflater
+    private val inflater: LayoutInflater,
+    private val accentColor: Int
 ) : ListAdapter<PlaylistRow, RecyclerView.ViewHolder>(RowDiffCallback) {
-
-    private val accentColor: Int by lazy(LazyThreadSafetyMode.NONE) {
-        inflater.context.appDependencies.themeRepo.getAccentColor(inflater.context)
-    }
 
     private val selectedPlaylistIds = linkedSetOf<Long>()
     private var selectionCountListener: OnSelectionCountChangedListener? = null
@@ -53,13 +48,11 @@ class PlaylistSelectAdapter(
                     parent,
                     false
                 )
-                applyCurrentTheme(binding.root)
                 CreatePlaylistHeaderViewHolder(binding)
             }
 
             else -> {
                 val binding = FragmentPlaylistAddItemBinding.inflate(inflater, parent, false)
-                applyCurrentTheme(binding.root)
                 PlaylistViewHolder(binding)
             }
         }

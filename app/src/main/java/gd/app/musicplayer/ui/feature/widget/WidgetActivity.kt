@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.core.extension.dpToPx
@@ -18,18 +20,11 @@ import gd.app.musicplayer.databinding.ActivityWidgetBinding
 import gd.app.musicplayer.databinding.ActivityWidgetItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 
+@AndroidEntryPoint
 class WidgetActivity : BaseActivity() {
-
     private lateinit var binding: ActivityWidgetBinding
     private lateinit var addHelper: WidgetAddHelper
-
-    companion object {
-        fun start(context: Context) {
-            context.startActivityCompat(Intent(context, WidgetActivity::class.java))
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,14 +46,20 @@ class WidgetActivity : BaseActivity() {
             }
         )
 
-        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
+        binding.root.applySystemBarInsets(
+            statusBarView = binding.statusBarSpace,
+            bottomPaddingView = binding.root
+        )
+
         setupToolbar()
         setupRecycler()
     }
+
     override fun onDestroy() {
         if (::addHelper.isInitialized) {
             addHelper.dispose()
         }
+
         super.onDestroy()
     }
 
@@ -70,12 +71,21 @@ class WidgetActivity : BaseActivity() {
 
     private fun setupRecycler() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
+
         if (binding.recyclerView.itemDecorationCount == 0) {
-            binding.recyclerView.addItemDecoration(SpacingItemDecoration.all(dpToPx(8f)))
+            binding.recyclerView.addItemDecoration(
+                SpacingItemDecoration.all(dpToPx(8f))
+            )
         }
+
         binding.recyclerView.adapter = WidgetAdapter(
             items = WidgetCatalog.items,
-            onAddClicked = { item -> addHelper.requestAdd(item) }
+            applyTheme = { root ->
+                themeEngine.apply(root)
+            },
+            onAddClicked = { item ->
+                addHelper.requestAdd(item)
+            }
         )
     }
 
@@ -91,8 +101,12 @@ class WidgetActivity : BaseActivity() {
 
         setResult(
             RESULT_OK,
-            Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            Intent().putExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                appWidgetId
+            )
         )
+
         finish()
         return true
     }
@@ -111,40 +125,71 @@ class WidgetActivity : BaseActivity() {
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
+
+    companion object {
+        fun start(context: Context) {
+            context.startActivityCompat(
+                Intent(context, WidgetActivity::class.java)
+            )
+        }
+    }
 }
 
 private class WidgetAdapter(
     private val items: List<WidgetProviderSpec>,
+    private val applyTheme: (View) -> Unit,
     private val onAddClicked: (WidgetProviderSpec) -> Unit
 ) : RecyclerView.Adapter<WidgetAdapter.ViewHolder>() {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): ViewHolder {
         val binding = ActivityWidgetItemBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
             false
         )
-        return ViewHolder(binding, onAddClicked)
+
+        applyTheme(binding.root)
+
+        return ViewHolder(
+            binding = binding,
+            onAddClicked = onAddClicked
+        )
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    override fun onBindViewHolder(
+        holder: ViewHolder,
+        position: Int
+    ) {
         holder.bind(items[position])
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int {
+        return items.size
+    }
 
     class ViewHolder(
         private val binding: ActivityWidgetItemBinding,
         private val onAddClicked: (WidgetProviderSpec) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: WidgetProviderSpec) {
-            binding.itemTitle.setText(item.titleRes)
-            binding.itemSize.text = itemView.context.getString(R.string.size) + ": " + item.classify
-            binding.itemImage.setImageResource(item.previewRes)
-            binding.root.setOnClickListener { onAddClicked(item) }
-            binding.itemAdd.setOnClickListener { onAddClicked(item) }
-            applyCurrentTheme(binding.root)
+        fun bind(item: WidgetProviderSpec) = with(binding) {
+            itemTitle.setText(item.titleRes)
+            itemSize.text = root.context.getString(
+                R.string.size
+            ) + ": " + item.classify
+
+            itemImage.setImageResource(item.previewRes)
+
+            root.setOnClickListener {
+                onAddClicked(item)
+            }
+
+            itemAdd.setOnClickListener {
+                onAddClicked(item)
+            }
         }
     }
 }

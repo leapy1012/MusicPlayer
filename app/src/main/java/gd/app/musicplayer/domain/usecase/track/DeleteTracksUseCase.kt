@@ -4,13 +4,15 @@ import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repo.TrackMutationRepo
+import gd.app.musicplayer.data.repository.LibraryRepo
 import java.io.File
+import javax.inject.Inject
 
-class DeleteTracksUseCase(
-    private val appContext: Context,
-    private val trackMutationRepo: TrackMutationRepo
+class DeleteTracksUseCase @Inject constructor(
+    @param:ApplicationContext private val appContext: Context,
+    private val libraryRepo: LibraryRepo
 ) {
     suspend operator fun invoke(tracks: Collection<Music>): Int {
         val deletedIds = mutableListOf<Long>()
@@ -27,7 +29,7 @@ class DeleteTracksUseCase(
         }
 
         if (deletedIds.isNotEmpty()) {
-            trackMutationRepo.hideTracks(deletedIds, System.currentTimeMillis())
+            libraryRepo.hideTracks(deletedIds, System.currentTimeMillis())
         }
 
         return deletedIds.size

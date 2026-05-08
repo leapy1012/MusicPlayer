@@ -24,8 +24,8 @@ import gd.app.musicplayer.core.extension.spToPx
 import kotlin.math.roundToInt
 import androidx.core.graphics.drawable.toDrawable
 import gd.app.musicplayer.core.extension.isLandscape
+import gd.app.musicplayer.core.extension.screenHeight
 import gd.app.musicplayer.core.ui.drawable.ViewStateDrawables
-import gd.app.musicplayer.core.util.ScreenUtils
 
 class OptionsListDialog(
     context: Context,
@@ -306,7 +306,7 @@ class OptionsListDialog(
         sampleView.measure(0, 0)
 
         val totalMeasuredHeight = sampleView.measuredHeight * maxOf(1, adapter.count)
-        val maxAllowedHeight = (ScreenUtils.getScreenHeight(context) * 2) / (if (context.isLandscape()) 4 else 3)
+        val maxAllowedHeight = (context.screenHeight * 2) / (if (context.isLandscape()) 4 else 3)
 
         return if (totalMeasuredHeight < maxAllowedHeight) {
             ViewGroup.LayoutParams.WRAP_CONTENT

@@ -1,11 +1,13 @@
 package gd.app.musicplayer.domain.usecase.playback
 
 import android.content.Context
-import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.PlaybackController
+import javax.inject.Inject
 
-class TogglePlayPauseUseCase {
+class TogglePlayPauseUseCase @Inject constructor(
+    private val playbackController: PlaybackController
+){
     operator fun invoke(context: Context) {
-        PlaybackGateway.togglePlayPause(context)
+        playbackController.togglePlayPause(context)
     }
 }
-

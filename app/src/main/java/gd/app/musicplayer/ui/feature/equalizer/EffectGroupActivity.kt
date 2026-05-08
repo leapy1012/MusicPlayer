@@ -13,26 +13,33 @@ import android.provider.Settings
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.applyStatusBarInsetHeight
 import gd.app.musicplayer.core.extension.navigateBack
 import gd.app.musicplayer.core.extension.startActivityCompat
+import gd.app.musicplayer.data.model.AudioEffectSettings
 import gd.app.musicplayer.databinding.ActivityEffectGroupBinding
-import gd.app.musicplayer.playback.AudioEffectsManager
+import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
+import gd.app.musicplayer.domain.usecase.equalizer.SaveAudioEffectSettingsUseCase
 import gd.app.musicplayer.playback.EffectGroupPreset
 import gd.app.musicplayer.playback.EffectGroupPresets
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.ui.view.SelectBox
+import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class EffectGroupActivity : BaseActivity() {
+
+    @Inject lateinit var loadAudioEffectSettingsUseCase: LoadAudioEffectSettingsUseCase
+    @Inject lateinit var saveAudioEffectSettingsUseCase: SaveAudioEffectSettingsUseCase
 
     private val playerViewModel: PlayerViewModel by viewModels()
 
@@ -85,6 +92,7 @@ class EffectGroupActivity : BaseActivity() {
             layoutInflater = layoutInflater,
             headerView = headerController.view,
             useGridItem = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
+            applyTheme = ::applyThemeTo,
             onSelectPreset = ::onPresetClicked
         )
         binding.effectGroupRecycleView.adapter = adapter
@@ -125,35 +133,41 @@ class EffectGroupActivity : BaseActivity() {
     }
 
     private fun renderState() {
-        val settings = AudioEffectsManager.loadSettings(this)
-        headerController.render(settings, currentPresetName(settings), audioManager)
-        adapter.setSelection(settings.effectGroupEnabled, settings.effectGroupPresetId)
+        lifecycleScope.launch {
+            renderState(loadAudioEffectSettingsUseCase())
+        }
     }
 
     private fun onPresetClicked(preset: EffectGroupPreset) {
-        val current = AudioEffectsManager.loadSettings(this)
-        val next = if (current.effectGroupEnabled && current.effectGroupPresetId == preset.id) {
-            current.copy(effectGroupEnabled = false)
-        } else {
-            current.copy(effectGroupEnabled = true, effectGroupPresetId = preset.id)
+        lifecycleScope.launch {
+            val current = loadAudioEffectSettingsUseCase()
+            val next = if (current.effectGroupEnabled && current.effectGroupPresetId == preset.id) {
+                current.copy(effectGroupEnabled = false)
+            } else {
+                current.copy(effectGroupEnabled = true, effectGroupPresetId = preset.id)
+            }
+            saveAndApply(next)
         }
-        saveAndApply(next)
     }
 
     private fun toggleHeaderEnabled(enabled: Boolean) {
-        val current = AudioEffectsManager.loadSettings(this)
-        val presetId = current.effectGroupPresetId.takeIf { EffectGroupPresets.find(it) != null } ?: 0
-        saveAndApply(current.copy(effectGroupEnabled = enabled, effectGroupPresetId = presetId))
+        lifecycleScope.launch {
+            val current = loadAudioEffectSettingsUseCase()
+            val presetId = current.effectGroupPresetId.takeIf { EffectGroupPresets.find(it) != null } ?: 0
+            saveAndApply(current.copy(effectGroupEnabled = enabled, effectGroupPresetId = presetId))
+        }
     }
 
     private fun toggleBoost(enabled: Boolean) {
-        val current = AudioEffectsManager.loadSettings(this)
-        saveAndApply(
-            current.copy(
-                loudnessEnabled = enabled,
-                loudnessStrength = if (enabled) current.loudnessStrength.coerceAtLeast(0.3f) else current.loudnessStrength
+        lifecycleScope.launch {
+            val current = loadAudioEffectSettingsUseCase()
+            saveAndApply(
+                current.copy(
+                    loudnessEnabled = enabled,
+                    loudnessStrength = if (enabled) current.loudnessStrength.coerceAtLeast(0.3f) else current.loudnessStrength
+                )
             )
-        )
+        }
     }
 
     private fun setMusicVolume(volume: Int) {
@@ -165,13 +179,18 @@ class EffectGroupActivity : BaseActivity() {
         headerController.syncVolume(audioManager)
     }
 
-    private fun saveAndApply(settings: AudioEffectsManager.Settings) {
-        AudioEffectsManager.saveSettings(this, settings)
+    private suspend fun saveAndApply(settings: AudioEffectSettings) {
+        saveAudioEffectSettingsUseCase(settings)
         playerViewModel.applyAudioEffects(this)
-        renderState()
+        renderState(settings)
     }
 
-    private fun currentPresetName(settings: AudioEffectsManager.Settings): String {
+    private fun renderState(settings: AudioEffectSettings) {
+        headerController.render(settings, currentPresetName(settings), audioManager)
+        adapter.setSelection(settings.effectGroupEnabled, settings.effectGroupPresetId)
+    }
+
+    private fun currentPresetName(settings: AudioEffectSettings): String {
         val preset = EffectGroupPresets.find(settings.effectGroupPresetId) ?: EffectGroupPresets.all.first()
         return getString(preset.nameRes)
     }
@@ -201,7 +220,7 @@ private class EffectGroupHeaderController(
     init {
         view.findViewById<View>(R.id.status_bar_space).applyStatusBarInsetHeight()
         view.findViewById<View>(R.id.status_bar_space_parent).applyStatusBarInsetHeight()
-        activity.appDependencies.themeEngine.apply(view)
+        activity.applyThemeTo(view)
 
         effectSelect.setOnSelectChangedListener(object : SelectBox.OnSelectChangedListener {
             override fun onSelectChanged(selectBox: SelectBox, fromUser: Boolean, isSelected: Boolean) {
@@ -235,7 +254,7 @@ private class EffectGroupHeaderController(
         view.findViewById<AppCompatTextView>(R.id.effect_group_tip_2).append(" : ")
     }
 
-    fun render(settings: AudioEffectsManager.Settings, currentName: String, audioManager: AudioManager) {
+    fun render(settings: AudioEffectSettings, currentName: String, audioManager: AudioManager) {
         effectName.text = currentName
         effectName.isSelected = settings.effectGroupEnabled
         effectSelect.isSelected = settings.effectGroupEnabled

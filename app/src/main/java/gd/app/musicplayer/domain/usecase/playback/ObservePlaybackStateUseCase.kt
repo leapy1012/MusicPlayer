@@ -1,11 +1,12 @@
 package gd.app.musicplayer.domain.usecase.playback
 
-import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
+import javax.inject.Inject
 import kotlinx.coroutines.flow.StateFlow
 
-class ObservePlaybackStateUseCase {
-    operator fun invoke(): StateFlow<MusicPlaybackState> = PlaybackGateway.state
+class ObservePlaybackStateUseCase @Inject constructor(
+    private val playbackController: PlaybackController
+) {
+    operator fun invoke(): StateFlow<MusicPlaybackState> = playbackController.state
 }
-
-

@@ -9,12 +9,12 @@ import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderChildItemBinding
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderGroupItemBinding
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 import java.util.Locale
 
 class ActivityDuplicateBinder(
     private val onGroupClick: (String) -> Unit,
-    private val onTrackClick: (Long) -> Unit
+    private val onTrackClick: (Long) -> Unit,
+    private val applyTheme: (android.view.View) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var rows: List<Row> = emptyList()
@@ -72,7 +72,7 @@ class ActivityDuplicateBinder(
                     parent,
                     false
                 )
-                applyCurrentTheme(binding.root)
+                applyTheme(binding.root)
                 GroupViewHolder(binding, onGroupClick)
             }
 
@@ -82,7 +82,7 @@ class ActivityDuplicateBinder(
                     parent,
                     false
                 )
-                applyCurrentTheme(binding.root)
+                applyTheme(binding.root)
                 ChildViewHolder(binding, onTrackClick)
             }
 

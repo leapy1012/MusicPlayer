@@ -1,12 +1,13 @@
 package gd.app.musicplayer.domain.usecase.playback
 
 import android.content.Context
-import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.PlaybackController
+import javax.inject.Inject
 
-class ClearQueueUseCase {
+class ClearQueueUseCase @Inject constructor(
+    private val playbackController: PlaybackController
+) {
     operator fun invoke(context: Context) {
-        PlaybackGateway.clearQueue(context)
+        playbackController.clearQueue(context)
     }
 }
-
-

@@ -8,12 +8,13 @@ import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.core.theme.ThemePalette
 import gd.app.musicplayer.databinding.FragmentMusicListItemBinding
 import gd.app.musicplayer.ui.common.viewholder.MusicViewHolder
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 
 class TrackAdapter(
     private val musicSet: MusicSet,
+    private val theme: ThemePalette,
     private val onItemClick: (Music) -> Unit,
     private val onMenuClick: (Music) -> Unit,
     private val onItemLongClick: (Music) -> Unit
@@ -41,11 +42,10 @@ class TrackAdapter(
             false
         )
 
-        applyCurrentTheme(binding.root)
-
         return MusicViewHolder(
             binding = binding,
             musicSet = musicSet,
+            theme = theme,
             onItemClick = onItemClick,
             onItemLongClick = onItemLongClick,
             onMenuClick = onMenuClick

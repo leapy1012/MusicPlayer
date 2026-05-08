@@ -15,6 +15,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.repository.ThemeRepo
 import gd.app.musicplayer.databinding.FragmentSearchBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.data.model.isConcreteCollection
@@ -24,6 +25,7 @@ import gd.app.musicplayer.ui.feature.player.PlayQueueActivity
 import gd.app.musicplayer.core.ui.view.SearchView
 import gd.app.musicplayer.core.extension.applyStatusBarInsetHeight
 import gd.app.musicplayer.core.extension.navigateBack
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -31,8 +33,13 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
     SearchView.OnQueryTextListener,
     SearchResultAdapter.Listener {
 
+    @Inject lateinit var themeRepo: ThemeRepo
+
     private val adapter by lazy {
-        SearchResultAdapter(requireContext()).also { it.setListener(this) }
+        SearchResultAdapter(
+            context = requireContext(),
+            theme = themeRepo.getCorePalette()
+        ).also { it.setListener(this) }
     }
     private val viewModel: SearchViewModel by viewModels()
 
@@ -117,7 +124,8 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
 
     override fun onSongClicked(song: Music) {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.onSongClicked(song, viewModel.currentTrackId.value)
+            viewModel.onSongClicked(song, null)
+            // viewModel.onSongClicked(song, viewModel.currentTrackId.value)
         }
     }
 

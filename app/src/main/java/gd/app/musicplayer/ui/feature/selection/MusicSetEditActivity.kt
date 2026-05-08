@@ -28,24 +28,27 @@ import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.feature.library.ARG_MUSIC_SET
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.folder.isHiddenFoldersEntry
-import gd.app.musicplayer.util.PreferenceUtil
+
 import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.core.extension.isTablet
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.extension.startActivityCompat
+import gd.app.musicplayer.core.theme.accentColor
+import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.UUID
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MusicSetEditActivity : BaseActivity() {
 
-    private val viewModel: SelectionViewModel by viewModels()
+    private val viewModel: EditViewModel by viewModels()
 
     private lateinit var binding: ActivityMusicSetEditBinding
-    private lateinit var preferenceUtil: PreferenceUtil
     private lateinit var adapter: MusicSetEditAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var rootMusicSet: MusicSet
@@ -57,8 +60,10 @@ class MusicSetEditActivity : BaseActivity() {
     private val selectedKeys = linkedSetOf<String>()
     private var viewMode: Int = MUSIC_SET_VIEW_MODE_LIST
     private var useProvidedItems = false
-    private val playTracks by lazy { appDependencies.playTracksUseCase }
-    private val enqueueTracks by lazy { appDependencies.enqueueTracksUseCase }
+    @Inject
+    lateinit var playTracksUseCase: PlayTracksUseCase
+
+    @Inject lateinit var enqueueTracksUseCase: EnqueueTracksUseCase
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,26 +73,34 @@ class MusicSetEditActivity : BaseActivity() {
             finish()
             return
         }
+
         sessionId = savedInstanceState?.getString(STATE_SESSION_ID)
             ?: intent.getStringExtra(EXTRA_SESSION_ID)
-            ?: UUID.randomUUID().toString()
+                    ?: UUID.randomUUID().toString()
 
         binding = ActivityMusicSetEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        preferenceUtil = appDependencies.preferenceUtil
+
         recyclerView = findViewById(R.id.recyclerview)
         emptyView = inflateEmptyView()
 
-        viewMode = resolveViewMode(rootMusicSet.id.toInt())
-        adapter = MusicSetEditAdapter(viewMode, ::toggleSelection)
-
-        restoreState(savedInstanceState)
-
         setupToolbar()
-        setupRecyclerView()
         setupBottomMenu()
-        observeItems()
-        refreshUi()
+
+        lifecycleScope.launch {
+            viewMode = resolveViewMode(rootMusicSet)
+
+            adapter = MusicSetEditAdapter(
+                viewMode = viewMode,
+                accentColor = themeEngine.currentTheme().accentColor,
+                onToggleSelection = ::toggleSelection
+            )
+
+            restoreState(savedInstanceState)
+            setupRecyclerView()
+            observeItems()
+            refreshUi()
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -300,9 +313,10 @@ class MusicSetEditActivity : BaseActivity() {
 
             when (action) {
                 ACTION_ADD_TO -> ActivityPlaylistSelect.start(this@MusicSetEditActivity, tracks)
-                ACTION_PLAY -> playTracks(this@MusicSetEditActivity, tracks, 0)
+                ACTION_PLAY -> playTracksUseCase(this@MusicSetEditActivity, tracks, 0)
+
                 ACTION_ENQUEUE -> {
-                    enqueueTracks(this@MusicSetEditActivity, tracks)
+                    enqueueTracksUseCase(this@MusicSetEditActivity, tracks)
                     Toast.makeText(
                         this@MusicSetEditActivity,
                         getString(R.string.enqueue_msg_count, tracks.size),
@@ -397,11 +411,11 @@ class MusicSetEditActivity : BaseActivity() {
         )
     }
 
-    private fun resolveViewMode(setId: Int): Int =
-        if (setId == MusicSet.FOLDERS.toInt()) {
+    private suspend fun resolveViewMode(musicSet: MusicSet): Int =
+        if (musicSet is MusicSet.Folders) {
             MUSIC_SET_VIEW_MODE_LIST
         } else {
-            preferenceUtil.getListViewMode(setId)
+            viewModel.getViewMode(musicSet)
         }
 
     private fun resolveSpanCount(): Int {

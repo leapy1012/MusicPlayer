@@ -1,22 +1,24 @@
 package gd.app.musicplayer.playback
 
+import gd.app.musicplayer.data.model.Music
+
 sealed interface PlaybackCommand {
 
     data class PlayFromQueue(
-        val queue: List<gd.app.musicplayer.data.model.Music>,
+        val queue: List<Music>,
         val index: Int
     ) : PlaybackCommand
 
     data class Enqueue(
-        val queue: List<gd.app.musicplayer.data.model.Music>
+        val queue: List<Music>
     ) : PlaybackCommand
 
     data class PlayNextItems(
-        val queue: List<gd.app.musicplayer.data.model.Music>
+        val queue: List<Music>
     ) : PlaybackCommand
 
     data class ReplaceQueue(
-        val queue: List<gd.app.musicplayer.data.model.Music>,
+        val queue: List<Music>,
         val index: Int
     ) : PlaybackCommand
 

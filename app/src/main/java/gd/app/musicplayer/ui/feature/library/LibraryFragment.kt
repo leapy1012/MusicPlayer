@@ -8,6 +8,9 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
@@ -18,9 +21,10 @@ import gd.app.musicplayer.databinding.FragmentLibraryBinding
 import gd.app.musicplayer.databinding.LayoutLibraryTitleBinding
 import gd.app.musicplayer.ui.feature.search.SearchActivity
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.util.LibraryTabConfig
-import gd.app.musicplayer.util.LibraryTabConfigStore
+import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfig
+import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfigStore
 import kotlin.getValue
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class LibraryFragment : ViewBindingFragment<FragmentLibraryBinding>(), Toolbar.OnMenuItemClickListener {
@@ -35,7 +39,7 @@ class LibraryFragment : ViewBindingFragment<FragmentLibraryBinding>(), Toolbar.O
 
         binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
         setupToolbar()
-        setupTabs()
+        observeUiState()
         setupBackPressHandler()
     }
 
@@ -52,10 +56,20 @@ class LibraryFragment : ViewBindingFragment<FragmentLibraryBinding>(), Toolbar.O
         binding.toolbar.addView(titleViewBinding.root)
     }
 
-    private fun setupTabs() {
+    private fun observeUiState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect(::renderTabs)
+            }
+        }
+    }
+
+    private fun renderTabs(state: LibraryScreenUiState) {
         val binding = requireBinding()
-        visibleTabs = viewModel.visibleLibraryTabs()
-        val lastTab = viewModel.initialTabIndex(visibleTabs)
+        if (state.visibleTabs.isEmpty()) return
+        if (visibleTabs == state.visibleTabs && binding.viewPager.adapter != null) return
+
+        visibleTabs = state.visibleTabs
 
         binding.viewPager.adapter = LibraryPagerAdapter(this, visibleTabs)
 
@@ -65,7 +79,7 @@ class LibraryFragment : ViewBindingFragment<FragmentLibraryBinding>(), Toolbar.O
             ).uppercase()
         }.attach()
 
-        binding.viewPager.setCurrentItem(lastTab, false)
+        binding.viewPager.setCurrentItem(state.initialTabIndex, false)
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 visibleTabs.getOrNull(position)?.id?.let(viewModel::onTabSelected)

@@ -2,39 +2,42 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
     <gd.app.musicplayer.core.ui.view.MusicRecyclerView
-        android:scrollbarSize="0dp"
-        android:scrollbarThumbHorizontal="@drawable/shape_scrollbar"
-        android:scrollbarThumbVertical="@drawable/shape_scrollbar"
-        android:scrollbarStyle="outsideOverlay"
         android:id="@+id/recyclerview"
-        android:tag="ignore"
-        android:scrollbars="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:divider="#00000000"
         android:dividerHeight="0dp"
-        android:nestedScrollingEnabled="false"
-        android:fastScrollEnabled="false"/>
+        android:fastScrollEnabled="false"
+        android:scrollbarSize="0dp"
+        android:scrollbarStyle="outsideOverlay"
+        android:scrollbarThumbHorizontal="@drawable/shape_scrollbar"
+        android:scrollbarThumbVertical="@drawable/shape_scrollbar"
+        android:scrollbars="vertical"
+        android:tag="ignore" />
+
     <gd.app.musicplayer.core.ui.view.RecyclerIndexBar
-        android:layout_gravity="end|center_vertical"
         android:id="@+id/recyclerview_index"
-        android:tag="recyclerIndexBar"
+        android:layout_width="18dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|center_vertical"
         android:paddingTop="2dp"
         android:paddingBottom="2dp"
-        android:layout_width="18dp"
-        android:layout_height="wrap_content"/>
+        android:tag="recyclerIndexBar" />
+
     <ViewStub
-        android:layout_gravity="center_vertical"
         android:id="@+id/layout_list_empty"
-        android:layout="@layout/layout_list_empty"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical"
+        android:layout="@layout/layout_list_empty" />
+
     <ProgressBar
-        android:layout_gravity="center"
         android:id="@+id/loading_progress_bar"
-        android:tag="loadingProgressBar"
-        android:visibility="gone"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:tag="loadingProgressBar"
+        android:visibility="gone" />
 </FrameLayout>

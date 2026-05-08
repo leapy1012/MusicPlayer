@@ -16,7 +16,6 @@ import androidx.core.graphics.drawable.toDrawable
 import gd.app.lib.view.RoundedOutlineProvider
 import gd.app.lib.view.square.HeightFromWidthMeasurePolicy
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.core.theme.accentColor
 import gd.app.musicplayer.core.theme.messageColor
@@ -72,8 +71,7 @@ class SimultaneousTipDialog : BaseDialogFragment() {
     }
 
     private fun applyThemeToViews(topCornerRadius: Float) {
-        val themePalette =
-            requireContext().appDependencies.themeRegistry.getCurrentTheme(requireContext())
+        val themePalette = currentTheme()
 
         binding.root.background = themePalette.getDialogBackground(requireContext())
         binding.dialogMessage.setTextColor(themePalette.messageColor)

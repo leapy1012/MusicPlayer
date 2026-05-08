@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.search
 
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repo.SearchRepo
+import gd.app.musicplayer.data.repository.SearchRepo
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 

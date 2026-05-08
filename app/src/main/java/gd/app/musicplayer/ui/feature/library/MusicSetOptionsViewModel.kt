@@ -15,7 +15,7 @@ import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
 import gd.app.musicplayer.domain.usecase.playlist.DeletePlaylistUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
-import gd.app.musicplayer.domain.usecase.track.RemoveTracksFromLibraryUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -37,7 +37,7 @@ class MusicSetOptionsViewModel @Inject constructor(
     private val playNextTracksUseCase: PlayNextTracksUseCase,
     private val enqueueTracksUseCase: EnqueueTracksUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
-    private val removeTracksFromLibraryUseCase: RemoveTracksFromLibraryUseCase,
+    private val deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase,
     private val hideSelectionUseCase: HideSelectionUseCase,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val observeTracksUseCase: ObserveTracksUseCase
@@ -109,7 +109,7 @@ class MusicSetOptionsViewModel @Inject constructor(
                     val deletedCount = if (deleteSourceFile) {
                         deleteTracksUseCase(tracks)
                     } else {
-                        removeTracksFromLibraryUseCase(tracks.map { it.id })
+                        deleteTracksFromLibraryUseCase(tracks.map { it.id })
                         tracks.size
                     }
                     _events.emit(

@@ -1,5 +1,6 @@
 package gd.app.musicplayer.data.db.dao
 
+import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.room.RewriteQueriesToDropUnusedColumns
@@ -16,6 +17,7 @@ import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import kotlinx.coroutines.flow.Flow
 
+@Dao
 interface LibraryDao {
 
     @Upsert
@@ -43,84 +45,6 @@ interface LibraryDao {
         """
     )
     suspend fun deleteMusicPlaylistRefsByTrackIds(musicIds: List<Long>)
-
-    @Query("SELECT * FROM effect ORDER BY _id ASC")
-    suspend fun getEffectPresets(): List<EffectPresetEntity>
-
-    @Query("SELECT * FROM effect_ten ORDER BY _id ASC")
-    suspend fun getEffectTenPresets(): List<EffectTenPresetEntity>
-
-    @Query("SELECT * FROM effect WHERE _id = :id LIMIT 1")
-    suspend fun getEffectPresetById(id: Long): EffectPresetEntity?
-
-    @Query("SELECT * FROM effect_ten WHERE _id = :id LIMIT 1")
-    suspend fun getEffectTenPresetById(id: Long): EffectTenPresetEntity?
-
-    @Insert
-    suspend fun insertEffectPreset(item: EffectPresetEntity): Long
-
-    @Insert
-    suspend fun insertEffectTenPreset(item: EffectTenPresetEntity): Long
-
-    @Query(
-        """
-        UPDATE effect
-        SET name = :name,
-            b1 = :b1,
-            b2 = :b2,
-            b3 = :b3,
-            b4 = :b4,
-            b5 = :b5
-        WHERE _id = :id
-        """
-    )
-    suspend fun updateEffectPreset(
-        id: Long,
-        name: String,
-        b1: Int,
-        b2: Int,
-        b3: Int,
-        b4: Int,
-        b5: Int
-    )
-
-    @Query(
-        """
-        UPDATE effect_ten
-        SET name = :name,
-            b1 = :b1,
-            b2 = :b2,
-            b3 = :b3,
-            b4 = :b4,
-            b5 = :b5,
-            b6 = :b6,
-            b7 = :b7,
-            b8 = :b8,
-            b9 = :b9,
-            b10 = :b10
-        WHERE _id = :id
-        """
-    )
-    suspend fun updateEffectTenPreset(
-        id: Long,
-        name: String,
-        b1: Int,
-        b2: Int,
-        b3: Int,
-        b4: Int,
-        b5: Int,
-        b6: Int,
-        b7: Int,
-        b8: Int,
-        b9: Int,
-        b10: Int
-    )
-
-    @Query("DELETE FROM effect WHERE _id = :id")
-    suspend fun deleteEffectPresetById(id: Long)
-
-    @Query("DELETE FROM effect_ten WHERE _id = :id")
-    suspend fun deleteEffectTenPresetById(id: Long)
 
     @Upsert
     suspend fun upsertHiddenFolders(items: List<HiddenFolderEntity>)
@@ -154,7 +78,7 @@ interface LibraryDao {
         WHERE s_id = :sourceId
         """
     )
-    suspend fun getAlbumPicturesBySourceId(sourceId: Long): List<String?>
+    suspend fun getAlbumPicturesBySourceId(sourceId: Long): List<String>
 
     @Query(
         """
@@ -222,7 +146,7 @@ interface LibraryDao {
           AND s_id NOT IN (SELECT _id FROM playlist)
         """
     )
-    suspend fun getOrphanedPlaylistAlbumPicturePaths(): List<String?>
+    suspend fun getOrphanedPlaylistAlbumPicturePaths(): List<String>
 
     @Query(
         """
@@ -829,198 +753,6 @@ interface LibraryDao {
         sortDescending: Boolean
     ): Flow<List<Music>>
 
-    @Query(
-        """
-        select music.*, list.p_id as p_id
-        from (
-          select * from musictbl
-          where hide_time = 0
-            and show = 1
-            and album_id = :albumId
-            and folder_path not in (select folder_path from hide_folder)
-        ) as music
-        left join (
-          select DISTINCT([m_id]), [p_id]
-          from music_playlist
-          where music_playlist.p_id = 1
-        ) as list
-        on music.[_id] = list.[m_id]
-        ORDER BY
-          CASE WHEN :sortStyle = 'random' THEN RANDOM() END,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 0 THEN music.title END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 1 THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'title_desc' THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 0 THEN COALESCE(music.track, 0) END ASC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 1 THEN COALESCE(music.track, 0) END DESC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 0 THEN COALESCE(music.year, 0) END ASC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 1 THEN COALESCE(music.year, 0) END DESC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 0 THEN music.artist END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 1 THEN music.artist END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 0 THEN music.album END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 1 THEN music.album END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 0 THEN music.folder_path END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 1 THEN music.folder_path END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 0 THEN COALESCE(music.date, 0) END ASC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 1 THEN COALESCE(music.date, 0) END DESC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 0 THEN COALESCE(music.size, 0) END ASC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 1 THEN COALESCE(music.size, 0) END DESC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 0 THEN COALESCE(music.duration, 0) END ASC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 1 THEN COALESCE(music.duration, 0) END DESC,
-          music.title COLLATE NOCASE ASC,
-          music._id ASC
-        """
-    )
-    @RewriteQueriesToDropUnusedColumns
-    fun observeTracksByAlbum(
-        albumId: Long,
-        sortStyle: String,
-        sortDescending: Boolean
-    ): Flow<List<Music>>
-
-    @Query(
-        """
-        select music.*, list.p_id as p_id
-        from (
-          select * from musictbl
-          where hide_time = 0
-            and show = 1
-            and genres = :genre
-            and folder_path not in (select folder_path from hide_folder)
-        ) as music
-        left join (
-          select DISTINCT([m_id]), [p_id]
-          from music_playlist
-          where music_playlist.p_id = 1
-        ) as list
-        on music.[_id] = list.[m_id]
-        ORDER BY
-          CASE WHEN :sortStyle = 'random' THEN RANDOM() END,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 0 THEN music.title END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 1 THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'title_desc' THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 0 THEN COALESCE(music.track, 0) END ASC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 1 THEN COALESCE(music.track, 0) END DESC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 0 THEN COALESCE(music.year, 0) END ASC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 1 THEN COALESCE(music.year, 0) END DESC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 0 THEN music.artist END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 1 THEN music.artist END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 0 THEN music.album END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 1 THEN music.album END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 0 THEN music.folder_path END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 1 THEN music.folder_path END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 0 THEN COALESCE(music.date, 0) END ASC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 1 THEN COALESCE(music.date, 0) END DESC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 0 THEN COALESCE(music.size, 0) END ASC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 1 THEN COALESCE(music.size, 0) END DESC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 0 THEN COALESCE(music.duration, 0) END ASC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 1 THEN COALESCE(music.duration, 0) END DESC,
-          music.title COLLATE NOCASE ASC,
-          music._id ASC
-        """
-    )
-    @RewriteQueriesToDropUnusedColumns
-    fun observeTracksByGenre(
-        genre: String,
-        sortStyle: String,
-        sortDescending: Boolean
-    ): Flow<List<Music>>
-
-    @Query(
-        """
-        select music.*, list.p_id as p_id
-        from (
-          select * from musictbl
-          where hide_time = 0
-            and show = 1
-            and folder_path = :folderPath
-            and folder_path not in (select folder_path from hide_folder)
-        ) as music
-        left join (
-          select DISTINCT([m_id]), [p_id]
-          from music_playlist
-          where music_playlist.p_id = 1
-        ) as list
-        on music.[_id] = list.[m_id]
-        ORDER BY
-          CASE WHEN :sortStyle = 'random' THEN RANDOM() END,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 0 THEN music.title END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 1 THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'title_desc' THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 0 THEN COALESCE(music.track, 0) END ASC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 1 THEN COALESCE(music.track, 0) END DESC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 0 THEN COALESCE(music.year, 0) END ASC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 1 THEN COALESCE(music.year, 0) END DESC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 0 THEN music.artist END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 1 THEN music.artist END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 0 THEN music.album END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 1 THEN music.album END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 0 THEN music.folder_path END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 1 THEN music.folder_path END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 0 THEN COALESCE(music.date, 0) END ASC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 1 THEN COALESCE(music.date, 0) END DESC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 0 THEN COALESCE(music.size, 0) END ASC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 1 THEN COALESCE(music.size, 0) END DESC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 0 THEN COALESCE(music.duration, 0) END ASC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 1 THEN COALESCE(music.duration, 0) END DESC,
-          music.title COLLATE NOCASE ASC,
-          music._id ASC
-        """
-    )
-    @RewriteQueriesToDropUnusedColumns
-    fun observeTracksByFolder(
-        folderPath: String,
-        sortStyle: String,
-        sortDescending: Boolean
-    ): Flow<List<Music>>
-
-    @Query(
-        """
-        select music.*, list.p_id as p_id
-        from music_playlist map
-        left join (
-          select * from musictbl
-          where hide_time = 0
-            and show = 1
-            and folder_path not in (select folder_path from hide_folder)
-        ) as music on music.[_id] = map.[m_id]
-        left join (
-          select DISTINCT([m_id]), [p_id]
-          from music_playlist
-          where music_playlist.p_id = 1
-        ) as list on music.[_id] = list.[m_id]
-        where map.[p_id] = :playlistId
-          and music._id is not null
-        ORDER BY
-          CASE WHEN :sortStyle = 'random' THEN RANDOM() END,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 0 THEN music.title END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 1 THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'title_desc' THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 0 THEN COALESCE(music.track, 0) END ASC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 1 THEN COALESCE(music.track, 0) END DESC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 0 THEN COALESCE(music.year, 0) END ASC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 1 THEN COALESCE(music.year, 0) END DESC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 0 THEN music.artist END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 1 THEN music.artist END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 0 THEN music.album END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 1 THEN music.album END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 0 THEN music.folder_path END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 1 THEN music.folder_path END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 0 THEN COALESCE(music.date, 0) END ASC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 1 THEN COALESCE(music.date, 0) END DESC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 0 THEN COALESCE(music.size, 0) END ASC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 1 THEN COALESCE(music.size, 0) END DESC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 0 THEN COALESCE(music.duration, 0) END ASC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 1 THEN COALESCE(music.duration, 0) END DESC,
-          music.title COLLATE NOCASE ASC,
-          music._id ASC
-        """
-    )
-    @RewriteQueriesToDropUnusedColumns
-    fun observeTracksByPlaylist(
-        playlistId: Long,
-        sortStyle: String,
-        sortDescending: Boolean
-    ): Flow<List<Music>>
 
 
     @RawQuery(observedEntities = [MusicEntity::class, MusicPlaylistEntity::class])
@@ -1055,56 +787,6 @@ interface LibraryDao {
 
     @RawQuery(observedEntities = [HiddenFolderEntity::class, MusicEntity::class, AlbumPictureEntity::class])
     fun observeHiddenFoldersRaw(query: SupportSQLiteQuery): Flow<List<MusicSet.Folder>>
-
-    @Query(
-        """
-        select music.*, list.p_id as p_id
-        from (
-          select * from musictbl
-          where hide_time = 0
-            and show = 1
-            and (:playlistWindowMs <= 0 or date > :windowStartMs)
-            and folder_path not in (select folder_path from hide_folder)
-        ) as music
-        left join (
-          select DISTINCT([m_id]), [p_id]
-          from music_playlist
-          where music_playlist.p_id = 1
-        ) as list on music.[_id] = list.[m_id]
-        ORDER BY
-          CASE WHEN :sortStyle = 'random' THEN RANDOM() END,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 0 THEN music.title END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'title' AND :sortDescending = 1 THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'title_desc' THEN music.title END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 0 THEN COALESCE(music.track, 0) END ASC,
-          CASE WHEN :sortStyle = 'track' AND :sortDescending = 1 THEN COALESCE(music.track, 0) END DESC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 0 THEN COALESCE(music.year, 0) END ASC,
-          CASE WHEN :sortStyle = 'year' AND :sortDescending = 1 THEN COALESCE(music.year, 0) END DESC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 0 THEN music.artist END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'artist' AND :sortDescending = 1 THEN music.artist END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 0 THEN music.album END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'album' AND :sortDescending = 1 THEN music.album END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 0 THEN music.folder_path END COLLATE NOCASE ASC,
-          CASE WHEN :sortStyle = 'folder' AND :sortDescending = 1 THEN music.folder_path END COLLATE NOCASE DESC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 0 THEN COALESCE(music.date, 0) END ASC,
-          CASE WHEN :sortStyle = 'date' AND :sortDescending = 1 THEN COALESCE(music.date, 0) END DESC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 0 THEN COALESCE(music.size, 0) END ASC,
-          CASE WHEN :sortStyle = 'size' AND :sortDescending = 1 THEN COALESCE(music.size, 0) END DESC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 0 THEN COALESCE(music.duration, 0) END ASC,
-          CASE WHEN :sortStyle = 'duration' AND :sortDescending = 1 THEN COALESCE(music.duration, 0) END DESC,
-          music.title COLLATE NOCASE ASC,
-          music._id ASC
-        LIMIT :playlistLimit
-        """
-    )
-    @RewriteQueriesToDropUnusedColumns
-    fun observeRecentlyAddedTracksLimited(
-        sortStyle: String,
-        sortDescending: Boolean,
-        playlistWindowMs: Long,
-        windowStartMs: Long,
-        playlistLimit: Int
-    ): Flow<List<Music>>
 
     @Query(
         """

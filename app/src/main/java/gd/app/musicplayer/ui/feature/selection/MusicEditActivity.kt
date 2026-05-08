@@ -27,13 +27,24 @@ import gd.app.musicplayer.ui.feature.library.ARG_MUSIC
 import gd.app.musicplayer.ui.feature.library.ARG_MUSIC_SET
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.extension.startActivityCompat
+import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
+import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
+import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
+import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MusicEditActivity : BaseActivity(),
     MusicEditAdapter.SelectionCountChangedListener {
 
-    private val viewModel: SelectionViewModel by viewModels()
+    private val viewModel: EditViewModel by viewModels()
 
     private lateinit var binding: ActivityMusicEditBinding
     private lateinit var adapter: MusicEditAdapter
@@ -41,6 +52,17 @@ class MusicEditActivity : BaseActivity(),
     private lateinit var selectAllImage: ImageView
     private lateinit var indexBar: RecyclerIndexBar
     private lateinit var emptyStateController: RecyclerEmptyStateController
+
+    @Inject lateinit var playTracksUseCase: PlayTracksUseCase
+    @Inject lateinit var playNextTracksUseCase: PlayNextTracksUseCase
+    @Inject lateinit var enqueueTracksUseCase: EnqueueTracksUseCase
+    @Inject lateinit var observePlaybackStateUseCase: ObservePlaybackStateUseCase
+    @Inject lateinit var getPlaybackQueueUseCase: GetPlaybackQueueUseCase
+    @Inject lateinit var replaceQueueUseCase: ReplaceQueueUseCase
+    @Inject lateinit var removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase
+    @Inject lateinit var deleteTracksUseCase: DeleteTracksUseCase
+    @Inject lateinit var hideSelectionUseCase: HideSelectionUseCase
+    @Inject lateinit var addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase
 
     private lateinit var musicSet: MusicSet
 
@@ -144,6 +166,7 @@ class MusicEditActivity : BaseActivity(),
     private fun buildAdapter(): MusicEditAdapter =
         MusicEditAdapter(
             recyclerView = musicRecyclerView,
+            accentColor = themeRepo.getAccentColor(),
             musicSet = musicSet,
             dragEnabled = musicSet.id > 0,
             onOrderChanged = viewModel::updateTrackOrder
@@ -163,7 +186,17 @@ class MusicEditActivity : BaseActivity(),
         EditBottomMenuController(
             activity = this,
             musicSet = musicSet,
-            menuContainer = binding.musicEditLayout
+            menuContainer = binding.musicEditLayout,
+            playTracksUseCase = playTracksUseCase,
+            playNextTracksUseCase = playNextTracksUseCase,
+            enqueueTracksUseCase = enqueueTracksUseCase,
+            observePlaybackStateUseCase = observePlaybackStateUseCase,
+            getPlaybackQueueUseCase = getPlaybackQueueUseCase,
+            replaceQueueUseCase = replaceQueueUseCase,
+            removeTracksFromPlaylistUseCase = removeTracksFromPlaylistUseCase,
+            deleteTracksUseCase = deleteTracksUseCase,
+            hideSelectionUseCase = hideSelectionUseCase,
+            addTracksToPlaylistsUseCase = addTracksToPlaylistsUseCase
         ).bindMenu()
     }
 

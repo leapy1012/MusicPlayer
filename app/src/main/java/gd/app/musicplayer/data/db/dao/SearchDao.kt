@@ -1,11 +1,13 @@
 package gd.app.musicplayer.data.db.dao
 
+import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import kotlinx.coroutines.flow.Flow
 
+@Dao
 interface SearchDao {
 
     @Query(

@@ -5,16 +5,32 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import gd.app.musicplayer.playback.PlaybackGateway
+import dagger.hilt.android.qualifiers.ApplicationContext
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.di.ApplicationScope
+import gd.app.musicplayer.playback.PlaybackController
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.math.sqrt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
-class ShakeDetector private constructor(
-    context: Context
+@Singleton
+class ShakeDetector @Inject constructor(
+    @ApplicationContext context: Context,
+    private val settingPreferences: SettingPreferencesDataStore,
+    private val playbackController: PlaybackController,
+    @param:ApplicationScope private val applicationScope: CoroutineScope
 ) : SensorEventListener {
 
     private val appContext = context.applicationContext
+
     private val sensorManager =
         appContext.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+
+    private var sensitivityJob: Job? = null
+    private var enabledJob: Job? = null
 
     private var isRegistered = false
     private var hasReceivedFirstSample = false
@@ -26,22 +42,41 @@ class ShakeDetector private constructor(
     private var lastY = 0f
     private var lastZ = 0f
 
-    private var shakeThreshold = 2200f
+    private var shakeThreshold = DEFAULT_SHAKE_THRESHOLD
 
     init {
-        updateSensitivity(PreferenceUtil.getInstance(appContext).getShakeLevel())
+        observeShakeEnabled()
+        observeShakeSensitivity()
     }
 
     fun start() {
-        if (!isRegistered) {
-            sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_NORMAL
-            )
-            isRegistered = true
+        if (isRegistered) {
+            return
         }
+
+        val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            ?: return
+
+        sensorManager.registerListener(
+            this,
+            accelerometer,
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
+
+        isRegistered = true
         hasReceivedFirstSample = false
+        lastSampleProcessedAtMs = 0L
+    }
+
+    fun stop() {
+        if (!isRegistered) {
+            return
+        }
+
+        sensorManager.unregisterListener(this)
+        isRegistered = false
+        hasReceivedFirstSample = false
+        lastSampleProcessedAtMs = 0L
     }
 
     fun setEnabled(enabled: Boolean) {
@@ -53,67 +88,84 @@ class ShakeDetector private constructor(
     }
 
     fun updateSensitivity(sensitivity: Float) {
-        shakeThreshold = ((1f - sensitivity) * 1400f) + 800f
-    }
-
-    fun stop() {
-        if (isRegistered) {
-            sensorManager.unregisterListener(this)
-            isRegistered = false
-        }
+        shakeThreshold =
+            ((1f - sensitivity.coerceIn(0f, 1f)) * THRESHOLD_RANGE) +
+                    MIN_SHAKE_THRESHOLD
     }
 
     override fun onSensorChanged(event: SensorEvent) {
         val values = event.values
+        if (values.size < 3) return
 
-        if (hasReceivedFirstSample) {
-            val now = System.currentTimeMillis()
-            val elapsedMs = now - lastSampleProcessedAtMs
-            if (elapsedMs < MIN_SAMPLE_INTERVAL_MS) {
-                return
-            }
+        val now = System.currentTimeMillis()
 
-            lastSampleProcessedAtMs = now
-
-            val deltaX = values[0] - lastX
-            val deltaY = values[1] - lastY
-            val deltaZ = values[2] - lastZ
-            val speed =
-                (sqrt((deltaX * deltaX) + (deltaY * deltaY) + (deltaZ * deltaZ)) / elapsedMs) *
-                    SPEED_SCALE
-
-            if (
-                speed >= shakeThreshold &&
-                now - lastShakeTriggeredAtMs > MIN_SHAKE_GAP_MS &&
-                PlaybackGateway.state.value.currentTrack != null
-            ) {
-                lastShakeTriggeredAtMs = now
-                PlaybackGateway.playNext(appContext)
-            }
-        } else {
+        if (!hasReceivedFirstSample) {
             hasReceivedFirstSample = true
+            lastSampleProcessedAtMs = now
+            lastX = values[0]
+            lastY = values[1]
+            lastZ = values[2]
+            return
         }
+
+        val elapsedMs = now - lastSampleProcessedAtMs
+
+        if (elapsedMs < MIN_SAMPLE_INTERVAL_MS) {
+            return
+        }
+
+        lastSampleProcessedAtMs = now
+
+        val deltaX = values[0] - lastX
+        val deltaY = values[1] - lastY
+        val deltaZ = values[2] - lastZ
 
         lastX = values[0]
         lastY = values[1]
         lastZ = values[2]
+
+        val speed =
+            (sqrt((deltaX * deltaX) + (deltaY * deltaY) + (deltaZ * deltaZ)) / elapsedMs) *
+                    SPEED_SCALE
+
+        if (
+            speed >= shakeThreshold &&
+            now - lastShakeTriggeredAtMs > MIN_SHAKE_GAP_MS &&
+            playbackController.state.value.currentTrack != null
+        ) {
+            lastShakeTriggeredAtMs = now
+            playbackController.playNext(appContext)
+        }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    override fun onAccuracyChanged(
+        sensor: Sensor?,
+        accuracy: Int
+    ) = Unit
+
+    private fun observeShakeEnabled() {
+        enabledJob?.cancel()
+
+        enabledJob = applicationScope.launch {
+            setEnabled(settingPreferences.getShakeEnabled())
+        }
+    }
+
+    private fun observeShakeSensitivity() {
+        sensitivityJob?.cancel()
+
+        sensitivityJob = applicationScope.launch {
+            updateSensitivity(settingPreferences.getShakeLevel())
+        }
+    }
 
     companion object {
         private const val MIN_SAMPLE_INTERVAL_MS = 70L
         private const val MIN_SHAKE_GAP_MS = 1000L
         private const val SPEED_SCALE = 10000f
 
-        @Volatile
-        private var instance: ShakeDetector? = null
-
-        fun getInstance(context: Context): ShakeDetector {
-            return instance ?: synchronized(this) {
-                instance ?: ShakeDetector(context.applicationContext).also { instance = it }
-            }
-        }
+        private const val MIN_SHAKE_THRESHOLD = 800f
+        private const val THRESHOLD_RANGE = 1400f
+        private const val DEFAULT_SHAKE_THRESHOLD = 1500f
     }
 }
-

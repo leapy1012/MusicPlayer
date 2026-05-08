@@ -11,7 +11,6 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.dpToPx
-import gd.app.musicplayer.util.PreferenceStore
 
 class PreferenceItemView @JvmOverloads constructor(
     context: Context,
@@ -25,13 +24,11 @@ class PreferenceItemView @JvmOverloads constructor(
     private var summaryWhenEnabled: String? = null
     private var summaryWhenDisabled: String? = null
     private var defaultValue: Boolean = false
-    private var preferenceKey: String? = null
 
     private val summaryView: TextView
     private val tipsView: TextView
     private val selectBox: SelectBox
     private val titleView: TextView
-    private val preferenceStore: PreferenceStore
 
     private var onPreferenceChangedListener: OnPreferenceChangedListener? = null
     private var externalClickListener: OnClickListener? = null
@@ -44,14 +41,10 @@ class PreferenceItemView @JvmOverloads constructor(
 
         val titleText =
             typedArray.getString(R.styleable.PreferenceItemView_preference_item_title)
-        val preferenceFileName =
-            typedArray.getString(R.styleable.PreferenceItemView_preference_item_file_name)
         summaryWhenEnabled =
             typedArray.getString(R.styleable.PreferenceItemView_preference_item_summary_on)
         summaryWhenDisabled =
             typedArray.getString(R.styleable.PreferenceItemView_preference_item_summary_off)
-        preferenceKey =
-            typedArray.getString(R.styleable.PreferenceItemView_preference_item_key)
         defaultValue =
             typedArray.getBoolean(R.styleable.PreferenceItemView_preference_item_default, false)
 
@@ -64,11 +57,6 @@ class PreferenceItemView @JvmOverloads constructor(
             ?.let { AppCompatResources.getDrawable(context, it) }
 
         typedArray.recycle()
-
-        preferenceStore = PreferenceStore(
-            context = context,
-            fileName = preferenceFileName ?: DEFAULT_PREFERENCE_FILE
-        )
 
         titleView = findViewById(R.id.title)
         summaryView = findViewById(R.id.summary)
@@ -83,9 +71,8 @@ class PreferenceItemView @JvmOverloads constructor(
         updateSummaryVisibility()
 
         renderState(
-            isSelected = readStoredValue(),
-            notifyListener = false,
-            persistValue = false
+            isSelected = defaultValue,
+            notifyListener = false
         )
 
         super.setOnClickListener(this)
@@ -102,8 +89,7 @@ class PreferenceItemView @JvmOverloads constructor(
     override fun setSelected(selected: Boolean) {
         renderState(
             isSelected = selected,
-            notifyListener = false,
-            persistValue = true
+            notifyListener = false
         )
     }
 
@@ -117,7 +103,10 @@ class PreferenceItemView @JvmOverloads constructor(
 
     fun setDefaultValue(value: Boolean) {
         defaultValue = value
-        refreshFromPreference(persistCurrentValue = false)
+        renderState(
+            isSelected = defaultValue,
+            notifyListener = false
+        )
     }
 
     fun setSummaryOn(text: String?) {
@@ -141,31 +130,22 @@ class PreferenceItemView @JvmOverloads constructor(
 
     fun refreshFromPreference(persistCurrentValue: Boolean) {
         renderState(
-            isSelected = readStoredValue(),
-            notifyListener = false,
-            persistValue = persistCurrentValue
+            isSelected = defaultValue,
+            notifyListener = false
         )
     }
 
     private fun toggle() {
         renderState(
             isSelected = !selectBox.isSelected,
-            notifyListener = true,
-            persistValue = true
+            notifyListener = true
         )
     }
 
     private fun renderState(
         isSelected: Boolean,
-        notifyListener: Boolean,
-        persistValue: Boolean
+        notifyListener: Boolean
     ) {
-        if (persistValue) {
-            preferenceKey?.let { key ->
-                preferenceStore.putBoolean(key, isSelected)
-            }
-        }
-
         selectBox.isSelected = isSelected
         updateSummaryText(isSelected)
 
@@ -192,11 +172,6 @@ class PreferenceItemView @JvmOverloads constructor(
         } else {
             VISIBLE
         }
-    }
-
-    private fun readStoredValue(): Boolean {
-        val key = preferenceKey ?: return defaultValue
-        return preferenceStore.getBoolean(key, defaultValue)
     }
 
     private fun setupIndicator(
@@ -230,7 +205,4 @@ class PreferenceItemView @JvmOverloads constructor(
         selectBox.layoutParams = params
     }
 
-    private companion object {
-        const val DEFAULT_PREFERENCE_FILE = "music_preference"
-    }
 }

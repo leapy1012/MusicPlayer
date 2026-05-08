@@ -2,19 +2,20 @@ package gd.app.musicplayer.ui
 
 import android.os.Bundle
 import android.os.SystemClock
-import android.view.View
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import gd.app.musicplayer.data.db.MusicDatabase
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.databinding.ActivityWelcomeBinding
-import gd.app.musicplayer.databinding.DialogNewPlaylistBinding
+import gd.app.musicplayer.domain.usecase.database.RunMusicDatabaseStartupSyncUseCase
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.shell.MainActivity
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@AndroidEntryPoint
 class WelcomeActivity : BaseActivity() {
 
     private companion object {
@@ -22,6 +23,8 @@ class WelcomeActivity : BaseActivity() {
     }
 
     private lateinit var binding: ActivityWelcomeBinding
+
+    @Inject lateinit var runMusicDatabaseStartupSyncUseCase: RunMusicDatabaseStartupSyncUseCase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +67,7 @@ class WelcomeActivity : BaseActivity() {
             val startTime = SystemClock.elapsedRealtime()
 
             withContext(Dispatchers.IO) {
-                MusicDatabase.runStartupSync(applicationContext)
+                runMusicDatabaseStartupSyncUseCase()
             }
 
             val elapsed = SystemClock.elapsedRealtime() - startTime

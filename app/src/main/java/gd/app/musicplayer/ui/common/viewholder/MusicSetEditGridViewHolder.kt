@@ -5,7 +5,6 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSetEditGridBinding
-import gd.app.musicplayer.core.extension.appDependencies
 
 class MusicSetEditGridViewHolder(
     val binding: ActivityMusicSetEditGridBinding,
@@ -15,8 +14,9 @@ class MusicSetEditGridViewHolder(
     override fun onBind(item: ListItem, selected: Boolean, viewInfo: String) {
         val musicSet: MusicSet = (item as ListItem.MusicSetItem).musicSet
         val context = binding.root.context
-        val accentColor = context.appDependencies.themeRepo.getAccentColor(context)
+        val accentColor = ContextCompat.getColor(context, R.color.color_theme)
 
+        binding.musicItemTitle.text = musicSet.name
         musicSet.toDisplayInfo(binding.root.resources)?.let { info ->
             binding.musicItemImage.setImageResource(info.iconRes)
             binding.musicItemArtist.text = info.subtitle

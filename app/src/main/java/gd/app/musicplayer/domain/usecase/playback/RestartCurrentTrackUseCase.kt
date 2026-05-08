@@ -1,12 +1,13 @@
 package gd.app.musicplayer.domain.usecase.playback
 
 import android.content.Context
-import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.PlaybackController
+import javax.inject.Inject
 
-class RestartCurrentTrackUseCase {
+class RestartCurrentTrackUseCase @Inject constructor(
+    private val playbackController: PlaybackController
+) {
     operator fun invoke(context: Context) {
-        PlaybackGateway.restartCurrentTrack(context)
+        playbackController.restartCurrentTrack(context)
     }
 }
-
-

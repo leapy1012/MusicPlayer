@@ -14,8 +14,10 @@ import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.ArtworkRequest
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.model.MusicSet.Album
+import gd.app.musicplayer.data.repository.ThemeRepo
 import gd.app.musicplayer.databinding.LayoutRecyclerviewBinding
+import gd.app.musicplayer.domain.usecase.preferences.GetReplaySongEnabledUseCase
+import gd.app.musicplayer.domain.usecase.preferences.IsTrackClickOperationEnabledUseCase
 import gd.app.musicplayer.ui.feature.library.adapter.ArtistAlbumHeaderAdapter
 import gd.app.musicplayer.ui.feature.library.adapter.TrackAdapter
 import gd.app.musicplayer.ui.feature.player.PlayQueueActivity
@@ -23,13 +25,12 @@ import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
-import gd.app.musicplayer.ui.common.menu.MusicSetContextMenu
-import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
+import gd.app.musicplayer.ui.common.menu.ContextMenu
+import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.ui.feature.shortcut.MusicSetShortcutHelper
-import gd.app.musicplayer.util.PreferenceUtil
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+
+import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
@@ -38,6 +39,9 @@ class TrackListFragment : BaseListFragment() {
 
     private val viewModel: TrackListViewModel by viewModels()
     private val playerViewModel: PlayerViewModel by activityViewModels ()
+    @Inject lateinit var themeRepo: ThemeRepo
+    @Inject lateinit var getReplaySongEnabledUseCase: GetReplaySongEnabledUseCase
+    @Inject lateinit var isTrackClickOperationEnabledUseCase: IsTrackClickOperationEnabledUseCase
 
     private lateinit var trackAdapter: TrackAdapter
     private lateinit var concatAdapter: ConcatAdapter
@@ -45,6 +49,9 @@ class TrackListFragment : BaseListFragment() {
 
     private var artistAlbumHeaderAdapter: ArtistAlbumHeaderAdapter? = null
     private var currentTracks: List<Music> = emptyList()
+    private var currentSortState: TrackListSortState = TrackListSortState()
+
+    fun currentSortState(): TrackListSortState = currentSortState
 
     override fun onBindingCreated(
         binding: LayoutRecyclerviewBinding,
@@ -57,6 +64,7 @@ class TrackListFragment : BaseListFragment() {
         setupEmptyStateController(binding)
 
         observeUiState()
+        observeSortState()
         observeEvents()
         observeCurrentTrack()
 
@@ -66,6 +74,7 @@ class TrackListFragment : BaseListFragment() {
     private fun setupAdapters() {
         trackAdapter = TrackAdapter(
             musicSet = musicSet,
+            theme = themeRepo.getCorePalette(),
             onItemClick = ::onTrackClicked,
             onMenuClick = ::showMusicOptionsDialog,
             onItemLongClick = ::openMusicEditActivity
@@ -102,6 +111,13 @@ class TrackListFragment : BaseListFragment() {
         collectWhenStarted(viewModel.events, ::handleEvent)
     }
 
+    private fun observeSortState() {
+        collectWhenStarted(viewModel.sortState) { state ->
+            currentSortState = state
+            trackAdapter.setMetadataDisplayMode(state.sortStyle)
+        }
+    }
+
     private fun observeCurrentTrack() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -117,7 +133,6 @@ class TrackListFragment : BaseListFragment() {
 
         emptyStateController.setVisible(state.isEmpty)
 
-        trackAdapter.setMetadataDisplayMode(state.trackMetadataDisplayMode)
         trackAdapter.submitList(state.tracks)
         artistAlbumHeaderAdapter?.submitAlbums(state.artistAlbums)
     }
@@ -168,20 +183,20 @@ class TrackListFragment : BaseListFragment() {
 
     private fun onTrackClicked(track: Music) {
         val context = requireContext()
-        val preferences = PreferenceUtil.getInstance(context)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val shouldRestartCurrentTrack =
+                getReplaySongEnabledUseCase() &&
+                        playerViewModel.playbackHighlightState.value.currentMusicId == track.id
 
-        val shouldRestartCurrentTrack =
-            preferences.isReplaySongEnabled() &&
-                    playerViewModel.playbackHighlightState.value.currentMusicId == track.id
+            if (shouldRestartCurrentTrack) {
+                playerViewModel.restartCurrentTrack(context)
+            } else {
+                playTrackFromCurrentList(track)
+            }
 
-        if (shouldRestartCurrentTrack) {
-            playerViewModel.restartCurrentTrack(context)
-        } else {
-            playTrackFromCurrentList(track)
-        }
-
-        if (preferences.isTrackClickOperationEnabled()) {
-            PlayQueueActivity.start(context)
+            if (isTrackClickOperationEnabledUseCase()) {
+                PlayQueueActivity.start(context)
+            }
         }
     }
 
@@ -218,7 +233,7 @@ class TrackListFragment : BaseListFragment() {
         )
     }
 
-    private fun openAlbumMusic(album: Album) {
+    private fun openAlbumMusic(album: MusicSet.Album) {
         AlbumMusicActivity.start(
             context = requireContext(),
             musicSet = album
@@ -226,39 +241,38 @@ class TrackListFragment : BaseListFragment() {
     }
 
     override fun showMoreMenu(anchor: View) {
-        MusicSetContextMenu(
+        ContextMenu(
             context = requireContext(),
             musicSet = musicSet,
-            onAction = ::handleMusicSetMenuAction
+            theme = themeRepo.getCorePalette(),
+            onAction = ::handleContextMenuAction,
+            currentSortStyle = currentSortState.sortStyle,
+            currentSortDescending = currentSortState.sortDescending
         ).show(anchor)
     }
 
-    fun handleMusicSetMenuAction(action: MusicSetMenuAction) {
+    fun handleContextMenuAction(action: ContextMenuAction) {
         when (action) {
-            MusicSetMenuAction.Select -> openSelection()
+            ContextMenuAction.Select -> openSelection()
 
-            MusicSetMenuAction.ShuffleAll,
-            MusicSetMenuAction.PlayNext,
-            MusicSetMenuAction.AddToQueue,
-            MusicSetMenuAction.AddToPlaylist,
-            MusicSetMenuAction.ClearFavorites,
-            MusicSetMenuAction.ClearRecentlyAdded,
-            MusicSetMenuAction.ClearRecentlyPlayed,
-            MusicSetMenuAction.ClearMostPlayed -> viewModel.onMenuAction(action)
+            ContextMenuAction.ShuffleAll,
+            ContextMenuAction.PlayNext,
+            ContextMenuAction.AddToQueue,
+            ContextMenuAction.AddToPlaylist,
+            ContextMenuAction.ClearFavorites,
+            ContextMenuAction.ClearRecentlyAdded,
+            ContextMenuAction.ClearRecentlyPlayed,
+            ContextMenuAction.ClearMostPlayed -> viewModel.onMenuAction(action)
 
-            MusicSetMenuAction.Rename -> showRenameDialog()
+            ContextMenuAction.Rename -> showRenameDialog()
 
-            MusicSetMenuAction.ManageArtwork -> showManageArtworkDialog()
+            ContextMenuAction.ManageArtwork -> showManageArtworkDialog()
 
-            is MusicSetMenuAction.SortChanged -> {
-                // Sort update flow is driven by view model state observers.
+            is ContextMenuAction.SortChanged -> {
+                viewModel.onSortChanged(action.sortKey, action.descending)
             }
 
-            MusicSetMenuAction.SortBy -> {
-                // Sort submenu is opened inside MusicSetContextMenu.
-            }
-
-            MusicSetMenuAction.AddToHomeScreen -> {
+            ContextMenuAction.AddToHomeScreen -> {
                 val context = requireContext()
                 val success = MusicSetShortcutHelper.requestPinnedShortcut(
                     context = context,
@@ -271,19 +285,8 @@ class TrackListFragment : BaseListFragment() {
                 )
             }
 
-            MusicSetMenuAction.DeletePlaylist,
-            MusicSetMenuAction.BackupPlaylists,
-            MusicSetMenuAction.RestorePlaylists,
-            MusicSetMenuAction.DeleteEmptyPlaylists,
-            MusicSetMenuAction.ViewAsList,
-            MusicSetMenuAction.ViewAsGrid -> {
-                // Not handled by TrackListFragment.
-            }
+            else -> Unit
         }
-    }
-
-    fun onSortChanged() {
-//        viewModel.onSortChanged()
     }
 
     private fun openSelection() {
@@ -294,24 +297,17 @@ class TrackListFragment : BaseListFragment() {
     }
 
     private fun showRenameDialog() {
-        when (val set = musicSet) {
-            is MusicSet.Playlist -> {
-                PlaylistInputDialog
-                    .forSet(
-                        set = set,
-                        mode = PlaylistInputDialog.MODE_RENAME_SET
-                    )
-                    .show(
-                        parentFragmentManager,
-                        TAG_RENAME_PLAYLIST_DIALOG
-                    )
-            }
 
-            is MusicSet.Album,
-            is MusicSet.Artist,
-            is MusicSet.Genre -> showNotImplemented()
-
-            else -> showNotImplemented()
+        if (musicSet is MusicSet.Playlist) {
+            PlaylistInputDialog
+                .forSet(
+                    set = musicSet,
+                    mode = PlaylistInputDialog.MODE_RENAME_SET
+                )
+                .show(
+                    parentFragmentManager,
+                    TAG_RENAME_PLAYLIST_DIALOG
+                )
         }
     }
 
@@ -324,10 +320,6 @@ class TrackListFragment : BaseListFragment() {
                 parentFragmentManager,
                 ManageArtworkDialogFragment::class.java.simpleName
             )
-    }
-
-    private fun showNotImplemented() {
-        ToastUtil.show(requireContext(), R.string.feature_not_implemented)
     }
 
     private fun <T> collectWhenStarted(flow: Flow<T>, collector: (T) -> Unit) {

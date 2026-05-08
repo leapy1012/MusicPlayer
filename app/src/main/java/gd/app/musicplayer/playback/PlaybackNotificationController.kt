@@ -11,12 +11,13 @@ import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.palette.graphics.Palette
+import gd.app.musicplayer.data.local.preference.NotificationSettingPreference
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.playback.notification.BaseMusicNotificationBuilder
 import gd.app.musicplayer.playback.notification.DefaultMusicNotificationContent
 import gd.app.musicplayer.playback.notification.NotificationAlbumArtwork
 import gd.app.musicplayer.ui.shell.MainActivity
-import gd.app.musicplayer.util.PreferenceUtil
+
 
 class PlaybackNotificationController(
     private val service: Service,
@@ -27,6 +28,8 @@ class PlaybackNotificationController(
     private val artworkTrackIdProvider: () -> Long,
     private val isEffectivelyPlaying: () -> Boolean,
     private val isFavoriteProvider: () -> Boolean,
+    private val desktopLyricsEnabledProvider: () -> Boolean,
+    private val notificationSettingsProvider: () -> NotificationSettingPreference,
 ) {
     private var notificationBuilder: BaseMusicNotificationBuilder? = null
     private var foregroundStarted = false
@@ -111,7 +114,6 @@ class PlaybackNotificationController(
 
     private fun buildNotification(): Notification {
         val artwork = currentArtworkProvider()
-        val preferences = PreferenceUtil.getInstance(service)
         val contentIntent = PendingIntent.getActivity(
             service,
             CONTENT_REQUEST_CODE,
@@ -123,13 +125,14 @@ class PlaybackNotificationController(
         )
         val builder = notificationBuilder ?: BaseMusicNotificationBuilder.create(
             context = service,
-            shouldUseDynamicColors = true
+            shouldUseDynamicColors = true,
+            notificationSettings = notificationSettingsProvider()
         ).also { notificationBuilder = it }
 
         val content = DefaultMusicNotificationContent(
             music = currentMusicProvider(),
             playing = isEffectivelyPlaying(),
-            desktopLyricsEnabled = preferences.isDesktopLyricsVisible(),
+            desktopLyricsEnabled = desktopLyricsEnabledProvider(),
             albumArt = NotificationAlbumArtwork(
                 originalBitmap = artwork,
                 displayBitmap = artwork,

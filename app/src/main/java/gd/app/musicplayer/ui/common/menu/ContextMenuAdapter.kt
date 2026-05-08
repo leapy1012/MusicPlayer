@@ -10,15 +10,14 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.ContextMenuItem
-import gd.app.musicplayer.core.extension.appDependencies
 
 class ContextMenuAdapter(
     context: Context,
-    private val items: List<ContextMenuItem>
+    private val items: List<ContextMenuItem>,
+    private val accentColor: Int
 ) : BaseAdapter() {
 
     private val inflater = LayoutInflater.from(context)
-    private val accentColor = context.appDependencies.themeRepo.getAccentColor(context)
 
     override fun getCount(): Int = items.size
 

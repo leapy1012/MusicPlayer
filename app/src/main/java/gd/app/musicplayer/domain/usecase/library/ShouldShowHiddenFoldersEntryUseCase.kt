@@ -1,10 +1,12 @@
 package gd.app.musicplayer.domain.usecase.library
 
-import gd.app.musicplayer.data.repo.LibraryRepo
+import gd.app.musicplayer.data.local.preference.SortPreferencesDataStore
 import javax.inject.Inject
 
 class ShouldShowHiddenFoldersEntryUseCase @Inject constructor(
-    private val libraryRepo: LibraryRepo
+    private val preference: SortPreferencesDataStore
 ) {
-    operator fun invoke(): Boolean = libraryRepo.shouldShowHiddenFoldersEntry()
+    operator fun invoke(): Boolean =
+        true
+        // preference.shouldShowHiddenFoldersEntry()
 }

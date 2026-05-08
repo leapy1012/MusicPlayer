@@ -1,42 +1,44 @@
 package gd.app.musicplayer.util
 
 import android.content.Context
+import dagger.hilt.android.EntryPointAccessors
+import gd.app.musicplayer.data.local.preference.TrackLyricPreferenceStore
+import gd.app.musicplayer.di.TrackLyricPreferenceStoreEntryPoint
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.runBlocking
 
-class TrackLyricsStore private constructor(
-    private val preferences: PreferenceUtil
+@Singleton
+class TrackLyricsStore @Inject constructor(
+    private val trackLyricPreferenceStore: TrackLyricPreferenceStore
 ) {
-
     fun getTrackLyricPath(trackId: Long): String? =
-        preferences.getNullableStringPreference(lyricPathKey(trackId))
+        runBlocking { trackLyricPreferenceStore.getTrackLyricPath(trackId) }
 
     fun setTrackLyricPath(trackId: Long, path: String?) {
-        if (path.isNullOrBlank()) {
-            preferences.removePreferences(lyricPathKey(trackId))
-        } else {
-            preferences.putStringPreference(lyricPathKey(trackId), path)
-        }
+        runBlocking { trackLyricPreferenceStore.setTrackLyricPath(trackId, path) }
     }
 
     fun getTrackLyricOffset(trackId: Long): Int =
-        preferences.getIntPreference(lyricOffsetKey(trackId), 0)
+        runBlocking { trackLyricPreferenceStore.getTrackLyricOffset(trackId) }
 
     fun setTrackLyricOffset(trackId: Long, offsetMs: Int) {
-        preferences.putIntPreference(lyricOffsetKey(trackId), offsetMs)
+        runBlocking { trackLyricPreferenceStore.setTrackLyricOffset(trackId, offsetMs) }
     }
 
     fun clearTrackLyricData(trackId: Long) {
-        preferences.removePreferences(
-            lyricPathKey(trackId),
-            lyricOffsetKey(trackId)
-        )
+        runBlocking { trackLyricPreferenceStore.clearTrackLyricData(trackId) }
     }
-
-    private fun lyricPathKey(trackId: Long): String = "track_lyric_path_$trackId"
-
-    private fun lyricOffsetKey(trackId: Long): String = "track_lyric_offset_$trackId"
 
     companion object {
         fun from(context: Context): TrackLyricsStore =
-            TrackLyricsStore(PreferenceUtil.getInstance(context.applicationContext))
+            TrackLyricsStore(
+                EntryPointAccessors
+                    .fromApplication(
+                        context.applicationContext,
+                        TrackLyricPreferenceStoreEntryPoint::class.java
+                    )
+                    .trackLyricPreferenceStore()
+            )
     }
 }

@@ -1,6 +1,6 @@
 package gd.app.musicplayer.playback
 
-import gd.app.musicplayer.data.repo.PlaybackQueueRepo
+import gd.app.musicplayer.data.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

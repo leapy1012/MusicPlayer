@@ -18,7 +18,6 @@ import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.feature.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.ui.feature.selection.MusicShareSupport
 import gd.app.musicplayer.ui.feature.tags.EditTagsActivity
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.ui.feature.shortcut.AppShortcutManager

@@ -29,10 +29,12 @@ import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
-import gd.app.musicplayer.util.PreferenceUtil
+import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
+
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -60,8 +62,8 @@ class LockActivity : BaseActivity(),
     private lateinit var currentTimeView: TextView
     private lateinit var totalTimeView: TextView
 
-    private val preferenceUtil by lazy { PreferenceUtil.getInstance(this) }
-    private val toggleFavoriteTrack by lazy { appDependencies.toggleFavoriteTrackUseCase }
+//    private val musicPreferencesRepository by lazy { MusicPreferencesRepository.getInstance(this) }
+    @Inject lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
     private val playModeViewModel: PlayModeViewModel by viewModels()
     private val playerViewModel: PlayerViewModel by viewModels()
 
@@ -208,23 +210,23 @@ class LockActivity : BaseActivity(),
     }
 
     private fun updateBackground(track: Music) {
-        if (preferenceUtil.getIntPreference(KEY_LOCK_BACKGROUND, 1) == 1) {
-            Glide.with(this)
-                .load(
-                    track.albumPicture?.takeIf { it.isNotBlank() }
-                        ?: track.albumId.takeIf { it.isNotBlank() }
-                            ?.let { "content://media/external/audio/albumart/$it" }
-                        ?: track.data
-                )
-                .placeholder(R.drawable.th_music_large)
-                .error(R.drawable.th_music_large)
-                .centerCrop()
-                .into(backgroundImage)
-        } else {
-            backgroundImage.setImageDrawable(
-                appDependencies.themeRepo.getCorePalette(this).getActivityBackgroundDrawable(this)
-            )
-        }
+//        if (musicPreferencesRepository.getIntPreference(KEY_LOCK_BACKGROUND, 1) == 1) {
+//            Glide.with(this)
+//                .load(
+//                    track.albumPicture?.takeIf { it.isNotBlank() }
+//                        ?: track.albumId.takeIf { it.isNotBlank() }
+//                            ?.let { "content://media/external/audio/albumart/$it" }
+//                        ?: track.data
+//                )
+//                .placeholder(R.drawable.th_music_large)
+//                .error(R.drawable.th_music_large)
+//                .centerCrop()
+//                .into(backgroundImage)
+//        } else {
+//            backgroundImage.setImageDrawable(
+//                appDependencies.themeRepo.getCorePalette(this).getActivityBackgroundDrawable(this)
+//            )
+//        }
     }
 
     private fun startClock() {
@@ -232,12 +234,7 @@ class LockActivity : BaseActivity(),
         clockJob = lifecycleScope.launch {
             while (isActive) {
                 val now = Date()
-                val is24Hour = when (preferenceUtil.getLockScreenTimeFormat()) {
-                    1 -> false
-                    2 -> true
-                    else -> DateFormat.is24HourFormat(this@LockActivity)
-                }
-                val timePattern = if (is24Hour) "HH:mm" else "hh:mm"
+                val timePattern = "HH:mm"
                 timeView.text = SimpleDateFormat(timePattern, Locale.getDefault()).format(now)
                 dateView.text = DateFormat.format("EEE, MMM d", now)
                 delay(1_000L)
@@ -260,7 +257,7 @@ class LockActivity : BaseActivity(),
     private fun toggleFavorite() {
         val track = currentTrack ?: return
         lifecycleScope.launch {
-            favoriteView.isSelected = toggleFavoriteTrack(track.id)
+            favoriteView.isSelected = toggleFavoriteTrackUseCase(track.id)
         }
     }
 

@@ -1,10 +1,10 @@
 package gd.app.musicplayer.domain.usecase.theme
 
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
 import javax.inject.Inject
 
 class AddThemeImageNameUseCase @Inject constructor(
-    private val preferencesRepo: UserPreferencesRepo
+    private val repo: ThemeSettingPreferenceStore
 ) {
-    operator fun invoke(fileName: String) = preferencesRepo.addThemeImageName(fileName)
+    suspend operator fun invoke(fileName: String) = repo.addThemeImageUri(fileName)
 }

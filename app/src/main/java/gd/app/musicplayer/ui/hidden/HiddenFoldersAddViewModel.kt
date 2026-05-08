@@ -7,7 +7,7 @@ import gd.app.musicplayer.data.model.MusicSet
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
 import gd.app.musicplayer.domain.usecase.hidden.ObserveVisibleFoldersUseCase
-import gd.app.musicplayer.domain.usecase.hidden.ObserveVisibleSongsUseCase
+import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -23,13 +23,13 @@ data class HiddenFoldersAddUiState(
 @HiltViewModel
 class HiddenFoldersAddViewModel @Inject constructor(
     private val observeVisibleFoldersUseCase: ObserveVisibleFoldersUseCase,
-    private val observeVisibleSongsUseCase: ObserveVisibleSongsUseCase,
+    private val observeTracksUseCase: ObserveTracksUseCase,
     private val hideSelectionUseCase: HideSelectionUseCase
 ) : ViewModel() {
 
     val uiState: StateFlow<HiddenFoldersAddUiState> = combine(
         observeVisibleFoldersUseCase(),
-        observeVisibleSongsUseCase()
+        observeTracksUseCase(MusicSet.Tracks)
     ) { folders, songs ->
         HiddenFoldersAddUiState(
             visibleFolders = folders,

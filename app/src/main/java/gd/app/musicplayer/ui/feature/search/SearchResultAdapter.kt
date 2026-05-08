@@ -14,16 +14,15 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentAlbumListItemBinding
 import gd.app.musicplayer.databinding.FragmentMusicListItemBinding
 import gd.app.musicplayer.databinding.FragmentSearchHeaderItemBinding
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetListViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicViewHolder
 import gd.app.musicplayer.core.ui.view.SelectBox
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.theme.*
 
 class SearchResultAdapter(
-    context: Context
+    context: Context,
+    private val theme: ThemePalette
 ) : SectionedSearchAdapter() {
 
     interface Listener {
@@ -33,9 +32,7 @@ class SearchResultAdapter(
     }
 
     private val inflater = LayoutInflater.from(context)
-    private val accentColor = context.appDependencies.themeRepo
-        .getCorePalette(context)
-        .accentColor
+    private val accentColor = theme.accentColor
     private val sections = mutableListOf<SearchSection>()
     private var listener: Listener? = null
     private var query: String = ""
@@ -70,10 +67,10 @@ class SearchResultAdapter(
         when (viewType) {
             VIEW_TYPE_MUSIC -> {
                 val binding = FragmentMusicListItemBinding.inflate(inflater, parent, false)
-                applyCurrentTheme(binding.root)
                 MusicViewHolder(
                     binding = binding,
                     musicSet = MusicSet.Tracks,
+                    theme = theme,
                     onItemClick = { song -> listener?.onSongClicked(song) },
                     onItemLongClick = null,
                     onMenuClick = { song -> listener?.onSongMenuClicked(song) }
@@ -82,7 +79,6 @@ class SearchResultAdapter(
 
             VIEW_TYPE_MUSIC_SET -> {
                 val binding = FragmentAlbumListItemBinding.inflate(inflater, parent, false)
-                applyCurrentTheme(binding.root)
                 MusicSetListViewHolder(binding)
             }
 
@@ -91,9 +87,7 @@ class SearchResultAdapter(
 
     override fun onCreateHeaderViewHolder(parent: ViewGroup): RecyclerView.ViewHolder =
         SearchHeaderViewHolder(
-            FragmentSearchHeaderItemBinding.inflate(inflater, parent, false).also {
-                applyCurrentTheme(it.root)
-            }
+            FragmentSearchHeaderItemBinding.inflate(inflater, parent, false)
         )
 
     override fun onBindItemViewHolder(

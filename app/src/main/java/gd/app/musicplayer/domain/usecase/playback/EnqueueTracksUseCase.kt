@@ -2,11 +2,13 @@ package gd.app.musicplayer.domain.usecase.playback
 
 import android.content.Context
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.PlaybackController
+import javax.inject.Inject
 
-class EnqueueTracksUseCase {
+class EnqueueTracksUseCase @Inject constructor(
+    private val playbackController: PlaybackController
+) {
     operator fun invoke(context: Context, tracks: List<Music>) {
-        PlaybackGateway.enqueue(context, tracks)
+        playbackController.enqueue(context, tracks)
     }
 }
-

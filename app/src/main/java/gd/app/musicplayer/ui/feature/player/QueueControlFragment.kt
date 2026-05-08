@@ -16,22 +16,28 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.data.local.preference.PlaybackUiPreferenceStore
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.FragmentQueueControlBinding
 import gd.app.musicplayer.databinding.ItemMainControlPagerBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.player.PlayerViewModel
-import gd.app.musicplayer.util.PreferenceUtil
+import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() {
+    @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
+    @Inject lateinit var playbackUiPreferenceStore: PlaybackUiPreferenceStore
+
     private val viewModel: PlayerViewModel by viewModels()
     private val pagerAdapter by lazy { QueueControlPagerAdapter { PlayQueueActivity.start(requireContext()) } }
-    private val preferenceUtil by lazy { PreferenceUtil.getInstance(requireContext()) }
 
     private var pagerSyncFromState = false
+    private var slidingSwitchEnabled = true
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentQueueControlBinding =
         FragmentQueueControlBinding.inflate(inflater)
@@ -51,8 +57,8 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
 
             override fun onPageSelected(position: Int) {
                 if (pagerSyncFromState || !pagerAdapter.isSwipeEnabled) return
-                if (preferenceUtil.isSlidingSwitchEnabled()) {
-                    preferenceUtil.setSlidingSwitchEnabled(false)
+                if (isSlidingSwitchEnabled()) {
+                    setSlidingSwitchEnabled(false)
                     pagerAdapter.updateSlideHintEnabled(false)
                 }
 //                val state = viewModel.playbackState.value
@@ -113,8 +119,8 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
 //                    val queue = state.queue.ifEmpty { listOf(placeholderMusic()) }
 //                    pagerAdapter.submitQueue(
 //                        queue = queue,
-//                        swipeEnabled = preferenceUtil.getBooleanPreference(KEY_SWIPE_CHANGE_SONGS, true),
-//                        showSlideHint = preferenceUtil.isSlidingSwitchEnabled()
+//                        swipeEnabled = musicPreferencesRepository.getBooleanPreference(KEY_SWIPE_CHANGE_SONGS, true),
+//                        showSlideHint = musicPreferencesRepository.isSlidingSwitchEnabled()
 //                    )
 //                    val targetIndex = state.currentIndex.takeIf { it in queue.indices } ?: 0
 //                    if (binding.mainControlPager.currentItem != targetIndex) {
@@ -130,13 +136,33 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
     private fun observePreferences() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                PreferenceUtil.observePreferenceChanges(KEY_SWIPE_CHANGE_SONGS, KEY_SLIDING_SWITCH).collect {
-                    val enabled = preferenceUtil.getBooleanPreference(KEY_SWIPE_CHANGE_SONGS, true)
+                launch {
+                    playbackUiPreferenceStore.slidingSwitchEnabled.collect { enabled ->
+                        slidingSwitchEnabled = enabled
+                        pagerAdapter.updateSlideHintEnabled(enabled)
+                    }
+                }
+
+                launch {
+                    settingPreferencesDataStore.observeSettingPreferences().collect { preferences ->
+                    val enabled = preferences.audio.swipeChangeSongsEnabled
                     requireBinding().mainControlPager.isEnabled = enabled
                     pagerAdapter.updateSwipeEnabled(enabled)
-                    pagerAdapter.updateSlideHintEnabled(preferenceUtil.isSlidingSwitchEnabled())
+                    pagerAdapter.updateSlideHintEnabled(slidingSwitchEnabled)
+                    }
                 }
             }
+        }
+    }
+
+    private fun isSlidingSwitchEnabled(): Boolean {
+        return slidingSwitchEnabled
+    }
+
+    private fun setSlidingSwitchEnabled(enabled: Boolean) {
+        slidingSwitchEnabled = enabled
+        viewLifecycleOwner.lifecycleScope.launch {
+            playbackUiPreferenceStore.setSlidingSwitchEnabled(enabled)
         }
     }
 
@@ -152,8 +178,6 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
     )
 
     private companion object {
-        const val KEY_SWIPE_CHANGE_SONGS = "swipe_change_songs"
-        const val KEY_SLIDING_SWITCH = "preference_sliding_switch"
     }
 }
 

@@ -1,139 +1,156 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:tag="activityBackgroundColor"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <LinearLayout
-        android:orientation="vertical"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
 
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
         <View
             android:id="@+id/status_bar_space"
             android:layout_width="match_parent"
-            android:layout_height="0dp"/>
+            android:layout_height="0dp" />
+
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
-            android:tag="toolbar"
             android:layout_width="match_parent"
             android:layout_height="@dimen/common_title_height"
             android:minHeight="@dimen/common_title_height"
+            android:tag="toolbar"
             app:contentInsetStartWithNavigation="0dp"
             app:theme="@style/AppToolbar"
-            app:titleTextAppearance="@style/AppToolbarTitle.MusicSelect"/>
+            app:titleTextAppearance="@style/AppToolbarTitle.MusicSelect" />
+
         <LinearLayout
-            android:gravity="center_vertical"
-            android:tag="editTextBackground"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
             android:background="@drawable/shape_search_bg"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp">
+            android:gravity="center_vertical"
+            android:tag="editTextBackground">
+
             <androidx.appcompat.widget.AppCompatImageView
-                android:tag="titleColor"
                 android:layout_width="18dp"
                 android:layout_height="18dp"
-                android:scaleType="fitCenter"
-                android:alpha="0.5"
                 android:layout_marginStart="18dp"
                 android:layout_marginEnd="8dp"
-                app:srcCompat="@drawable/vector_menu_search"/>
-            <EditText
-                android:textSize="14sp"
-                android:textColor="#ffffff"
-                android:textColorHint="#80ffffff"
-                android:gravity="center_vertical"
-                android:id="@+id/search_edit_text"
+                android:alpha="0.5"
+                android:scaleType="fitCenter"
                 android:tag="titleColor"
-                android:background="@android:color/transparent"
+                app:srcCompat="@drawable/vector_menu_search" />
+
+            <EditText
+                android:id="@+id/search_edit_text"
                 android:layout_width="0dp"
                 android:layout_height="36dp"
-                android:hint="@string/search_library"
-                android:singleLine="true"
-                android:selectAllOnFocus="true"
                 android:layout_weight="1"
-                android:textCursorDrawable="@null"/>
-            <androidx.appcompat.widget.AppCompatImageView
-                android:layout_gravity="center_vertical"
-                android:id="@+id/search_edit_clear"
+                android:background="@android:color/transparent"
+                android:gravity="center_vertical"
+                android:hint="@string/search_library"
+                android:selectAllOnFocus="true"
+                android:singleLine="true"
                 android:tag="titleColor"
-                android:background="@drawable/b_selector_image_bg_aw"
-                android:padding="8dp"
-                android:focusable="true"
-                android:visibility="gone"
+                android:textColor="#ffffff"
+                android:textColorHint="#80ffffff"
+                android:textCursorDrawable="@null"
+                android:textSize="14sp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/search_edit_clear"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:scaleType="centerInside"
+                android:layout_gravity="center_vertical"
                 android:alpha="0.5"
-                app:srcCompat="@drawable/vector_search_clear"/>
+                android:background="@drawable/b_selector_image_bg_aw"
+                android:focusable="true"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:tag="titleColor"
+                android:visibility="gone"
+                app:srcCompat="@drawable/vector_search_clear" />
         </LinearLayout>
+
         <LinearLayout
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
             android:id="@+id/select_all_banner"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             app:layout_scrollFlags="snap|enterAlways|scroll">
+
             <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
                 android:id="@+id/select_all_group"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/main_info_selectall"
-                    android:tag="selectAll"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    app:srcCompat="@drawable/vector_music_check_selector"/>
+                    android:tag="selectAll"
+                    app:srcCompat="@drawable/vector_music_check_selector" />
+
                 <TextView
-                    android:textSize="14sp"
-                    android:textColor="@color/white"
-                    android:tag="titleColor"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/select_all"
+                    android:layout_marginStart="16dp"
                     android:singleLine="true"
-                    android:layout_marginStart="16dp"/>
+                    android:tag="titleColor"
+                    android:text="@string/select_all"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
             </LinearLayout>
+
             <View
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"/>
+                android:layout_weight="1" />
+
             <gd.app.musicplayer.core.ui.view.CustomSpinner
-                android:textSize="14sp"
-                android:textColor="@color/white"
-                android:gravity="center_vertical"
                 android:id="@+id/main_info_spinner"
-                android:tag="titleColor"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:gravity="center_vertical"
                 android:maxWidth="160dp"
-                android:singleLine="true"
                 android:paddingStart="12dp"
-                android:layout_marginStart="8dp"/>
+                android:singleLine="true"
+                android:tag="titleColor"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
         </LinearLayout>
+
         <View
             android:id="@+id/music_select_title_divider"
-            android:tag="musicSelectTitleDivider"
-            android:visibility="gone"
             android:layout_width="match_parent"
-            android:layout_height="1px"/>
+            android:layout_height="1px"
+            android:tag="musicSelectTitleDivider"
+            android:visibility="gone" />
     </LinearLayout>
+
     <include
+        layout="@layout/layout_recyclerview"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        layout="@layout/layout_recyclerview"/>
+        android:layout_weight="1" />
+
     <TextView
         android:id="@+id/button_confirm"
-        android:text="@string/confirm"
-        style="@style/BottomConfirmButton"/>
+        style="@style/BottomConfirmButton"
+        android:text="@string/confirm" />
 </LinearLayout>

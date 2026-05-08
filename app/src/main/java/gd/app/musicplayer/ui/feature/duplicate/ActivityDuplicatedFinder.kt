@@ -93,7 +93,8 @@ class ActivityDuplicatedFinder : BaseActivity() {
     private fun setupRecycler() {
         duplicateBinder = ActivityDuplicateBinder(
             onGroupClick = viewModel::toggleGroupExpansion,
-            onTrackClick = viewModel::toggleTrackSelection
+            onTrackClick = viewModel::toggleTrackSelection,
+            applyTheme = ::applyThemeTo
         )
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = duplicateBinder

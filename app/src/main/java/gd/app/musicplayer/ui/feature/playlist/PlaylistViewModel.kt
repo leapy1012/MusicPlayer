@@ -7,13 +7,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.backup.PlaylistBackupManager
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
+import gd.app.musicplayer.domain.usecase.library.UpdateLibrarySortUseCase
 import gd.app.musicplayer.domain.usecase.playlist.DeleteEmptyPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.DeletePlaylistUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ObservePlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.playlist.ResetPlaylistsSortUseCase
 import gd.app.musicplayer.domain.usecase.playlist.UpdatePlaylistOrderUseCase
-import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
-import gd.app.musicplayer.domain.usecase.preferences.ObservePlaylistSortUseCase
-import gd.app.musicplayer.domain.usecase.preferences.ResetPlaylistSortUseCase
+import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -21,19 +22,19 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
     private val observePlaylistsUseCase: ObservePlaylistsUseCase,
-    private val observePlaylistSortUseCase: ObservePlaylistSortUseCase,
-    private val resetPlaylistSortUseCase: ResetPlaylistSortUseCase,
+    private val resetPlaylistsSortUseCase: ResetPlaylistsSortUseCase,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val deleteEmptyPlaylistsUseCase: DeleteEmptyPlaylistsUseCase,
     private val playlistBackupManager: PlaylistBackupManager,
-    private val updatePlaylistOrderUseCase: UpdatePlaylistOrderUseCase
+    private val updatePlaylistOrderUseCase: UpdatePlaylistOrderUseCase,
+    private val observeSortUseCase: ObserveSortUseCase,
+    private val updateLibrarySortUseCase: UpdateLibrarySortUseCase
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<PlaylistEvent>(
@@ -43,51 +44,53 @@ class PlaylistViewModel @Inject constructor(
     val events: SharedFlow<PlaylistEvent> =
         _events.asSharedFlow()
 
-    private val playlists: StateFlow<List<MusicSet.Playlist>> =
+    val uiState: StateFlow<PlaylistUiState> =
         combine(
             observePlaylistsUseCase(),
-            observePlaylistSortUseCase()
-        ) { playlists, (sortStyle, isReversed) ->
-            sortPlaylists(
+            observeSortUseCase(MusicSet.Playlists)
+        ) { playlists, sort ->
+            val sortStyle = sort.first
+            val sortDescending = sort.second
+            val sortedPlaylists = sortPlaylists(
                 playlists = playlists,
                 style = sortStyle,
-                reversed = isReversed
+                reversed = sortDescending
             )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-            initialValue = emptyList()
-        )
 
-    val uiState: StateFlow<PlaylistUiState> =
-        playlists
-            .map { playlists ->
-                PlaylistUiState(
-                    playlists = playlists,
-                    isEmpty = playlists.isEmpty()
-                )
-            }
+            PlaylistUiState(
+                playlists = sortedPlaylists,
+                sortStyle = sortStyle,
+                sortDescending = sortDescending,
+                isEmpty = sortedPlaylists.isEmpty()
+            )
+        }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
                 initialValue = PlaylistUiState()
             )
 
-    fun onMenuAction(action: MusicSetMenuAction) {
+    fun onMenuAction(action: ContextMenuAction) {
         when (action) {
-            MusicSetMenuAction.BackupPlaylists -> {
+            ContextMenuAction.BackupPlaylists -> {
                 backupPlaylists()
             }
 
-            MusicSetMenuAction.RestorePlaylists -> {
+            ContextMenuAction.RestorePlaylists -> {
                 restorePlaylists()
             }
 
-            MusicSetMenuAction.DeleteEmptyPlaylists -> {
+            ContextMenuAction.DeleteEmptyPlaylists -> {
                 deleteEmptyPlaylists()
             }
 
             else -> Unit
+        }
+    }
+
+    fun onSortChanged(sortKey: String, descending: Boolean) {
+        viewModelScope.launch {
+            updateLibrarySortUseCase(MusicSet.Playlists, sortKey, descending)
         }
     }
 
@@ -102,7 +105,7 @@ class PlaylistViewModel @Inject constructor(
         if (playlistIdsInDisplayOrder.isEmpty()) return
 
         viewModelScope.launch {
-            resetPlaylistSortUseCase()
+            resetPlaylistsSortUseCase()
             updatePlaylistOrderUseCase(playlistIdsInDisplayOrder)
         }
     }
@@ -160,6 +163,8 @@ class PlaylistViewModel @Inject constructor(
         style: String,
         reversed: Boolean
     ): List<MusicSet.Playlist> {
+        android.util.Log.e("Leapy", "playlist sort" + style)
+        android.util.Log.e("Leapy", "playlist sort reversed" + reversed)
         val comparator = when (style) {
             SORT_STYLE_NAME -> {
                 compareBy<MusicSet.Playlist, String>(
@@ -188,7 +193,7 @@ class PlaylistViewModel @Inject constructor(
             }
 
             else -> {
-                compareBy<MusicSet.Playlist>(
+                compareBy(
                     { playlist -> playlist.sort },
                     { playlist -> playlist.id }
                 )
@@ -211,6 +216,8 @@ class PlaylistViewModel @Inject constructor(
 
 data class PlaylistUiState(
     val playlists: List<MusicSet.Playlist> = emptyList(),
+    val sortStyle: String = "",
+    val sortDescending: Boolean = false,
     val isEmpty: Boolean = true
 )
 

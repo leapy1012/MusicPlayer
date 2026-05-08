@@ -4,61 +4,115 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
-import gd.app.musicplayer.util.PreferenceUtil
+import dagger.hilt.android.qualifiers.ApplicationContext
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.di.ApplicationScope
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
-object HeadsetMediaButtonHandler {
-    private const val MULTI_CLICK_WINDOW_MS = 350L
+@Singleton
+class HeadsetMediaButtonHandler @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+    private val playbackController: PlaybackController,
+    settingPreferencesDataStore: SettingPreferencesDataStore,
+    @ApplicationScope applicationScope: CoroutineScope
+) {
 
     private val handler = Handler(Looper.getMainLooper())
-    private var clickCount = 0
-    private var pendingContext: Context? = null
+
+    private var clickCount: Int = 0
+
+    @Volatile
+    private var headsetControlAllowed: Boolean = true
 
     private val flushRunnable = Runnable {
-        val context = pendingContext?.applicationContext ?: return@Runnable
-        val preferences = PreferenceUtil.getInstance(context)
-        when {
-            clickCount >= 3 && preferences.isHeadsetControlAllowed() ->
-                PlaybackGateway.playPrevious(context)
-            clickCount == 2 && preferences.isHeadsetControlAllowed() ->
-                PlaybackGateway.playNext(context)
-            clickCount >= 1 ->
-                PlaybackGateway.togglePlayPause(context)
-        }
-        clickCount = 0
-        pendingContext = null
+        flushClicks()
     }
 
-    fun handle(context: Context, keyCode: Int): Boolean {
+    init {
+        settingPreferencesDataStore.observeSettingPreferences()
+            .map { preferences ->
+                preferences.headset.headsetControlAllowed
+            }
+            .distinctUntilChanged()
+            .onEach { allowed ->
+                headsetControlAllowed = allowed
+            }
+            .launchIn(applicationScope)
+    }
+
+    fun handle(keyCode: Int): Boolean {
         return when (keyCode) {
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                PlaybackGateway.play(context)
+                playbackController.play(context)
                 true
             }
+
             KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                PlaybackGateway.pause(context)
+                playbackController.pause(context)
                 true
             }
+
             KeyEvent.KEYCODE_MEDIA_NEXT -> {
-                PlaybackGateway.playNext(context)
+                if (headsetControlAllowed) {
+                    playbackController.playNext(context)
+                }
                 true
             }
+
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
-                PlaybackGateway.playPrevious(context)
+                if (headsetControlAllowed) {
+                    playbackController.playPrevious(context)
+                }
                 true
             }
+
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                PlaybackGateway.togglePlayPause(context)
+                playbackController.togglePlayPause(context)
                 true
             }
+
             KeyEvent.KEYCODE_HEADSETHOOK -> {
-                pendingContext = context.applicationContext
                 clickCount += 1
                 handler.removeCallbacks(flushRunnable)
                 handler.postDelayed(flushRunnable, MULTI_CLICK_WINDOW_MS)
                 true
             }
+
             else -> false
         }
     }
-}
 
+    fun clearPendingClicks() {
+        handler.removeCallbacks(flushRunnable)
+        clickCount = 0
+    }
+
+    private fun flushClicks() {
+        val count = clickCount
+        clickCount = 0
+
+        when {
+            count >= 3 && headsetControlAllowed -> {
+                playbackController.playPrevious(context)
+            }
+
+            count == 2 && headsetControlAllowed -> {
+                playbackController.playNext(context)
+            }
+
+            count >= 1 -> {
+                playbackController.togglePlayPause(context)
+            }
+        }
+    }
+
+    private companion object {
+        const val MULTI_CLICK_WINDOW_MS = 350L
+    }
+}

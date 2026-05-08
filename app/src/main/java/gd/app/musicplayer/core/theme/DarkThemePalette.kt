@@ -10,7 +10,7 @@ import androidx.core.graphics.drawable.toDrawable
 class DarkThemePalette : PictureThemePalette() {
     override fun getHeaderOverlayColor(): Int = 855638016
 
-    override fun ensureResourcesLoaded(context: Context): Boolean = true
+    override fun ensureResourcesLoaded(context: Context, themeBitmapLoader: ThemeBitmapLoader): Boolean = true
 
     override fun getActivityBackgroundDrawable(context: Context): Drawable =
         DARK_SURFACE.toDrawable()

@@ -1,15 +1,19 @@
 package gd.app.musicplayer.ui.common.menu
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.view.View
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.theme.accentColor
 import gd.app.musicplayer.data.model.ContextMenuItem
 
 class ViewAsContextMenu(
     context: Context,
     private val selectedMode: Int,
+    private val accentColor: Int,
+    private val popupBackgroundProvider: (Context) -> Drawable,
     private val onModeSelected: (Int) -> Unit
-) : BaseContextMenu(context) {
+) : BaseContextMenu(context, accentColor, popupBackgroundProvider) {
 
     companion object {
         private const val ID_LIST_ITEM = "list_item"

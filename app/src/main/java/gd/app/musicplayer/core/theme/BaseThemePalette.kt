@@ -43,7 +43,7 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun getDialogDividerColor(): Int = if (isDialogSurfaceLight()) 218103808 else 234881023
 
-    override fun ensureResourcesLoaded(context: Context): Boolean = true
+    override fun ensureResourcesLoaded(context: Context, themeBitmapLoader: ThemeBitmapLoader): Boolean = true
 
     override fun getActivityBackgroundDrawable(context: Context): Drawable = ColorDrawable(-1)
 

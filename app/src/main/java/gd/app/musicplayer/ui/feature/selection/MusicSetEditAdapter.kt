@@ -9,7 +9,6 @@ import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSetEditGridBinding
 import gd.app.musicplayer.databinding.ActivityMusicSetEditItemBinding
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetEditGridViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetEditListViewHolder
@@ -17,6 +16,7 @@ import kotlin.math.absoluteValue
 
 class MusicSetEditAdapter(
     private val viewMode: Int,
+    private val accentColor: Int,
     private val onToggleSelection: (MusicSet) -> Unit
 ) : ListAdapter<MusicSet, RecyclerView.ViewHolder>(DiffCallback()) {
 
@@ -36,12 +36,14 @@ class MusicSetEditAdapter(
 
         return if (viewType == VIEW_TYPE_GRID) {
             val binding = ActivityMusicSetEditGridBinding.inflate(inflater, parent, false)
-            applyCurrentTheme(binding.root)
             MusicSetEditGridViewHolder(binding, onItemClick = onToggleSelection)
         } else {
             val binding = ActivityMusicSetEditItemBinding.inflate(inflater, parent, false)
-            applyCurrentTheme(binding.root)
-            MusicSetEditListViewHolder(binding, onItemClick = onToggleSelection)
+            MusicSetEditListViewHolder(
+                binding = binding,
+                accentColor = accentColor,
+                onItemClick = onToggleSelection
+            )
         }
     }
 

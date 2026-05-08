@@ -18,7 +18,6 @@ import androidx.core.os.ConfigurationCompat
 import androidx.core.text.TextUtilsCompat
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.EntryPointAccessors
-import gd.app.musicplayer.app.di.AppDependenciesEntryPoint
 import kotlin.math.roundToInt
 
 fun Context.dpToPx(value: Float): Int =
@@ -38,12 +37,6 @@ fun Context.spToPx(value: Float): Float =
 val Context.screenWidth: Int get() = resources.displayMetrics.widthPixels
 val Context.screenHeight: Int get() = resources.displayMetrics.heightPixels
 val Context.smallestScreenWidthDp: Int get() = resources.configuration.smallestScreenWidthDp
-val Context.appDependencies: AppDependenciesEntryPoint
-    get() = EntryPointAccessors.fromApplication(
-        applicationContext,
-        AppDependenciesEntryPoint::class.java
-    )
-
 val Context.density: Float get() = resources.displayMetrics.density
 fun Context.isDarkTheme(): Boolean {
     val mask = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK

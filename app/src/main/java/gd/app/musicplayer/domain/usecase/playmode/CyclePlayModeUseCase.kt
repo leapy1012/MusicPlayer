@@ -1,12 +1,12 @@
 package gd.app.musicplayer.domain.usecase.playmode
 
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import javax.inject.Inject
 
-class CyclePlayModeUseCase(
-    private val preferencesRepo: UserPreferencesRepo
+class CyclePlayModeUseCase @Inject constructor(
+    private val preferencesRepo: SettingPreferencesDataStore
 ) {
-    operator fun invoke() {
+    suspend operator fun invoke() {
         preferencesRepo.cyclePlayMode()
     }
 }
-

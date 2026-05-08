@@ -12,11 +12,11 @@ import gd.app.musicplayer.core.ui.drawable.DialogBackgroundFactory
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.core.ui.drawable.OverlayCenterCropDrawable
 import gd.app.musicplayer.core.ui.drawable.RoundedMaskDrawable
-import gd.app.musicplayer.util.ThemePreferenceOps
+import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
 
 open class PictureThemePalette : BaseThemePalette() {
     protected var themeAccentColor: Int = 0
-    protected var themeImageName: String = ThemePreferenceOps.DEFAULT_THEME_IMAGE
+    protected var themeImageName: String = ThemeSettingPreferenceStore.DEFAULT_THEME_IMAGE
     private var backgroundBitmap: Bitmap? = null
     private var blurredBitmap: Bitmap? = null
     private var themeBlurAmount: Int = 0
@@ -24,13 +24,25 @@ open class PictureThemePalette : BaseThemePalette() {
 
     override fun getHeaderOverlayColor(): Int = if (isHeaderSurfaceLight()) 0 else 855638016
 
-    override fun ensureResourcesLoaded(context: Context): Boolean {
+    override fun ensureResourcesLoaded(
+        context: Context,
+        themeBitmapLoader: ThemeBitmapLoader
+    ): Boolean {
         if (backgroundBitmap == null) {
-            backgroundBitmap = DrawableUtil.loadBitmap(context, themeImageName, themeBlurAmount)
+            backgroundBitmap = themeBitmapLoader.loadBitmap(
+                context = context,
+                imageName = themeImageName,
+                blurRadius = themeBlurAmount
+            )
         }
+
         if (blurredBitmap == null) {
-            blurredBitmap = DrawableUtil.loadBlurBackgroundBitmap(context, themeImageName)
+            blurredBitmap = themeBitmapLoader.loadBlurBackgroundBitmap(
+                context = context,
+                imageName = themeImageName
+            )
         }
+
         return backgroundBitmap != null
     }
 
@@ -84,7 +96,7 @@ open class PictureThemePalette : BaseThemePalette() {
     }
 
     fun setImageName(imageName: String?) {
-        themeImageName = imageName?.takeUnless(String::isBlank) ?: ThemePreferenceOps.DEFAULT_THEME_IMAGE
+        themeImageName = imageName?.takeUnless(String::isBlank) ?: ThemeSettingPreferenceStore.DEFAULT_THEME_IMAGE
     }
 
     fun getImageName(): String = themeImageName

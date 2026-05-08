@@ -5,10 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.app.AppDispatchers
+import gd.app.musicplayer.core.dispatcher.AppDispatchers
 import gd.app.musicplayer.domain.usecase.scan.LoadScanOptionsUseCase
 import gd.app.musicplayer.domain.usecase.scan.ObserveLibraryTrackCountUseCase
-import gd.app.musicplayer.domain.usecase.scan.PersistScanOptionsUseCase
+import gd.app.musicplayer.domain.usecase.scan.UpdateScanOptionsUseCase
 import gd.app.musicplayer.domain.usecase.scan.QueryMediaStoreTracksUseCase
 import gd.app.musicplayer.domain.usecase.scan.UpsertScannedTracksUseCase
 import kotlinx.coroutines.CancellationException
@@ -24,11 +24,11 @@ import kotlin.math.max
 import kotlin.math.min
 
 data class ScanOptions(
-    val excludeShort: Boolean = false,
+    val excludeBySeconds: Boolean = false,
     val excludeBySize: Boolean = false,
     val excludeRingtone: Boolean = false,
-    val durationSec: Int = 60,
-    val sizeKb: Int = 50
+    val excludeSeconds: Long = 60,
+    val excludeSizeKb: Long = 50
 )
 
 data class ScanResultSummary(
@@ -50,7 +50,7 @@ data class ScanUiState(
 class ScanViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val loadScanOptionsUseCase: LoadScanOptionsUseCase,
-    private val persistScanOptionsUseCase: PersistScanOptionsUseCase,
+    private val updateScanOptionsUseCase: UpdateScanOptionsUseCase,
     private val observeLibraryTrackCountUseCase: ObserveLibraryTrackCountUseCase,
     private val queryMediaStoreTracksUseCase: QueryMediaStoreTracksUseCase,
     private val upsertScannedTracksUseCase: UpsertScannedTracksUseCase,
@@ -58,14 +58,21 @@ class ScanViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
-        ScanUiState(options = loadSavedOptions())
+        ScanUiState()
     )
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
 
     private var scanJob: Job? = null
 
+    init {
+        viewModelScope.launch(dispatchers.io) {
+            _uiState.value = _uiState.value.copy(
+                options = loadScanOptionsUseCase()
+            )
+        }
+    }
+
     fun startScan(options: ScanOptions) {
-        persistScanOptionsUseCase(options)
         scanJob?.cancel()
         _uiState.value = ScanUiState(
             options = options,
@@ -76,11 +83,12 @@ class ScanViewModel @Inject constructor(
         )
 
         scanJob = viewModelScope.launch(dispatchers.io) {
+            updateScanOptionsUseCase(options)
             val oldCount = observeLibraryTrackCountUseCase().first()
             val imported = queryMediaStoreTracksUseCase(appContext)
             val filtered = imported.filter { track ->
-                if (options.excludeShort && track.duration < options.durationSec * 1000) return@filter false
-                if (options.excludeBySize && (track.size ?: 0L) < options.sizeKb * 1024L) return@filter false
+                if (options.excludeBySeconds && track.duration < options.excludeSeconds * 1000) return@filter false
+                if (options.excludeBySize && (track.size ?: 0L) < options.excludeSizeKb * 1024L) return@filter false
                 if (options.excludeRingtone && track.isRingtone != 0) return@filter false
                 true
             }
@@ -123,9 +131,5 @@ class ScanViewModel @Inject constructor(
     fun cancelScan() {
         scanJob?.cancel()
         _uiState.value = ScanUiState(options = _uiState.value.options)
-    }
-
-    private fun loadSavedOptions(): ScanOptions {
-        return loadScanOptionsUseCase()
     }
 }

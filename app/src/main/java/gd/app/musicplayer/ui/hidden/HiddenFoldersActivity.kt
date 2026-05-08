@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
@@ -24,7 +25,6 @@ import gd.app.musicplayer.databinding.ActivityHiddenFoldersSetHeaderBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 import gd.app.musicplayer.ui.common.viewholder.HiddenFolderHeaderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenFolderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenMusicHeaderViewHolder
@@ -34,7 +34,6 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class HiddenFoldersActivity : BaseActivity() {
-
     private val viewModel: HiddenFoldersViewModel by viewModels()
 
     private lateinit var binding: ActivityHiddenFoldersBinding
@@ -77,6 +76,9 @@ class HiddenFoldersActivity : BaseActivity() {
         recyclerView = findViewById(R.id.recyclerview)
         recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
         adapter = HiddenItemsAdapter(
+            applyTheme = { root ->
+                themeEngine.apply(root)
+            },
             onRemoveFolder = { folder ->
                 viewModel.removeHiddenFolder(folder.folderPath)
             },
@@ -131,6 +133,7 @@ data class HiddenItemsData(
 )
 
 private class HiddenItemsAdapter(
+    private val applyTheme: (View) -> Unit,
     private val onRemoveFolder: (MusicSet.Folder) -> Unit,
     private val onRemoveMusic: (Music) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -182,25 +185,25 @@ private class HiddenItemsAdapter(
         return when (viewType) {
             VIEW_TYPE_FOLDER_HEADER -> {
                 val binding = ActivityHiddenFoldersSetHeaderBinding.inflate(inflater, parent, false)
-                applyCurrentTheme(binding.root)
+                applyTheme(binding.root)
                 HiddenFolderHeaderViewHolder(binding)
             }
 
             VIEW_TYPE_FOLDER -> {
                 val binding = ActivityHiddenFoldersItemBinding.inflate(inflater, parent, false)
-                applyCurrentTheme(binding.root)
+                applyTheme(binding.root)
                 HiddenFolderViewHolder(binding, onRemoveFolder)
             }
 
             VIEW_TYPE_MUSIC_HEADER -> {
                 val binding = ActivityHiddenFoldersMusicHeaderBinding.inflate(inflater, parent, false)
-                applyCurrentTheme(binding.root)
+                applyTheme(binding.root)
                 HiddenMusicHeaderViewHolder(binding)
             }
 
             VIEW_TYPE_MUSIC -> {
                 val binding = ActivityHiddenFoldersMusicItemBinding.inflate(inflater, parent, false)
-                applyCurrentTheme(binding.root)
+                applyTheme(binding.root)
                 HiddenMusicViewHolder(binding, onRemoveMusic)
             }
             else -> error("Unsupported hidden item view type: $viewType")

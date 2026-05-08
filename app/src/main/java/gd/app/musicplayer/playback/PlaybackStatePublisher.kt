@@ -8,7 +8,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import gd.app.musicplayer.ui.feature.widget.WidgetCatalog
-import gd.app.musicplayer.ui.feature.widget.provider.BaseMusicAppWidgetProvider
 
 class PlaybackStatePublisher(
     private val context: Context,
@@ -62,7 +61,7 @@ class PlaybackStatePublisher(
         WidgetCatalog.items.forEach { spec ->
             context.sendBroadcast(
                 Intent(context, spec.providerClass).apply {
-                    action = BaseMusicAppWidgetProvider.ACTION_PLAYBACK_SESSION_UPDATED
+                    action = ACTION_PLAYBACK_SESSION_UPDATED
                 }
             )
         }
@@ -76,4 +75,8 @@ class PlaybackStatePublisher(
         currentPosition.coerceIn(0L, durationMs)
     }.getOrDefault(0L)
 
+    private companion object {
+        const val ACTION_PLAYBACK_SESSION_UPDATED =
+            "gd.app.musicplayer.action.WIDGET_PLAYBACK_SESSION_UPDATED"
+    }
 }

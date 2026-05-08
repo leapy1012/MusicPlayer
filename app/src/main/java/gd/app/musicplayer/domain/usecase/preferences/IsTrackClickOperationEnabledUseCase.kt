@@ -1,10 +1,11 @@
 package gd.app.musicplayer.domain.usecase.preferences
 
-import gd.app.musicplayer.util.PreferenceUtil
+
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import javax.inject.Inject
 
 class IsTrackClickOperationEnabledUseCase @Inject constructor(
-    private val preferenceUtil: PreferenceUtil
+    private val settingsPreference: SettingPreferencesDataStore
 ) {
-    operator fun invoke(): Boolean = preferenceUtil.isTrackClickOperationEnabled()
+    suspend operator fun invoke(): Boolean = settingsPreference.getTrackClickOperationEnabled()
 }

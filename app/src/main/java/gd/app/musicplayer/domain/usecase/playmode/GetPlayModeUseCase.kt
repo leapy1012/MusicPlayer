@@ -1,10 +1,11 @@
 package gd.app.musicplayer.domain.usecase.playmode
 
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import kotlinx.coroutines.flow.first
+import javax.inject.Inject
 
-class GetPlayModeUseCase(
-    private val preferencesRepo: UserPreferencesRepo
+class GetPlayModeUseCase @Inject constructor(
+    private val settingPreferencesStore: SettingPreferencesDataStore
 ) {
-    operator fun invoke(): Int = preferencesRepo.getPlayMode()
+    suspend operator fun invoke(): Int = settingPreferencesStore.observePlayMode().first()
 }
-

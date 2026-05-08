@@ -1,19 +1,14 @@
 package gd.app.musicplayer.domain.usecase.playmode
 
-import gd.app.musicplayer.data.repo.UserPreferencesRepo
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class ObservePlayModeUseCase(
-    private val preferencesRepo: UserPreferencesRepo
+class ObservePlayModeUseCase @Inject constructor(
+    private val settingPreferencesStore: SettingPreferencesDataStore
 ) {
     operator fun invoke(): Flow<Int> {
-        return preferencesRepo.observePreferenceChanges(KEY_PLAY_MODE)
-            .map { preferencesRepo.getPlayMode() }
-    }
-
-    private companion object {
-        const val KEY_PLAY_MODE = "preference_play_mode"
+        return settingPreferencesStore.observePlayMode()
     }
 }
-

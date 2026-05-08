@@ -5,10 +5,9 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.commit
 import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityDriveModeBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.core.extension.appDependencies
-import gd.app.musicplayer.core.extension.startActivityCompat
 
 @AndroidEntryPoint
 class DriveModeActivity : BaseActivity() {
@@ -16,17 +15,10 @@ class DriveModeActivity : BaseActivity() {
     private lateinit var binding: ActivityDriveModeBinding
 
     companion object {
-        fun start(context: Context) {
-            val preferences = context.appDependencies.preferenceUtil
-            if (preferences.isDriveWarningEnabled()) {
-                DriveRemindActivity.start(context)
-            } else {
-                openDirect(context)
-            }
-        }
-
         fun openDirect(context: Context) {
-            context.startActivityCompat(Intent(context, DriveModeActivity::class.java))
+            context.startActivityCompat(
+                Intent(context, DriveModeActivity::class.java)
+            )
         }
     }
 
@@ -38,10 +30,11 @@ class DriveModeActivity : BaseActivity() {
 
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
-                replace(binding.mainFragmentContainer.id, DriveModeFragment())
+                replace(
+                    binding.mainFragmentContainer.id,
+                    DriveModeFragment()
+                )
             }
         }
     }
-
-    
 }

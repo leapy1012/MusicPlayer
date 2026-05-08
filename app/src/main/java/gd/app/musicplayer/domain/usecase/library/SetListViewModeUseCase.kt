@@ -1,12 +1,12 @@
 package gd.app.musicplayer.domain.usecase.library
 
+import gd.app.musicplayer.data.local.preference.ViewModePreferences
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.LibraryRepo
 import javax.inject.Inject
 
 class SetListViewModeUseCase @Inject constructor(
-    private val libraryRepo: LibraryRepo
+    private val preference: ViewModePreferences
 ) {
-    operator fun invoke(musicSet: MusicSet, mode: Int) =
-        libraryRepo.setListViewMode(musicSet, mode)
+    suspend operator fun invoke(musicSet: MusicSet, mode: Int) =
+        preference.setListViewMode(musicSet, mode)
 }

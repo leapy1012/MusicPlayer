@@ -26,7 +26,7 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
-        android:name=".app.MusicPlayerApp"
+        android:name=".MusicPlayerApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -78,7 +78,7 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.selection.ActivityMusicSelect"
+            android:name=".ui.feature.selection.MusicSelectActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -193,7 +193,11 @@
         <service
             android:name=".playback.MusicPlaybackService"
             android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
         <service
             android:name=".ui.feature.widget.WidgetQueueService"
             android:exported="false"

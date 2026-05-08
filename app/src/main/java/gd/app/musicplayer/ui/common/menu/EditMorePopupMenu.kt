@@ -2,15 +2,23 @@ package gd.app.musicplayer.ui.common.menu
 
 import android.content.Context
 import android.view.View
+import gd.app.musicplayer.core.theme.ThemePalette
+import gd.app.musicplayer.core.theme.accentColor
 import gd.app.musicplayer.data.model.ContextMenuItem
 import gd.app.musicplayer.data.model.MenuItemModel
-import gd.app.musicplayer.ui.common.menu.BaseContextMenu
 
 class EditMorePopupMenu(
     context: Context,
     private val items: List<MenuItemModel>,
+    private val theme: ThemePalette,
     private val itemClickListener: OnItemClickListener<MenuItemModel>
-) : BaseContextMenu(context) {
+) : BaseContextMenu(
+    context = context,
+    accentColor = theme.accentColor,
+    popupBackgroundProvider = { menuContext ->
+        theme.getPopupBackgroundDrawable(menuContext)
+    }
+) {
 
     override fun buildItems(): List<ContextMenuItem> {
         return items.mapIndexed { index, item ->

@@ -17,8 +17,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.playback.HeadsetMediaButtonHandler
-import gd.app.musicplayer.playback.MediaButtonReceiver
 import gd.app.musicplayer.ui.shell.MainActivity
 
 class PlaybackMediaSessionController(
@@ -27,6 +25,7 @@ class PlaybackMediaSessionController(
     private val queueProvider: () -> List<Music>,
     private val currentIndexProvider: () -> Int,
     private val isEffectivelyPlaying: () -> Boolean,
+    private val headsetMediaButtonHandler: HeadsetMediaButtonHandler,
     private val callbacks: Callbacks,
 ) {
     interface Callbacks {
@@ -158,7 +157,7 @@ class PlaybackMediaSessionController(
                         mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT)
                     }
                     if (event?.action != KeyEvent.ACTION_DOWN) return true
-                    HeadsetMediaButtonHandler.handle(context, event.keyCode)
+                    headsetMediaButtonHandler.handle(event.keyCode)
                     return true
                 }
             })

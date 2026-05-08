@@ -5,11 +5,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.databinding.DialogShakeLevelBinding
-import gd.app.musicplayer.util.ShakeDetector
 import kotlin.math.max
 import kotlin.math.min
 
@@ -21,7 +19,6 @@ class ShakeLevelDialogFragment : BaseDialogFragment() {
 
     private val onShakeLevelChange = object : SeekBar.OnSeekBarChangeListener {
         override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-            android.util.Log.e("Leapy", "LeapyLeapy")
             if (!fromUser) return
             binding.shakeLevelNumber.text = (progress + 1).toString()
         }
@@ -49,21 +46,23 @@ class ShakeLevelDialogFragment : BaseDialogFragment() {
         binding.dialogButtonOk.setOnClickListener { onShakeLevelSave() }
 
         binding.shakeLevelSeek.setOnSeekBarChangeListener (onShakeLevelChange)
-        val currentShakeLevel = requireContext().appDependencies.preferenceUtil.getShakeLevel()
+        val currentShakeLevel = requireArguments().getFloat(ARG_SHAKE_LEVEL, DEFAULT_SHAKE_LEVEL)
         binding.shakeLevelSeek.setProgress((currentShakeLevel * binding.shakeLevelSeek.getMax()).toInt())
     }
 
     override fun provideBackgroundDrawable(): Drawable {
-        val themePalette =
-            requireContext().appDependencies.themeRegistry.getCurrentTheme(requireContext())
+        val themePalette = currentTheme()
         return themePalette.getDialogBackground(requireContext())
     }
 
     private fun onShakeLevelSave() {
         val shakeLevel: Float =
             binding.shakeLevelSeek.getProgress().toFloat() / binding.shakeLevelSeek.getMax()
-        requireContext().appDependencies.preferenceUtil.setShakeLevel(shakeLevel)
-        ShakeDetector.getInstance(requireContext()).updateSensitivity(shakeLevel)
+        parentFragmentManager.setFragmentResult(
+            RESULT_KEY,
+            Bundle().apply { putFloat(KEY_SHAKE_LEVEL, shakeLevel) }
+        )
+        dismiss()
     }
 
     private fun onShakeLevelReset() {
@@ -88,6 +87,17 @@ class ShakeLevelDialogFragment : BaseDialogFragment() {
     }
 
     companion object {
-        fun newInstance(): ShakeLevelDialogFragment = ShakeLevelDialogFragment()
+        const val RESULT_KEY = "shake_level_result"
+        const val KEY_SHAKE_LEVEL = "shake_level"
+        private const val ARG_SHAKE_LEVEL = "arg_shake_level"
+        private const val DEFAULT_SHAKE_LEVEL = 0.5f
+
+        fun newInstance(currentShakeLevel: Float): ShakeLevelDialogFragment {
+            return ShakeLevelDialogFragment().apply {
+                arguments = Bundle().apply {
+                    putFloat(ARG_SHAKE_LEVEL, currentShakeLevel)
+                }
+            }
+        }
     }
 }

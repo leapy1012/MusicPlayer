@@ -12,11 +12,9 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
-import gd.app.musicplayer.core.extension.isFavorite
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.loadMusicArtwork
-import gd.app.musicplayer.core.extension.toDurationString
 import gd.app.musicplayer.databinding.ActivityDriveModeItemBinding
 import gd.app.musicplayer.databinding.FragmentDriveModeBinding
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
@@ -24,20 +22,19 @@ import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
 import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.view.SeekBar
-import kotlinx.coroutines.Dispatchers
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     private var userSeeking = false
     private var pagerSyncFromState = false
+    private var forwardBackwardSeconds = DEFAULT_FORWARD_BACKWARD_SECONDS
     private val pagerAdapter = DriveModePagerAdapter()
     private val viewModel: PlayerViewModel by viewModels()
     private val playModeViewModel: PlayModeViewModel by viewModels()
-    private val preferenceUtil by lazy { requireContext().appDependencies.preferenceUtil }
-    private val toggleFavoriteTrack by lazy {
-        requireContext().appDependencies.toggleFavoriteTrackUseCase
-    }
+
+    @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentDriveModeBinding =
         FragmentDriveModeBinding.inflate(inflater)
@@ -118,6 +115,7 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
 
         observePlayback()
         observePlayMode()
+        observeSettings()
     }
 
     private fun observePlayback() {
@@ -159,6 +157,16 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
         }
     }
 
+    private fun observeSettings() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                settingPreferencesDataStore.observeSettingPreferences().collect { settings ->
+                    forwardBackwardSeconds = settings.normal.forwardBackwardSeconds
+                }
+            }
+        }
+    }
+
     private fun toggleFavorite() {
 //        val track = viewModel.playbackState.value.currentTrack ?: return
 //        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -171,12 +179,11 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     }
 
     private fun skipDurationMs(): Int {
-        val seconds = preferenceUtil.getIntPreference(KEY_FORWARD_BACKWARD_SECONDS, 15)
-        return seconds.coerceAtLeast(1) * 1000
+        return forwardBackwardSeconds.coerceAtLeast(1) * 1000
     }
 
     private companion object {
-        const val KEY_FORWARD_BACKWARD_SECONDS = "forward_backward_seconds"
+        const val DEFAULT_FORWARD_BACKWARD_SECONDS = 15
 
         fun placeholderMusic(context: android.content.Context): Music = Music(
             id = -1L,

@@ -1,13 +1,23 @@
 package gd.app.musicplayer.ui.feature.library
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gd.app.musicplayer.domain.usecase.preferences.GetLibraryLastTabUseCase
-import gd.app.musicplayer.domain.usecase.preferences.GetLibraryTabConfigsUseCase
-import gd.app.musicplayer.domain.usecase.preferences.SetLibraryLastTabUseCase
-import gd.app.musicplayer.util.LibraryTabConfig
-import gd.app.musicplayer.util.LibraryTabConfigStore
+import gd.app.musicplayer.domain.usecase.library.GetLibraryLastTabUseCase
+import gd.app.musicplayer.domain.usecase.library.GetLibraryTabConfigsUseCase
+import gd.app.musicplayer.domain.usecase.library.SetLibraryLastTabUseCase
+import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfig
+import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfigStore
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+data class LibraryScreenUiState(
+    val visibleTabs: List<LibraryTabConfig> = emptyList(),
+    val initialTabIndex: Int = 0
+)
 
 @HiltViewModel
 class LibraryScreenViewModel @Inject constructor(
@@ -16,18 +26,42 @@ class LibraryScreenViewModel @Inject constructor(
     private val setLibraryLastTabUseCase: SetLibraryLastTabUseCase
 ) : ViewModel() {
 
-    fun visibleLibraryTabs(): List<LibraryTabConfig> =
-        LibraryTabConfigStore.visibleItems(getLibraryTabConfigsUseCase())
+    private val _uiState = MutableStateFlow(LibraryScreenUiState())
+    val uiState: StateFlow<LibraryScreenUiState> = _uiState.asStateFlow()
 
-    fun initialTabIndex(items: List<LibraryTabConfig>): Int {
-        if (items.isEmpty()) return 0
-        val lastTabId = getLibraryLastTabUseCase()
-        return items.indexOfFirst { it.id == lastTabId }
-            .takeIf { it >= 0 }
-            ?: 0
+    init {
+        loadTabs()
     }
 
     fun onTabSelected(tabId: Int) {
-        setLibraryLastTabUseCase(tabId)
+        viewModelScope.launch {
+            setLibraryLastTabUseCase(tabId)
+        }
+    }
+
+    private fun loadTabs() {
+        viewModelScope.launch {
+            val visibleTabs = LibraryTabConfigStore.visibleItems(getLibraryTabConfigsUseCase())
+            val initialTabIndex = resolveInitialTabIndex(
+                items = visibleTabs,
+                lastTabId = getLibraryLastTabUseCase()
+            )
+
+            _uiState.value = LibraryScreenUiState(
+                visibleTabs = visibleTabs,
+                initialTabIndex = initialTabIndex
+            )
+        }
+    }
+
+    private fun resolveInitialTabIndex(
+        items: List<LibraryTabConfig>,
+        lastTabId: Int
+    ): Int {
+        if (items.isEmpty()) return 0
+
+        return items.indexOfFirst { it.id == lastTabId }
+            .takeIf { it >= 0 }
+            ?: 0
     }
 }

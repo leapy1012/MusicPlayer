@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.databinding.FragmentFolderFooterBinding
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 
 class FolderFooterAdapter(
     private val onScanClick: () -> Unit
@@ -17,7 +16,6 @@ class FolderFooterAdapter(
             parent,
             false
         )
-        applyCurrentTheme(binding.root)
         return FolderFooterViewHolder(binding, onScanClick)
     }
 

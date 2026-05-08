@@ -10,14 +10,15 @@ import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.PopupWindow
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.density
 import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.data.model.ContextMenuItem
 import kotlin.math.max
 
 abstract class BaseContextMenu(
-    protected val context: Context
+    protected val context: Context,
+    private val accentColor: Int,
+    private val popupBackgroundProvider: (Context) -> Drawable
 ) {
 
     private var popupWindow: PopupWindow? = null
@@ -50,10 +51,7 @@ abstract class BaseContextMenu(
         yOff: Int = 0
     ) {
         val items = buildItems()
-
-        if (items.isEmpty()) {
-            return
-        }
+        if (items.isEmpty()) return
 
         dismiss()
 
@@ -73,15 +71,13 @@ abstract class BaseContextMenu(
 
         listView.adapter = ContextMenuAdapter(
             context = context,
-            items = items
+            items = items,
+            accentColor = accentColor
         )
 
         listView.setOnItemClickListener { _, _, position, _ ->
             val item = items.getOrNull(position) ?: return@setOnItemClickListener
-
-            if (!item.enabled) {
-                return@setOnItemClickListener
-            }
+            if (!item.enabled) return@setOnItemClickListener
 
             onItemClicked(
                 item = item,
@@ -123,9 +119,7 @@ abstract class BaseContextMenu(
     }
 
     private fun createBackgroundDrawable(): Drawable {
-        return context.appDependencies.themeRepo
-            .getCorePalette(context)
-            .getPopupBackgroundDrawable(context)
+        return popupBackgroundProvider(context)
     }
 
     private fun calculateMenuWidth(

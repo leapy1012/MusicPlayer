@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.widget.AdapterView
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -19,16 +20,23 @@ import gd.app.musicplayer.core.theme.accentColor
 import gd.app.musicplayer.core.theme.messageColor
 import gd.app.musicplayer.core.theme.titleColor
 import gd.app.musicplayer.databinding.ActivityEqualizerBinding
-import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.playback.SoundEffectPreferences
+import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
+import gd.app.musicplayer.domain.usecase.equalizer.SaveAudioEffectSettingsUseCase
+import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.dialog.BaseDialog
 import gd.app.musicplayer.core.ui.dialog.OptionsListDialog
-import gd.app.musicplayer.util.PreferenceUtil
+
+import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class EqualizerActivity : BaseActivity() {
+
+    @Inject lateinit var loadAudioEffectSettingsUseCase: LoadAudioEffectSettingsUseCase
+    @Inject lateinit var saveAudioEffectSettingsUseCase: SaveAudioEffectSettingsUseCase
+    @Inject lateinit var soundEffectPreferences: SoundEffectPreferences
 
     private val playerViewModel: PlayerViewModel by viewModels()
     private lateinit var binding: ActivityEqualizerBinding
@@ -68,9 +76,6 @@ class EqualizerActivity : BaseActivity() {
     }
 
     private fun setupPager() {
-        val prefs = PreferenceUtil.getInstance(this)
-        val lastTab = prefs.getEqualizerLastTab().coerceIn(0, 1)
-
         binding.equalizerViewPager.adapter = object : FragmentStateAdapter(this) {
             override fun getItemCount(): Int = 2
 
@@ -85,10 +90,18 @@ class EqualizerActivity : BaseActivity() {
             tab.text = if (position == 0) "EQ" else "VOL"
         }.attach()
 
-        binding.equalizerViewPager.setCurrentItem(lastTab, false)
+        lifecycleScope.launch {
+            binding.equalizerViewPager.setCurrentItem(
+                soundEffectPreferences.getEqualizerLastTab().coerceIn(0, 1),
+                false
+            )
+        }
+
         binding.equalizerTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                prefs.setEqualizerLastTab(tab.position)
+                lifecycleScope.launch {
+                    soundEffectPreferences.setEqualizerLastTab(tab.position)
+                }
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
@@ -108,27 +121,31 @@ class EqualizerActivity : BaseActivity() {
     private fun showBandTypeDialog() {
         if (!SoundEffectPreferences.supportsTenBandEqualizer()) return
 
-        val settings = AudioEffectsManager.loadSettings(this)
-        val selected = if (settings.useTenBand) 1 else 0
-        val items = listOf(getString(R.string.use_five_band), getString(R.string.use_ten_band))
+        lifecycleScope.launch {
+            val settings = loadAudioEffectSettingsUseCase()
+            val selected = if (settings.useTenBand) 1 else 0
+            val items = listOf(getString(R.string.use_five_band), getString(R.string.use_ten_band))
 
-        val config = themedListDialogConfig(items).apply {
-            titleText = getString(R.string.equalizer)
-            selectedItemIndex = selected
-            onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
-                if (which == selected) return@OnItemClickListener
-                BaseDialog.dismissAll(this@EqualizerActivity)
-                val updated = settings.copy(useTenBand = which == 1)
-                AudioEffectsManager.saveSettings(this@EqualizerActivity, updated)
-                playerViewModel.applyAudioEffects(this@EqualizerActivity)
-                equalizerFragment.reloadFromSettings()
+            val config = themedListDialogConfig(items).apply {
+                titleText = getString(R.string.equalizer)
+                selectedItemIndex = selected
+                onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
+                    if (which == selected) return@OnItemClickListener
+                    BaseDialog.dismissAll(this@EqualizerActivity)
+                    lifecycleScope.launch {
+                        val updated = settings.copy(useTenBand = which == 1)
+                        saveAudioEffectSettingsUseCase(updated)
+                        playerViewModel.applyAudioEffects(this@EqualizerActivity)
+                        equalizerFragment.reloadFromSettings()
+                    }
+                }
             }
+            OptionsListDialog.show(this@EqualizerActivity, config)
         }
-        OptionsListDialog.show(this, config)
     }
 
     private fun themedListDialogConfig(items: List<String>): OptionsListDialog.Config {
-        val palette = appDependencies.themeRepo.getCorePalette(this)
+        val palette = themeRepo.getCorePalette()
         val topCornerRadius = dpToPx(16f).toFloat()
         return OptionsListDialog.Config.create(this, items).apply {
             dimAmount = 0.5f

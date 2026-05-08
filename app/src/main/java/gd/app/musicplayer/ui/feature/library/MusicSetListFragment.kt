@@ -11,19 +11,23 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.repository.ThemeRepo
 import gd.app.musicplayer.databinding.LayoutRecyclerviewBinding
 import gd.app.musicplayer.ui.feature.scan.ScanMusicActivity
 import gd.app.musicplayer.ui.feature.selection.MusicSetEditActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
-import gd.app.musicplayer.ui.common.menu.MusicSetContextMenu
-import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
+import gd.app.musicplayer.ui.common.menu.ContextMenu
+import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import gd.app.musicplayer.ui.folder.FolderFooterAdapter
 import gd.app.musicplayer.ui.folder.isHiddenFoldersEntry
 import gd.app.musicplayer.ui.hidden.HiddenFoldersActivity
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MusicSetListFragment : BaseListFragment() {
+
+    @Inject lateinit var themeRepo: ThemeRepo
 
     private val viewModel: MusicSetListViewModel by viewModels()
 
@@ -162,34 +166,34 @@ class MusicSetListFragment : BaseListFragment() {
     }
 
     override fun showMoreMenu(anchor: View) {
-        MusicSetContextMenu(
+        val state = viewModel.uiState.value
+        ContextMenu(
             context = requireContext(),
             musicSet = musicSet,
+            theme = themeRepo.getCorePalette(),
             onAction = ::handleMenuAction,
-            selectedViewMode = viewModel.uiState.value.viewMode,
+            selectedViewMode = state.viewMode,
+            currentSortStyle = state.currentSortStyle,
+            currentSortDescending = state.sortDescending
         ).show(anchor)
     }
 
-    private fun handleMenuAction(action: MusicSetMenuAction) {
+    private fun handleMenuAction(action: ContextMenuAction) {
         when (action) {
-            MusicSetMenuAction.Select -> {
+            ContextMenuAction.Select -> {
                 openSelection()
             }
 
-            MusicSetMenuAction.ViewAsList -> {
+            ContextMenuAction.ViewAsList -> {
                 viewModel.onViewModeChanged(MusicSetAdapter.VIEW_MODE_LIST)
             }
 
-            MusicSetMenuAction.ViewAsGrid -> {
+            ContextMenuAction.ViewAsGrid -> {
                 viewModel.onViewModeChanged(MusicSetAdapter.VIEW_MODE_GRID)
             }
 
-            is MusicSetMenuAction.SortChanged -> {
-                viewModel.bind(musicSet)
-            }
-
-            MusicSetMenuAction.SortBy -> {
-                // Handled inside MusicSetContextMenu by opening SortByContextMenu.
+            is ContextMenuAction.SortChanged -> {
+                viewModel.onSortChanged(action.sortKey, action.descending)
             }
 
             else -> Unit

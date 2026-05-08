@@ -7,9 +7,6 @@ import gd.app.musicplayer.data.model.isTrackCollection
 internal val MusicSet.supportsViewModeMenu: Boolean
     get() = this is MusicSet.Artists || this is MusicSet.Albums || this is MusicSet.Genres
 
-internal val MusicSet.supportsSortMenu: Boolean
-    get() = isTrackCollection
-
 internal val MusicSet.supportsShuffleAllMenu: Boolean
     get() = isTrackCollection
 
@@ -23,3 +20,18 @@ internal val MusicSet.opensTrackCollectionScreen: Boolean
 
 internal val MusicSet.supportsCompactAlbumHeader: Boolean
     get() = this is MusicSet.Folder || this is MusicSet.Playlist || this is MusicSet.Favorites || this is MusicSet.RecentlyAdded || this is MusicSet.RecentlyPlayed || this is MusicSet.MostPlayed
+
+internal val MusicSet.supportsSortMenu: Boolean
+    get() = this !is MusicSet.RecentlyPlayed &&
+            this !is MusicSet.MostPlayed
+
+internal val MusicSet.supportsRenameMenu: Boolean
+    get() = this is MusicSet.Playlist ||
+            this is MusicSet.Artist ||
+            this is MusicSet.Album ||
+            this is MusicSet.Genre
+
+internal val MusicSet.supportsArtworkMenu: Boolean
+    get() = this is MusicSet.Artist ||
+            this is MusicSet.Album ||
+            this is MusicSet.Genre

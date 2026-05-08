@@ -7,11 +7,20 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.data.model.MenuItemModel
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
+import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
+import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
+import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
@@ -27,7 +36,17 @@ interface OnItemClickListener<T> {
 class EditBottomMenuController(
     private val activity: MusicEditActivity,
     private val musicSet: MusicSet,
-    private val menuContainer: ViewGroup
+    private val menuContainer: ViewGroup,
+    private val playTracksUseCase: PlayTracksUseCase,
+    private val playNextTracksUseCase: PlayNextTracksUseCase,
+    private val enqueueTracksUseCase: EnqueueTracksUseCase,
+    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
+    private val replaceQueueUseCase: ReplaceQueueUseCase,
+    private val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase,
+    private val deleteTracksUseCase: DeleteTracksUseCase,
+    private val hideSelectionUseCase: HideSelectionUseCase,
+    private val addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase
 ) : OnItemClickListener<MenuItemModel> {
 
     private var menuItems: List<MenuItemModel> = emptyList()
@@ -95,7 +114,12 @@ class EditBottomMenuController(
 
         if (actionId == R.string.more) {
             val extraItems = menuItems.subList(5, menuItems.size)
-            EditMorePopupMenu(activity, extraItems, this).show(clickedView)
+            EditMorePopupMenu(
+                context = activity,
+                items = extraItems,
+                theme = activity.themeRepo.getCorePalette(),
+                itemClickListener = this
+            ).show(clickedView)
             return
         }
 
@@ -126,12 +150,12 @@ class EditBottomMenuController(
             R.string.operation_play -> {
                 val songsToPlay = buildTargetMusicList(selectedSongs, true)
                 ToastUtil.show(activity, activity.getString(R.string.edit_play_tips, songsToPlay.size))
-                activity.applicationContext.appDependencies.playTracksUseCase(activity, songsToPlay, 0)
+                playTracksUseCase(activity, songsToPlay, 0)
             }
 
             R.string.play_next_2 -> {
                 val songsToPlayNext = buildTargetMusicList(selectedSongs, true)
-                activity.applicationContext.appDependencies.playNextTracksUseCase(activity, songsToPlayNext)
+                playNextTracksUseCase(activity, songsToPlayNext)
                 ToastUtil.show(activity, activity.getString(R.string.enqueue_msg_count, songsToPlayNext.size))
             }
 
@@ -145,7 +169,7 @@ class EditBottomMenuController(
                     activity,
                     activity.getString(R.string.enqueue_msg_count, songsToEnqueue.size)
                 )
-                activity.applicationContext.appDependencies.enqueueTracksUseCase(activity, songsToEnqueue)
+                enqueueTracksUseCase(activity, songsToEnqueue)
             }
 
             R.string.add_to_favourite_2 -> {
@@ -158,7 +182,7 @@ class EditBottomMenuController(
         activity.lifecycleScope.launch {
             when (musicSet) {
                 is MusicSet.Playlist -> {
-                    activity.applicationContext.appDependencies.removeTracksFromPlaylistUseCase(
+                    removeTracksFromPlaylistUseCase(
                         musicSet.id,
                         songs.map(Music::id)
                     )
@@ -166,7 +190,7 @@ class EditBottomMenuController(
                 }
 
                 is MusicSet.Favorites -> {
-                    activity.applicationContext.appDependencies.removeTracksFromPlaylistUseCase(
+                    removeTracksFromPlaylistUseCase(
                         MusicSet.FAVORITES,
                         songs.map(Music::id)
                     )
@@ -175,8 +199,8 @@ class EditBottomMenuController(
 
                 is MusicSet.Queue -> {
                     val selectedIds = songs.mapTo(hashSetOf(), Music::id)
-                    val state = activity.applicationContext.appDependencies.observePlaybackStateUseCase().value
-                    val queue = activity.applicationContext.appDependencies.playbackQueueRepo.getQueue()
+                    val state = observePlaybackStateUseCase().value
+                    val queue = getPlaybackQueueUseCase()
                     val newQueue = queue.filterNot { it.id in selectedIds }
                     val newIndex = when {
                         newQueue.isEmpty() -> -1
@@ -185,7 +209,7 @@ class EditBottomMenuController(
                             .takeIf { it >= 0 }
                             ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
                     }
-                    activity.applicationContext.appDependencies.replaceQueueUseCase(
+                    replaceQueueUseCase(
                         activity,
                         newQueue,
                         newIndex
@@ -207,7 +231,7 @@ class EditBottomMenuController(
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.delete) { _, _ ->
                 activity.lifecycleScope.launch {
-                    val deletedCount = activity.applicationContext.appDependencies.deleteTracksUseCase(songs)
+                    val deletedCount = deleteTracksUseCase(songs)
                     ToastUtil.show(
                         activity,
                         if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
@@ -219,7 +243,7 @@ class EditBottomMenuController(
 
     private fun hideSelectedSongs(songs: List<Music>) {
         activity.lifecycleScope.launch {
-            activity.applicationContext.appDependencies.hideSelectionUseCase(
+            hideSelectionUseCase(
                 folderPaths = emptyList(),
                 songIds = songs.map(Music::id)
             )
@@ -230,7 +254,7 @@ class EditBottomMenuController(
     private fun addSelectedSongsToFavorites(songs: List<Music>) {
         activity.lifecycleScope.launch {
             val songsToAdd = songs.filterNot { it.isFavorite() }
-            val addedCount = activity.applicationContext.appDependencies.addTracksToPlaylistsUseCase(
+            val addedCount = addTracksToPlaylistsUseCase(
                 listOf(MusicSet.FAVORITES),
                 songsToAdd
             )

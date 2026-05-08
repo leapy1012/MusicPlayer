@@ -5,13 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.core.extension.albumArtSource
-import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repo.PlaylistRepo
-import gd.app.musicplayer.domain.usecase.library.GetAllTracksByCurrentSortUseCase
+import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.repository.PlaylistRepo
+import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
+import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
 import gd.app.musicplayer.playback.PlaybackController
-import gd.app.musicplayer.playback.PlaybackTimeFormatter
-import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -53,7 +52,7 @@ data class PlaybackHighlightState(
 class PlayerViewModel @Inject constructor(
     private val playbackController: PlaybackController,
     private val playlistRepo: PlaylistRepo,
-    private val getAllTracksByCurrentSortUseCase: GetAllTracksByCurrentSortUseCase
+    private val getTracksUseCase: GetTracksUseCase
 ) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -168,7 +167,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     suspend fun playAllTracks(context: Context) {
-        val queue = getAllTracksByCurrentSortUseCase(context)
+        val queue = getTracksUseCase(MusicSet.Tracks)
         if (queue.isNotEmpty()) {
             playbackController.playQueue(
                 context = context,

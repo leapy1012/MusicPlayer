@@ -8,8 +8,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.PlaybackQueueRepo
 import gd.app.musicplayer.domain.usecase.playback.ClearQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
@@ -34,10 +34,10 @@ class QueueTrackOptionsViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val playTracksUseCase: PlayTracksUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
-    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val clearQueueUseCase: ClearQueueUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase,
-    private val playbackQueueRepo: PlaybackQueueRepo
+    private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
+    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<QueueTrackOptionsEvent>()
@@ -93,7 +93,7 @@ class QueueTrackOptionsViewModel @Inject constructor(
 
     fun onRemoveFromQueue(music: Music) {
         viewModelScope.launch {
-            val queue = playbackQueueRepo.getQueue()
+            val queue = getPlaybackQueueUseCase()
             val state = observePlaybackStateUseCase().value
             val index = queue.indexOfFirst { it.id == music.id }
             if (index < 0) return@launch

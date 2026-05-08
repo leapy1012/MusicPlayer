@@ -7,10 +7,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.GetPlaylistSongMatchCountsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ObserveSelectablePlaylistsUseCase
-import gd.app.musicplayer.domain.usecase.preferences.ObservePlaylistSortUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -42,7 +42,7 @@ sealed interface PlaylistSelectEvent {
 class PlaylistSelectViewModel @Inject constructor(
     private val observeSelectablePlaylistsUseCase: ObserveSelectablePlaylistsUseCase,
     private val getPlaylistSongMatchCountsUseCase: GetPlaylistSongMatchCountsUseCase,
-    private val observePlaylistSortUseCase: ObservePlaylistSortUseCase,
+    private val observeSortUseCase: ObserveSortUseCase,
     private val addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase
 ) : ViewModel() {
     private val songs = MutableStateFlow<List<Music>>(emptyList())
@@ -56,7 +56,7 @@ class PlaylistSelectViewModel @Inject constructor(
         combine(
             observeSelectablePlaylistsUseCase(),
             flow { emit(getPlaylistSongMatchCountsUseCase(songIds)) },
-            observePlaylistSortUseCase()
+            observeSortUseCase(MusicSet.Playlists)
         ) { playlists, matchCounts, sortConfig ->
             sortPlaylists(
                 playlists.map { playlist ->

@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.app.AppDispatchers
+import gd.app.musicplayer.core.dispatcher.AppDispatchers
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase

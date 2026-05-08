@@ -5,12 +5,13 @@
     android:layout_height="match_parent"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
-    android:scrollbars="none">
+    android:scrollbars="none"
+    android:fillViewport="true">
 
     <gd.app.musicplayer.core.ui.view.FixedHeightLinearLayout
         android:id="@+id/equalizer_content_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
 
         <View

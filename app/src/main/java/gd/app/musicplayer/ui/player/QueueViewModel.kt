@@ -4,11 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repo.PlaybackQueueRepo
-import gd.app.musicplayer.playback.PlaybackController
+import gd.app.musicplayer.domain.usecase.playback.ClearPersistedPlaybackQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
+import gd.app.musicplayer.domain.usecase.playback.ReplacePersistedPlaybackQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.SaveNowPlayingQueueUseCase
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -20,13 +21,16 @@ data class QueueState(
 )
 @HiltViewModel
 class QueueViewModel @Inject constructor(
-    private val playbackQueueRepo: PlaybackQueueRepo,
-    private val playbackController: PlaybackController
+    observePlaybackQueueUseCase: ObservePlaybackQueueUseCase,
+    observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    private val replacePersistedPlaybackQueueUseCase: ReplacePersistedPlaybackQueueUseCase,
+    private val clearPersistedPlaybackQueueUseCase: ClearPersistedPlaybackQueueUseCase,
+    private val saveNowPlayingQueueUseCase: SaveNowPlayingQueueUseCase
 ) : ViewModel() {
 
     val queueState = combine(
-        playbackQueueRepo.queue,
-        playbackController.state
+        observePlaybackQueueUseCase(),
+        observePlaybackStateUseCase()
     ) { queue, playback ->
         QueueState(
             queue = queue,
@@ -40,12 +44,13 @@ class QueueViewModel @Inject constructor(
 
     fun replaceQueue(queue: List<Music>) {
         viewModelScope.launch {
-            playbackQueueRepo.replaceQueue(queue)
+            replacePersistedPlaybackQueueUseCase(queue)
         }
     }
+
     fun clearQueue() {
         viewModelScope.launch {
-            playbackQueueRepo.clearQueue()
+            clearPersistedPlaybackQueueUseCase()
         }
     }
 
@@ -55,7 +60,7 @@ class QueueViewModel @Inject constructor(
         currentPositionMs: Int,
     ) {
         viewModelScope.launch {
-            playbackQueueRepo.saveNowPlayingQueue(
+            saveNowPlayingQueueUseCase(
                 queue = queue,
                 currentIndex = currentIndex,
                 currentPositionMs = currentPositionMs

@@ -13,7 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import gd.app.musicplayer.databinding.FragmentMoreBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.ui.feature.drivemode.DriveModeActivity
+import gd.app.musicplayer.ui.feature.drivemode.DriveModeLauncher
 import gd.app.musicplayer.ui.feature.equalizer.EqualizerActivity
 import gd.app.musicplayer.ui.feature.scan.ScanMusicActivity
 import gd.app.musicplayer.ui.feature.setting.SettingActivity
@@ -21,11 +21,13 @@ import gd.app.musicplayer.ui.feature.sleep.SleepActivity
 import gd.app.musicplayer.ui.feature.widget.WidgetActivity
 import gd.app.musicplayer.ui.hidden.HiddenFoldersActivity
 import gd.app.musicplayer.ui.theme.ThemeActivity
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.DrawerListener {
     private val viewModel: MoreViewModel by viewModels()
+    @Inject lateinit var driveModeLauncher: DriveModeLauncher
 
     private var drawerLayout: DrawerLayout? = null
 
@@ -61,7 +63,9 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
             closeDrawer()
         }
         binding.slidingmenuDriveMode.setOnClickListener {
-            DriveModeActivity.start(requireContext())
+            viewLifecycleOwner.lifecycleScope.launch {
+                driveModeLauncher.start(requireContext())
+            }
             closeDrawer()
         }
         binding.slidingmenuHiddenFolders.setOnClickListener {

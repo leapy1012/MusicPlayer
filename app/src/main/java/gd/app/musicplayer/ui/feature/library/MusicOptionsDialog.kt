@@ -15,14 +15,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.ui.drawable.ViewStateDrawables
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.ArtworkRequest
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.ui.feature.editor.ActivityAudioEditor
 import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.selection.MusicShareSupport
@@ -205,20 +203,8 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
         ) { _, bundle ->
             if (bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
                 val deleteSourceFile = bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_EXTRA_CHECKED, true)
-                activity.lifecycleScope.launch {
-                    val success = if (deleteSourceFile) {
-                        activity.applicationContext.appDependencies.deleteTracksUseCase(listOf(targetMusic)) > 0
-                    } else {
-                        activity.applicationContext.appDependencies.removeTracksFromLibraryUseCase(
-                            listOf(targetMusic.id)
-                        )
-                        true
-                    }
-                    ToastUtil.show(
-                        activity,
-                        if (success) R.string.succeed else R.string.feature_not_implemented
-                    )
-                }
+                viewModel.onMusicChanged(targetMusic)
+                viewModel.deleteCurrentTrack(deleteSourceFile)
             }
         }
 

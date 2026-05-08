@@ -16,7 +16,6 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.getMaxScreenSize
 import gd.app.musicplayer.core.extension.getMinScreenSize
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 
 abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
 
@@ -72,7 +71,6 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
 
         init {
             itemView.setOnClickListener(this)
-//            m4.f.i().g(itemView, this@BaseBottomGridMenuDialog)
         }
 
         fun bind(item: MenuItem) {
@@ -135,6 +133,10 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
 
     protected fun refreshMenuItems() {
         menuAdapter?.updateItems(provideMenuItems())
+    }
+
+    private fun applyCurrentTheme(view: View) {
+        (activity as? BaseActivity)?.applyThemeTo(view)
     }
 
     protected open fun calculateTitleMaxWidth(configuration: Configuration): Int {

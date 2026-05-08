@@ -11,22 +11,25 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import gd.app.musicplayer.app.di.AppDependenciesEntryPoint
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.theme.ThemeObserver
+import gd.app.musicplayer.core.theme.ThemeRegistry
+import gd.app.musicplayer.data.repository.ThemeRepo
+import gd.app.musicplayer.ui.theme.ThemeEngine
+import javax.inject.Inject
 
 abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     private var isStateSaved = false
+
+    @Inject lateinit var themeEngine: ThemeEngine
+    @Inject lateinit var themeRegistry: ThemeRegistry
+    @Inject lateinit var themeRepo: ThemeRepo
 
     override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
         super.onSaveInstanceState(outState, outPersistentState)
         isStateSaved = true
     }
 
-
-    protected val appDependencies: AppDependenciesEntryPoint
-        get() = applicationContext.appDependencies
 
     companion object {
         val AUDIO_PERMISSIONS =
@@ -73,14 +76,14 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     }
 
     fun applyThemeTo(root: View?) {
-        appDependencies.themeEngine.apply(root)
+        themeEngine.apply(root)
     }
 
     override fun onStart() {
         super.onStart()
         isStateSaved = false
-        appDependencies.themeRegistry.registerObserver(this)
-        appDependencies.themeRepo.refreshTheme(this)
+        themeRegistry.registerObserver(this)
+        themeRepo.refreshTheme()
     }
 
     override fun onRestoreInstanceState(
@@ -92,7 +95,7 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     }
 
     override fun onStop() {
-        appDependencies.themeRegistry.unregisterObserver(this)
+        themeRegistry.unregisterObserver(this)
         super.onStop()
     }
 
@@ -102,7 +105,7 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        appDependencies.themeRepo.refreshTheme(this)
+        themeRepo.refreshTheme()
         applyThemeTo(findViewById(android.R.id.content))
     }
 
@@ -131,6 +134,4 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
             onNotificationPermissionResult()
         }
     }
-
-    fun isStateSaved(): Boolean = isStateSaved
 }

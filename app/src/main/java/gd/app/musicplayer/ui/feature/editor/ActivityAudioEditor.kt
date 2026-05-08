@@ -13,12 +13,14 @@ import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.lifecycle.lifecycleScope
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.extractValidatedText
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.extension.startActivityCompat
 import gd.app.musicplayer.data.db.MediaStoreMusicImporter
 import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.domain.usecase.scan.UpsertScannedTracksUseCase
 import gd.app.musicplayer.databinding.ActivityAudioEditorBinding
 import gd.app.musicplayer.ui.feature.editor.waveform.SoundWaveData
 import gd.app.musicplayer.ui.feature.editor.waveform.SoundWaveView
@@ -30,9 +32,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.min
 
+@AndroidEntryPoint
 class ActivityAudioEditor : BaseActivity(),
     SoundWaveView.OnClipChangedListener,
     TimeEditText.OnInputTimeChangedListener {
@@ -42,6 +46,8 @@ class ActivityAudioEditor : BaseActivity(),
     private var waveformData: SoundWaveData? = null
     private var mediaPlayer: MediaPlayer? = null
     private var playerPrepared = false
+
+    @Inject lateinit var upsertScannedTracksUseCase: UpsertScannedTracksUseCase
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private val progressUpdater = object : Runnable {
@@ -404,7 +410,7 @@ class ActivityAudioEditor : BaseActivity(),
             if (insertedId != null) {
                 withContext(Dispatchers.IO) {
                     MediaStoreMusicImporter().queryMusicById(this@ActivityAudioEditor, insertedId)
-                        ?.let { appDependencies.upsertScannedTracksUseCase(listOf(it)) }
+                        ?.let { upsertScannedTracksUseCase(listOf(it)) }
                 }
                 ToastUtil.show(this@ActivityAudioEditor, R.string.audio_editor_succeed)
                 finish()

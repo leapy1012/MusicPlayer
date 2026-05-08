@@ -19,7 +19,7 @@ internal object EqualizerPresets {
         return context.resources.getStringArray(R.array.eq_presetName).toList()
     }
 
-    fun defaultBands(useTenBand: Boolean): List<IntArray> {
+    fun defaultBands(useTenBand: Boolean): List<List<Int>> {
         return if (useTenBand) EqualizerPresetCatalog.tenBandPresets else EqualizerPresetCatalog.fiveBandPresets
     }
 

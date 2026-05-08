@@ -20,7 +20,7 @@ interface ThemePalette {
     fun getDialogTitleColor(): Int
     fun getDialogPressedOverlayColor(): Int
     fun getDialogDividerColor(): Int
-    fun ensureResourcesLoaded(context: Context): Boolean
+    fun ensureResourcesLoaded(context: Context, themeBitmapLoader: ThemeBitmapLoader): Boolean
     fun getActivityBackgroundDrawable(context: Context): Drawable
     fun isActionAreaLight(): Boolean
     fun getPopupTitleColor(): Int

@@ -18,7 +18,7 @@ import gd.app.musicplayer.ui.common.viewholder.FolderListMusicSetViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetGridViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetListViewHolder
 import gd.app.musicplayer.ui.folder.isHiddenFoldersEntry
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+
 class MusicSetAdapter(
     private val musicSetType: MusicSet,
     private var viewMode: Int = VIEW_MODE_LIST,
@@ -192,7 +192,6 @@ class MusicSetAdapter(
 
     private fun View.prepareItemRoot() {
         applyRoundedOutline(R.dimen.item_image_corner_radius)
-        applyCurrentTheme(this)
     }
 
     class DiffCallback : DiffUtil.ItemCallback<MusicSet>() {

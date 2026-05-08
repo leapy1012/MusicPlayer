@@ -6,11 +6,15 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.theme.ThemeObserver
 import gd.app.musicplayer.core.theme.ThemePalette
+import gd.app.musicplayer.ui.theme.ThemeEngine
+import javax.inject.Inject
 
 abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver {
+
+    @Inject
+    lateinit var themeEngine: ThemeEngine
     private var _binding: VB? = null
 
     /**
@@ -83,6 +87,6 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
     }
 
     fun applyThemeTo(root: View?) {
-        requireContext().appDependencies.themeEngine.apply(root)
+        themeEngine.apply(root)
     }
 }

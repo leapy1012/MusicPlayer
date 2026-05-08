@@ -23,13 +23,18 @@ import gd.app.musicplayer.playback.SleepTimerState
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.player.PlayerViewModel
-import gd.app.musicplayer.util.PreferenceUtil
-import kotlinx.coroutines.launch
 
+import kotlinx.coroutines.launch
+import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.data.local.preference.SleepPreferenceStore
+import javax.inject.Inject
+
+@AndroidEntryPoint
 class SleepActivity : BaseActivity(), View.OnClickListener {
 
     private lateinit var binding: ActivitySleepBinding
     private val playerViewModel: PlayerViewModel by viewModels()
+    @Inject lateinit var sleepPreferenceStore: SleepPreferenceStore
 
     private var selectedMinutes: Int = 0
     private var hasPendingChange: Boolean = false
@@ -87,7 +92,9 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
             if (done) {
                 val value = binding.sleepItemCustomEdit.text?.toString()?.trim()?.toIntOrNull()
                 if (value != null && value > 0) {
-                    PreferenceUtil.putIntPreference(KEY_LAST_CUSTOM_MINUTES, value)
+                    lifecycleScope.launch {
+                        sleepPreferenceStore.setLastCustomMinutes(value)
+                    }
                 }
             }
             false
@@ -168,13 +175,28 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
     private fun selectCustom() {
         clearChecks()
         binding.sleepItemCustomCheck.isSelected = true
+
         if (selectedMinutes > 0 && selectedMinutes !in PRESET_MINUTES) {
             binding.sleepItemCustomEdit.setText(selectedMinutes.toString())
-        } else if (binding.sleepItemCustomEdit.text.isNullOrBlank()) {
-            val last = PreferenceUtil.getIntPreference(KEY_LAST_CUSTOM_MINUTES, 15).coerceAtLeast(1)
-            binding.sleepItemCustomEdit.setText(last.toString())
+            binding.sleepItemCustomEdit.setSelection(
+                binding.sleepItemCustomEdit.text?.length ?: 0
+            )
+            return
         }
-        binding.sleepItemCustomEdit.setSelection(binding.sleepItemCustomEdit.text?.length ?: 0)
+
+        if (binding.sleepItemCustomEdit.text.isNullOrBlank()) {
+            lifecycleScope.launch {
+                val last = sleepPreferenceStore.getLastCustomMinutes()
+                binding.sleepItemCustomEdit.setText(last.toString())
+                binding.sleepItemCustomEdit.setSelection(
+                    binding.sleepItemCustomEdit.text?.length ?: 0
+                )
+            }
+        } else {
+            binding.sleepItemCustomEdit.setSelection(
+                binding.sleepItemCustomEdit.text?.length ?: 0
+            )
+        }
     }
 
     private fun showEndActionPicker() {
@@ -234,36 +256,50 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
         }
 
         if (selectedMinutes == 0) {
-            val last = PreferenceUtil.getIntPreference(KEY_LAST_CUSTOM_MINUTES, 15).coerceAtLeast(1)
-            binding.sleepItemCustomEdit.setText(last.toString())
+            lifecycleScope.launch {
+                val last = sleepPreferenceStore.getLastCustomMinutes()
+                binding.sleepItemCustomEdit.setText(last.toString())
+            }
         }
     }
 
     private fun applyAndFinish() {
-        if (hasPendingChange) {
-            if (binding.sleepItemCustomCheck.isSelected) {
-                val custom = binding.sleepItemCustomEdit.text?.toString()?.trim()?.toIntOrNull()
-                if (custom == null || custom <= 0) {
-                    ToastUtil.show(this, Toast.LENGTH_SHORT, getString(R.string.input_error))
-                    return
+        lifecycleScope.launch {
+            if (hasPendingChange) {
+                if (binding.sleepItemCustomCheck.isSelected) {
+                    val custom = binding.sleepItemCustomEdit.text
+                        ?.toString()
+                        ?.trim()
+                        ?.toIntOrNull()
+
+                    if (custom == null || custom <= 0) {
+                        ToastUtil.show(
+                            this@SleepActivity,
+                            Toast.LENGTH_SHORT,
+                            getString(R.string.input_error)
+                        )
+                        return@launch
+                    }
+
+                    selectedMinutes = custom
+                    sleepPreferenceStore.setLastCustomMinutes(custom)
                 }
-                selectedMinutes = custom
-                PreferenceUtil.putIntPreference(KEY_LAST_CUSTOM_MINUTES, custom)
+
+                if (selectedMinutes <= 0) {
+                    SleepTimerManager.cancel()
+                } else {
+                    SleepTimerManager.start(
+                        context = this@SleepActivity,
+                        durationMinutes = selectedMinutes,
+                        action = endAction,
+                        stopAfterCurrentTrack = binding.sleepItemOperationSelect.isSelected
+                    )
+                }
             }
 
-            if (selectedMinutes <= 0) {
-                SleepTimerManager.cancel()
-            } else {
-                SleepTimerManager.start(
-                    context = this,
-                    durationMinutes = selectedMinutes,
-                    action = endAction,
-                    stopAfterCurrentTrack = binding.sleepItemOperationSelect.isSelected
-                )
-            }
+            binding.sleepItemCustomEdit.hideKeyboard()
+            finish()
         }
-        binding.sleepItemCustomEdit.hideKeyboard()
-        finish()
     }
 
     private fun setChecked(view: ImageView, checked: Boolean) {

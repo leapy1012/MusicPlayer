@@ -1,24 +1,23 @@
 package gd.app.musicplayer.ui.common.menu
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.view.View
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.ContextMenuItem
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.util.PreferenceUtil
-import kotlinx.coroutines.selects.select
 
 class SortByContextMenu(
     context: Context,
     private val musicSet: MusicSet,
     private val selectionMode: Boolean = false,
-    private val onSortChanged: ((String, Boolean) -> Unit)? = null
-) : BaseContextMenu(context) {
-
-    private val preferenceUtil: PreferenceUtil =
-        context.appDependencies.preferenceUtil
+    private val currentSortStyle: String = "",
+    private val currentSortDescending: Boolean = false,
+    private val onSortChanged: ((String, Boolean) -> Unit)? = null,
+    private val accentColor: Int,
+    private val popupBackgroundProvider : (Context) -> Drawable
+) : BaseContextMenu(context, accentColor, popupBackgroundProvider) {
 
     override fun buildItems(): List<ContextMenuItem> {
         val options = musicSet.sortOptions()
@@ -56,14 +55,11 @@ class SortByContextMenu(
             return
         }
 
-        applySort(option)
-
-        dismiss()
-
         onSortChanged?.invoke(
-            currentSortStyle(),
-            isCurrentSortReversed()
+            option.style,
+            option.reversed
         )
+        dismiss()
     }
 
     private fun SortOption.toMenuItem(): ContextMenuItem {
@@ -92,15 +88,8 @@ class SortByContextMenu(
     }
 
     private fun trackSortOptions(musicSet: MusicSet): List<SortOption> {
-        val selectedStyle = preferenceUtil.getSortStyle(
-            musicSet = musicSet,
-            selectionMode = selectionMode
-        )
-
-        val reversed = preferenceUtil.isSortReversed(
-            musicSet = musicSet,
-            selectionMode = selectionMode
-        )
+        val selectedStyle = currentSortStyle
+        val reversed = currentSortDescending
 
         return listOf(
             SortOption(
@@ -185,8 +174,8 @@ class SortByContextMenu(
     }
 
     private fun artistSortOptions(): List<SortOption> {
-        val selectedStyle = preferenceUtil.getArtistSortStyle()
-        val reversed = preferenceUtil.isArtistSortReversed()
+        val selectedStyle = currentSortStyle
+        val reversed = currentSortDescending
 
         return listOf(
             SortOption(
@@ -229,8 +218,8 @@ class SortByContextMenu(
     }
 
     private fun albumSortOptions(): List<SortOption> {
-        val selectedStyle = preferenceUtil.getAlbumSortStyle()
-        val reversed = preferenceUtil.isAlbumSortReversed()
+        val selectedStyle = currentSortStyle
+        val reversed = currentSortDescending
 
         return listOf(
             SortOption(
@@ -287,8 +276,8 @@ class SortByContextMenu(
     }
 
     private fun genreSortOptions(): List<SortOption> {
-        val selectedStyle = preferenceUtil.getGenreSortStyle()
-        val reversed = preferenceUtil.isGenreSortReversed()
+        val selectedStyle = currentSortStyle
+        val reversed = currentSortDescending
 
         return listOf(
             SortOption(
@@ -324,9 +313,10 @@ class SortByContextMenu(
     }
 
     private fun playlistSortOptions(): List<SortOption> {
-        val selectedStyle = preferenceUtil.getPlaylistSortStyle()
-        val reversed = preferenceUtil.isPlaylistSortReversed()
-
+        val selectedStyle = currentSortStyle
+        val reversed = currentSortDescending
+        android.util.Log.e("Leapy", "playlistSortOptions" + currentSortStyle)
+        android.util.Log.e("Leapy", "playlistSortOptions" + currentSortDescending)
         return listOf(
             SortOption(
                 id = ID_DEFAULT,
@@ -375,8 +365,8 @@ class SortByContextMenu(
     }
 
     private fun folderSortOptions(): List<SortOption> {
-        val selectedStyle = preferenceUtil.getFolderSortStyle(selectionMode)
-        val reversed = preferenceUtil.isFolderSortReversed(selectionMode)
+        val selectedStyle = currentSortStyle
+        val reversed = currentSortDescending
 
         return listOf(
             SortOption(
@@ -416,94 +406,6 @@ class SortByContextMenu(
                 isReverseToggle = true
             )
         )
-    }
-
-    private fun applySort(option: SortOption) {
-        when (musicSet) {
-            is MusicSet.TrackCollection -> {
-                preferenceUtil.setSortStyle(
-                    musicSet = musicSet,
-                    style = option.style,
-                    selectionMode = selectionMode
-                )
-
-                preferenceUtil.setSortReversed(
-                    musicSet = musicSet,
-                    reversed = option.reversed,
-                    selectionMode = selectionMode
-                )
-            }
-
-            is MusicSet.Artists -> {
-                preferenceUtil.setArtistSortStyle(option.style)
-                preferenceUtil.setArtistSortReversed(option.reversed)
-            }
-
-            is MusicSet.Albums -> {
-                preferenceUtil.setAlbumSortStyle(option.style)
-                preferenceUtil.setAlbumSortReversed(option.reversed)
-            }
-
-            is MusicSet.Genres -> {
-                preferenceUtil.setGenreSortStyle(option.style)
-                preferenceUtil.setGenreSortReversed(option.reversed)
-            }
-
-            is MusicSet.Playlists -> {
-                preferenceUtil.setPlaylistSortStyle(option.style)
-                preferenceUtil.setPlaylistSortReversed(option.reversed)
-            }
-
-            is MusicSet.Folders -> {
-                preferenceUtil.setFolderSortStyle(
-                    style = option.style,
-                    selectionMode = selectionMode
-                )
-
-                preferenceUtil.setFolderSortReversed(
-                    reversed = option.reversed,
-                    selectionMode = selectionMode
-                )
-            }
-
-            else -> Unit
-        }
-    }
-
-    private fun currentSortStyle(): String {
-        return when (musicSet) {
-            is MusicSet.TrackCollection -> {
-                preferenceUtil.getSortStyle(
-                    musicSet = musicSet,
-                    selectionMode = selectionMode
-                )
-            }
-
-            is MusicSet.Artists -> preferenceUtil.getArtistSortStyle()
-            is MusicSet.Albums -> preferenceUtil.getAlbumSortStyle()
-            is MusicSet.Genres -> preferenceUtil.getGenreSortStyle()
-            is MusicSet.Playlists -> preferenceUtil.getPlaylistSortStyle()
-            is MusicSet.Folders -> preferenceUtil.getFolderSortStyle(selectionMode)
-            else -> ""
-        }
-    }
-
-    private fun isCurrentSortReversed(): Boolean {
-        return when (musicSet) {
-            is MusicSet.TrackCollection -> {
-                preferenceUtil.isSortReversed(
-                    musicSet = musicSet,
-                    selectionMode = selectionMode
-                )
-            }
-
-            is MusicSet.Artists -> preferenceUtil.isArtistSortReversed()
-            is MusicSet.Albums -> preferenceUtil.isAlbumSortReversed()
-            is MusicSet.Genres -> preferenceUtil.isGenreSortReversed()
-            is MusicSet.Playlists -> preferenceUtil.isPlaylistSortReversed()
-            is MusicSet.Folders -> preferenceUtil.isFolderSortReversed(selectionMode)
-            else -> false
-        }
     }
 
     private data class SortOption(

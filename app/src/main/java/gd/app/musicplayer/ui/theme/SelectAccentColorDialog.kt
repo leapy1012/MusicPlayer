@@ -7,18 +7,24 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
 import androidx.recyclerview.widget.GridLayoutManager
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.databinding.DialogAccentColorPickerBinding
 import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.core.extension.screenHeight
 import gd.app.musicplayer.core.extension.screenWidth
 import gd.app.musicplayer.core.ui.view.ColorPickerView
+import gd.app.musicplayer.data.repository.ThemeRepo
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class SelectAccentColorDialog : BaseDialogFragment(),
     View.OnClickListener,
     PresetColorAdapter.Callback {
+
+    @Inject
+    lateinit var themeRepo: ThemeRepo
 
     private var _binding: DialogAccentColorPickerBinding? = null
     private val binding: DialogAccentColorPickerBinding
@@ -169,7 +175,7 @@ class SelectAccentColorDialog : BaseDialogFragment(),
         }
 
         val initialColor =
-            arguments?.getInt(ARG_CURRENT) ?: requireContext().appDependencies.themeRepo.getAccentColor(requireContext())
+            arguments?.getInt(ARG_CURRENT) ?: themeRepo.getAccentColor()
         state = DialogState(
             initialAccentColor = initialColor,
             selectedAccentColor = initialColor,
@@ -260,8 +266,7 @@ class SelectAccentColorDialog : BaseDialogFragment(),
     }
 
     private fun applySelectionAndDismiss() {
-        requireContext().appDependencies.themeRepo.updateAccentColor(
-            requireContext(),
+        themeRepo.updateAccentColor(
             state.selectedAccentColor
         )
         parentFragmentManager.setFragmentResult(

@@ -3,7 +3,6 @@ package gd.app.musicplayer.ui.feature.equalizer
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.databinding.ItemEqualizerSeekbarBinding
 import gd.app.musicplayer.core.ui.view.SeekBar
 
@@ -25,7 +24,7 @@ internal class EqualizerBandAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BandViewHolder {
         val binding = ItemEqualizerSeekbarBinding.inflate(layoutInflater, parent, false)
-        parent.context.appDependencies.themeEngine.apply(binding.root)
+//        parent.context.appDependencies.themeEngine.apply(binding.root)
         return BandViewHolder(binding)
     }
 

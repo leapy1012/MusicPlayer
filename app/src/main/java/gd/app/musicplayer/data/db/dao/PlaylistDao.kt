@@ -1,8 +1,10 @@
 package gd.app.musicplayer.data.db.dao
 
+import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import gd.app.musicplayer.data.db.entity.MusicPlaylistEntity
 import gd.app.musicplayer.data.db.entity.PlaylistEntity
@@ -10,6 +12,7 @@ import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import kotlinx.coroutines.flow.Flow
 
+@Dao
 interface PlaylistDao {
 
     data class PlaylistSongMatchCount(
@@ -319,6 +322,7 @@ interface PlaylistDao {
         ORDER BY map.sort ASC, map.rowid ASC
         """
     )
+    @RewriteQueriesToDropUnusedColumns
     suspend fun getPlaylistTracksBySort(playlistId: Long): List<Music>
 
     @Transaction

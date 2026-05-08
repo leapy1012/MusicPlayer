@@ -1,37 +1,49 @@
 package gd.app.musicplayer.ui.feature.player
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.viewModels
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.theme.*
+import gd.app.musicplayer.core.ui.dialog.BaseBottomSheetDialogFragment
+import gd.app.musicplayer.core.ui.drawable.DrawableUtil
+import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
 import gd.app.musicplayer.databinding.DialogTempoBinding
+import gd.app.musicplayer.data.repository.ThemeRepo
 import gd.app.musicplayer.ui.player.PlayerViewModel
-import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
 import gd.app.musicplayer.core.ui.view.SeekBar
-import gd.app.musicplayer.util.PreferenceUtil
+
 import java.util.Locale
+import javax.inject.Inject
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
-class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListener {
+class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarChangeListener {
+
+    @Inject lateinit var themeRepo: ThemeRepo
+    @Inject lateinit var playbackStatePreferenceStore: PlaybackStatePreferenceStore
 
     private var _binding: DialogTempoBinding? = null
     private val binding: DialogTempoBinding
         get() = checkNotNull(_binding)
 
-    private val preferenceUtil by lazy { PreferenceUtil.getInstance(requireContext()) }
     private val playbackViewModel: PlayerViewModel by viewModels()
     private lateinit var speedButtons: List<TextView>
 
-    override fun onCreateView(
+    override fun onCreateBottomSheetView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -42,9 +54,8 @@ class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListene
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        applyDialogWidth(0.92f)
         applyDialogBackground(binding.root)
-        applyTagStyles(binding.root)
+//        applyTagStyles(binding.root)
 
         speedButtons = listOf(
             binding.popupTextSpeed1,
@@ -69,8 +80,10 @@ class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListene
     }
 
     private fun renderFromPreferences() {
-        setPitchFactor(preferenceUtil.getPlayPitch(), fromUser = false)
-        setSpeedFactor(preferenceUtil.getPlaySpeed(), fromUser = false)
+        viewLifecycleOwner.lifecycleScope.launch {
+            setPitchFactor(playbackStatePreferenceStore.getPlayPitch(), fromUser = false)
+            setSpeedFactor(playbackStatePreferenceStore.getPlaySpeed(), fromUser = false)
+        }
     }
 
     private fun setPitchFactor(factor: Float, fromUser: Boolean) {
@@ -130,14 +143,174 @@ class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListene
     }
 
     private fun persistPitch(factor: Float) {
-        preferenceUtil.setPlayPitch(factor)
-        playbackViewModel.applyPlaybackTuning(requireContext())
+        viewLifecycleOwner.lifecycleScope.launch {
+            playbackStatePreferenceStore.setPlayPitch(factor)
+            playbackViewModel.applyPlaybackTuning(requireContext())
+        }
     }
 
     private fun persistSpeed(factor: Float) {
-        preferenceUtil.setPlaySpeed(factor)
-        playbackViewModel.applyPlaybackTuning(requireContext())
+        viewLifecycleOwner.lifecycleScope.launch {
+            playbackStatePreferenceStore.setPlaySpeed(factor)
+            playbackViewModel.applyPlaybackTuning(requireContext())
+        }
     }
+
+    private fun applyDialogBackground(rootView: View) {
+        rootView.background = themeRepo
+            .getCorePalette()
+            .getDialogSurfaceDrawable(rootView.context)
+    }
+
+//    private fun applyTagStyles(rootView: View) {
+//        val accentColor = themeRepo.getAccentColor()
+//        val palette = themeRepo.getCorePalette()
+//
+//        val titleColor = palette.titleColor
+//        val messageColor = palette.messageColor
+//        val rippleColor = palette.rippleColor
+//        val dividerColor = palette.dividerColor
+//        val cancelTextColor = palette.cancelTextColor
+//        val cancelBaseColor = palette.cancelBaseColor
+//        val confirmRippleColor = palette.confirmRippleColor
+//        val selectBoxNormalColor =
+//            if (titleColor == Color.WHITE) -2171170 else -3355444
+//
+//        fun apply(view: View) {
+//            when (view.tag as? String) {
+//                "dialogTitle", "dialogTitleColor", "dialogTitleIcon", "dialogItem" -> {
+//                    when (view) {
+//                        is TextView -> view.setTextColor(titleColor)
+//                        is ImageView -> view.imageTintList = ColorStateList.valueOf(titleColor)
+//                    }
+//                }
+//
+//                "dialogMessage", "dialogMessageColor" -> {
+//                    when (view) {
+//                        is TextView -> view.setTextColor(messageColor)
+//                        is ImageView -> view.imageTintList = ColorStateList.valueOf(messageColor)
+//                    }
+//                }
+//
+//                "dialogButton" -> {
+//                    if (view is TextView) {
+//                        view.setTextColor(accentColor)
+//                    }
+//                    view.background = DrawableUtil.rectRipple(
+//                        fillColor = Color.TRANSPARENT,
+//                        rippleColor = rippleColor
+//                    )
+//                }
+//
+//                "dialogConfirm" -> {
+//                    if (view is TextView) {
+//                        view.setTextColor(Color.WHITE)
+//                    }
+//                    view.background = DrawableUtil.roundedRipple(
+//                        fillColor = accentColor,
+//                        rippleColor = confirmRippleColor,
+//                        radius = 1000f
+//                    )
+//                }
+//
+//                "dialogCancel" -> {
+//                    if (view is TextView) {
+//                        view.setTextColor(cancelTextColor)
+//                    }
+//                    view.background = DrawableUtil.roundedRipple(
+//                        fillColor = cancelBaseColor,
+//                        rippleColor = rippleColor,
+//                        radius = 1000f
+//                    )
+//                }
+//
+//                "dialogItemBackground" -> {
+//                    view.background = DrawableUtil.rectRipple(
+//                        fillColor = Color.TRANSPARENT,
+//                        rippleColor = rippleColor
+//                    )
+//                }
+//
+//                "dialogSelectBox" -> {
+//                    if (view is ImageView) {
+//                        view.imageTintList = ColorStateList(
+//                            arrayOf(
+//                                intArrayOf(android.R.attr.state_selected),
+//                                intArrayOf(android.R.attr.state_checked),
+//                                intArrayOf(android.R.attr.state_activated),
+//                                intArrayOf()
+//                            ),
+//                            intArrayOf(
+//                                accentColor,
+//                                accentColor,
+//                                accentColor,
+//                                selectBoxNormalColor
+//                            )
+//                        )
+//                    }
+//                }
+//
+//                "dialogDivider", "dialogDividerColor" -> {
+//                    view.setBackgroundColor(dividerColor)
+//                }
+//
+//                "dialogSeekBar" -> {
+//                    if (view is SeekBar) {
+//                        view.setThumbColor(accentColor)
+//                        view.setProgressDrawable(
+//                            DrawableUtil.roundedProgress(
+//                                Color.argb(77, Color.red(titleColor), Color.green(titleColor), Color.blue(titleColor)),
+//                                accentColor,
+//                                (view.context.resources.displayMetrics.density * 4f).toInt()
+//                            )
+//                        )
+//                    }
+//                }
+//
+//                "speedItemDes" -> {
+//                    if (view is TextView) {
+//                        view.setTextColor(Color.argb(160, Color.red(titleColor), Color.green(titleColor), Color.blue(titleColor)))
+//                    }
+//                }
+//
+//                "speedItemText" -> {
+//                    if (view is TextView) {
+//                        view.setTextColor(
+//                            android.content.res.ColorStateList(
+//                                arrayOf(
+//                                    intArrayOf(android.R.attr.state_selected),
+//                                    intArrayOf()
+//                                ),
+//                                intArrayOf(Color.WHITE, Color.argb(180, Color.red(titleColor), Color.green(titleColor), Color.blue(titleColor)))
+//                            )
+//                        )
+//                        val radius = view.context.resources.displayMetrics.density * 6f
+//                        view.background = gd.app.musicplayer.core.ui.drawable.ViewStateDrawables.buildStateDrawable(
+//                            DrawableUtil.roundedRipple(
+//                                fillColor = Color.argb(28, Color.red(titleColor), Color.green(titleColor), Color.blue(titleColor)),
+//                                rippleColor = rippleColor,
+//                                radius = radius
+//                            ),
+//                            DrawableUtil.roundedRipple(
+//                                fillColor = accentColor,
+//                                rippleColor = confirmRippleColor,
+//                                radius = radius
+//                            ),
+//                            null
+//                        )
+//                    }
+//                }
+//            }
+//
+//            if (view is ViewGroup) {
+//                for (index in 0 until view.childCount) {
+//                    apply(view.getChildAt(index))
+//                }
+//            }
+//        }
+//
+//        apply(rootView)
+//    }
 
     private fun factorToPitchProgress(factor: Float): Int {
         val semitones = (12f * (ln(factor.coerceIn(0.5f, 2.0f)) / ln(2f))).roundToInt()
@@ -185,4 +358,3 @@ class TempoDialogFragment : BaseDialogFragment(), SeekBar.OnSeekBarChangeListene
         }
     }
 }
-

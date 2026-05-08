@@ -21,7 +21,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.applyStatusBarInsetHeight
 import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.core.extension.navigateBack
@@ -29,6 +28,8 @@ import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.core.extension.toDurationString
+import gd.app.musicplayer.core.theme.ThemePalette
+import gd.app.musicplayer.core.theme.accentColor
 import gd.app.musicplayer.core.theme.messageColor
 import gd.app.musicplayer.core.theme.titleColor
 import gd.app.musicplayer.databinding.FragmentQueueBinding
@@ -45,10 +46,14 @@ import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.ui.player.QueueViewModel
 import kotlinx.coroutines.launch
 import java.util.Collections
+import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     Toolbar.OnMenuItemClickListener {
+
+    @Inject lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
 
     private val viewModel: PlayerViewModel by viewModels()
     private val queueViewModel: QueueViewModel by viewModels()
@@ -109,8 +114,11 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         }
     }
 
-    private fun buildAdapter(): QueueListAdapter =
-        QueueListAdapter(
+    private fun buildAdapter(): QueueListAdapter {
+        val theme = themeEngine.currentTheme()
+
+        return QueueListAdapter(
+            theme = theme,
             onTrackClicked = { position ->
                 val queue = resolveQueue()
                 if (position in queue.indices) {
@@ -119,7 +127,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             },
             onToggleFavorite = { track ->
                 viewLifecycleOwner.lifecycleScope.launch {
-                    val favorited = requireContext().appDependencies.toggleFavoriteTrackUseCase(track.id)
+                    val favorited = toggleFavoriteTrackUseCase(track.id)
                     adapter.updateFavorite(track.id, favorited)
                 }
             },
@@ -131,6 +139,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                     .show(parentFragmentManager, QueueTrackOptionsDialog::class.java.simpleName)
             }
         )
+    }
 
     private fun observePlayback() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -229,6 +238,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
 }
 
 private class QueueListAdapter(
+    private val theme: ThemePalette,
     private val onTrackClicked: (Int) -> Unit,
     private val onToggleFavorite: (Music) -> Unit,
     private val onTrackMoved: (List<Music>) -> Unit,
@@ -294,7 +304,12 @@ private class QueueListAdapter(
             parent,
             false
         )
-        return QueueViewHolder(binding, itemTouchHelper)
+
+        return QueueViewHolder(
+            binding = binding,
+            itemTouchHelper = itemTouchHelper,
+            theme = theme
+        )
     }
 
     override fun getItemCount(): Int = queue.size
@@ -309,7 +324,8 @@ private class QueueListAdapter(
 
     class QueueViewHolder(
         private val binding: MusicPlayFragmentListItemBinding,
-        private val itemTouchHelper: ItemTouchHelper
+        private val itemTouchHelper: ItemTouchHelper,
+        private val theme: ThemePalette
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(
@@ -320,31 +336,40 @@ private class QueueListAdapter(
             onFavoriteClick: () -> Unit,
             onMenuClick: () -> Unit
         ) {
-            val context = binding.root.context
-            val palette = context.appDependencies.themeRepo.getCorePalette(context)
-            val accentColor = context.appDependencies.themeRepo.getAccentColor(context)
-            val titleColor = if (isCurrent) accentColor else palette.titleColor
-            val extraColor = if (isCurrent) accentColor else palette.messageColor
+            val accentColor = theme.accentColor
+            val titleColor = if (isCurrent) accentColor else theme.titleColor
+            val extraColor = if (isCurrent) accentColor else theme.messageColor
 
             binding.musicItemTitle.text = music.title
             binding.musicItemExtra.text = music.artist
             binding.musicItemTitle.setTextColor(titleColor)
             binding.musicItemExtra.setTextColor(extraColor)
             binding.musicItemTime.text = formatDuration(music.duration)
-            binding.musicItemFavorite.visibility = if (isCurrent) View.VISIBLE else View.GONE
+
+            binding.musicItemFavorite.visibility =
+                if (isCurrent) View.VISIBLE else View.GONE
+
             binding.musicItemFavorite.isSelected = music.isFavorite()
+
             binding.musicItemFavorite.imageTintList = ColorStateList.valueOf(
-                if (music.isFavorite()) accentColor else palette.messageColor
+                if (music.isFavorite()) {
+                    accentColor
+                } else {
+                    theme.messageColor
+                }
             )
+
             binding.root.alpha = 1f
             binding.root.setOnClickListener { onClick() }
             binding.musicItemMenu.setOnClickListener { onMenuClick() }
             binding.musicItemFavorite.setOnClickListener { onFavoriteClick() }
+
             binding.musicItemDrag.setOnTouchListener { _, event ->
                 if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                     itemTouchHelper.startDrag(this)
                     return@setOnTouchListener true
                 }
+
                 false
             }
         }

@@ -1,30 +1,31 @@
 package gd.app.musicplayer.domain.usecase.library
 
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.TrackMutationRepo
+import gd.app.musicplayer.data.repository.LibraryRepo
+import javax.inject.Inject
 
-class ClearMusicSetUseCase(
-    private val trackMutationRepo: TrackMutationRepo
+class ClearMusicSetUseCase @Inject constructor(
+    private val libraryRepo: LibraryRepo
 ) {
     suspend operator fun invoke(musicSet: MusicSet): Boolean {
         return when (musicSet) {
             is MusicSet.Favorites -> {
-                trackMutationRepo.clearFavorites()
+                libraryRepo.clearFavorites()
                 true
             }
 
             is MusicSet.RecentlyPlayed -> {
-                trackMutationRepo.clearRecentlyPlayed()
+                libraryRepo.clearRecentlyPlayed()
                 true
             }
 
             is MusicSet.MostPlayed -> {
-                trackMutationRepo.clearMostPlayed()
+                libraryRepo.clearMostPlayed()
                 true
             }
 
             is MusicSet.RecentlyAdded -> {
-                trackMutationRepo.clearRecentlyAdded()
+                libraryRepo.clearRecentlyAdded()
                 true
             }
 

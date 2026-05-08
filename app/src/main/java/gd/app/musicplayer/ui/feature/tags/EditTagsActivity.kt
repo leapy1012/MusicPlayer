@@ -22,8 +22,8 @@ import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.ArtworkRequest
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.repo.EditableAlbumMetadata
-import gd.app.musicplayer.data.repo.EditableTrackMetadata
+import gd.app.musicplayer.data.repository.EditableAlbumMetadata
+import gd.app.musicplayer.data.repository.EditableTrackMetadata
 import gd.app.musicplayer.databinding.ActivityEditTagsBinding
 import gd.app.musicplayer.databinding.ItemEditTagFieldBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -31,7 +31,12 @@ import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.feature.library.ManageArtworkDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.data.repository.MusicSetMetadataRepo
+import gd.app.musicplayer.data.repository.TrackMetadataRepo
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
     private lateinit var binding: ActivityEditTagsBinding
@@ -50,8 +55,9 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     private var currentTrackCoverPath: String? = null
     private var currentSetCoverPath: String? = null
 
-    private val metadataRepo by lazy { appDependencies.trackMetadataRepo }
-    private val musicSetMetadataRepo by lazy { appDependencies.musicSetMetadataRepo }
+    @Inject lateinit var metadataRepo: TrackMetadataRepo
+
+    @Inject lateinit var musicSetMetadataRepo: MusicSetMetadataRepo
 
     companion object {
         private const val EXTRA_TRACK = "KEY_MUSIC"

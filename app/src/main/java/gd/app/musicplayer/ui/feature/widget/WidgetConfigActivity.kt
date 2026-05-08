@@ -14,18 +14,23 @@ import android.widget.ListView
 import android.widget.TextView
 import android.widget.ViewFlipper
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.core.extension.screenWidth
 import gd.app.musicplayer.databinding.ActivityWidgetConfigBinding
 import gd.app.musicplayer.databinding.ActivityWidgetConfigStyleItemBinding
 import gd.app.musicplayer.databinding.ActivityWidgetConfigThemeItemBinding
+import gd.app.musicplayer.ui.feature.widget.provider.WidgetPlaybackSnapshotLoader
 import gd.app.musicplayer.ui.feature.widget.provider.WidgetRenderer
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.core.ui.view.SeekBar
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import gd.app.musicplayer.ui.feature.widget.provider.WidgetUpdateCoordinator
+import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 private const val CLASSIFY_2X1 = "2*1"
 private const val CLASSIFY_3X2 = "3*2"
@@ -35,10 +40,14 @@ private const val CLASSIFY_4X3 = "4*3"
 private const val CLASSIFY_4X4 = "4*4"
 private const val CLASSIFY_LIST = "List"
 
+@AndroidEntryPoint
 class WidgetConfigActivity : BaseActivity() {
+    @Inject lateinit var store: WidgetConfigStore
+    @Inject lateinit var snapshotLoader: WidgetPlaybackSnapshotLoader
+    @Inject lateinit var widgetUpdateCoordinator: WidgetUpdateCoordinator
+
     private lateinit var binding: ActivityWidgetConfigBinding
     private lateinit var spec: WidgetProviderSpec
-    private lateinit var store: WidgetConfigStore
 
     private var appWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
     private var selectedStyle: WidgetStyleOption? = null
@@ -63,41 +72,43 @@ class WidgetConfigActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityWidgetConfigBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        applyCurrentTheme(binding.root)
         binding.root.visibility = View.VISIBLE
         binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
         binding.widgetBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        store = WidgetConfigStore(this)
         appWidgetId = intent.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             intent.getIntExtra(EXTRA_APP_WIDGET_ID_LEGACY, AppWidgetManager.INVALID_APPWIDGET_ID)
         )
-        if (!handleIntent(intent)) return
+        lifecycleScope.launch {
+            if (!handleIntent(intent)) return@launch
 
-        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            setResult(RESULT_CANCELED)
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                setResult(RESULT_CANCELED)
+            }
+
+            val currentConfig = store.load(appWidgetId, spec.classify)
+            selectedStyle = resolveStyleOption(spec, currentConfig.styleKey)
+            selectedTheme = WidgetCatalog.themeOption(currentConfig.themeType, currentConfig.themeIndex)
+
+            setupThemeRecycler()
+            setupStyleRecycler()
+            setupOpacity()
+            renderPreview()
+
+            binding.widgetSave.setOnClickListener { saveAndFinish() }
         }
-
-        val currentConfig = store.load(appWidgetId, spec.classify)
-        selectedStyle = resolveStyleOption(spec, currentConfig.styleKey)
-        selectedTheme = WidgetCatalog.themeOption(currentConfig.themeType, currentConfig.themeIndex)
-
-        setupThemeRecycler()
-        setupStyleRecycler()
-        setupOpacity()
-        renderPreview()
-
-        binding.widgetSave.setOnClickListener { saveAndFinish() }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleIntent(intent)
+        lifecycleScope.launch {
+            handleIntent(intent)
+        }
     }
 
-    private fun handleIntent(intent: Intent): Boolean {
+    private suspend fun handleIntent(intent: Intent): Boolean {
         val classify = resolveClassify(intent) ?: run {
             finish()
             return false
@@ -106,7 +117,7 @@ class WidgetConfigActivity : BaseActivity() {
         return true
     }
 
-    private fun resolveClassify(intent: Intent): String? {
+    private suspend fun resolveClassify(intent: Intent): String? {
         intent.getStringExtra(EXTRA_CLASSIFY)?.let { return it }
         intent.getStringExtra(EXTRA_CLASSIFY_LEGACY)?.let { return it }
         if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
@@ -212,7 +223,6 @@ class WidgetConfigActivity : BaseActivity() {
             (preview.findViewById<ListView>(R.id.widget_queue))?.adapter =
                 PreviewQueueAdapter(this, theme.drawableRes == R.drawable.widget_color_bg_012)
         }
-        applyCurrentTheme(binding.root)
     }
 
     private fun applyPreviewTheme(root: View, theme: WidgetThemeOption) {
@@ -275,28 +285,42 @@ class WidgetConfigActivity : BaseActivity() {
         val style = selectedStyle ?: return
         val theme = selectedTheme ?: return
         if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            store.save(
-                appWidgetId,
-                WidgetConfig(
-                    classify = spec.classify,
-                    styleKey = style.styleKey,
-                    themeType = theme.themeType,
-                    themeIndex = theme.index,
-                    alpha = theme.alpha
+            lifecycleScope.launch {
+                store.save(
+                    appWidgetId,
+                    WidgetConfig(
+                        classify = spec.classify,
+                        styleKey = style.styleKey,
+                        themeType = theme.themeType,
+                        themeIndex = theme.index,
+                        alpha = theme.alpha
+                    )
                 )
-            )
-            WidgetRenderer.updateWidgets(
-                this,
-                AppWidgetManager.getInstance(this),
-                intArrayOf(appWidgetId),
-                spec.classify
-            )
-            setResult(
-                RESULT_OK,
-                Intent()
-                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                    .putExtra(EXTRA_APP_WIDGET_ID_LEGACY, appWidgetId)
-            )
+                WidgetRenderer.updateWidgets(
+                    context = this@WidgetConfigActivity,
+                    manager = AppWidgetManager.getInstance(this@WidgetConfigActivity),
+                    appWidgetIds = intArrayOf(appWidgetId),
+                    classify = spec.classify,
+                    snapshot = snapshotLoader.load(),
+                    configs = mapOf(
+                        appWidgetId to WidgetConfig(
+                            classify = spec.classify,
+                            styleKey = style.styleKey,
+                            themeType = theme.themeType,
+                            themeIndex = theme.index,
+                            alpha = theme.alpha
+                        )
+                    )
+                )
+                setResult(
+                    RESULT_OK,
+                    Intent()
+                        .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                        .putExtra(EXTRA_APP_WIDGET_ID_LEGACY, appWidgetId)
+                )
+                finish()
+            }
+            return
         }
         finish()
     }

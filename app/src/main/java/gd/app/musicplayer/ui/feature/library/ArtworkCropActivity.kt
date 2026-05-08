@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.View
 import com.yalantis.ucrop.callback.BitmapCropCallback
 import com.yalantis.ucrop.view.TransformImageView
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.extension.applySystemBarInsets
@@ -16,6 +17,7 @@ import gd.app.musicplayer.databinding.ActivityCropPhotoboxBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import java.io.File
 
+@AndroidEntryPoint
 class ArtworkCropActivity : BaseActivity() {
 
     private lateinit var binding: ActivityCropPhotoboxBinding

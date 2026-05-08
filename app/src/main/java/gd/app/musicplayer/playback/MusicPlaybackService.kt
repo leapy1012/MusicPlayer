@@ -1,7 +1,6 @@
 package gd.app.musicplayer.playback
 
 import android.app.NotificationManager
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -12,37 +11,62 @@ import android.media.session.MediaSession
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
 import android.os.Parcelable
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSessionService
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
+import gd.app.musicplayer.core.dispatcher.AppDispatchers
+import gd.app.musicplayer.data.db.dao.MusicDao
+import gd.app.musicplayer.data.local.preference.DesktopLyricPreference
+import gd.app.musicplayer.data.local.preference.DesktopLyricPreferenceStore
+import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
+import gd.app.musicplayer.data.local.preference.SettingPreferences
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.data.model.PlaybackSession
-import gd.app.musicplayer.data.repo.PlaybackQueueRepo
-import gd.app.musicplayer.util.PreferenceUtil
+import gd.app.musicplayer.data.repository.PlaybackQueueRepo
+import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
+import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
+
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import androidx.media3.session.MediaSession as Media3MediaSession
 
 @AndroidEntryPoint
-class MusicPlaybackService : Service() {
+class MusicPlaybackService : MediaSessionService() {
 
     @Inject lateinit var playbackRuntimeStateStore: PlaybackRuntimeStateStore
     @Inject lateinit var playbackSessionStore: PlaybackSessionStore
     @Inject lateinit var playbackQueueRepo: PlaybackQueueRepo
+    @Inject lateinit var desktopLyricPreferenceStore: DesktopLyricPreferenceStore
+    @Inject lateinit var playbackStatePreferenceStore: PlaybackStatePreferenceStore
+    @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
+    @Inject lateinit var headsetMediaButtonHandler: HeadsetMediaButtonHandler
+    @Inject lateinit var audioEffectsManager: AudioEffectsManager
+    @Inject lateinit var soundEffectPreferences: SoundEffectPreferences
+    @Inject lateinit var dispatchers: AppDispatchers
+    @Inject lateinit var observeTracksUseCase: ObserveTracksUseCase
+    @Inject lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
+    @Inject lateinit var musicDao: MusicDao
+    @Inject lateinit var statisticsRecorder: PlaybackStatisticsRecorder
 
     private lateinit var player: ExoPlayer
     private lateinit var serviceScope: CoroutineScope
@@ -58,11 +82,11 @@ class MusicPlaybackService : Service() {
     private lateinit var queuePersistence: PlaybackQueuePersistence
     private lateinit var screenOffLockReceiver: ScreenOffLockReceiver
     private lateinit var statePublisher: PlaybackStatePublisher
-    private lateinit var statisticsRecorder: PlaybackStatisticsRecorder
     private lateinit var volumeFader: VolumeFader
 
-    private val mediaSession: MediaSession
+    private val compatMediaSession: MediaSession
         get() = mediaSessionController.session
+    private var media3Session: Media3MediaSession? = null
 
     private val progressHandler = Handler(Looper.getMainLooper())
 
@@ -81,12 +105,33 @@ class MusicPlaybackService : Service() {
     private var stopAfterCurrentTrack = false
     private var isNightMode = false
 
+    @Volatile
+    private var latestSettingPreferences = SettingPreferences()
+    @Volatile
+    private var latestDesktopLyricPreference = DesktopLyricPreference()
+
     private val progressTicker = object : Runnable {
         override fun run() {
             maybeHandleTimedTransition()
             statePublisher.publish()
             progressHandler.postDelayed(this, PROGRESS_TICK_MS)
         }
+    }
+
+    private fun observeSettingPreferences() {
+        settingPreferencesDataStore.observeSettingPreferences()
+            .onEach { preferences ->
+                latestSettingPreferences = preferences
+            }
+            .launchIn(serviceScope)
+    }
+
+    private fun observeDesktopLyricPreference() {
+        desktopLyricPreferenceStore.desktopLyricPreference
+            .onEach { preference ->
+                latestDesktopLyricPreference = preference
+            }
+            .launchIn(serviceScope)
     }
 
     override fun onCreate() {
@@ -96,8 +141,11 @@ class MusicPlaybackService : Service() {
         isNightMode = isNightMode(resources.configuration)
 
         serviceScope = CoroutineScope(
-            SupervisorJob() + applicationContext.appDependencies.dispatchers.io
+            SupervisorJob() + dispatchers.io
         )
+
+        observeSettingPreferences()
+        observeDesktopLyricPreference()
 
         defaultArtwork = BitmapFactory.decodeResource(
             resources,
@@ -121,7 +169,12 @@ class MusicPlaybackService : Service() {
         progressHandler.post(progressTicker)
     }
 
+    override fun onGetSession(
+        controllerInfo: Media3MediaSession.ControllerInfo
+    ): Media3MediaSession? = media3Session
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         val action = intent?.action
 
         if (action == null && !player.isPlaying && currentIndex !in queue.indices) {
@@ -142,8 +195,6 @@ class MusicPlaybackService : Service() {
 
         return START_STICKY
     }
-
-    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
@@ -167,9 +218,11 @@ class MusicPlaybackService : Service() {
 
         if (::volumeFader.isInitialized) volumeFader.cancel()
         if (::artworkLoader.isInitialized) artworkLoader.clear()
+        media3Session?.release()
+        media3Session = null
         if (::mediaSessionController.isInitialized) mediaSessionController.release()
 
-        AudioEffectsManager.release()
+        audioEffectsManager.release()
 
         if (::player.isInitialized) player.release()
         if (::audioFocusController.isInitialized) audioFocusController.abandon()
@@ -199,11 +252,7 @@ class MusicPlaybackService : Service() {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     when (playbackState) {
                         Player.STATE_READY -> {
-                            AudioEffectsManager.attachAndApply(
-                                this@MusicPlaybackService,
-                                player
-                            )
-                            playbackTuningController.applyResolvedPlayerVolume()
+                            applyAudioEffectsFromPreferences()
                         }
 
                         Player.STATE_ENDED -> {
@@ -232,11 +281,7 @@ class MusicPlaybackService : Service() {
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     if (isPlaying) {
-                        AudioEffectsManager.applyFromPreferences(
-                            this@MusicPlaybackService,
-                            player
-                        )
-                        playbackTuningController.applyResolvedPlayerVolume()
+                        applyAudioEffectsFromPreferences()
                         statisticsRecorder.recordStartIfNeeded(
                             queue.getOrNull(currentIndex)
                         )
@@ -266,12 +311,18 @@ class MusicPlaybackService : Service() {
     }
 
     private fun configureControllers() {
-        playbackModeResolver = PlaybackModeResolver(this)
+        playbackModeResolver = PlaybackModeResolver(
+            settingsPreferenceOps = settingPreferencesDataStore,
+            applicationScope = serviceScope
+        )
 
         playbackTuningController = PlaybackTuningController(
-            context = this,
             player = player,
-            currentMusicProvider = { queue.getOrNull(currentIndex) }
+            playbackStatePreferenceStore = playbackStatePreferenceStore,
+            settingPreferencesDataStore = settingPreferencesDataStore,
+            soundEffectPreferences = soundEffectPreferences,
+            currentMusicProvider = { queue.getOrNull(currentIndex) },
+            applicationScope = serviceScope
         )
 
         volumeFader = VolumeFader(
@@ -284,25 +335,28 @@ class MusicPlaybackService : Service() {
             scope = serviceScope
         )
 
-        statisticsRecorder = PlaybackStatisticsRecorder(
-            context = applicationContext,
-            scope = serviceScope
-        )
-
         artworkLoader = ArtworkLoader(
             context = this,
             defaultArtwork = defaultArtwork
         )
 
-        screenOffLockReceiver = ScreenOffLockReceiver {
-            currentIndex in queue.indices
-        }
+        screenOffLockReceiver = ScreenOffLockReceiver(
+            hasCurrentMusic = {
+                currentIndex in queue.indices
+            },
+            isLockScreenEnabled = {
+                latestSettingPreferences.lockscreen.lockScreenEnabled
+            }
+        )
 
         audioFocusController = AudioFocusController(
             context = this,
             isPlaying = { player.isPlaying },
             pausePlayback = { pausePlayback(withFade = false) },
-            resumePlayback = { resumePlayback() }
+            resumePlayback = { resumePlayback() },
+            isSimultaneousPlayEnabled = {
+                latestSettingPreferences.audio.simultaneousPlayEnabled
+            }
         )
 
         statePublisher = PlaybackStatePublisher(
@@ -319,6 +373,7 @@ class MusicPlaybackService : Service() {
             queueProvider = { queue },
             currentIndexProvider = { currentIndex },
             isEffectivelyPlaying = { isEffectivelyPlaying() },
+            headsetMediaButtonHandler = headsetMediaButtonHandler,
             callbacks = object : PlaybackMediaSessionController.Callbacks {
                 override fun play() = resumePlayback()
                 override fun pause() = pausePlayback()
@@ -333,19 +388,26 @@ class MusicPlaybackService : Service() {
 
         mediaSessionController.updateQueue()
         mediaSessionController.updatePlaybackState()
+        media3Session = buildMedia3Session()
 
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         notificationController = PlaybackNotificationController(
             service = this,
             notificationManager = notificationManager,
-            mediaSessionTokenProvider = { mediaSession.sessionToken },
+            mediaSessionTokenProvider = { compatMediaSession.sessionToken },
             currentMusicProvider = { queue.getOrNull(currentIndex) },
             currentArtworkProvider = { currentArtwork },
             artworkTrackIdProvider = { currentArtworkTrackId },
             isEffectivelyPlaying = { isEffectivelyPlaying() },
             isFavoriteProvider = {
                 queue.getOrNull(currentIndex)?.playlistId == MusicSet.FAVORITES
+            },
+            desktopLyricsEnabledProvider = {
+                latestDesktopLyricPreference.visible
+            },
+            notificationSettingsProvider = {
+                latestSettingPreferences.notification
             }
         )
 
@@ -412,21 +474,41 @@ class MusicPlaybackService : Service() {
                 }
 
                 override fun applyAudioEffects() {
-                    AudioEffectsManager.applyFromPreferences(
-                        this@MusicPlaybackService,
-                        player
-                    )
-                    playbackTuningController.applyResolvedPlayerVolume()
+                    applyAudioEffectsFromPreferences()
                 }
 
                 override fun applyPlaybackTuning() =
                     playbackTuningController.applyPlaybackTuning()
+
+                override fun toggleDesktopLyricsLock() {
+                    serviceScope.launch {
+                        desktopLyricPreferenceStore.setLocked(
+                            !latestDesktopLyricPreference.locked
+                        )
+                    }
+                }
 
                 override fun currentMusic(): Music? = queue.getOrNull(currentIndex)
             }
         )
 
         playbackTuningController.applyPlaybackTuning()
+    }
+
+    private fun buildMedia3Session(): Media3MediaSession {
+        val sessionActivity = android.app.PendingIntent.getActivity(
+            this,
+            MEDIA3_SESSION_ACTIVITY_REQUEST_CODE,
+            Intent(this, gd.app.musicplayer.ui.shell.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra(gd.app.musicplayer.ui.shell.MainActivity.EXTRA_EXPAND_PLAYER, true)
+            },
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        return Media3MediaSession.Builder(this, player)
+            .setSessionActivity(sessionActivity)
+            .build()
     }
 
     /**
@@ -510,13 +592,7 @@ class MusicPlaybackService : Service() {
             }
 
             val tracks = runCatching {
-                applicationContext.appDependencies.mainRepo.observeTracks(
-                    musicSet = MusicSet.Tracks,
-                    sortStyle = PreferenceUtil.getInstance(applicationContext)
-                        .getSortStyle(MusicSet.Tracks),
-                    sortDescending = PreferenceUtil.getInstance(applicationContext)
-                        .isSortReversed(MusicSet.Tracks, false)
-                ).first()
+                observeTracksUseCase(MusicSet.Tracks).first()
             }.getOrDefault(emptyList())
 
             if (tracks.isEmpty()) return@launch
@@ -704,7 +780,7 @@ class MusicPlaybackService : Service() {
         if (!player.isPlaying) {
             player.play()
             playbackTuningController.applyPlaybackTuning()
-            AudioEffectsManager.applyFromPreferences(this, player)
+            applyAudioEffectsFromPreferences()
 
             if (playbackTuningController.isPlayPauseFadeEnabled()) {
                 volumeFader.fade(
@@ -715,6 +791,14 @@ class MusicPlaybackService : Service() {
             }
 
             publishAllRuntimeState()
+        }
+    }
+
+    private fun applyAudioEffectsFromPreferences() {
+        Log.d("MusicPlaybackService", "applyAudioEffectsFromPreferences")
+        serviceScope.launch(Dispatchers.Main.immediate) {
+            audioEffectsManager.applyFromPreferences(player)
+            playbackTuningController.applyResolvedPlayerVolumeOnMain()
         }
     }
 
@@ -877,7 +961,7 @@ class MusicPlaybackService : Service() {
 
     private fun toggleFavorite(music: Music) {
         serviceScope.launch {
-            val favorited = applicationContext.appDependencies.toggleFavoriteTrackUseCase(music.id)
+            val favorited = toggleFavoriteTrackUseCase(music.id)
 
             progressHandler.post {
                 val updatedTrack = music.copy(
@@ -904,11 +988,10 @@ class MusicPlaybackService : Service() {
 
         if (timedTransitionTrackId == currentTrackId) return
 
-        val preferences = PreferenceUtil.getInstance(this)
+        val preferences = latestSettingPreferences
 
-        if (preferences.getBooleanPreference(KEY_CROSS_FADE, false)) {
-            val fadeDurationMs = preferences
-                .getIntPreference(KEY_FADE_DURATION_MS, DEFAULT_FADE_DURATION_MS)
+        if (preferences.audio.crossFadeEnabled) {
+            val fadeDurationMs = (preferences.audio.fadeDurationSeconds * 1000)
                 .coerceIn(MIN_FADE_DURATION_MS, MAX_FADE_DURATION_MS)
 
             val hasNext = playbackModeResolver.resolveNextIndex(
@@ -939,7 +1022,7 @@ class MusicPlaybackService : Service() {
         ) != null
 
         if (
-            preferences.getBooleanPreference(KEY_GAPLESS_PLAYBACK, false) &&
+            preferences.audio.gaplessPlaybackEnabled &&
             remainingMs in 1..GAPLESS_ADVANCE_WINDOW_MS &&
             hasGaplessNext
         ) {
@@ -1156,6 +1239,7 @@ class MusicPlaybackService : Service() {
 
         private const val PROGRESS_TICK_MS = 500L
         private const val NOTIFICATION_UPDATE_DELAY_MS = 50L
+        private const val MEDIA3_SESSION_ACTIVITY_REQUEST_CODE = 2
         private const val PREVIOUS_RESTART_WINDOW_MS = 5_000L
         private const val PLAY_PAUSE_FADE_DURATION_MS = 1_000L
         private const val GAPLESS_ADVANCE_WINDOW_MS = 150L
@@ -1163,10 +1247,6 @@ class MusicPlaybackService : Service() {
         private const val MIN_FADE_DURATION_MS = 1_000
         private const val MAX_FADE_DURATION_MS = 12_000
         private const val URI_SCHEME_SEPARATOR = "://"
-
-        private const val KEY_CROSS_FADE = "fade_enable"
-        private const val KEY_GAPLESS_PLAYBACK = "gapless_play"
-        private const val KEY_FADE_DURATION_MS = "fade_duration"
 
         fun startAction(context: Context, action: String): Boolean {
             return startAction(context, action, null)

@@ -24,7 +24,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.ui.dialog.BaseBottomSheetDialogFragment
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 
 abstract class BaseBottomRecyclerMenuDialog : BaseBottomSheetDialogFragment() {
 
@@ -76,7 +75,7 @@ abstract class BaseBottomRecyclerMenuDialog : BaseBottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        applyCurrentTheme(view)
+        (activity as? BaseActivity)?.applyThemeTo(view)
     }
 
     override fun onDestroyView() {

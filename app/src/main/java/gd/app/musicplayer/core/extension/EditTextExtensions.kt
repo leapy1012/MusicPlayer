@@ -31,9 +31,6 @@ fun EditText.hideKeyboard() {
         imm.hideSoftInputFromWindow(rootView.windowToken, 0)
         return
     }
-//
-//    val root = (context as? Activity)?.findViewById<View>(android.R.id.content) ?: return
-//    imm.hideSoftInputFromWindow(root.windowToken, 0)
 }
 
 fun EditText.showKeyboardDelayed(delayMs: Long = 400L) {

@@ -24,7 +24,6 @@ import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.getMinScreenSize
 import gd.app.musicplayer.core.theme.ThemePalette
 import gd.app.musicplayer.core.theme.accentColor
@@ -42,9 +41,13 @@ import gd.app.musicplayer.ui.common.base.BaseActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import gd.app.musicplayer.ui.theme.ThemeEngine
+import javax.inject.Inject
 
 open class BaseDialogFragment : DialogFragment() {
 
+    @Inject
+    lateinit var themeEngine: ThemeEngine
     private var onDismissListener: DialogInterface.OnDismissListener? = null
     private var isViewDestroyed = true
     private val pendingUiActions = ArrayDeque<() -> Unit>()
@@ -79,10 +82,7 @@ open class BaseDialogFragment : DialogFragment() {
     }
 
     protected open fun provideBackgroundDrawable(): Drawable {
-        return requireContext()
-            .appDependencies
-            .themeRegistry
-            .getCurrentTheme(requireContext())
+        return themeEngine.currentTheme()
             .getDialogSurfaceDrawable(requireContext())
     }
 
@@ -228,7 +228,7 @@ open class BaseDialogFragment : DialogFragment() {
     protected fun currentAccentColor(): Int = currentTheme().accentColor
 
     protected fun currentTheme(): ThemePalette {
-        return requireContext().appDependencies.themeRegistry.getCurrentTheme(requireContext())
+        return themeEngine.currentTheme()
     }
 
     protected fun applyDialogBackground(
@@ -289,7 +289,8 @@ open class BaseDialogFragment : DialogFragment() {
             "dialogMessage", "dialogMessageColor" -> {
                 when (view) {
                     is TextView -> view.setTextColor(palette.messageColor)
-                    is ImageView -> view.imageTintList = ColorStateList.valueOf(palette.messageColor)
+                    is ImageView -> view.imageTintList =
+                        ColorStateList.valueOf(palette.messageColor)
                 }
                 true
             }

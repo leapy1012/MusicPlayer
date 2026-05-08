@@ -3,7 +3,7 @@ package gd.app.musicplayer.ui.feature.library
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.util.LibraryTabConfig
+import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfig
 
 class LibraryPagerAdapter(
     fragment: Fragment,

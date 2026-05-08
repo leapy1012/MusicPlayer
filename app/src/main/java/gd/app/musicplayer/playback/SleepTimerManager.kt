@@ -55,7 +55,7 @@ object SleepTimerManager {
 
     fun cancel() {
         stopTicker()
-        appContext?.let { PlaybackGateway.setStopAfterCurrentTrack(it, false) }
+        appContext?.let { setStopAfterCurrentTrack(it, false) }
         mutableState.value = SleepTimerState()
     }
 
@@ -90,7 +90,7 @@ object SleepTimerManager {
     private fun fireAction(current: SleepTimerState) {
         val context = appContext ?: return
         if (current.stopAfterCurrentTrack) {
-            PlaybackGateway.setStopAfterCurrentTrack(context, true)
+            setStopAfterCurrentTrack(context, true)
             return
         }
         when (current.action) {
@@ -103,5 +103,13 @@ object SleepTimerManager {
             }
         }
     }
-}
 
+    private fun setStopAfterCurrentTrack(context: Context, enabled: Boolean) {
+        val appContext = context.applicationContext
+        val intent = android.content.Intent(appContext, MusicPlaybackService::class.java).apply {
+            action = MusicPlaybackService.ACTION_SET_STOP_AFTER_CURRENT_TRACK
+            putExtra(MusicPlaybackService.EXTRA_STOP_AFTER_CURRENT_TRACK, enabled)
+        }
+        appContext.startService(intent)
+    }
+}

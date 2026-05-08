@@ -22,69 +22,94 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.extension.startActivityCompat
+import gd.app.musicplayer.core.theme.accentColor
+import gd.app.musicplayer.core.ui.dialog.DialogRegistry
+import gd.app.musicplayer.core.ui.dialog.MaterialDialogConfigFactory
+import gd.app.musicplayer.core.ui.dialog.MessageDialog
+import gd.app.musicplayer.core.ui.dialog.OptionsListDialog
+import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.util.ToastUtil
+import gd.app.musicplayer.data.local.preference.StatusBarLyricPreference
+import gd.app.musicplayer.data.local.preference.StatusBarLyricPreferenceStore
 import gd.app.musicplayer.databinding.ActivityStatusBarLyricsBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.core.ui.dialog.OptionsListDialog
-import gd.app.musicplayer.core.ui.dialog.DialogRegistry
-import gd.app.musicplayer.core.ui.dialog.MaterialDialogConfig
-import gd.app.musicplayer.core.ui.dialog.MessageDialog
-import gd.app.musicplayer.core.ui.view.SeekBar
-import gd.app.musicplayer.util.PreferenceUtil
-import gd.app.musicplayer.util.StatusBarLyricSettings
+import gd.app.musicplayer.ui.theme.ThemeEngine
+import javax.inject.Inject
+import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener {
 
+    @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
+
+    @Inject lateinit var statusBarLyricPreferenceStore: StatusBarLyricPreferenceStore
+
     private lateinit var binding: ActivityStatusBarLyricsBinding
-    private lateinit var settings: StatusBarLyricSettings
     private lateinit var colorAdapter: ColorAdapter
     private lateinit var colorLayoutManager: LinearLayoutManager
 
+    private var currentPreference = StatusBarLyricPreference()
+    private var suppressSeekBarCallback = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         binding = ActivityStatusBarLyricsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        settings = StatusBarLyricSettings.from(this)
 
         setupToolbar()
         setupPreferences()
         setupSeekBars()
         setupColorList()
-        syncUi()
+        observePreference()
     }
 
     override fun onResume() {
         super.onResume()
-
-        if (settings.enabled && !hasOverlayPermission()) {
-            settings.enabled = false
-        }
-        if (settings.pendingEnableAfterPermission && hasOverlayPermission()) {
-            settings.pendingEnableAfterPermission = false
-            settings.enabled = true
-        } else if (settings.pendingEnableAfterPermission && !hasOverlayPermission()) {
-            settings.pendingEnableAfterPermission = false
-        }
-        syncUi()
+        syncOverlayPermissionState()
     }
 
-    override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-        if (!fromUser) return
+    override fun onProgressChanged(
+        seekBar: SeekBar,
+        progress: Int,
+        fromUser: Boolean
+    ) {
+        if (!fromUser || suppressSeekBarCallback) return
 
         val max = seekBar.getMax().coerceAtLeast(1)
         val ratio = progress.toFloat() / max.toFloat()
-        when (seekBar) {
-            binding.sbarLyricXSeek -> settings.xRatio = ratio
-            binding.sbarLyricYSeek -> settings.setYRatio(ratio)
-            binding.sbarLyricWidthSeek -> settings.widthRatio = ratio
-            binding.sbarLyricFontSizeSeek -> settings.fontSizeRatio = ratio
-            binding.sbarLyricAlphaSeek -> settings.alphaRatio = ratio
+
+        viewLifecycleOwnerOrActivityLaunch {
+            when (seekBar) {
+                binding.sbarLyricXSeek -> {
+                    statusBarLyricPreferenceStore.setXRatio(ratio)
+                }
+
+                binding.sbarLyricYSeek -> {
+                    statusBarLyricPreferenceStore.setYRatio(ratio)
+                }
+
+                binding.sbarLyricWidthSeek -> {
+                    statusBarLyricPreferenceStore.setWidthRatio(ratio)
+                }
+
+                binding.sbarLyricFontSizeSeek -> {
+                    statusBarLyricPreferenceStore.setFontSizeRatio(ratio)
+                }
+
+                binding.sbarLyricAlphaSeek -> {
+                    statusBarLyricPreferenceStore.setAlphaRatio(ratio)
+                }
+            }
         }
     }
 
@@ -104,7 +129,11 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
             toolbar = binding.toolbar,
             titleRes = R.string.sbar_lyric
         )
-        binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
+
+        binding.toolbar.setNavigationOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
+
         binding.toolbar.setOnMenuItemClickListener { item: MenuItem ->
             if (item.itemId == R.id.menu_reset) {
                 showResetDialog()
@@ -117,19 +146,25 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         binding.preferenceSbarLyricEnable.setOnClickListener {
             handleEnableToggle()
         }
+
         binding.preferenceSbarLyricShowPaused.setOnClickListener {
-            val next = !settings.showPaused
-            settings.showPaused = next
-            binding.preferenceSbarLyricShowPaused.setSelected(next)
+            val next = !currentPreference.showPaused
+            lifecycleScope.launch {
+                statusBarLyricPreferenceStore.setShowPaused(next)
+            }
         }
+
         binding.preferenceSbarLyricClickable.setOnClickListener {
-            val next = !settings.clickable
-            settings.clickable = next
-            binding.preferenceSbarLyricClickable.setSelected(next)
+            val next = !currentPreference.clickable
+            lifecycleScope.launch {
+                statusBarLyricPreferenceStore.setClickable(next)
+            }
         }
+
         binding.preferenceSbarLyricContent.setOnClickListener {
             showContentChoiceDialog()
         }
+
         binding.preferenceSbarLyricGravity.setOnClickListener {
             showGravityChoiceDialog()
         }
@@ -142,76 +177,147 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
             binding.sbarLyricWidthSeek,
             binding.sbarLyricFontSizeSeek,
             binding.sbarLyricAlphaSeek
-        ).forEach { it.setOnSeekBarChangeListener(this) }
+        ).forEach { seekBar ->
+            seekBar.setOnSeekBarChangeListener(this)
+        }
     }
 
     private fun setupColorList() {
+        val themeAccentColor = themeEngine
+            .currentTheme()
+            .accentColor
+
         val colors = DEFAULT_COLORS.copyOf().apply {
-            this[0] = PreferenceUtil.getInstance(this@ActivityStatusBarLyrics).getThemeColor()
+            this[0] = themeAccentColor
         }
-        colorLayoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
+
+        colorLayoutManager = LinearLayoutManager(
+            this,
+            RecyclerView.HORIZONTAL,
+            false
+        )
+
         colorAdapter = ColorAdapter(colors.toList()) { color, position ->
-            settings.textColor = color
-            colorAdapter.selectedColor = color
+            lifecycleScope.launch {
+                statusBarLyricPreferenceStore.setTextColor(color)
+            }
+
             binding.sbarLyricColorList.post {
                 colorLayoutManager.scrollToPositionWithOffset(position, 0)
             }
         }
-        binding.sbarLyricColorList.layoutManager = colorLayoutManager
-        binding.sbarLyricColorList.adapter = colorAdapter
-        binding.sbarLyricColorList.setHasFixedSize(true)
-        binding.sbarLyricColorList.itemAnimator = null
-        binding.sbarLyricColorList.addItemDecoration(HorizontalSpaceDecoration(dp(8)))
+
+        binding.sbarLyricColorList.apply {
+            layoutManager = colorLayoutManager
+            adapter = colorAdapter
+            setHasFixedSize(true)
+            itemAnimator = null
+            addItemDecoration(HorizontalSpaceDecoration(dp(8)))
+        }
     }
 
-    private fun syncUi() {
-        val enabled = settings.enabled
-        binding.preferenceSbarLyricEnable.setSelected(enabled)
-        binding.preferenceSbarLyricShowPaused.setSelected(settings.showPaused)
-        binding.preferenceSbarLyricClickable.setSelected(settings.clickable)
+    private fun observePreference() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                statusBarLyricPreferenceStore.preference.collect { preference ->
+                    currentPreference = preference
+                    syncUi(preference)
+                }
+            }
+        }
+    }
+
+    private fun syncUi(preference: StatusBarLyricPreference) {
+        binding.preferenceSbarLyricEnable.setSelected(preference.enabled)
+        binding.preferenceSbarLyricShowPaused.setSelected(preference.showPaused)
+        binding.preferenceSbarLyricClickable.setSelected(preference.clickable)
+
         binding.preferenceSbarLyricContent.setTips(
-            if (settings.contentType == StatusBarLyricSettings.CONTENT_TYPE_LYRIC) {
+            if (preference.contentType == StatusBarLyricPreferenceStore.CONTENT_TYPE_LYRIC) {
                 R.string.sbar_lyric_content_lyric
             } else {
                 R.string.sbar_lyric_content_title
             }
         )
+
         binding.preferenceSbarLyricGravity.setTips(
-            if (settings.gravity == Gravity.CENTER) {
+            if (preference.gravity == Gravity.CENTER) {
                 R.string.sbar_lyric_gravity_center
             } else {
                 R.string.sbar_lyric_gravity_left
             }
         )
 
-        binding.sbarLyricXSeek.setProgress((settings.xRatio * binding.sbarLyricXSeek.getMax()).toInt())
-        binding.sbarLyricYSeek.setProgress((settings.yRatio() * binding.sbarLyricYSeek.getMax()).toInt())
-        binding.sbarLyricWidthSeek.setProgress((settings.widthRatio * binding.sbarLyricWidthSeek.getMax()).toInt())
-        binding.sbarLyricFontSizeSeek.setProgress((settings.fontSizeRatio * binding.sbarLyricFontSizeSeek.getMax()).toInt())
-        binding.sbarLyricAlphaSeek.setProgress((settings.alphaRatio * binding.sbarLyricAlphaSeek.getMax()).toInt())
+        suppressSeekBarCallback = true
+        try {
+            binding.sbarLyricXSeek.setProgress(
+                (preference.xRatio * binding.sbarLyricXSeek.getMax()).toInt()
+            )
 
-        colorAdapter.selectedColor = settings.textColor
-        setStatusBarLyricControlsEnabled(enabled)
+            binding.sbarLyricYSeek.setProgress(
+                (preference.yRatio * binding.sbarLyricYSeek.getMax()).toInt()
+            )
+
+            binding.sbarLyricWidthSeek.setProgress(
+                (preference.widthRatio * binding.sbarLyricWidthSeek.getMax()).toInt()
+            )
+
+            binding.sbarLyricFontSizeSeek.setProgress(
+                (preference.fontSizeRatio * binding.sbarLyricFontSizeSeek.getMax()).toInt()
+            )
+
+            binding.sbarLyricAlphaSeek.setProgress(
+                (preference.alphaRatio * binding.sbarLyricAlphaSeek.getMax()).toInt()
+            )
+        } finally {
+            suppressSeekBarCallback = false
+        }
+
+        colorAdapter.selectedColor = preference.textColor
+        setStatusBarLyricControlsEnabled(preference.enabled)
     }
 
     private fun handleEnableToggle() {
-        if (settings.enabled) {
-            settings.enabled = false
-            settings.pendingEnableAfterPermission = false
-            syncUi()
-            return
-        }
+        lifecycleScope.launch {
+            val preference = currentPreference
 
-        if (!hasOverlayPermission()) {
-            settings.pendingEnableAfterPermission = true
-            ToastUtil.show(this, R.string.float_window_permission_tip)
-            openOverlayPermissionSettings()
-            return
-        }
+            if (preference.enabled) {
+                statusBarLyricPreferenceStore.disable()
+                return@launch
+            }
 
-        settings.enabled = true
-        settings.pendingEnableAfterPermission = false
-        syncUi()
+            if (!hasOverlayPermission()) {
+                statusBarLyricPreferenceStore.markPendingEnableAfterPermission()
+                ToastUtil.show(
+                    this@ActivityStatusBarLyrics,
+                    R.string.float_window_permission_tip
+                )
+                openOverlayPermissionSettings()
+                return@launch
+            }
+
+            statusBarLyricPreferenceStore.enableAfterPermissionGranted()
+        }
+    }
+
+    private fun syncOverlayPermissionState() {
+        lifecycleScope.launch {
+            val preference = statusBarLyricPreferenceStore.getSnapshot()
+
+            when {
+                preference.enabled && !hasOverlayPermission() -> {
+                    statusBarLyricPreferenceStore.disable()
+                }
+
+                preference.pendingEnableAfterPermission && hasOverlayPermission() -> {
+                    statusBarLyricPreferenceStore.enableAfterPermissionGranted()
+                }
+
+                preference.pendingEnableAfterPermission && !hasOverlayPermission() -> {
+                    statusBarLyricPreferenceStore.setPendingEnableAfterPermission(false)
+                }
+            }
+        }
     }
 
     private fun setStatusBarLyricControlsEnabled(enabled: Boolean) {
@@ -220,32 +326,42 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
                 setControlEnabled(child, enabled)
             }
         }
+
         setControlEnabled(binding.preferenceSbarLyricContainer2, enabled)
         setControlEnabled(binding.preferenceSbarLyricContainer3, enabled)
+
         binding.toolbar.menu.findItem(R.id.menu_reset)?.isVisible = enabled
     }
 
     private fun setControlEnabled(view: View, enabled: Boolean) {
         view.isEnabled = enabled
         view.alpha = if (enabled) 1f else 0.45f
+
         if (view is ViewGroup) {
-            view.forEachChild { child -> setControlEnabled(child, enabled) }
+            view.forEachChild { child ->
+                setControlEnabled(child, enabled)
+            }
         }
     }
 
     private fun showResetDialog() {
-        val config = MaterialDialogConfig.createMaterialMessageDialogConfig(this).apply {
-            titleText = getString(R.string.sbar_lyric_reset)
-            messageText = getString(R.string.sbar_lyric_reset_msg)
-            positiveButtonText = getString(R.string.confirm)
-            negativeButtonText = getString(R.string.cancel)
-            positiveButtonClickListener =
-                DialogInterface.OnClickListener { dialog, _ ->
-                    settings.resetDisplayTuning()
-                    syncUi()
-                    dialog.dismiss()
-                }
-        }
+        val config = materialDialogConfigFactory
+            .createMaterialMessageDialogConfig(this)
+            .apply {
+                titleText = getString(R.string.sbar_lyric_reset)
+                messageText = getString(R.string.sbar_lyric_reset_msg)
+                positiveButtonText = getString(R.string.confirm)
+                negativeButtonText = getString(R.string.cancel)
+
+                positiveButtonClickListener =
+                    DialogInterface.OnClickListener { dialog, _ ->
+                        lifecycleScope.launch {
+                            statusBarLyricPreferenceStore.resetDisplayTuning()
+                            dialog.dismiss()
+                        }
+                    }
+            }
+
         MessageDialog.show(this, config)
     }
 
@@ -254,19 +370,36 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
             getString(R.string.sbar_lyric_content_title),
             getString(R.string.sbar_lyric_content_lyric)
         )
-        val config = MaterialDialogConfig.createMaterialListDialogConfig(this, labels).apply {
-            titleText = getString(R.string.sbar_lyric_content)
-            selectedItemIndex =
-                if (settings.contentType == StatusBarLyricSettings.CONTENT_TYPE_LYRIC) 1 else 0
-            onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
-                DialogRegistry.dismissAll(this@ActivityStatusBarLyrics)
-                settings.contentType =
-                    if (which == 1) StatusBarLyricSettings.CONTENT_TYPE_LYRIC
-                    else StatusBarLyricSettings.CONTENT_TYPE_TITLE
-                syncUi()
+
+        val config = materialDialogConfigFactory
+            .createMaterialListDialogConfig(this, labels)
+            .apply {
+                titleText = getString(R.string.sbar_lyric_content)
+
+                selectedItemIndex =
+                    if (currentPreference.contentType == StatusBarLyricPreferenceStore.CONTENT_TYPE_LYRIC) {
+                        1
+                    } else {
+                        0
+                    }
+
+                onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
+                    DialogRegistry.dismissAll(this@ActivityStatusBarLyrics)
+
+                    lifecycleScope.launch {
+                        statusBarLyricPreferenceStore.setContentType(
+                            if (which == 1) {
+                                StatusBarLyricPreferenceStore.CONTENT_TYPE_LYRIC
+                            } else {
+                                StatusBarLyricPreferenceStore.CONTENT_TYPE_TITLE
+                            }
+                        )
+                    }
+                }
+
+                itemIconRes = R.drawable.vector_single_check_selector
             }
-            itemIconRes = R.drawable.vector_single_check_selector
-        }
+
         OptionsListDialog.show(this, config)
     }
 
@@ -275,22 +408,42 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
             getString(R.string.sbar_lyric_gravity_left),
             getString(R.string.sbar_lyric_gravity_center)
         )
-        val config = MaterialDialogConfig.createMaterialListDialogConfig(this, labels).apply {
-            titleText = getString(R.string.sbar_lyric_gravity)
-            selectedItemIndex = if (settings.gravity == Gravity.CENTER) 1 else 0
-            onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
-                DialogRegistry.dismissAll(this@ActivityStatusBarLyrics)
-                settings.gravity =
-                    if (which == 0) StatusBarLyricSettings.GRAVITY_LEFT else Gravity.CENTER
-                syncUi()
+
+        val config = materialDialogConfigFactory
+            .createMaterialListDialogConfig(this, labels)
+            .apply {
+                titleText = getString(R.string.sbar_lyric_gravity)
+
+                selectedItemIndex =
+                    if (currentPreference.gravity == Gravity.CENTER) {
+                        1
+                    } else {
+                        0
+                    }
+
+                onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
+                    DialogRegistry.dismissAll(this@ActivityStatusBarLyrics)
+
+                    lifecycleScope.launch {
+                        statusBarLyricPreferenceStore.setGravity(
+                            if (which == 0) {
+                                StatusBarLyricPreferenceStore.GRAVITY_LEFT
+                            } else {
+                                Gravity.CENTER
+                            }
+                        )
+                    }
+                }
+
+                itemIconRes = R.drawable.vector_single_check_selector
             }
-            itemIconRes = R.drawable.vector_single_check_selector
-        }
+
         OptionsListDialog.show(this, config)
     }
 
     private fun hasOverlayPermission(): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+                Settings.canDrawOverlays(this)
     }
 
     private fun openOverlayPermissionSettings() {
@@ -308,11 +461,21 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         }
     }
 
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
 
     private fun ViewGroup.forEachChild(action: (View) -> Unit) {
         for (index in 0 until childCount) {
             action(getChildAt(index))
+        }
+    }
+
+    private fun viewLifecycleOwnerOrActivityLaunch(
+        block: suspend () -> Unit
+    ) {
+        lifecycleScope.launch {
+            block()
         }
     }
 
@@ -327,48 +490,90 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
                 notifyDataSetChanged()
             }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ColorViewHolder {
+        override fun onCreateViewHolder(
+            parent: ViewGroup,
+            viewType: Int
+        ): ColorViewHolder {
             val view = layoutInflater.inflate(
                 R.layout.activity_sbar_lyric_color_item,
                 parent,
                 false
             )
+
             return ColorViewHolder(view)
         }
 
-        override fun getItemCount(): Int = colors.size
-
-        override fun onBindViewHolder(holder: ColorViewHolder, position: Int) {
-            val color = colors[position]
-            holder.bind(color, color == selectedColor) {
-                onColorSelected(color, position)
-            }
+        override fun getItemCount(): Int {
+            return colors.size
         }
 
-        inner class ColorViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            private val image = itemView.findViewById<AppCompatImageView>(
-                R.id.item_image
-            )
+        override fun onBindViewHolder(
+            holder: ColorViewHolder,
+            position: Int
+        ) {
+            val color = colors[position]
 
-            fun bind(color: Int, selected: Boolean, onClick: () -> Unit) {
-                image.setImageDrawable(createColorDrawable(color, selected))
-                image.setOnClickListener { onClick() }
+            holder.bind(
+                color = color,
+                selected = color == selectedColor,
+                onClick = {
+                    onColorSelected(color, position)
+                }
+            )
+        }
+
+        inner class ColorViewHolder(
+            itemView: View
+        ) : RecyclerView.ViewHolder(itemView) {
+
+            private val image: AppCompatImageView =
+                itemView.findViewById(R.id.item_image)
+
+            fun bind(
+                color: Int,
+                selected: Boolean,
+                onClick: () -> Unit
+            ) {
+                image.setImageDrawable(
+                    createColorDrawable(
+                        color = color,
+                        selected = selected
+                    )
+                )
+
+                image.setOnClickListener {
+                    onClick()
+                }
             }
         }
     }
 
-    private fun createColorDrawable(color: Int, selected: Boolean): Drawable {
+    private fun createColorDrawable(
+        color: Int,
+        selected: Boolean
+    ): Drawable {
         val circle = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(color)
-            setStroke(dp(1), ColorUtils.setAlphaComponent(Color.WHITE, 90))
+            setStroke(
+                dp(1),
+                ColorUtils.setAlphaComponent(Color.WHITE, 90)
+            )
         }
-        if (!selected) return circle
 
-        val check = AppCompatResources.getDrawable(this, R.drawable.vector_single_check_selector)
+        if (!selected) {
+            return circle
+        }
+
+        val check = AppCompatResources
+            .getDrawable(this, R.drawable.vector_single_check_selector)
             ?.mutate()
-            ?.let { DrawableCompat.wrap(it) }
+            ?.let { drawable ->
+                DrawableCompat.wrap(drawable)
+            }
+
         check?.setTint(Color.WHITE)
+
         return LayerDrawable(
             arrayOf(
                 circle,
@@ -380,6 +585,7 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
     private class HorizontalSpaceDecoration(
         private val spacePx: Int
     ) : RecyclerView.ItemDecoration() {
+
         override fun getItemOffsets(
             outRect: Rect,
             view: View,
@@ -387,8 +593,13 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
             state: RecyclerView.State
         ) {
             val position = parent.getChildAdapterPosition(view)
-            if (position == RecyclerView.NO_POSITION) return
+
+            if (position == RecyclerView.NO_POSITION) {
+                return
+            }
+
             outRect.right = spacePx
+
             if (position == 0) {
                 outRect.left = spacePx
             }
@@ -410,7 +621,9 @@ class ActivityStatusBarLyrics : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         )
 
         fun start(context: Context) {
-            context.startActivityCompat(Intent(context, ActivityStatusBarLyrics::class.java))
+            context.startActivityCompat(
+                Intent(context, ActivityStatusBarLyrics::class.java)
+            )
         }
     }
 }

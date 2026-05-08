@@ -19,8 +19,12 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.data.local.preference.LyricSettingPreferenceStore
+import gd.app.musicplayer.data.local.preference.LyricsSettingPreference
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.lib.model.visualizer.AudioVisualizerManager
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.extension.dpToPx
 import gd.app.musicplayer.core.extension.applySystemBarInsets
 import gd.app.musicplayer.core.extension.isLandscape
 import gd.app.musicplayer.core.extension.loadCircularArtwork
@@ -52,8 +56,9 @@ import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.ui.player.TrackUiState
 import gd.app.musicplayer.ui.player.VisualizerUiState
 import gd.app.musicplayer.util.LyricsLoader
-import gd.app.musicplayer.util.PreferenceUtil
+
 import gd.app.musicplayer.util.TrackLyricsStore
+import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -63,6 +68,9 @@ class MusicPlayerFragment :
     View.OnClickListener,
     SeekBar.OnSeekBarChangeListener,
     ViewPager.OnPageChangeListener {
+
+    @Inject lateinit var lyricSettingPreferenceStore: LyricSettingPreferenceStore
+    @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
 
     private val playerViewModel: PlayerViewModel by activityViewModels()
     private val playModeViewModel: PlayModeViewModel by viewModels()
@@ -80,6 +88,9 @@ class MusicPlayerFragment :
     private var pendingSeekPositionMs: Int? = null
 
     private var latestVisualizerState = VisualizerUiState()
+    private var lyricPreferences = LyricsSettingPreference()
+    private var forwardBackwardSeconds = 15
+    private var showForwardBackward = false
 
     private val visualizerPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -107,6 +118,7 @@ class MusicPlayerFragment :
         observeVisualizerState()
         observePlayMode()
         observeLyricPreferenceChanges()
+        observePlayerPreferences()
     }
 
     private fun setupUi(binding: FragmentPlayContentBinding) {
@@ -348,18 +360,23 @@ class MusicPlayerFragment :
     private fun observeLyricPreferenceChanges() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                PreferenceUtil.getInstance(requireContext())
-                    .observePreferenceChanges(
-                        "preference_lyric_color",
-                        "preference_lyric_text_size",
-                        "lyric_auto_scroll",
-                        "lyric_align",
-                        "lyric_style"
-                    )
-                    .collect {
-                        applyLyricPreferences()
-                        updateLyricAutoScroll()
-                    }
+                lyricSettingPreferenceStore.lyricPreferences.collect { preferences ->
+                    lyricPreferences = preferences
+                    applyLyricPreferences()
+                    updateLyricAutoScroll()
+                }
+            }
+        }
+    }
+
+    private fun observePlayerPreferences() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                settingPreferencesDataStore.observeSettingPreferences().collect { preferences ->
+                    forwardBackwardSeconds = preferences.normal.forwardBackwardSeconds
+                    showForwardBackward = preferences.normal.showForwardBackward
+                    updateForwardBackwardVisibility()
+                }
             }
         }
     }
@@ -400,24 +417,22 @@ class MusicPlayerFragment :
         val lyricView = lyricBinding?.musicPlayLrc ?: return
         if (!isAdded) return
 
-        val prefs = PreferenceUtil.getInstance(requireContext())
-        lyricView.setCurrentTextColor(prefs.getLyricColor())
-        lyricView.setTextSize(prefs.getLyricTextSize())
-        lyricView.setTextAlign(prefs.getLyricAlign())
-        lyricView.setTextTypeface(prefs.getLyricStyle())
+        lyricView.setCurrentTextColor(lyricPreferences.lyricColor)
+        lyricView.setTextSize(requireContext().dpToPx(lyricPreferences.lyricTextSize))
+        lyricView.setTextAlign(lyricPreferences.lyricAlign)
+        lyricView.setTextTypeface(lyricPreferences.lyricStyle)
     }
 
     private fun updateLyricAutoScroll() {
         val lyricView = lyricBinding?.musicPlayLrc ?: return
         if (!isAdded) return
 
-        val prefs = PreferenceUtil.getInstance(requireContext())
         lyricView.setAutoScroll(
             pagerIndex == PAGE_LYRIC &&
                     isResumed &&
                     latestVisualizerState.isPlaying &&
                     lyricView.hasTimedLyrics() &&
-                    prefs.isLyricAutoScrollEnabled()
+                    lyricPreferences.lyricAutoScrollEnabled
         )
     }
 
@@ -553,16 +568,13 @@ class MusicPlayerFragment :
     }
 
     private fun seekIncrementMs(): Int {
-        val seconds = PreferenceUtil.getInstance(requireContext())
-            .getIntPreference("time_forward_backward", 15)
-        return seconds.coerceIn(5, 60) * 1_000
+        return forwardBackwardSeconds.coerceIn(5, 60) * 1_000
     }
 
     private fun updateForwardBackwardVisibility() {
         val binding = binding ?: return
-        val prefs = PreferenceUtil.getInstance(requireContext())
-        val enabled = prefs.getBooleanPreference("show_forward_backward", false)
-        val seconds = prefs.getIntPreference("time_forward_backward", 15)
+        val enabled = showForwardBackward
+        val seconds = forwardBackwardSeconds
 
         binding.musicPlayController.controlBackward.isVisible = enabled
         binding.musicPlayController.controlForward.isVisible = enabled

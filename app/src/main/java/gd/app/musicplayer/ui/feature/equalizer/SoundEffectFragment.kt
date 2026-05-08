@@ -5,86 +5,113 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
-import gd.app.musicplayer.databinding.FragmentSoundEffectBinding
-import gd.app.musicplayer.playback.AudioEffectsManager
-import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.ui.player.PlayerViewModel
 import gd.app.musicplayer.core.ui.view.EqualizerSingleGroup
 import gd.app.musicplayer.core.ui.view.RotateStepBar
 import gd.app.musicplayer.core.ui.view.SeekBar
 import gd.app.musicplayer.core.ui.view.SelectBox
+import gd.app.musicplayer.data.local.preference.SoundEffectSettings
+import gd.app.musicplayer.databinding.FragmentSoundEffectBinding
+import gd.app.musicplayer.ui.common.base.ViewBindingFragment
+import gd.app.musicplayer.ui.player.PlayerViewModel
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
+
+    private val soundEffectViewModel: SoundEffectViewModel by viewModels()
     private val playerViewModel: PlayerViewModel by viewModels()
 
-    override fun onCreateBinding(inflater: LayoutInflater): FragmentSoundEffectBinding =
-        FragmentSoundEffectBinding.inflate(inflater)
+    private var latestSettings: SoundEffectSettings = SoundEffectSettings()
+    private var isRendering: Boolean = false
 
-    private lateinit var settings: AudioEffectsManager.Settings
+    override fun onCreateBinding(inflater: LayoutInflater): FragmentSoundEffectBinding {
+        return FragmentSoundEffectBinding.inflate(inflater)
+    }
 
     override fun onBindingCreated(
         binding: FragmentSoundEffectBinding,
         savedInstanceState: Bundle?
     ) {
         super.onBindingCreated(binding, savedInstanceState)
-        settings = AudioEffectsManager.loadSettings(requireContext())
 
         setupSeekBars(binding)
         setupSwitches(binding)
         setupRotations(binding)
         setupReverb(binding)
+        observeSettings()
         updateContentHeight()
-        renderAll(binding)
     }
 
-    override fun onResume() {
-        super.onResume()
-        settings = AudioEffectsManager.loadSettings(requireContext())
-        updateContentHeight()
-        renderAll(requireBinding())
+    private fun observeSettings() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                soundEffectViewModel.settings.collect { settings ->
+                    latestSettings = settings
+                    renderAll(requireBinding(), settings)
+                }
+            }
+        }
     }
 
     private fun setupSeekBars(binding: FragmentSoundEffectBinding) = with(binding) {
-        equalizerVolumeProgress.setOnSeekBarChangeListener(object :
-            SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                val value = progress / seekBar.getMax().toFloat()
-                equalizerVolumeProgressDes.text = "${(value * 100f).roundToInt()}%"
-                if (!fromUser) return
-                settings = settings.copy(masterVolume = value)
-                persistAndApply()
-            }
+        equalizerVolumeProgress.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    val value = progress / seekBar.getMax().toFloat()
+                    equalizerVolumeProgressDes.text = value.toPercentText()
 
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                root.requestDisallowInterceptTouchEvent(false)
-            }
+                    if (!fromUser || isRendering) return
 
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
-                root.requestDisallowInterceptTouchEvent(true)
-            }
-        })
+                    latestSettings = latestSettings.copy(masterVolume = value)
+                    soundEffectViewModel.setMasterVolume(value)
+                    applyAudioEffects()
+                }
 
-        equalizerVolumeBoostProgress.setOnSeekBarChangeListener(object :
-            SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                val value = progress / seekBar.getMax().toFloat()
-                equalizerVolumeBoostProgressDes.text = "${(value * 100f).roundToInt()}%"
-                if (!fromUser) return
-                settings = settings.copy(loudnessStrength = value)
-                persistAndApply()
-            }
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                    root.requestDisallowInterceptTouchEvent(true)
+                }
 
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                root.requestDisallowInterceptTouchEvent(false)
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    root.requestDisallowInterceptTouchEvent(false)
+                }
             }
+        )
 
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
-                root.requestDisallowInterceptTouchEvent(true)
+        equalizerVolumeBoostProgress.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    val value = progress / seekBar.getMax().toFloat()
+                    equalizerVolumeBoostProgressDes.text = value.toPercentText()
+
+                    if (!fromUser || isRendering) return
+
+                    latestSettings = latestSettings.copy(loudnessStrength = value)
+                    soundEffectViewModel.setLoudnessStrength(value)
+                    applyAudioEffects()
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                    root.requestDisallowInterceptTouchEvent(true)
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    root.requestDisallowInterceptTouchEvent(false)
+                }
             }
-        })
+        )
     }
 
     private fun setupSwitches(binding: FragmentSoundEffectBinding) = with(binding) {
@@ -95,10 +122,13 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
                     fromUser: Boolean,
                     isSelected: Boolean
                 ) {
-                    if (!fromUser) return
-                    settings = settings.copy(loudnessEnabled = isSelected)
-                    renderEnabledState(requireBinding())
-                    persistAndApply()
+                    if (!fromUser || isRendering) return
+
+                    latestSettings = latestSettings.copy(loudnessEnabled = isSelected)
+                    renderEnabledState(requireBinding(), latestSettings)
+
+                    soundEffectViewModel.setLoudnessEnabled(isSelected)
+                    applyAudioEffects()
                 }
             }
         )
@@ -110,120 +140,159 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
                     fromUser: Boolean,
                     isSelected: Boolean
                 ) {
-                    if (!fromUser) return
-                    settings = settings.copy(balanceEnabled = isSelected)
-                    renderEnabledState(requireBinding())
-                    persistAndApply()
+                    if (!fromUser || isRendering) return
+
+                    latestSettings = latestSettings.copy(balanceEnabled = isSelected)
+                    renderEnabledState(requireBinding(), latestSettings)
+
+                    soundEffectViewModel.setBalanceEnabled(isSelected)
+                    applyAudioEffects()
                 }
             }
         )
     }
 
     private fun setupRotations(binding: FragmentSoundEffectBinding) = with(binding) {
-        equalizerLeftRotate.setOnRotateChangedListener(balanceRotateListener(isLeft = true))
-        equalizerRightRotate.setOnRotateChangedListener(balanceRotateListener(isLeft = false))
+        equalizerLeftRotate.setOnRotateChangedListener(
+            balanceRotateListener(isLeft = true)
+        )
+        equalizerRightRotate.setOnRotateChangedListener(
+            balanceRotateListener(isLeft = false)
+        )
     }
 
-    private fun balanceRotateListener(isLeft: Boolean): RotateStepBar.OnRotateChangedListener {
+    private fun balanceRotateListener(
+        isLeft: Boolean
+    ): RotateStepBar.OnRotateChangedListener {
         return object : RotateStepBar.OnRotateChangedListener {
-            override fun onRotationTrackingChanged(view: RotateStepBar, isTracking: Boolean) {
+            override fun onRotationTrackingChanged(
+                view: RotateStepBar,
+                isTracking: Boolean
+            ) {
                 requireBinding().root.requestDisallowInterceptTouchEvent(isTracking)
             }
 
-            override fun onRotationChanged(view: RotateStepBar, progress: Int) {
+            override fun onRotationChanged(
+                view: RotateStepBar,
+                progress: Int
+            ) {
+                if (isRendering) return
+
                 val value = progress / view.getMax().toFloat()
-                settings = if (isLeft) {
-                    settings.copy(balanceLeft = value)
+
+                latestSettings = if (isLeft) {
+                    latestSettings.copy(balanceLeft = value)
                 } else {
-                    settings.copy(balanceRight = value)
+                    latestSettings.copy(balanceRight = value)
                 }
-                persistAndApply()
+
+                if (isLeft) {
+                    soundEffectViewModel.setBalanceLeft(value)
+                } else {
+                    soundEffectViewModel.setBalanceRight(value)
+                }
+
+                applyAudioEffects()
             }
         }
     }
 
     private fun setupReverb(binding: FragmentSoundEffectBinding) = with(binding) {
         equalizerReverbLayout.root.setOnSingleSelectListener(
-            object :
-                EqualizerSingleGroup.OnSingleSelectionChangedListener {
+            object : EqualizerSingleGroup.OnSingleSelectionChangedListener {
                 override fun onSelectionChanged(
                     parent: ViewGroup,
                     clickedView: View,
                     selectedIndex: Int
                 ) {
-                    settings =
-                        settings.copy(reverbIndex = if (selectedIndex < 0) 0 else selectedIndex + 1)
-                    persistAndApply()
+                    if (isRendering) return
+
+                    val reverbIndex = if (selectedIndex < 0) {
+                        0
+                    } else {
+                        selectedIndex + 1
+                    }
+
+                    latestSettings = latestSettings.copy(reverbIndex = reverbIndex)
+                    soundEffectViewModel.setReverbIndex(reverbIndex)
+                    applyAudioEffects()
                 }
             }
         )
     }
 
-    private fun renderAll(binding: FragmentSoundEffectBinding) = with(binding) {
+    private fun renderAll(
+        binding: FragmentSoundEffectBinding,
+        settings: SoundEffectSettings
+    ) = with(binding) {
+        isRendering = true
+
         equalizerVolumeProgress.setProgress(
-            (settings.masterVolume * equalizerVolumeProgress.getMax()).toInt()
+            settings.masterVolume.toProgress(equalizerVolumeProgress.getMax())
         )
-        equalizerVolumeProgressDes.text = "${(settings.masterVolume * 100f).roundToInt()}%"
+        equalizerVolumeProgressDes.text = settings.masterVolume.toPercentText()
 
         equalizerVolumeBoostBox.isSelected = settings.loudnessEnabled
         equalizerVolumeBoostProgress.setProgress(
-            (settings.loudnessStrength * equalizerVolumeBoostProgress.getMax()).toInt()
+            settings.loudnessStrength.toProgress(equalizerVolumeBoostProgress.getMax())
         )
-        equalizerVolumeBoostProgressDes.text =
-            "${(settings.loudnessStrength * 100f).roundToInt()}%"
+        equalizerVolumeBoostProgressDes.text = settings.loudnessStrength.toPercentText()
+
+        val selectedReverbIndex = if (settings.reverbIndex <= 0) {
+            -1
+        } else {
+            settings.reverbIndex - 1
+        }
+        equalizerReverbLayout.root.setSelectedIndex(selectedReverbIndex)
 
         equalizerBalanceBox.isSelected = settings.balanceEnabled
         equalizerLeftRotate.setProgress(
-            (settings.balanceLeft * equalizerLeftRotate.getMax()).toInt()
+            settings.balanceLeft.toProgress(equalizerLeftRotate.getMax())
         )
         equalizerRightRotate.setProgress(
-            (settings.balanceRight * equalizerRightRotate.getMax()).toInt()
+            settings.balanceRight.toProgress(equalizerRightRotate.getMax())
         )
 
-        val selectedReverb = if (settings.reverbIndex <= 0) -1 else settings.reverbIndex - 1
-        equalizerReverbLayout.root.setSelectedIndex(selectedReverb)
+        renderEnabledState(binding, settings)
 
-        renderEnabledState(binding)
+        isRendering = false
     }
 
-    private fun renderEnabledState(binding: FragmentSoundEffectBinding) = with(binding) {
-        val loudnessEnabled = settings.loudnessEnabled
-        equalizerVolumeBoostProgress.isEnabled = loudnessEnabled
-        equalizerAmplifierText.isEnabled = loudnessEnabled
-        equalizerVolumeBoostProgressDes.isEnabled = loudnessEnabled
+    private fun renderEnabledState(
+        binding: FragmentSoundEffectBinding,
+        settings: SoundEffectSettings
+    ) = with(binding) {
+        equalizerVolumeBoostProgress.isEnabled = settings.loudnessEnabled
+        equalizerAmplifierText.isEnabled = settings.loudnessEnabled
+        equalizerVolumeBoostProgressDes.isEnabled = settings.loudnessEnabled
 
-        val balanceEnabled = settings.balanceEnabled
-        equalizerLeftRotate.isEnabled = balanceEnabled
-        equalizerRightRotate.isEnabled = balanceEnabled
-        equalizerBalanceText.isEnabled = balanceEnabled
-        equalizerLeftText.isEnabled = balanceEnabled
-        equalizerRightText.isEnabled = balanceEnabled
+        equalizerLeftRotate.isEnabled = settings.balanceEnabled
+        equalizerRightRotate.isEnabled = settings.balanceEnabled
+        equalizerBalanceText.isEnabled = settings.balanceEnabled
+        equalizerLeftText.isEnabled = settings.balanceEnabled
+        equalizerRightText.isEnabled = settings.balanceEnabled
     }
 
-    private fun persistAndApply() {
-        AudioEffectsManager.saveSettings(requireContext(), settings)
+    private fun applyAudioEffects() {
         playerViewModel.applyAudioEffects(requireContext())
     }
 
     private fun updateContentHeight() {
         val binding = requireBinding()
+
         binding.root.post {
-            val context = context ?: return@post
             val rootHeight = binding.root.height
             if (rootHeight <= 0) return@post
-
-//            val extraHeight =
-//                context.sp(64f) +
-//                context.resources.getDimensionPixelSize(R.dimen.equalizer_title_margin_bottom) +
-//                        context.resources.getDimensionPixelSize(R.dimen.equalizer_rotate_margin_bottom) +
-//                        context.resources.getDimensionPixelSize(R.dimen.equalizer_toggle_height) +
-//                        context.resources.getDimensionPixelSize(R.dimen.equalizer_box_margin_top) +
-//                        context.resources.getDimensionPixelSize(R.dimen.equalizer_bass_height) +
-//                        context.resources.getDimensionPixelSize(R.dimen.equalizer_rotate_text_margin) +
-//                        context.sp(16f)
 
             binding.equalizerContentView.setFixedHeight(rootHeight)
         }
     }
-}
 
+    private fun Float.toProgress(max: Int): Int {
+        return (coerceIn(0f, 1f) * max).roundToInt()
+    }
+
+    private fun Float.toPercentText(): String {
+        return "${(coerceIn(0f, 1f) * 100f).roundToInt()}%"
+    }
+}

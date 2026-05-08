@@ -6,34 +6,38 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.databinding.DialogTabManagerBinding
 import gd.app.musicplayer.databinding.DialogTabManagerItemBinding
 import gd.app.musicplayer.ui.feature.selection.DragSwipeCallback
 import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
 import gd.app.musicplayer.ui.feature.selection.ItemTouchStateListener
 import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
-import gd.app.musicplayer.util.LibraryTabConfig
-import gd.app.musicplayer.util.LibraryTabConfigStore
-import gd.app.musicplayer.util.PreferenceUtil
+import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfig
+import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfigStore
+import javax.inject.Inject
 import java.util.Collections
+import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
 
     private var _binding: DialogTabManagerBinding? = null
     private val binding: DialogTabManagerBinding
         get() = requireNotNull(_binding)
 
-    private lateinit var preferenceUtil: PreferenceUtil
+    @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
     private lateinit var adapter: LibraryTabManagerAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var items: MutableList<LibraryTabConfig> = mutableListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        preferenceUtil = PreferenceUtil.getInstance(requireContext())
         items = restoreItems(savedInstanceState).toMutableList()
     }
 
@@ -65,6 +69,12 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
 
         binding.dialogButtonCancel.setOnClickListener(this)
         binding.dialogButtonOk.setOnClickListener(this)
+
+        if (savedInstanceState == null) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                adapter.replaceItems(settingPreferencesDataStore.getLibraryTabConfig())
+            }
+        }
     }
 
     override fun onStart() {
@@ -82,9 +92,11 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
         when (view.id) {
             binding.dialogButtonCancel.id -> dismiss()
             binding.dialogButtonOk.id -> {
-                saveSelection()
-                parentFragmentManager.setFragmentResult(RESULT_KEY, bundleOf())
-                dismiss()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    saveSelection()
+                    parentFragmentManager.setFragmentResult(RESULT_KEY, bundleOf())
+                    dismiss()
+                }
             }
         }
     }
@@ -100,15 +112,15 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
         if (ids != null && visible != null && ids.size == visible.size) {
             return ids.mapIndexed { index, id -> LibraryTabConfig(id, visible[index]) }
         }
-        return preferenceUtil.getLibraryTabConfigs()
+        return LibraryTabConfigStore.defaultItems
     }
 
-    private fun saveSelection() {
-        preferenceUtil.setLibraryTabConfigs(items)
+    private suspend fun saveSelection() {
+        settingPreferencesDataStore.setLibraryTabConfig(items)
         val visibleItems = LibraryTabConfigStore.visibleItems(items)
-        val lastTab = preferenceUtil.getLibraryLastTab()
+        val lastTab = settingPreferencesDataStore.getLibraryLastTab()
         if (visibleItems.none { it.id == lastTab }) {
-            preferenceUtil.setLibraryLastTab(visibleItems.first().id)
+            settingPreferencesDataStore.setLibraryLastTab(visibleItems.first().id)
         }
     }
 
@@ -138,9 +150,16 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
         override fun onItemMove(fromPosition: Int, toPosition: Int) {
             if (fromPosition !in items.indices || toPosition !in items.indices) return
             Collections.swap(items, fromPosition, toPosition)
+            notifyItemMoved(fromPosition, toPosition)
         }
 
         private fun visibleCount(): Int = items.count(LibraryTabConfig::visible)
+
+        fun replaceItems(newItems: List<LibraryTabConfig>) {
+            items.clear()
+            items.addAll(newItems)
+            notifyDataSetChanged()
+        }
 
         class ViewHolder(
             private val binding: DialogTabManagerItemBinding,
@@ -170,8 +189,12 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
             override fun onClick(v: View) {
                 val current = item ?: return
                 if (!current.visible || visibleCount() > 1) {
-                    current.visible = !current.visible
-                    binding.tabManagerItemSelect.isSelected = current.visible
+                    val position = bindingAdapterPosition
+                    if (position == RecyclerView.NO_POSITION) return
+                    val updated = current.copy(visible = !current.visible)
+                    (bindingAdapter as? LibraryTabManagerAdapter)?.items?.set(position, updated)
+                    item = updated
+                    binding.tabManagerItemSelect.isSelected = updated.visible
                 }
             }
 

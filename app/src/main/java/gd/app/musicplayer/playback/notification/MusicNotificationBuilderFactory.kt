@@ -2,46 +2,48 @@ package gd.app.musicplayer.playback.notification
 
 import android.content.Context
 import android.os.Build
-import gd.app.musicplayer.core.extension.appDependencies
+import gd.app.musicplayer.data.local.preference.NotificationSettingPreference
 
 object MusicNotificationBuilderFactory {
 
     fun create(
         context: Context,
         shouldUseDynamicColors: Boolean,
+        notificationSettings: NotificationSettingPreference
     ): BaseMusicNotificationBuilder {
-        val preferenceUtil = context.appDependencies.preferenceUtil
-        val oldNotificationEnabled = preferenceUtil.getBooleanPreference(
-            KEY_OLD_NOTIFICATION,
-            false,
-        )
-        val shouldUseLegacyRemoteViews =
-            !supportsModernMediaStyleNotification() || oldNotificationEnabled
-//        val shouldUseLegacyRemoteViews = false
-        return if (shouldUseLegacyRemoteViews) {
-            if (preferenceUtil.getBooleanPreference(KEY_COLOR_NOTIFICATION, true)) {
+        return when {
+            shouldUseLegacyRemoteViews(notificationSettings) &&
+                    notificationSettings.colorNotificationEnabled -> {
                 AlbumColorRemoteViewsNotificationBuilder(
                     context = context,
-                    shouldUseDynamicColors = shouldUseDynamicColors,
-                )
-            } else {
-                LegacyRemoteViewsNotificationBuilder(
-                    context = context,
-                    shouldUseDynamicColors = shouldUseDynamicColors,
+                    shouldUseDynamicColors = shouldUseDynamicColors
                 )
             }
-        } else {
-            MediaStyleMusicNotificationBuilder(
-                context = context,
-                shouldUseDynamicColors = shouldUseDynamicColors,
-            )
+
+            shouldUseLegacyRemoteViews(notificationSettings) -> {
+                LegacyRemoteViewsNotificationBuilder(
+                    context = context,
+                    shouldUseDynamicColors = shouldUseDynamicColors
+                )
+            }
+
+            else -> {
+                MediaStyleMusicNotificationBuilder(
+                    context = context,
+                    shouldUseDynamicColors = shouldUseDynamicColors
+                )
+            }
         }
+    }
+
+    private fun shouldUseLegacyRemoteViews(
+        notificationSettings: NotificationSettingPreference
+    ): Boolean {
+        return !supportsModernMediaStyleNotification() ||
+                notificationSettings.oldNotificationEnabled
     }
 
     private fun supportsModernMediaStyleNotification(): Boolean {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
     }
-
-    private const val KEY_OLD_NOTIFICATION = "old_notification"
-    private const val KEY_COLOR_NOTIFICATION = "color_notification"
 }

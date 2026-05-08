@@ -1,11 +1,20 @@
 package gd.app.musicplayer.core.theme
 
-class DefaultThemeProvider : BaseThemeProvider() {
-    override fun getThemeBinder(): ThemeViewBinder? = null
+class DefaultThemeProvider(
+    themeBitmapLoader: ThemeBitmapLoader
+) : BaseThemeProvider(themeBitmapLoader) {
 
-    override fun createFallbackTheme(): ThemePalette = DefaultThemePalette()
+    override fun getThemeBinder(): ThemeViewBinder? {
+        return null
+    }
 
-    override fun createInitialTheme(): ThemePalette = DefaultThemePalette()
+    override fun createFallbackTheme(): ThemePalette {
+        return DefaultThemePalette()
+    }
+
+    override fun createInitialTheme(): ThemePalette {
+        return DefaultThemePalette()
+    }
 
     override fun notifyThemeChanged(palette: ThemePalette) = Unit
 

@@ -14,9 +14,10 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.graphics.drawable.DrawableCompat
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.dpToPx
 import kotlin.math.max
+import dagger.hilt.android.EntryPointAccessors
+import gd.app.musicplayer.di.ThemeEntryPoint
 
 class CustomSpinner @JvmOverloads constructor(
     context: Context,
@@ -155,9 +156,15 @@ class CustomSpinner @JvmOverloads constructor(
     }
 
     private object BasePopupBackgroundProvider {
+
         fun background(context: Context): Drawable {
-            return context.appDependencies.themeRepo
-                .getCorePalette(context)
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                ThemeEntryPoint::class.java
+            )
+
+            return entryPoint.themeRepo
+                .getCorePalette()
                 .getPopupBackgroundDrawable(context)
         }
     }

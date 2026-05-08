@@ -5,11 +5,11 @@ import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.domain.usecase.library.GetListViewModeUseCase
-import gd.app.musicplayer.domain.usecase.library.ObserveLibraryPreferenceChangesUseCase
+import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveMusicSetsUseCase
 import gd.app.musicplayer.domain.usecase.library.SetListViewModeUseCase
 import gd.app.musicplayer.domain.usecase.library.ShouldShowHiddenFoldersEntryUseCase
+import gd.app.musicplayer.domain.usecase.library.UpdateLibrarySortUseCase
 import gd.app.musicplayer.ui.folder.hiddenFoldersEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -20,16 +20,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import androidx.lifecycle.viewModelScope
 import gd.app.musicplayer.core.extension.supportsViewModeMenu
+import gd.app.musicplayer.domain.usecase.library.ObserveViewModeUseCase
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 data class MusicSetListUiState(
     val items: List<MusicSet> = emptyList(),
     val viewMode: Int = MusicSetAdapter.VIEW_MODE_LIST,
+    val currentSortStyle: String = "",
+    val sortDescending: Boolean = false,
     val isEmpty: Boolean = true
 )
 
@@ -45,10 +48,11 @@ sealed interface MusicSetListEvent {
 class MusicSetListViewModel @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val observeMusicSetsUseCase: ObserveMusicSetsUseCase,
-    private val observeLibraryPreferenceChangesUseCase: ObserveLibraryPreferenceChangesUseCase,
-    private val getListViewModeUseCase: GetListViewModeUseCase,
+    private val observeSortUseCase: ObserveSortUseCase,
+    private val observeViewModeUseCase: ObserveViewModeUseCase,
     private val setListViewModeUseCase: SetListViewModeUseCase,
-    private val shouldShowHiddenFoldersEntryUseCase: ShouldShowHiddenFoldersEntryUseCase
+    private val shouldShowHiddenFoldersEntryUseCase: ShouldShowHiddenFoldersEntryUseCase,
+    private val updateLibrarySortUseCase: UpdateLibrarySortUseCase
 ) : ViewModel() {
 
     private val currentMusicSet = MutableStateFlow<MusicSet?>(null)
@@ -64,23 +68,25 @@ class MusicSetListViewModel @Inject constructor(
                 currentMusicSet
             .filterNotNull()
             .flatMapLatest { musicSet ->
-                observeLibraryPreferenceChangesUseCase()
-                    .onStart { emit(Unit) }
-                    .flatMapLatest {
-                        observeMusicSetsUseCase(musicSet)
-                            .map { items ->
-                                val displayItems = buildDisplayItems(
-                                    musicSet = musicSet,
-                                    items = items
-                                )
+                combine(
+                    observeMusicSetsUseCase(musicSet),
+                    observeSortUseCase(musicSet),
+                    observeViewModeUseCase(musicSet)
 
-                                MusicSetListUiState(
-                                    items = displayItems,
-                                    viewMode = getListViewModeUseCase(musicSet),
-                                    isEmpty = items.isEmpty() && musicSet !is MusicSet.Folders
-                                )
-                            }
-                    }
+                ) { items, sortSelection, viewMode ->
+                        val displayItems = buildDisplayItems(
+                            musicSet = musicSet,
+                            items = items
+                        )
+
+                        MusicSetListUiState(
+                            items = displayItems,
+                            viewMode = viewMode,
+                            currentSortStyle = sortSelection.first,
+                            sortDescending = sortSelection.second,
+                            isEmpty = items.isEmpty() && musicSet !is MusicSet.Folders
+                        )
+                    } 
             }
             .stateIn(
                 scope = viewModelScope,
@@ -99,10 +105,19 @@ class MusicSetListViewModel @Inject constructor(
 
         if (!musicSet.supportsViewModeMenu) return
 
-        setListViewModeUseCase(
-            musicSet = musicSet,
-            mode = mode
-        )
+        viewModelScope.launch {
+            setListViewModeUseCase(
+                musicSet = musicSet,
+                mode = mode
+            )
+        }
+    }
+
+    fun onSortChanged(sortKey: String, descending: Boolean) {
+        val musicSet = currentMusicSet.value ?: return
+        viewModelScope.launch {
+            updateLibrarySortUseCase(musicSet, sortKey, descending)
+        }
     }
 
     private fun buildDisplayItems(

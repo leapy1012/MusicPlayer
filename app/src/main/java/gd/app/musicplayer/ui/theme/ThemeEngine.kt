@@ -1,16 +1,11 @@
 package gd.app.musicplayer.ui.theme
 
+import android.content.Context
 import android.view.View
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.theme.ThemePalette
 import gd.app.musicplayer.core.theme.ThemeRegistry
 import javax.inject.Inject
 import javax.inject.Singleton
-
-fun applyCurrentTheme(root: View?) {
-    if (root == null) return
-    root.context.appDependencies.themeEngine.apply(root)
-}
 
 @Singleton
 class ThemeEngine @Inject constructor(
@@ -18,10 +13,14 @@ class ThemeEngine @Inject constructor(
 ) {
     fun apply(root: View?) {
         if (root == null) return
-        themeRegistry.applyToViewTree(root, root.context)
+        themeRegistry.applyToViewTree(root)
     }
 
     fun apply(root: View?, @Suppress("UNUSED_PARAMETER") theme: ThemePalette) {
         apply(root)
+    }
+
+    fun currentTheme(): ThemePalette {
+        return themeRegistry.getCurrentTheme()
     }
 }

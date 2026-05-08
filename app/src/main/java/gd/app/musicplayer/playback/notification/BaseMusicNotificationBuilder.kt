@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import gd.app.musicplayer.data.local.preference.NotificationSettingPreference
 
 abstract class BaseMusicNotificationBuilder(
     protected val context: Context,
@@ -59,8 +60,13 @@ abstract class BaseMusicNotificationBuilder(
         fun create(
             context: Context,
             shouldUseDynamicColors: Boolean,
+            notificationSettings: NotificationSettingPreference,
         ): BaseMusicNotificationBuilder {
-            return MusicNotificationBuilderFactory.create(context, shouldUseDynamicColors)
+            return MusicNotificationBuilderFactory.create(
+                context = context,
+                shouldUseDynamicColors = shouldUseDynamicColors,
+                notificationSettings = notificationSettings
+            )
         }
 
         private fun isSamsungDevice(): Boolean {

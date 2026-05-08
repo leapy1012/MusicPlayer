@@ -11,8 +11,8 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.parcelable
 import gd.app.musicplayer.core.theme.*
 import gd.app.musicplayer.core.ui.dialog.BaseBottomSheetDialogFragment
@@ -20,10 +20,17 @@ import gd.app.musicplayer.core.ui.drawable.DrawableUtil
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.ArtworkRequest
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.repository.ArtworkRepo
+import gd.app.musicplayer.data.repository.ThemeRepo
 import gd.app.musicplayer.databinding.DialogManageArtworkBinding
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClickListener {
+
+    @Inject lateinit var themeRepo: ThemeRepo
+    @Inject lateinit var artworkRepo: ArtworkRepo
 
     private var _binding: DialogManageArtworkBinding? = null
     private val binding get() = _binding!!
@@ -31,8 +38,6 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
     private lateinit var request: ArtworkRequest
     private var trackAlbumArtworkPath: String? = null
     private var applyToAll = false
-    private val themeRepo by lazy { requireContext().appDependencies.themeRepo }
-    private val artworkRepo by lazy { requireContext().appDependencies.artworkRepo }
 
     private val galleryPicker =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -130,8 +135,7 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
     }
 
     private fun applyActionStyling() {
-        val context = requireContext()
-        val palette = themeRepo.getCorePalette(context)
+        val palette = themeRepo.getCorePalette()
         val actionViews = listOf(
             binding.dialogTitle,
             binding.albumFromReset,
@@ -159,14 +163,14 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
 
     private fun applyDialogBackground(rootView: View) {
         val context = rootView.context
-        rootView.background = context.appDependencies.themeRepo
-            .getCorePalette(context)
+        rootView.background = themeRepo
+            .getCorePalette()
             .getDialogSurfaceDrawable(context)
     }
 
     private fun applyTagStyles(rootView: View) {
-        val accentColor = requireContext().appDependencies.themeRepo.getAccentColor(requireContext())
-        val palette = rootView.context.appDependencies.themeRepo.getCorePalette(rootView.context)
+        val accentColor = themeRepo.getAccentColor()
+        val palette = themeRepo.getCorePalette()
 
         val titleColor = palette.titleColor
         val messageColor = palette.messageColor

@@ -1,11 +1,13 @@
 package gd.app.musicplayer.domain.usecase.playback
 
 import android.content.Context
-import gd.app.musicplayer.playback.PlaybackGateway
+import gd.app.musicplayer.playback.PlaybackController
+import javax.inject.Inject
 
-class PlayNextTrackUseCase {
+class PlayNextTrackUseCase @Inject constructor(
+    private val playbackController: PlaybackController
+) {
     operator fun invoke(context: Context) {
-        PlaybackGateway.playNext(context)
+        playbackController.playNext(context)
     }
 }
-

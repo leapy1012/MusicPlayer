@@ -4,9 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -23,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.extension.highlight
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.core.extension.loadMusicArtwork
@@ -32,16 +30,26 @@ import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.model.loadArtwork
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
 import gd.app.musicplayer.core.ui.drawable.DrawableUtil
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.startActivityCompat
+import gd.app.musicplayer.core.theme.accentColor
+import gd.app.musicplayer.core.theme.rippleColor
+import gd.app.musicplayer.ui.theme.ThemeEngine
 import kotlinx.coroutines.launch
 import java.io.File
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class HiddenFoldersAddActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
+    private val currentTheme
+        get() = themeEngine.currentTheme()
+
+    private val accentColor: Int
+        get() = currentTheme.accentColor
+
+    private val rippleColor: Int
+        get() = currentTheme.rippleColor
     private val viewModel: HiddenFoldersAddViewModel by viewModels()
 
     private lateinit var binding: ActivityHiddenFoldersAddBinding
@@ -52,7 +60,6 @@ class HiddenFoldersAddActivity : BaseActivity(), Toolbar.OnMenuItemClickListener
     private var visibleSongs: List<Music> = emptyList()
     private lateinit var emptyStateController: RecyclerEmptyStateController
     private lateinit var recyclerView: RecyclerView
-    private val themeRepo by lazy { appDependencies.themeRepo }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,7 +76,6 @@ class HiddenFoldersAddActivity : BaseActivity(), Toolbar.OnMenuItemClickListener
         refreshUi()
     }
 
-    
 
     private fun setupToolbar() {
         setupEdgeToEdgeToolbar(
@@ -94,7 +100,9 @@ class HiddenFoldersAddActivity : BaseActivity(), Toolbar.OnMenuItemClickListener
     private fun setupRecyclerView() {
         recyclerView = binding.root.findViewById<RecyclerView>(R.id.recyclerview)
 
-        adapter = HiddenFoldersAddAdapter(this).apply {
+        adapter = HiddenFoldersAddAdapter(accentColor, rippleColor, applyTheme = { root ->
+            themeEngine.apply(root)
+        }).apply {
             setSelectionCountListener { refreshUi() }
         }
         recyclerView.apply {
@@ -114,7 +122,7 @@ class HiddenFoldersAddActivity : BaseActivity(), Toolbar.OnMenuItemClickListener
 
     private fun setupConfirmButton() {
         binding.buttonConfirm.background = DrawableUtil.roundedRipple(
-            themeRepo.getAccentColor(this),
+            accentColor,
             getColor(R.color.ripple_material_dark),
             1000.0f
         )
@@ -258,16 +266,11 @@ private sealed class HiddenSelectionItem(
 }
 
 private class HiddenFoldersAddAdapter(
-    private val context: Context
+    private val accentColor: Int,
+    private val rippleColor: Int,
+    private val applyTheme: (View) -> Unit
+
 ) : RecyclerView.Adapter<HiddenFoldersAddAdapter.ItemViewHolder>() {
-
-    private val accentColor by lazy {
-        context.appDependencies.themeRepo.getAccentColor(context)
-    }
-
-    private val rippleColor by lazy {
-        context.appDependencies.themeRepo.getRippleColor(context)
-    }
     private val allItems = mutableListOf<HiddenSelectionItem>()
     private var visibleItems: List<HiddenSelectionItem> = emptyList()
     private val selectedFolderPaths = linkedSetOf<String>()
@@ -287,7 +290,7 @@ private class HiddenFoldersAddAdapter(
             parent,
             false
         )
-        applyCurrentTheme(binding.root)
+        applyTheme(binding.root)
         return ItemViewHolder(binding)
     }
 
@@ -362,8 +365,10 @@ private class HiddenFoldersAddAdapter(
                 return when {
                     old is HiddenSelectionItem.FolderItem && new is HiddenSelectionItem.FolderItem ->
                         old.folder.folderPath == new.folder.folderPath
+
                     old is HiddenSelectionItem.SongItem && new is HiddenSelectionItem.SongItem ->
                         old.song.id == new.song.id
+
                     else -> false
                 }
             }
@@ -411,8 +416,10 @@ private class HiddenFoldersAddAdapter(
 
                 is HiddenSelectionItem.SongItem -> {
                     item.song.loadMusicArtwork(binding.musicItemAlbum)
-                    binding.musicItemTitle.text = highlight(item.song.title)
-                    binding.musicItemArtist.text = highlight(item.song.artist)
+                    binding.musicItemTitle.text =
+                        item.song.title.highlight(searchQuery, accentColor)
+                    binding.musicItemArtist.text =
+                        item.song.artist.highlight(searchQuery, accentColor)
                     binding.musicItemDes.visibility = View.GONE
                     binding.musicItemSelect.isSelected = selectedSongIds.contains(item.song.id)
                 }
@@ -441,34 +448,14 @@ private class HiddenFoldersAddAdapter(
             selectionCountListener?.invoke(getSelectionCount())
         }
 
-        private fun updateSelectionTint() {
-            binding.musicItemSelect.setColorFilter(
-                if (binding.musicItemSelect.isSelected) {
+        private fun updateSelectionTint() = with(binding) {
+            musicItemSelect.setColorFilter(
+                if (musicItemSelect.isSelected) {
                     accentColor
                 } else {
-                    ContextCompat.getColor(context, R.color.white)
+                    ContextCompat.getColor(root.context, R.color.white)
                 }
             )
-        }
-
-        private fun highlight(text: String): CharSequence {
-            if (searchQuery.isBlank()) return text
-            val spannable = SpannableString(text)
-            var startIndex = text.indexOf(searchQuery, ignoreCase = true)
-            while (startIndex >= 0) {
-                spannable.setSpan(
-                    ForegroundColorSpan(accentColor),
-                    startIndex,
-                    startIndex + searchQuery.length,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                startIndex = text.indexOf(
-                    searchQuery,
-                    startIndex = startIndex + searchQuery.length,
-                    ignoreCase = true
-                )
-            }
-            return spannable
         }
     }
 

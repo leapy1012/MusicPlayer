@@ -10,15 +10,14 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.ObserveAlbumsByArtistUseCase
-import gd.app.musicplayer.domain.usecase.library.ObserveLibraryPreferenceChangesUseCase
+import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
-import gd.app.musicplayer.domain.usecase.library.GetSortStyleUseCase
+import gd.app.musicplayer.domain.usecase.library.UpdateLibrarySortUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
-import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ShuffleTracksUseCase
 import gd.app.musicplayer.domain.usecase.library.ClearMusicSetUseCase
-import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
+import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -32,15 +31,18 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class TrackListUiState(
     val tracks: List<Music> = emptyList(),
     val artistAlbums: List<MusicSet.Album> = emptyList(),
-    val trackMetadataDisplayMode: String = "",
     val isEmpty: Boolean = true
+)
+
+data class TrackListSortState(
+    val sortStyle: String = "",
+    val sortDescending: Boolean = false
 )
 
 sealed interface TrackListEvent {
@@ -66,9 +68,8 @@ class TrackListViewModel @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val observeTracksUseCase: ObserveTracksUseCase,
     private val observeAlbumsByArtistUseCase: ObserveAlbumsByArtistUseCase,
-    private val observeLibraryPreferenceChangesUseCase: ObserveLibraryPreferenceChangesUseCase,
-    private val getSortStyleUseCase: GetSortStyleUseCase,
-    private val playTracksUseCase: PlayTracksUseCase,
+    private val observeSortUseCase: ObserveSortUseCase,
+    private val updateLibrarySortUseCase: UpdateLibrarySortUseCase,
     private val shuffleTracksUseCase: ShuffleTracksUseCase,
     private val playNextTracksUseCase: PlayNextTracksUseCase,
     private val enqueueTracksUseCase: EnqueueTracksUseCase,
@@ -84,27 +85,38 @@ class TrackListViewModel @Inject constructor(
     val events: SharedFlow<TrackListEvent> =
         _events.asSharedFlow()
 
+    val sortState: StateFlow<TrackListSortState> =
+        currentMusicSet
+            .filterNotNull()
+            .flatMapLatest { musicSet ->
+                observeSortUseCase(musicSet)
+            }
+            .map { (style, descending) ->
+                TrackListSortState(
+                    sortStyle = style,
+                    sortDescending = descending
+                )
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+                initialValue = TrackListSortState()
+            )
 
     val uiState: StateFlow<TrackListUiState> =
         currentMusicSet
             .filterNotNull()
             .flatMapLatest { musicSet ->
-                observeLibraryPreferenceChangesUseCase().onStart { emit(Unit) }
-                    .flatMapLatest {
-                        combine(
-                            observeTracksUseCase(musicSet),
-                            observeArtistAlbums(musicSet),
-
-                            ) { tracks, albums ->
-                            TrackListUiState(
-                                tracks = tracks,
-                                artistAlbums = albums,
-                                trackMetadataDisplayMode = getSortStyleUseCase(musicSet),
-                                isEmpty = tracks.isEmpty()
-                            )
-                        }
-                    }
-
+                combine(
+                    observeTracksUseCase(musicSet),
+                    observeArtistAlbums(musicSet)
+                ) { tracks, albums ->
+                    TrackListUiState(
+                        tracks = tracks,
+                        artistAlbums = albums,
+                        isEmpty = tracks.isEmpty()
+                    )
+                }
             }
             .stateIn(
                 scope = viewModelScope,
@@ -120,32 +132,41 @@ class TrackListViewModel @Inject constructor(
     }
 
 
-    fun onMenuAction(action: MusicSetMenuAction) {
+    fun onMenuAction(action: ContextMenuAction) {
         when (action) {
-            MusicSetMenuAction.ShuffleAll -> {
+            ContextMenuAction.ShuffleAll -> {
                 shuffleAll()
             }
 
-            MusicSetMenuAction.PlayNext -> {
+            ContextMenuAction.PlayNext -> {
                 playNext()
             }
 
-            MusicSetMenuAction.AddToQueue -> {
+            ContextMenuAction.AddToQueue -> {
                 addToQueue()
             }
 
-            MusicSetMenuAction.AddToPlaylist -> {
+            ContextMenuAction.AddToPlaylist -> {
                 addToPlaylist()
             }
 
-            MusicSetMenuAction.ClearFavorites,
-            MusicSetMenuAction.ClearRecentlyAdded,
-            MusicSetMenuAction.ClearRecentlyPlayed,
-            MusicSetMenuAction.ClearMostPlayed -> {
+            ContextMenuAction.ClearFavorites,
+            ContextMenuAction.ClearRecentlyAdded,
+            ContextMenuAction.ClearRecentlyPlayed,
+            ContextMenuAction.ClearMostPlayed -> {
                 clearCurrentSet()
             }
 
             else -> Unit
+        }
+    }
+
+    fun onSortChanged(sortKey: String, descending: Boolean) {
+        val musicSet = currentMusicSet.value ?: return
+        android.util.Log.e("Leapy", "sortKey" + sortKey)
+        android.util.Log.e("Leapy", "descending" + descending)
+        viewModelScope.launch {
+            updateLibrarySortUseCase(musicSet, sortKey, descending)
         }
     }
 

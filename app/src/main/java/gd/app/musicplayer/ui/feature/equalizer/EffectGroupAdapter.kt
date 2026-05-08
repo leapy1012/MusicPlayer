@@ -7,7 +7,6 @@ import android.widget.TextView
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.playback.EffectGroupPreset
 import gd.app.musicplayer.playback.EffectGroupPresets
 
@@ -15,6 +14,7 @@ internal class EffectGroupAdapter(
     private val layoutInflater: LayoutInflater,
     private val headerView: View,
     private val useGridItem: Boolean,
+    private val applyTheme: (View) -> Unit,
     private val onSelectPreset: (EffectGroupPreset) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -35,20 +35,17 @@ internal class EffectGroupAdapter(
         return when (viewType) {
             VIEW_TYPE_HEADER -> {
                 (headerView.parent as? ViewGroup)?.removeView(headerView)
-                headerView.context.appDependencies.themeEngine.apply(headerView)
                 HeaderViewHolder(headerView)
             }
 
             VIEW_TYPE_GRID -> PresetViewHolder(
-                layoutInflater.inflate(R.layout.activity_effect_group_grid_item, parent, false).also {
-                    parent.context.appDependencies.themeEngine.apply(it)
-                }
+                layoutInflater.inflate(R.layout.activity_effect_group_grid_item, parent, false)
+                    .also(applyTheme)
             )
 
             else -> PresetViewHolder(
-                layoutInflater.inflate(R.layout.activity_effect_group_item, parent, false).also {
-                    parent.context.appDependencies.themeEngine.apply(it)
-                }
+                layoutInflater.inflate(R.layout.activity_effect_group_item, parent, false)
+                    .also(applyTheme)
             )
         }
     }

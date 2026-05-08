@@ -1,13 +1,14 @@
 package gd.app.musicplayer.playback
 
 import gd.app.musicplayer.R
+import gd.app.musicplayer.data.model.AudioEffectSettings
 import kotlin.math.roundToInt
 
 data class EffectGroupPreset(
     val id: Int,
     val iconRes: Int,
     val nameRes: Int,
-    val fiveBandLevels: IntArray,
+    val fiveBandLevels: List<Int>,
     val bassEnabled: Boolean = false,
     val bassStrength: Float = 0.5f,
     val virtualizerEnabled: Boolean = false,
@@ -21,7 +22,7 @@ object EffectGroupPresets {
             id = 0,
             iconRes = R.drawable.vector_sound_effect,
             nameRes = R.string.equalizer_effect_electronic_tube,
-            fiveBandLevels = intArrayOf(500, 50, 350, 0, -480),
+            fiveBandLevels = listOf(500, 50, 350, 0, -480),
             bassEnabled = true,
             bassStrength = 0.35f
         ),
@@ -29,7 +30,7 @@ object EffectGroupPresets {
             id = 1,
             iconRes = R.drawable.vector_sound_effect,
             nameRes = R.string.equalizer_effect_3d_rotate,
-            fiveBandLevels = intArrayOf(-300, -200, 200, 280, -100),
+            fiveBandLevels = listOf(-300, -200, 200, 280, -100),
             virtualizerEnabled = true,
             virtualizerStrength = 0.85f,
             reverbIndex = 2
@@ -38,7 +39,7 @@ object EffectGroupPresets {
             id = 2,
             iconRes = R.drawable.vector_sound_effect,
             nameRes = R.string.equalizer_effect_tone_low,
-            fiveBandLevels = intArrayOf(600, 400, 100, 0, 0),
+            fiveBandLevels = listOf(600, 400, 100, 0, 0),
             bassEnabled = true,
             bassStrength = 0.9f
         ),
@@ -46,7 +47,7 @@ object EffectGroupPresets {
             id = 3,
             iconRes = R.drawable.vector_sound_effect,
             nameRes = R.string.equalizer_effect_surround_sound,
-            fiveBandLevels = intArrayOf(500, 200, -100, 200, 500),
+            fiveBandLevels = listOf(500, 200, -100, 200, 500),
             virtualizerEnabled = true,
             virtualizerStrength = 1f,
             reverbIndex = 4
@@ -55,7 +56,7 @@ object EffectGroupPresets {
             id = 4,
             iconRes = R.drawable.vector_sound_effect,
             nameRes = R.string.equalizer_effect_magic_sound,
-            fiveBandLevels = intArrayOf(600, 500, 0, 200, 50),
+            fiveBandLevels = listOf(600, 500, 0, 200, 50),
             bassEnabled = true,
             bassStrength = 0.7f,
             virtualizerEnabled = true,
@@ -66,18 +67,18 @@ object EffectGroupPresets {
             id = 5,
             iconRes = R.drawable.vector_sound_effect,
             nameRes = R.string.equalizer_effect_Live_treble,
-            fiveBandLevels = intArrayOf(0, 0, 100, 400, 600)
+            fiveBandLevels = listOf(0, 0, 100, 400, 600)
         )
     )
 
     fun find(id: Int): EffectGroupPreset? = all.firstOrNull { it.id == id }
 
-    fun applyTo(settings: AudioEffectsManager.Settings): AudioEffectsManager.Settings {
+    fun applyTo(settings: AudioEffectSettings): AudioEffectSettings {
         if (!settings.effectGroupEnabled) return settings
         val preset = find(settings.effectGroupPresetId) ?: return settings
         return settings.copy(
             eqEnabled = true,
-            customFiveBandLevels = preset.fiveBandLevels.copyOf(),
+            customFiveBandLevels = preset.fiveBandLevels,
             customTenBandLevels = interpolateToTen(preset.fiveBandLevels),
             bassEnabled = preset.bassEnabled,
             bassStrength = preset.bassStrength,
@@ -87,9 +88,9 @@ object EffectGroupPresets {
         )
     }
 
-    private fun interpolateToTen(source: IntArray): IntArray {
-        if (source.size != 5) return IntArray(10)
-        return IntArray(10) { index ->
+    private fun interpolateToTen(source: List<Int>): List<Int> {
+        if (source.size != 5) return List(10) {0}
+        return List(10) { index ->
             val position = index * 4f / 9f
             val left = position.toInt().coerceIn(0, source.lastIndex)
             val right = (left + 1).coerceIn(0, source.lastIndex)

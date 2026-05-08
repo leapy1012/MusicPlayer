@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.R
+import gd.app.musicplayer.data.model.SmartPlaylistConfig
+import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveFavoriteCountUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveFolderCountUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveMainPlaylistsUseCase
@@ -13,9 +15,8 @@ import gd.app.musicplayer.domain.usecase.main.ObserveRecentAddCountUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveRecentPlayCountUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveTracksCountUseCase
 import gd.app.musicplayer.domain.usecase.main.UpdateMainPlaylistOrderUseCase
-import gd.app.musicplayer.domain.usecase.preferences.ObservePlaylistSortUseCase
+import gd.app.musicplayer.domain.usecase.playlist.ResetPlaylistsSortUseCase
 import gd.app.musicplayer.domain.usecase.preferences.ObserveSmartPlaylistConfigUseCase
-import gd.app.musicplayer.domain.usecase.preferences.ResetPlaylistSortUseCase
 import gd.app.musicplayer.playback.PlaybackStartupInitializer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -37,7 +38,7 @@ data class MainUiState(
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val observeMainPlaylistsUseCase: ObserveMainPlaylistsUseCase,
-    private val observePlaylistSortUseCase: ObservePlaylistSortUseCase,
+    private val observeSortUseCase: ObserveSortUseCase,
     private val observeSmartPlaylistConfigUseCase: ObserveSmartPlaylistConfigUseCase,
     private val observeTracksCountUseCase: ObserveTracksCountUseCase,
     private val observeFolderCountUseCase: ObserveFolderCountUseCase,
@@ -46,7 +47,7 @@ class MainViewModel @Inject constructor(
     private val observeRecentAddCountUseCase: ObserveRecentAddCountUseCase,
     private val observeMostPlayCountUseCase: ObserveMostPlayCountUseCase,
     private val updateMainPlaylistOrderUseCase: UpdateMainPlaylistOrderUseCase,
-    private val resetPlaylistSortUseCase: ResetPlaylistSortUseCase,
+    private val resetPlaylistsSortUseCase: ResetPlaylistsSortUseCase,
     private val playbackStartupInitializer: PlaybackStartupInitializer
 ) : ViewModel() {
 
@@ -58,7 +59,7 @@ class MainViewModel @Inject constructor(
 
     val playlists: StateFlow<List<MusicSet.Playlist>> = combine(
         observeMainPlaylistsUseCase(),
-        observePlaylistSortUseCase()
+        observeSortUseCase(MusicSet.Playlists)
     ) { playlists, (style, reversed) ->
         sortPlaylists(playlists, style, reversed)
     }
@@ -68,7 +69,7 @@ class MainViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    private val smartPlaylistConfig: Flow<gd.app.musicplayer.util.SmartPlaylistPreferenceOps.SmartPlaylistConfig> =
+    private val smartPlaylistConfig: Flow<SmartPlaylistConfig> =
         observeSmartPlaylistConfigUseCase()
 
     val items: StateFlow<List<MainItem>> = smartPlaylistConfig.flatMapLatest { config ->
@@ -79,17 +80,17 @@ class MainViewModel @Inject constructor(
             observeRecentPlayCountUseCase(
                 playlistWindowMs = config.windowDurationMs,
                 windowStartMs = config.windowStartMs,
-                playlistLimit = config.playlistLimit
+                playlistLimit = config.trackLimit
             ),
             observeRecentAddCountUseCase(
                 playlistWindowMs = config.windowDurationMs,
                 windowStartMs = config.windowStartMs,
-                playlistLimit = config.playlistLimit
+                playlistLimit = config.trackLimit
             ),
             observeMostPlayCountUseCase(
                 playlistWindowMs = config.windowDurationMs,
                 windowStartMs = config.windowStartMs,
-                playlistLimit = config.playlistLimit
+                playlistLimit = config.trackLimit
             )
         ) { values ->
             buildMainItems(
@@ -180,7 +181,7 @@ class MainViewModel @Inject constructor(
         if (playlistIdsInDisplayOrder.isEmpty()) return
 
         viewModelScope.launch {
-            resetPlaylistSortUseCase()
+            resetPlaylistsSortUseCase()
             updateMainPlaylistOrderUseCase(playlistIdsInDisplayOrder)
         }
     }

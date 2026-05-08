@@ -122,13 +122,13 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
         viewModel.startScan(
             ScanOptions(
-                excludeShort = scanCheckbox.isSelected,
+                excludeBySeconds = scanCheckbox.isSelected,
                 excludeBySize = scanCheckbox2.isSelected,
                 excludeRingtone = scanCheckbox3.isSelected,
-                durationSec = excludeDurationEditText.text?.toString()?.toIntOrNull()
-                    ?.coerceIn(1, 3600) ?: 60,
-                sizeKb = excludeSizeEditText.text?.toString()?.toIntOrNull()
-                    ?.coerceIn(1, 1_048_576) ?: 50
+                excludeSeconds = excludeDurationEditText.text?.toString()?.toLongOrNull()
+                    ?.coerceIn(1L, 3600L) ?: 60L,
+                excludeSizeKb = excludeSizeEditText.text?.toString()?.toLongOrNull()
+                    ?.coerceIn(1L, 1_048_576L) ?: 50L
             )
         )
     }
@@ -143,18 +143,18 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun bindOptions(options: ScanOptions) {
-        scanCheckbox.isSelected = options.excludeShort
+        scanCheckbox.isSelected = options.excludeBySeconds
         scanCheckbox2.isSelected = options.excludeBySize
         scanCheckbox3.isSelected = options.excludeRingtone
 
-        excludeDurationEditText.isEnabled = options.excludeShort
+        excludeDurationEditText.isEnabled = options.excludeBySeconds
         excludeSizeEditText.isEnabled = options.excludeBySize
 
-        if (excludeDurationEditText.text?.toString() != options.durationSec.toString()) {
-            excludeDurationEditText.setText(options.durationSec.toString())
+        if (excludeDurationEditText.text?.toString() != options.excludeSeconds.toString()) {
+            excludeDurationEditText.setText(options.excludeSeconds.toString())
         }
-        if (excludeSizeEditText.text?.toString() != options.sizeKb.toString()) {
-            excludeSizeEditText.setText(options.sizeKb.toString())
+        if (excludeSizeEditText.text?.toString() != options.excludeSizeKb.toString()) {
+            excludeSizeEditText.setText(options.excludeSizeKb.toString())
         }
     }
 

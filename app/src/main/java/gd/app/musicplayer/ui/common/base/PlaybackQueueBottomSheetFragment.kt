@@ -1,5 +1,6 @@
 package gd.app.musicplayer.ui.common.base
 
+import android.content.DialogInterface
 import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Configuration
@@ -9,6 +10,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -21,17 +23,18 @@ import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.theme.*
 import gd.app.musicplayer.core.util.ToastUtil
+import gd.app.musicplayer.data.repository.ThemeRepo
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.core.extension.isFavorite
 import gd.app.musicplayer.core.ui.dialog.BaseBottomSheetDialogFragment
 import gd.app.musicplayer.databinding.DialogQueueListBinding
 import gd.app.musicplayer.databinding.DialogQueueListItemBinding
+import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
 import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
 import gd.app.musicplayer.ui.feature.selection.ItemTouchStateListener
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 import java.util.Collections
 
@@ -39,24 +42,29 @@ import java.util.Collections
 class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
     private val viewModel: PlaybackQueueBottomSheetViewModel by viewModels()
 
+    @Inject lateinit var themeRepo: ThemeRepo
+
     private var _binding: DialogQueueListBinding? = null
     private val binding: DialogQueueListBinding
         get() = requireNotNull(_binding)
 
     private lateinit var adapter: QueueAdapter
+    private var playbackState: PlaybackQueueBottomSheetUiState = PlaybackQueueBottomSheetUiState()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.root.background = view.context.appDependencies.themeRepo
-            .getCorePalette(view.context)
+        binding.root.background = themeRepo
+            .getCorePalette()
             .getDialogSurfaceDrawable(view.context)
-        applyCurrentTheme(view)
+        (activity as? BaseActivity)?.applyThemeTo(view)
 
         adapter = QueueAdapter(
-            onTrackClicked = { /* position -> viewModel.playQueueAt(position, playbackState) */ },
-            onTrackRemoved = { /* position -> viewModel.removeQueueItem(position, playbackState) */ },
-            onTrackMoved = { /* queue -> viewModel.replaceQueuePreservingCurrentTrack(queue, playbackState) */},
+            palette = themeRepo.getCorePalette(),
+            accentColor = themeRepo.getAccentColor(),
+            onTrackClicked = { position -> viewModel.playQueueAt(position)},
+            onTrackRemoved = { position -> viewModel.removeQueueItem(position, playbackState) },
+            onTrackMoved = { queue -> viewModel.replaceQueuePreservingCurrentTrack(queue, playbackState) },
             onToggleFavorite = viewModel::toggleFavorite
         )
 
@@ -67,24 +75,24 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         binding.currentListClose.setOnClickListener {
             dismissAllowingStateLoss()
         }
-//        binding.currentListSave.setOnClickListener {
-//            val queue = viewModel.saveQueueToPlaylist(playbackState) ?: return@setOnClickListener
-//            ActivityPlaylistSelect.start(requireContext(), queue)
-//        }
-//        binding.currentListDelete.setOnClickListener {
-//            if (playbackState.queue.isEmpty()) return@setOnClickListener
-//            val config = MessageDialog.Config.create(requireContext()).apply {
-//                titleText = getString(R.string.clear)
-//                messageText = getString(R.string.clear_message)
-//                negativeButtonText = getString(R.string.cancel)
-//                positiveButtonText = getString(R.string.clear)
-//                positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
-//                    viewModel.clearQueueOrDismiss(playbackState)
-//                    dialog.dismiss()
-//                }
-//            }
-//            MessageDialog.show(requireActivity(), config)
-//        }
+        binding.currentListSave.setOnClickListener {
+            val queue = viewModel.saveQueueToPlaylist(playbackState) ?: return@setOnClickListener
+            ActivityPlaylistSelect.start(requireContext(), queue)
+        }
+
+        binding.currentListDelete.setOnClickListener {
+            if (playbackState.queue.isEmpty()) return@setOnClickListener
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.clear)
+                .setMessage(R.string.clear_message)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.clear) { dialog: DialogInterface, _: Int ->
+                    viewModel.clearQueueOrDismiss(playbackState)
+                    dialog.dismiss()
+                }
+                .show()
+        }
+
         binding.currentListMode.setOnClickListener {
             viewModel.cyclePlayMode()
         }
@@ -130,6 +138,7 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
     }
 
     private fun render(state: PlaybackQueueBottomSheetUiState) {
+        playbackState = state
         binding.currentListTitle.text = getString(R.string.music_queue, state.queue.size)
         binding.currentListSave.isEnabled = state.queue.isNotEmpty()
         binding.currentListDelete.isEnabled = state.queue.isNotEmpty()
@@ -171,6 +180,8 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
 }
 
 private class QueueAdapter(
+    private val palette: ThemePalette,
+    private val accentColor: Int,
     private val onTrackClicked: (Int) -> Unit,
     private val onTrackRemoved: (Int) -> Unit,
     private val onTrackMoved: (List<Music>) -> Unit,
@@ -253,7 +264,9 @@ private class QueueAdapter(
             onClick = { onTrackClicked(position) },
             onRemove = { onTrackRemoved(position) },
             onFavoriteClick = { onToggleFavorite(queue[position]) },
-            onDragStart = { itemTouchHelper.startDrag(holder) }
+            onDragStart = { itemTouchHelper.startDrag(holder) },
+            palette = palette,
+            accentColor = accentColor
         )
     }
 
@@ -263,7 +276,7 @@ private class QueueAdapter(
         payloads: MutableList<Any>
     ) {
         if (payloads.contains(PAYLOAD_FAVORITE)) {
-            holder.bindFavorite(queue[position])
+            holder.bindFavorite(queue[position], palette, accentColor)
             return
         }
         super.onBindViewHolder(holder, position, payloads)
@@ -286,13 +299,12 @@ private class QueueAdapter(
             onClick: () -> Unit,
             onRemove: () -> Unit,
             onFavoriteClick: () -> Unit,
-            onDragStart: () -> Unit
+            onDragStart: () -> Unit,
+            palette: ThemePalette,
+            accentColor: Int
         ) {
-            val context = binding.root.context
-            val palette = context.appDependencies.themeRepo
-                .getCorePalette(context)
             val titleColor = if (isCurrent) {
-                context.appDependencies.themeRepo.getAccentColor(context)
+                accentColor
             } else {
                 palette.titleColor
             }
@@ -302,7 +314,7 @@ private class QueueAdapter(
             binding.currentListMusicArtist.text = " - " + music.artist
             binding.currentListMusicTitle.setTextColor(titleColor)
             binding.currentListMusicArtist.setTextColor(artistColor)
-            bindFavorite(music)
+            bindFavorite(music, palette, accentColor)
 
             binding.root.alpha = if (isCurrent) 1f else 0.92f
             binding.root.setOnClickListener { onClick() }
@@ -316,13 +328,15 @@ private class QueueAdapter(
             }
         }
 
-        fun bindFavorite(music: Music) {
-            val context = binding.root.context
-            val palette = context.appDependencies.themeRepo.getCorePalette(context)
+        fun bindFavorite(
+            music: Music,
+            palette: ThemePalette,
+            accentColor: Int
+        ) {
             val isFavorite = music.isFavorite()
             binding.currentListFavorite.isSelected = isFavorite
             binding.currentListFavorite.imageTintList = ColorStateList.valueOf(
-                if (isFavorite) context.appDependencies.themeRepo.getAccentColor(context)
+                if (isFavorite) accentColor
                 else palette.titleColor
             )
         }

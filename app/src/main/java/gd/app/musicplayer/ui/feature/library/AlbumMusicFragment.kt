@@ -24,15 +24,17 @@ import gd.app.musicplayer.core.extension.supportsCompactAlbumHeader
 import gd.app.musicplayer.core.util.ToastUtil
 import gd.app.musicplayer.data.model.ArtworkRequest
 import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.data.repository.ThemeRepo
 import gd.app.musicplayer.databinding.FragmentAlbumMusicBinding
 import gd.app.musicplayer.ui.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.feature.search.SearchActivity
-import gd.app.musicplayer.ui.feature.selection.ActivityMusicSelect
+import gd.app.musicplayer.ui.feature.selection.MusicSelectActivity
 import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
 import gd.app.musicplayer.ui.feature.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.ui.common.menu.MusicSetContextMenu
-import gd.app.musicplayer.ui.common.menu.MusicSetMenuAction
+import gd.app.musicplayer.ui.common.menu.ContextMenu
+import gd.app.musicplayer.ui.common.menu.ContextMenuAction
+import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -40,6 +42,8 @@ import kotlin.math.min
 class AlbumMusicFragment :
     ViewBindingFragment<FragmentAlbumMusicBinding>(),
     Toolbar.OnMenuItemClickListener {
+
+    @Inject lateinit var themeRepo: ThemeRepo
 
     private lateinit var musicSet: MusicSet
 
@@ -225,7 +229,7 @@ class AlbumMusicFragment :
             }
 
             R.id.menu_add -> {
-                ActivityMusicSelect.start(
+                MusicSelectActivity.start(
                     context = requireContext(),
                     musicSet = musicSet
                 )
@@ -237,47 +241,44 @@ class AlbumMusicFragment :
     }
 
     private fun showMoreMenu(anchor: View) {
-        MusicSetContextMenu(
+        val sortState = childTrackListFragment?.currentSortState() ?: TrackListSortState()
+        ContextMenu(
             context = requireContext(),
             musicSet = musicSet,
-            onAction = ::handleMusicSetMenuAction
+            theme = themeRepo.getCorePalette(),
+            onAction = ::handleMusicSetMenuAction,
+            currentSortStyle = sortState.sortStyle,
+            currentSortDescending = sortState.sortDescending
         ).show(anchor)
     }
 
-    private fun handleMusicSetMenuAction(action: MusicSetMenuAction) {
+    private fun handleMusicSetMenuAction(action: ContextMenuAction) {
         when (action) {
-            MusicSetMenuAction.Select -> {
+            ContextMenuAction.Select -> {
                 openSelection()
             }
 
-            MusicSetMenuAction.ShuffleAll,
-            MusicSetMenuAction.PlayNext,
-            MusicSetMenuAction.AddToQueue,
-            MusicSetMenuAction.AddToPlaylist,
-            MusicSetMenuAction.ClearFavorites,
-            MusicSetMenuAction.ClearRecentlyAdded,
-            MusicSetMenuAction.ClearRecentlyPlayed,
-            MusicSetMenuAction.ClearMostPlayed -> {
-                childTrackListFragment?.handleMusicSetMenuAction(action)
+            is ContextMenuAction.SortChanged,
+            ContextMenuAction.ShuffleAll,
+            ContextMenuAction.PlayNext,
+            ContextMenuAction.AddToQueue,
+            ContextMenuAction.AddToPlaylist,
+            ContextMenuAction.ClearFavorites,
+            ContextMenuAction.ClearRecentlyAdded,
+            ContextMenuAction.ClearRecentlyPlayed,
+            ContextMenuAction.ClearMostPlayed -> {
+                childTrackListFragment?.handleContextMenuAction(action)
             }
 
-            MusicSetMenuAction.Rename -> {
+            ContextMenuAction.Rename -> {
                 showRenameDialog()
             }
 
-            MusicSetMenuAction.ManageArtwork -> {
+            ContextMenuAction.ManageArtwork -> {
                 showManageArtworkDialog()
             }
 
-            is MusicSetMenuAction.SortChanged -> {
-                childTrackListFragment?.onSortChanged()
-            }
-
-            MusicSetMenuAction.SortBy -> {
-                // Sort submenu is opened inside MusicSetContextMenu.
-            }
-
-            MusicSetMenuAction.AddToHomeScreen -> {
+            ContextMenuAction.AddToHomeScreen -> {
                 val context = requireContext()
                 val success = MusicSetShortcutHelper.requestPinnedShortcut(
                     context = context,
@@ -290,17 +291,7 @@ class AlbumMusicFragment :
                 )
             }
 
-            MusicSetMenuAction.DeleteEmptyPlaylists -> {
-
-            }
-
-            MusicSetMenuAction.DeletePlaylist,
-            MusicSetMenuAction.BackupPlaylists,
-            MusicSetMenuAction.RestorePlaylists,
-            MusicSetMenuAction.ViewAsList,
-            MusicSetMenuAction.ViewAsGrid -> {
-                // Not handled by AlbumMusicFragment.
-            }
+            else -> Unit
         }
     }
 

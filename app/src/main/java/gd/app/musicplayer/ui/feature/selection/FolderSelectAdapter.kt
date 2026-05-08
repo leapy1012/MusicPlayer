@@ -12,11 +12,10 @@ import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
 import gd.app.musicplayer.ui.common.model.loadArtwork
-import gd.app.musicplayer.ui.theme.applyCurrentTheme
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 
 class FolderSelectAdapter(
+    private val accentColor: Int,
     private val onItemClick: (MusicSet.Folder) -> Unit
 ) : ListAdapter<MusicSet.Folder, FolderSelectAdapter.ViewHolder>(DiffCallback()) {
 
@@ -34,8 +33,7 @@ class FolderSelectAdapter(
             parent,
             false
         )
-        applyCurrentTheme(binding.root)
-        return ViewHolder(binding, onItemClick)
+        return ViewHolder(binding, accentColor, onItemClick)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -49,12 +47,12 @@ class FolderSelectAdapter(
 
     class ViewHolder(
         private val binding: ActivityMusicSelectItemBinding,
+        private val accentColor: Int,
         private val onItemClick: (MusicSet.Folder) -> Unit
     ) : BaseViewHolder(binding.root) {
 
         fun bind(item: MusicSet.Folder, highlightQuery: String) {
             val context = binding.root.context
-            val accentColor = context.appDependencies.themeRepo.getAccentColor(context)
 
             binding.musicItemMenu.setImageResource(R.drawable.vector_menu_folder)
             binding.musicItemMenu.clearColorFilter()

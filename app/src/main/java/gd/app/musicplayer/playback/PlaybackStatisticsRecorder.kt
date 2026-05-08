@@ -1,37 +1,55 @@
 package gd.app.musicplayer.playback
 
-import android.content.Context
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.data.repository.StatsRepo
+import gd.app.musicplayer.di.ApplicationScope
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-class PlaybackStatisticsRecorder(
-    private val context: Context,
-    private val scope: CoroutineScope,
+@Singleton
+class PlaybackStatisticsRecorder @Inject constructor(
+    private val playbackStatsRepo: StatsRepo,
+    @param:ApplicationScope private val applicationScope: CoroutineScope
 ) {
-    private var lastStartedTrackId = Long.MIN_VALUE
+
+    @Volatile
+    private var lastStartedTrackId: Long = NO_TRACK_ID
 
     fun reset() {
-        lastStartedTrackId = Long.MIN_VALUE
+        lastStartedTrackId = NO_TRACK_ID
     }
 
-    fun recordStartIfNeeded(music: Music?, force: Boolean = false) {
-        if (music == null) return
-        if (!force && lastStartedTrackId == music.id) return
-        lastStartedTrackId = music.id
-        scope.launch {
-            context.appDependencies.musicDao.updateTrackPlayTime(
-                trackId = music.id,
+    fun recordStartIfNeeded(
+        music: Music?,
+        force: Boolean = false
+    ) {
+        val track = music ?: return
+
+        if (!force && lastStartedTrackId == track.id) {
+            return
+        }
+
+        lastStartedTrackId = track.id
+
+        applicationScope.launch {
+            playbackStatsRepo.updateTrackPlayTime(
+                trackId = track.id,
                 playTime = System.currentTimeMillis()
             )
         }
     }
 
     fun recordCompletion(music: Music?) {
-        if (music == null) return
-        scope.launch {
-            context.appDependencies.musicDao.incrementTrackPlayCount(music.id)
+        val track = music ?: return
+
+        applicationScope.launch {
+            playbackStatsRepo.incrementTrackPlayCount(track.id)
         }
+    }
+
+    private companion object {
+        const val NO_TRACK_ID = Long.MIN_VALUE
     }
 }

@@ -1,41 +1,126 @@
-# AGENTS.md
+# AGENTS.md — Offline Music Player Project Rules
 
-## Project Rule
+## Project goal
 
-This project is a modern offline Android music player app.
+This is an Android offline music player project for an AOSP/OEM-style system app.
 
-Always refactor and write code using:
+The app should follow a modern Kotlin Android architecture using:
 
 - Kotlin
-- MVVM architecture
-- Hilt dependency injection
-- UseCases for business logic
-- Repository pattern for data/player/preferences access
-- StateFlow for UI state
-- SharedFlow/Channel for one-time events
+- XML layouts + ViewBinding
+- MVVM
+- Clean Architecture style
+- Media3 for playback
+- Room for local database
+- Hilt for dependency injection
+- Coroutines and Flow
+- Navigation Component
+- BottomSheetBehavior for the player panel
+- MediaStore for local audio scanning
+- OEM-style dynamic theme/background system
 
-## Main Architecture Flow
+Do not rewrite the whole project unless explicitly requested. Work incrementally and preserve existing behavior.
 
-Activity / Fragment
-→ ViewModel
-→ UseCase
-→ Repository
-→ DataSource / Player / Preferences / Database / Legacy API
+---
 
-## Core Rules
+## Required package structure
 
-- Activity and Fragment should only handle UI work:
-    - view binding
-    - lifecycle
-    - click listeners
-    - rendering state
-    - navigation
-    - collecting flows
+Use this target package structure when creating or moving files:
 
-- Do not put business logic in Activity or Fragment.
-- ViewModel should expose immutable UI state.
-- ViewModel should call UseCases, not directly access data sources.
-- UseCases should contain one clear app action.
-- Repositories should hide data/player/preference implementation details.
-- Use Hilt constructor injection.
-- Preserve existing behavior when refactoring.
+```text
+com/android/music/
+├── MusicApplication.kt
+├── MainActivity.kt
+│
+├── core/
+│   ├── constants/
+│   ├── dispatcher/
+│   ├── extension/
+│   ├── permission/
+│   ├── result/
+│   ├── theme/
+│   ├── artwork/
+│   ├── audio/
+│   └── view/
+│
+├── data/
+│   ├── db/
+│   │   ├── MusicDatabase.kt
+│   │   ├── dao/
+│   │   └── entity/
+│   ├── datastore/
+│   ├── mapper/
+│   ├── media/
+│   ├── metadata/
+│   └── repository/
+│
+├── domain/
+│   ├── model/
+│   ├── repository/
+│   └── usecase/
+│       ├── song/
+│       ├── album/
+│       ├── artist/
+│       ├── folder/
+│       ├── playlist/
+│       ├── favorite/
+│       ├── history/
+│       ├── queue/
+│       ├── playback/
+│       ├── scanner/
+│       └── theme/
+│
+├── playback/
+│   ├── service/
+│   ├── session/
+│   ├── controller/
+│   ├── notification/
+│   ├── queue/
+│   ├── state/
+│   └── mapper/
+│
+├── scanner/
+│   ├── MusicScanner.kt
+│   ├── MusicScanManager.kt
+│   ├── MusicScanWorker.kt
+│   ├── ScanState.kt
+│   └── ScanScheduler.kt
+│
+├── ui/
+│   ├── common/
+│   ├── main/
+│   ├── home/
+│   ├── songs/
+│   ├── albums/
+│   ├── artists/
+│   ├── folders/
+│   ├── playlists/
+│   ├── favorites/
+│   ├── recent/
+│   ├── mostplayed/
+│   ├── player/
+│   ├── queue/
+│   ├── search/
+│   ├── settings/
+│   ├── theme/
+│   └── equalizer/
+│
+├── di/
+│   ├── AppModule.kt
+│   ├── DatabaseModule.kt
+│   ├── RepositoryModule.kt
+│   ├── PlaybackModule.kt
+│   ├── ScannerModule.kt
+│   ├── ThemeModule.kt
+│   └── DispatcherModule.kt
+│
+├── receiver/
+│   ├── BootCompletedReceiver.kt
+│   ├── HeadsetReceiver.kt
+│   └── BluetoothReceiver.kt
+│
+└── util/
+    ├── TimeFormatter.kt
+    ├── ColorUtils.kt
+    ├── BitmapUtils.kt
+    └── LogUtils.kt

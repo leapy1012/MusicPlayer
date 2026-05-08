@@ -1,12 +1,12 @@
 package gd.app.musicplayer.domain.usecase.theme
 
 import android.content.Context
-import gd.app.musicplayer.data.repo.ThemeRepo
+import gd.app.musicplayer.data.repository.ThemeRepo
 import javax.inject.Inject
 
 class UpdateThemeAppearanceUseCase @Inject constructor(
     private val themeRepo: ThemeRepo
 ) {
-    operator fun invoke(context: Context, imageName: String, overlayColor: Int, blur: Int) =
-        themeRepo.updateThemeAppearance(context, imageName, overlayColor, blur)
+    suspend operator fun invoke(imageName: String, overlayColor: Int, blur: Int) =
+        themeRepo.updateThemeAppearance(imageName, overlayColor, blur)
 }

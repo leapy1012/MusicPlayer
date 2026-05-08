@@ -3,7 +3,6 @@ package gd.app.musicplayer.playback
 import android.content.Intent
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.playback.PlaybackMode
-import gd.app.musicplayer.util.PreferenceUtil
 
 class PlaybackServiceCommandHandler(
     private val service: MusicPlaybackService,
@@ -34,6 +33,7 @@ class PlaybackServiceCommandHandler(
         fun setStopAfterCurrentTrack(enabled: Boolean)
         fun applyAudioEffects()
         fun applyPlaybackTuning()
+        fun toggleDesktopLyricsLock()
         fun currentMusic(): Music?
     }
 
@@ -78,7 +78,7 @@ class PlaybackServiceCommandHandler(
             MusicPlaybackService.ACTION_CUSTOM_UNFAVORITE -> callbacks.currentMusic()?.let(callbacks::toggleFavorite)
 
             MusicPlaybackService.ACTION_CHANGE_MUSIC_BY_INDEX -> handlePlayByIndex(intent)
-            MusicPlaybackService.ACTION_DESK_LRC_LOCK -> toggleDesktopLyricsLock()
+            MusicPlaybackService.ACTION_DESK_LRC_LOCK -> callbacks.toggleDesktopLyricsLock()
 
             MusicPlaybackService.ACTION_PLAY_FROM_QUEUE -> {
                 val queue = intent.musicListExtraCompat(MusicPlaybackService.EXTRA_QUEUE_ITEMS)
@@ -137,8 +137,4 @@ class PlaybackServiceCommandHandler(
         if (index >= 0) callbacks.playIndex(index)
     }
 
-    private fun toggleDesktopLyricsLock() {
-        val preferences = PreferenceUtil.getInstance(service.applicationContext)
-        preferences.setDesktopLyricsLocked(!preferences.isDesktopLyricsLocked())
-    }
 }

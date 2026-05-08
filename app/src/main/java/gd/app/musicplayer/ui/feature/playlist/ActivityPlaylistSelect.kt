@@ -69,7 +69,10 @@ class ActivityPlaylistSelect : BaseActivity() {
     }
 
     private fun buildAdapter(): PlaylistSelectAdapter =
-        PlaylistSelectAdapter(layoutInflater).apply {
+        PlaylistSelectAdapter(
+            inflater = layoutInflater,
+            accentColor = themeRepo.getAccentColor()
+        ).apply {
             setOnCreatePlaylistClickListener(::showCreatePlaylistDialog)
             setOnSelectionCountChangedListener {
             }

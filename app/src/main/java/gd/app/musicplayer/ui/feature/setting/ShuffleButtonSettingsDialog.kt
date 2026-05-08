@@ -13,7 +13,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogShuffleSettingBinding
 import gd.app.musicplayer.databinding.DialogShuffleSettingItemBinding
 import gd.app.musicplayer.core.ui.dialog.BaseDialogFragment
-import gd.app.musicplayer.util.PreferenceUtil
+
 
 class ShuffleButtonSettingsDialog : BaseDialogFragment(), View.OnClickListener {
 
@@ -21,13 +21,11 @@ class ShuffleButtonSettingsDialog : BaseDialogFragment(), View.OnClickListener {
     private val binding: DialogShuffleSettingBinding
         get() = requireNotNull(_binding)
 
-    private lateinit var preferenceUtil: PreferenceUtil
     private lateinit var adapter: ShuffleSettingsAdapter
     private var items: MutableList<ShuffleSettingItem> = mutableListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        preferenceUtil = PreferenceUtil.getInstance(requireContext())
         items = restoreItems(savedInstanceState).toMutableList()
     }
 
@@ -82,17 +80,14 @@ class ShuffleButtonSettingsDialog : BaseDialogFragment(), View.OnClickListener {
         }
 
         return DEFAULT_TARGETS.map { id ->
-            ShuffleSettingItem(id = id, enabled = preferenceUtil.isShowShuffleButtonEnabled(id))
+//            ShuffleSettingItem(id = id, enabled = musicPreferencesRepository.isShowShuffleButtonEnabled(id))
+            ShuffleSettingItem(id = id, enabled = true)
         }
     }
 
     private fun saveSelection() {
-        var anyEnabled = false
-        items.forEach { item ->
-            preferenceUtil.setShowShuffleButtonEnabled(item.id, item.enabled)
-            anyEnabled = anyEnabled || item.enabled
-        }
-        preferenceUtil.setShowShuffleButtonEnabled(anyEnabled)
+        // No persisted shuffle-button target setting exists in the current settings layer.
+        // Keep the user's local selection for this dialog session only.
     }
 
     data class ShuffleSettingItem(

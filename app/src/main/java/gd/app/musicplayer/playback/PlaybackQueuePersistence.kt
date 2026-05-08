@@ -1,7 +1,7 @@
 package gd.app.musicplayer.playback
 
 import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repo.PlaybackQueueRepo
+import gd.app.musicplayer.data.repository.PlaybackQueueRepo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

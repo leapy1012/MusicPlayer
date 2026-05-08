@@ -15,7 +15,6 @@ import gd.app.musicplayer.data.model.MusicSet
 import gd.app.musicplayer.core.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityMusicEditListItemBinding
 import gd.app.musicplayer.core.ui.view.MusicRecyclerView
-import gd.app.musicplayer.core.extension.appDependencies
 import gd.app.musicplayer.core.extension.highlightText
 import gd.app.musicplayer.core.extension.isRtl
 import gd.app.musicplayer.core.extension.isRtlLayoutSupported
@@ -23,6 +22,7 @@ import java.util.Collections
 
 class MusicEditAdapter(
     private val recyclerView: MusicRecyclerView,
+    private val accentColor: Int,
     private val musicSet: MusicSet,
     private val dragEnabled: Boolean,
     private val onOrderChanged: (MusicSet, List<Music>) -> Unit
@@ -49,8 +49,6 @@ class MusicEditAdapter(
     private var itemTouchHelper: ItemTouchHelper? = null
     private var isDragging = false
     private var nextRowToken = 1L
-
-//    private val highlightColor: Int = appDependencies.themeRepo.getAccentColor()
 
     init {
         setHasStableIds(true)
@@ -137,7 +135,6 @@ class MusicEditAdapter(
         private fun bindMusic(music: Music) {
             currentMusic = music
             val context = binding.root.context
-            val accentColor = context.appDependencies.themeRepo.getAccentColor(context)
 
             music.loadMusicArtwork(binding.musicItemAlbum)
             binding.musicItemTitle.text = context.highlightText(music.title, searchKeyword, accentColor, "")
@@ -154,7 +151,7 @@ class MusicEditAdapter(
             val context = binding.root.context
             binding.musicItemMenu.isSelected = selected
             val tint = if (selected) {
-                context.appDependencies.themeRepo.getAccentColor(context)
+                accentColor
             } else {
                 ContextCompat.getColor(context, R.color.item_artist_color)
             }

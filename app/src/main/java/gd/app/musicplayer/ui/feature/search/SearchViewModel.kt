@@ -9,12 +9,11 @@ import gd.app.musicplayer.data.model.ListItem
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.model.Music
 import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.domain.usecase.library.GetAllTracksByCurrentSortUseCase
+import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.RestartCurrentTrackUseCase
-import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.preferences.GetQueueForSearchingModeUseCase
-import gd.app.musicplayer.domain.usecase.preferences.IsReplaySongEnabledUseCase
+import gd.app.musicplayer.domain.usecase.preferences.GetReplaySongEnabledUseCase
 import gd.app.musicplayer.domain.usecase.preferences.IsTrackClickOperationEnabledUseCase
 import gd.app.musicplayer.domain.usecase.search.ObserveDefaultSearchMusicSetsUseCase
 import gd.app.musicplayer.domain.usecase.search.ObserveDefaultSearchPlaylistsUseCase
@@ -23,6 +22,7 @@ import gd.app.musicplayer.domain.usecase.search.ObserveSearchMusicSetsUseCase
 import gd.app.musicplayer.domain.usecase.search.ObserveSearchPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.search.ObserveSearchTracksUseCase
 import gd.app.musicplayer.domain.usecase.search.SortSearchResultsUseCase
+import gd.app.musicplayer.playback.PlaybackController
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -49,23 +49,19 @@ class SearchViewModel @Inject constructor(
     private val observeSearchMusicSetsUseCase: ObserveSearchMusicSetsUseCase,
     private val observeDefaultSearchPlaylistsUseCase: ObserveDefaultSearchPlaylistsUseCase,
     private val observeSearchPlaylistsUseCase: ObserveSearchPlaylistsUseCase,
-    private val isReplaySongEnabledUseCase: IsReplaySongEnabledUseCase,
+    private val getReplaySongEnabledUseCase: GetReplaySongEnabledUseCase,
     private val isTrackClickOperationEnabledUseCase: IsTrackClickOperationEnabledUseCase,
     private val getQueueForSearchingModeUseCase: GetQueueForSearchingModeUseCase,
     private val sortSearchResultsUseCase: SortSearchResultsUseCase,
     private val playTracksUseCase: PlayTracksUseCase,
     private val restartCurrentTrackUseCase: RestartCurrentTrackUseCase,
-    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
-    private val getAllTracksByCurrentSortUseCase: GetAllTracksByCurrentSortUseCase
+    private val observeTracksUseCase: ObserveTracksUseCase,
+    private val playbackController: PlaybackController,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val sortVersion = MutableStateFlow(0)
     private val _events = MutableSharedFlow<SearchEvent>()
     val events: SharedFlow<SearchEvent> = _events.asSharedFlow()
-    val currentTrackId: StateFlow<Long?> =
-        observePlaybackStateUseCase()
-            .map { it.currentTrack?.id }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private data class SearchSource(
         val tracks: List<Music>,
@@ -106,7 +102,7 @@ class SearchViewModel @Inject constructor(
 
     suspend fun onSongClicked(song: Music, currentTrackId: Long?) {
         val shouldReplayCurrent =
-            isReplaySongEnabledUseCase() && currentTrackId == song.id
+            getReplaySongEnabledUseCase() && currentTrackId == song.id
 
         if (shouldReplayCurrent) {
             restartCurrentTrackUseCase(appContext)
@@ -124,16 +120,17 @@ class SearchViewModel @Inject constructor(
     }
 
     suspend fun resolvePlaybackQueue(clickedTrack: Music): Pair<List<Music>, Int> {
-        val queue = if (getQueueForSearchingModeUseCase() == 0) {
-            getAllTracksByCurrentSortUseCase(appContext)
-        } else {
-            sections.value.firstOrNull { section ->
-                section.items.firstOrNull() is ListItem.MusicItem
-            }?.items?.mapNotNull { (it as? ListItem.MusicItem)?.music }.orEmpty()
-        }.ifEmpty { listOf(clickedTrack) }
-
-        val startIndex = queue.indexOfFirst { it.id == clickedTrack.id }.coerceAtLeast(0)
-        return queue to startIndex
+//        val queue = if (getQueueForSearchingModeUseCase() == 0) {
+//            observeTracksUseCase(MusicSet.Tracks)
+//        } else {
+//            sections.value.firstOrNull { section ->
+//                section.items.firstOrNull() is ListItem.MusicItem
+//            }?.items?.mapNotNull { (it as? ListItem.MusicItem)?.music }.orEmpty()
+//        }.ifEmpty { listOf(clickedTrack) }
+//
+//        val startIndex = queue.indexOfFirst { it.id == clickedTrack.id }.coerceAtLeast(0)
+//        return queue to startIndex
+        TODO()
     }
 
     private fun observeSearchSource(query: String) = combine(
