@@ -6,7 +6,7 @@ import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
 import gd.app.musicplayer.data.local.preference.ReplayGainSettingPreference
 import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.domain.model.Music
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine

@@ -166,7 +166,7 @@
                         android:textColor="#ffffff"
                         android:textSize="12sp" />
 
-                    <gd.app.musicplayer.core.ui.view.SeekBar
+                    <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/lock_progress"
                         android:layout_width="0dp"
                         android:layout_height="32dp"

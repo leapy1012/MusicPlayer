@@ -1,6 +1,6 @@
 package gd.app.musicplayer.playback
 
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.domain.model.Music
 
 sealed interface PlaybackCommand {
 

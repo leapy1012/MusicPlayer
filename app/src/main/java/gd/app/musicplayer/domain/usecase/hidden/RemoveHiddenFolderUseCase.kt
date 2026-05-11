@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.hidden
 
-import gd.app.musicplayer.data.repository.HiddenRepo
+import gd.app.musicplayer.domain.repository.HiddenRepo
 import javax.inject.Inject
 
 class RemoveHiddenFolderUseCase @Inject constructor(

@@ -15,7 +15,7 @@
         android:layout_weight="1"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"/>
-    <gd.app.musicplayer.core.ui.view.SelectBox
+    <gd.app.musicplayer.core.designsystem.view.SelectBox
         android:id="@+id/music_item_expanded"
         android:tag="itemTextExtraColor"
         android:padding="8dp"

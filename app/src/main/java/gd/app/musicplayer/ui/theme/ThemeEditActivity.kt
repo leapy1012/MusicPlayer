@@ -13,17 +13,16 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.yalantis.ucrop.UCrop
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.applySystemBarInsets
-import gd.app.musicplayer.core.extension.startActivityCompat
-import gd.app.musicplayer.core.theme.ThemeBitmapLoader
-import gd.app.musicplayer.core.ui.drawable.DrawableUtil
+import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.designsystem.theme.ThemeBitmapLoader
 import gd.app.musicplayer.databinding.ActivityThemeEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.player.BottomMiniPlayerFragment
-import gd.app.musicplayer.ui.player.BottomPlayerFragment
-import gd.app.musicplayer.core.ui.view.SeekBar
+import gd.app.musicplayer.ui.player.mini.BottomMiniPlayerFragment
+import gd.app.musicplayer.ui.player.bottomsheet.BottomPlayerFragment
+import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
-import gd.app.musicplayer.ui.feature.library.ArtworkCropActivity
+import gd.app.musicplayer.ui.library.artwork.ArtworkCropActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -236,3 +235,4 @@ class ThemeEditActivity : BaseActivity() {
         }
     }
 }
+

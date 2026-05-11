@@ -8,7 +8,7 @@
     android:scrollbars="none"
     android:fillViewport="true">
 
-    <gd.app.musicplayer.core.ui.view.FixedHeightLinearLayout
+    <gd.app.musicplayer.core.designsystem.view.FixedHeightLinearLayout
         android:id="@+id/equalizer_content_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -40,7 +40,7 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <gd.app.musicplayer.core.ui.view.SeekBar
+            <gd.app.musicplayer.core.designsystem.view.SeekBar
                 android:id="@+id/equalizer_volume_progress"
                 android:layout_width="0dp"
                 android:layout_height="@dimen/equalizer_seek_bar_width_2"
@@ -86,7 +86,7 @@
                 android:textSize="14sp"
                 app:textAllCaps="true" />
 
-            <gd.app.musicplayer.core.ui.view.SelectBox
+            <gd.app.musicplayer.core.designsystem.view.SelectBox
                 android:id="@+id/equalizer_volume_boost_box"
                 android:layout_width="@dimen/equalizer_toggle_width"
                 android:layout_height="@dimen/equalizer_toggle_height"
@@ -106,7 +106,7 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <gd.app.musicplayer.core.ui.view.SeekBar
+            <gd.app.musicplayer.core.designsystem.view.SeekBar
                 android:id="@+id/equalizer_volume_boost_progress"
                 android:layout_width="0dp"
                 android:layout_height="@dimen/equalizer_seek_bar_width_2"
@@ -177,7 +177,7 @@
                 android:textSize="14sp"
                 app:textAllCaps="true" />
 
-            <gd.app.musicplayer.core.ui.view.SelectBox
+            <gd.app.musicplayer.core.designsystem.view.SelectBox
                 android:id="@+id/equalizer_balance_box"
                 android:layout_width="@dimen/equalizer_toggle_width"
                 android:layout_height="@dimen/equalizer_toggle_height"
@@ -204,7 +204,7 @@
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
 
-                <gd.app.musicplayer.core.ui.view.RotateStepBar
+                <gd.app.musicplayer.core.designsystem.view.RotateStepBar
                     android:id="@+id/equalizer_left_rotate"
                     android:layout_width="@dimen/equalizer_bass_height"
                     android:layout_height="@dimen/equalizer_bass_height"
@@ -235,7 +235,7 @@
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
 
-                <gd.app.musicplayer.core.ui.view.RotateStepBar
+                <gd.app.musicplayer.core.designsystem.view.RotateStepBar
                     android:id="@+id/equalizer_right_rotate"
                     android:layout_width="@dimen/equalizer_bass_height"
                     android:layout_height="@dimen/equalizer_bass_height"
@@ -264,5 +264,6 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
-    </gd.app.musicplayer.core.ui.view.FixedHeightLinearLayout>
+    </gd.app.musicplayer.core.designsystem.view.FixedHeightLinearLayout>
 </androidx.core.widget.NestedScrollView>
+

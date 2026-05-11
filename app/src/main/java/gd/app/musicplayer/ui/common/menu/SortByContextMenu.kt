@@ -4,9 +4,9 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.view.View
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.util.ToastUtil
-import gd.app.musicplayer.data.model.ContextMenuItem
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.domain.model.ContextMenuItem
+import gd.app.musicplayer.domain.model.MusicSet
 
 class SortByContextMenu(
     context: Context,

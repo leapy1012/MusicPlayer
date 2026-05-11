@@ -9,7 +9,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.ContextMenuItem
+import gd.app.musicplayer.domain.model.ContextMenuItem
 
 class ContextMenuAdapter(
     context: Context,

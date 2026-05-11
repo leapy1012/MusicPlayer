@@ -1,10 +1,9 @@
 package gd.app.musicplayer.domain.usecase.search
 
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
 
 import javax.inject.Inject
-import kotlin.random.Random
 
 class SortSearchResultsUseCase @Inject constructor(
 //    private val musicPreferencesRepository: MusicPreferencesRepository

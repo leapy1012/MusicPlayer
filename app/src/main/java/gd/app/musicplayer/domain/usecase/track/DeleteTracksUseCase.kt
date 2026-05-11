@@ -5,8 +5,8 @@ import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repository.LibraryRepo
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.repository.LibraryRepo
 import java.io.File
 import javax.inject.Inject
 

@@ -1,9 +1,8 @@
 package gd.app.musicplayer.ui.theme
 
-import android.content.Context
 import android.view.View
-import gd.app.musicplayer.core.theme.ThemePalette
-import gd.app.musicplayer.core.theme.ThemeRegistry
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
 import javax.inject.Inject
 import javax.inject.Singleton
 

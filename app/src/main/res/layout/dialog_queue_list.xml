@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:tag="bottomDialogSurface">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,10 +18,9 @@
             android:id="@+id/current_list_mode"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="@drawable/selector_image_bg_w"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:tag="dialogTitle"
+            android:tag="dialogTitleIcon"
             app:srcCompat="@drawable/vector_mode_order" />
 
         <androidx.appcompat.widget.AppCompatTextView
@@ -39,20 +39,18 @@
             android:id="@+id/current_list_save"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="@drawable/selector_image_bg_w"
             android:padding="10dp"
             android:scaleType="fitCenter"
-            android:tag="dialogTitle"
+            android:tag="dialogTitleIcon"
             app:srcCompat="@drawable/vector_queue_save" />
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/current_list_delete"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="@drawable/selector_image_bg_w"
             android:padding="9.5dp"
             android:scaleType="fitCenter"
-            android:tag="dialogTitle"
+            android:tag="dialogTitleIcon"
             app:srcCompat="@drawable/vector_queue_delete" />
     </LinearLayout>
 
@@ -78,9 +76,8 @@
         android:id="@+id/current_list_close"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:background="@drawable/selector_item_bg_t_aw"
         android:gravity="center"
-        android:tag="dialogItem"
+        android:tag="dialogButton"
         android:text="@string/close"
         android:textColor="#ffffff"
         android:textSize="16sp" />

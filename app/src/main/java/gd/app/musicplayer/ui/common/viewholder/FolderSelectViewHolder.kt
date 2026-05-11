@@ -1,13 +1,10 @@
 package gd.app.musicplayer.ui.common.viewholder
 
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
-import gd.app.musicplayer.core.extension.highlight
+import gd.app.musicplayer.core.common.extension.highlight
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
 
 

@@ -1,7 +1,7 @@
 package gd.app.musicplayer.ui.theme
 
-import gd.app.musicplayer.data.model.ThemeGroup
-import gd.app.musicplayer.data.model.ThemeItem
+import gd.app.musicplayer.domain.model.ThemeGroup
+import gd.app.musicplayer.domain.model.ThemeItem
 import java.io.File
 
 object ThemeItemMapper {

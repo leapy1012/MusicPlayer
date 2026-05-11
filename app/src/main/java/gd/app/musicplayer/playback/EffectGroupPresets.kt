@@ -1,7 +1,7 @@
 package gd.app.musicplayer.playback
 
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.AudioEffectSettings
+import gd.app.musicplayer.domain.model.AudioEffectSettings
 import kotlin.math.roundToInt
 
 data class EffectGroupPreset(

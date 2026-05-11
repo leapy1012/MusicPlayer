@@ -64,7 +64,7 @@
             android:paddingRight="@dimen/widget_preview_margin_h"
             android:paddingBottom="@dimen/widget_preview_margin_v">
 
-            <gd.app.musicplayer.core.ui.view.ZoomFrameLayout
+            <gd.app.musicplayer.core.designsystem.view.ZoomFrameLayout
                 android:id="@+id/widget_preview_container"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -108,7 +108,7 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <gd.app.musicplayer.core.ui.view.SeekBar
+                        <gd.app.musicplayer.core.designsystem.view.SeekBar
                             android:id="@+id/widget_opacity_seek"
                             android:layout_width="0dp"
                             android:layout_height="24dp"
@@ -148,7 +148,7 @@
                         android:text="@string/widget_theme"
                         android:textSize="@dimen/widget_config_sub_text_size" />
 
-                    <gd.app.musicplayer.core.ui.view.WidgetRecyclerView
+                    <gd.app.musicplayer.core.designsystem.view.WidgetRecyclerView
                         android:id="@+id/widget_theme_recycler"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -162,7 +162,7 @@
                         android:layout_marginTop="@dimen/widget_config_margin_v_1"
                         android:layout_marginEnd="@dimen/widget_config_content_margin_start" />
 
-                    <gd.app.musicplayer.core.ui.view.WidgetRecyclerView
+                    <gd.app.musicplayer.core.designsystem.view.WidgetRecyclerView
                         android:id="@+id/widget_style_recycler"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

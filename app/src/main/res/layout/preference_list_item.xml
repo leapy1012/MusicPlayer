@@ -51,7 +51,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_goneMarginEnd="12dp" />
 
-    <gd.app.musicplayer.core.ui.view.SelectBox
+    <gd.app.musicplayer.core.designsystem.view.SelectBox
         android:id="@+id/checkbox"
         android:layout_width="48dp"
         android:layout_height="48dp"

@@ -23,17 +23,19 @@ import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.theme.*
-import gd.app.musicplayer.core.util.ToastUtil
-import gd.app.musicplayer.data.repository.ThemeRepo
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.core.extension.isFavorite
-import gd.app.musicplayer.core.ui.dialog.BaseBottomSheetDialogFragment
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.messageColor
+import gd.app.musicplayer.core.designsystem.theme.titleColor
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.domain.repository.ThemeRepo
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.core.common.extension.isFavorite
+import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
 import gd.app.musicplayer.databinding.DialogQueueListBinding
 import gd.app.musicplayer.databinding.DialogQueueListItemBinding
-import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
-import gd.app.musicplayer.ui.feature.selection.ItemMoveListener
-import gd.app.musicplayer.ui.feature.selection.ItemTouchStateListener
+import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.selection.ItemMoveListener
+import gd.app.musicplayer.ui.selection.ItemTouchStateListener
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 import java.util.Collections
@@ -54,14 +56,12 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.root.background = themeRepo
-            .getCorePalette()
-            .getDialogSurfaceDrawable(view.context)
-        (activity as? BaseActivity)?.applyThemeTo(view)
-
         adapter = QueueAdapter(
-            palette = themeRepo.getCorePalette(),
-            accentColor = themeRepo.getAccentColor(),
+            themeProvider = themeRepo::getCorePalette,
+            accentColorProvider = themeRepo::getAccentColor,
+            applyTheme = { itemView ->
+                (activity as? BaseActivity)?.applyThemeTo(itemView)
+            },
             onTrackClicked = { position -> viewModel.playQueueAt(position)},
             onTrackRemoved = { position -> viewModel.removeQueueItem(position, playbackState) },
             onTrackMoved = { queue -> viewModel.replaceQueuePreservingCurrentTrack(queue, playbackState) },
@@ -106,9 +106,17 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
                 launch {
                     viewModel.playModeUiState.collect { state ->
                         binding.currentListMode.setImageResource(state.iconRes)
+                        (activity as? BaseActivity)?.applyThemeTo(binding.currentListMode)
                     }
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::adapter.isInitialized) {
+            adapter.refreshTheme()
         }
     }
 
@@ -180,8 +188,9 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
 }
 
 private class QueueAdapter(
-    private val palette: ThemePalette,
-    private val accentColor: Int,
+    private val themeProvider: () -> ThemePalette,
+    private val accentColorProvider: () -> Int,
+    private val applyTheme: (View) -> Unit,
     private val onTrackClicked: (Int) -> Unit,
     private val onTrackRemoved: (Int) -> Unit,
     private val onTrackMoved: (List<Music>) -> Unit,
@@ -224,6 +233,10 @@ private class QueueAdapter(
         notifyItemChanged(index, PAYLOAD_FAVORITE)
     }
 
+    fun refreshTheme() {
+        notifyDataSetChanged()
+    }
+
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
         this.recyclerView = recyclerView
@@ -252,6 +265,7 @@ private class QueueAdapter(
             parent,
             false
         )
+        applyTheme(binding.root)
         return QueueViewHolder(binding)
     }
 
@@ -265,8 +279,9 @@ private class QueueAdapter(
             onRemove = { onTrackRemoved(position) },
             onFavoriteClick = { onToggleFavorite(queue[position]) },
             onDragStart = { itemTouchHelper.startDrag(holder) },
-            palette = palette,
-            accentColor = accentColor
+            palette = themeProvider(),
+            accentColor = accentColorProvider(),
+            applyTheme = applyTheme
         )
     }
 
@@ -276,7 +291,12 @@ private class QueueAdapter(
         payloads: MutableList<Any>
     ) {
         if (payloads.contains(PAYLOAD_FAVORITE)) {
-            holder.bindFavorite(queue[position], palette, accentColor)
+            holder.bindFavorite(
+                music = queue[position],
+                palette = themeProvider(),
+                accentColor = accentColorProvider(),
+                applyTheme = applyTheme
+            )
             return
         }
         super.onBindViewHolder(holder, position, payloads)
@@ -301,7 +321,8 @@ private class QueueAdapter(
             onFavoriteClick: () -> Unit,
             onDragStart: () -> Unit,
             palette: ThemePalette,
-            accentColor: Int
+            accentColor: Int,
+            applyTheme: (View) -> Unit
         ) {
             val titleColor = if (isCurrent) {
                 accentColor
@@ -314,7 +335,7 @@ private class QueueAdapter(
             binding.currentListMusicArtist.text = " - " + music.artist
             binding.currentListMusicTitle.setTextColor(titleColor)
             binding.currentListMusicArtist.setTextColor(artistColor)
-            bindFavorite(music, palette, accentColor)
+            bindFavorite(music, palette, accentColor, applyTheme)
 
             binding.root.alpha = if (isCurrent) 1f else 0.92f
             binding.root.setOnClickListener { onClick() }
@@ -331,14 +352,19 @@ private class QueueAdapter(
         fun bindFavorite(
             music: Music,
             palette: ThemePalette,
-            accentColor: Int
+            accentColor: Int,
+            applyTheme: (View) -> Unit
         ) {
             val isFavorite = music.isFavorite()
             binding.currentListFavorite.isSelected = isFavorite
-            binding.currentListFavorite.imageTintList = ColorStateList.valueOf(
-                if (isFavorite) accentColor
-                else palette.titleColor
-            )
+            applyTheme(binding.currentListFavorite)
+            if (!isFavorite) {
+                binding.currentListFavorite.imageTintList = ColorStateList.valueOf(palette.titleColor)
+            } else {
+                binding.currentListFavorite.imageTintList = ColorStateList.valueOf(accentColor)
+            }
+            applyTheme(binding.currentListRemove)
+            applyTheme(binding.musicItemDrag)
         }
 
         override fun onItemSelected() {

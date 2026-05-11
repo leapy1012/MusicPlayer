@@ -6,4 +6,5 @@ data class NotificationRenderState(
     val playing: Boolean,
     val artworkTrackId: Long,
     val artworkReady: Boolean,
+    val desktopLyricsEnabled: Boolean
 )

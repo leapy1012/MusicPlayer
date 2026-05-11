@@ -36,7 +36,10 @@ class DragDismissLayout @JvmOverloads constructor(
 
     private var allowedDirections: Int = Direction.ALL
     private var disallowDragIntercept = false
-    private var hasSentCancelToChild = false
+
+    private var initialX = 0f
+    private var initialY = 0f
+    private var isInterceptingDrag = false
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -44,30 +47,75 @@ class DragDismissLayout @JvmOverloads constructor(
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-        dragHelper.processTouchEvent(event)
-        return true
+        if (disallowDragIntercept) {
+            dragHelper.cancel()
+            return false
+        }
+
+        return try {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = event.x
+                    initialY = event.y
+                    isInterceptingDrag = false
+                    dragCallback.reset()
+
+                    dragHelper.processTouchEvent(event)
+
+                    false
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.x - initialX
+                    val dy = event.y - initialY
+
+                    val direction = resolveDirection(dx, dy)
+
+                    if (direction != 0 &&
+                        isDirectionAllowed(direction) &&
+                        isDragPastSlop(dx, dy)
+                    ) {
+                        isInterceptingDrag = true
+                    }
+
+                    isInterceptingDrag && dragHelper.shouldInterceptTouchEvent(event)
+                }
+
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL -> {
+                    isInterceptingDrag = false
+                    dragHelper.cancel()
+                    false
+                }
+
+                else -> {
+                    dragHelper.shouldInterceptTouchEvent(event)
+                }
+            }
+        } catch (_: Throwable) {
+            dragHelper.cancel()
+            false
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        try {
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                hasSentCancelToChild = false
-            }
-
-            if (!disallowDragIntercept) {
-                dragHelper.processTouchEvent(event)
-            }
-
-            dispatchEventToChild(event)
-
-            if (event.actionMasked == MotionEvent.ACTION_UP && !dragCallback.isDragging) {
-                performClick()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        if (disallowDragIntercept) {
+            return false
         }
 
-        return true
+        return try {
+            dragHelper.processTouchEvent(event)
+
+            if (event.actionMasked == MotionEvent.ACTION_UP &&
+                !dragCallback.isDragging
+            ) {
+                performClick()
+            }
+
+            true
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     override fun performClick(): Boolean {
@@ -77,14 +125,22 @@ class DragDismissLayout @JvmOverloads constructor(
     override fun computeScroll() {
         if (dragHelper.continueSettling(true)) {
             ViewCompat.postInvalidateOnAnimation(this)
-        } else if (dragCallback.isDismissed) {
+            return
+        }
+
+        if (dragCallback.isDismissed) {
             notifyDismissed()
         }
     }
 
     override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
-        // Intentionally ignored.
-        // This layout manages drag interception manually.
+        disallowDragIntercept = disallowIntercept
+
+        if (disallowIntercept) {
+            dragHelper.cancel()
+        }
+
+        super.requestDisallowInterceptTouchEvent(disallowIntercept)
     }
 
     fun setAllowedDirections(directions: Int) {
@@ -107,30 +163,36 @@ class DragDismissLayout @JvmOverloads constructor(
         dismissListener = listener
     }
 
-    private fun dispatchEventToChild(event: MotionEvent) {
-        val child = contentView ?: return
-
-        if (disallowDragIntercept || hasSentCancelToChild || !dragCallback.hasDragStarted) {
-            child.dispatchTouchEvent(event)
-            return
-        }
-
-        hasSentCancelToChild = true
-
-        val cancelEvent = MotionEvent.obtain(event).apply {
-            action = MotionEvent.ACTION_CANCEL
-        }
-
-        child.dispatchTouchEvent(cancelEvent)
-        cancelEvent.recycle()
-    }
-
     private fun notifyDismissed() {
         dragCallback.isDismissed = false
 
         post {
-            contentView?.let { dismissListener?.onDismissed(it) }
+            contentView?.let { view ->
+                dismissListener?.onDismissed(view)
+            }
         }
+    }
+
+    private fun resolveDirection(
+        dx: Float,
+        dy: Float
+    ): Int {
+        if (abs(dx) < touchSlop && abs(dy) < touchSlop) {
+            return 0
+        }
+
+        return if (abs(dx) > abs(dy)) {
+            if (dx < 0f) Direction.LEFT else Direction.RIGHT
+        } else {
+            if (dy < 0f) Direction.UP else Direction.DOWN
+        }
+    }
+
+    private fun isDragPastSlop(
+        dx: Float,
+        dy: Float
+    ): Boolean {
+        return abs(dx) > touchSlop || abs(dy) > touchSlop
     }
 
     private fun isDirectionAllowed(direction: Int): Boolean {
@@ -140,26 +202,52 @@ class DragDismissLayout @JvmOverloads constructor(
     private inner class DragCallback : ViewDragHelper.Callback() {
 
         private var dragDirection = 0
-        private var accumulatedDx = 0
-        private var accumulatedDy = 0
 
         var isDismissed = false
+
         var isDragging = false
             private set
 
-        val hasDragStarted: Boolean
-            get() = dragDirection != 0
+        fun reset() {
+            dragDirection = 0
+            isDismissed = false
+            isDragging = false
+        }
 
-        override fun tryCaptureView(child: View, pointerId: Int): Boolean {
+        override fun tryCaptureView(
+            child: View,
+            pointerId: Int
+        ): Boolean {
             return child == contentView
         }
 
-        override fun onViewCaptured(capturedChild: View, activePointerId: Int) {
-            dragDirection = 0
-            accumulatedDx = 0
-            accumulatedDy = 0
-            isDismissed = false
-            isDragging = false
+        override fun onViewCaptured(
+            capturedChild: View,
+            activePointerId: Int
+        ) {
+            reset()
+        }
+
+        override fun getViewHorizontalDragRange(child: View): Int {
+            return if (
+                isDirectionAllowed(Direction.LEFT) ||
+                isDirectionAllowed(Direction.RIGHT)
+            ) {
+                child.width
+            } else {
+                0
+            }
+        }
+
+        override fun getViewVerticalDragRange(child: View): Int {
+            return if (
+                isDirectionAllowed(Direction.UP) ||
+                isDirectionAllowed(Direction.DOWN)
+            ) {
+                child.height
+            } else {
+                0
+            }
         }
 
         override fun clampViewPositionHorizontal(
@@ -170,17 +258,10 @@ class DragDismissLayout @JvmOverloads constructor(
             val width = child.width
 
             if (dragDirection == 0) {
-                accumulatedDx += dx
-
-                if (abs(accumulatedDx) < touchSlop) {
-                    return 0
-                }
-
                 val detectedDirection =
                     if (left < 0) Direction.LEFT else Direction.RIGHT
 
                 if (!isDirectionAllowed(detectedDirection)) {
-                    dragHelper.cancel()
                     return 0
                 }
 
@@ -203,17 +284,10 @@ class DragDismissLayout @JvmOverloads constructor(
             val height = child.height
 
             if (dragDirection == 0) {
-                accumulatedDy += dy
-
-                if (abs(accumulatedDy) < touchSlop) {
-                    return 0
-                }
-
                 val detectedDirection =
                     if (top < 0) Direction.UP else Direction.DOWN
 
                 if (!isDirectionAllowed(detectedDirection)) {
-                    dragHelper.cancel()
                     return 0
                 }
 
@@ -243,9 +317,10 @@ class DragDismissLayout @JvmOverloads constructor(
                 Direction.LEFT -> {
                     if (
                         releasedChild.left < 0 &&
-                        xvel < 0f &&
-                        (abs(releasedChild.left) > width * HORIZONTAL_DISMISS_THRESHOLD ||
-                                xvel < -MIN_FLING_VELOCITY)
+                        (
+                                abs(releasedChild.left) > width * HORIZONTAL_DISMISS_THRESHOLD ||
+                                        xvel < -MIN_FLING_VELOCITY
+                                )
                     ) {
                         finalLeft = -width
                         isDismissed = true
@@ -255,9 +330,10 @@ class DragDismissLayout @JvmOverloads constructor(
                 Direction.RIGHT -> {
                     if (
                         releasedChild.left > 0 &&
-                        xvel > 0f &&
-                        (releasedChild.left > width * HORIZONTAL_DISMISS_THRESHOLD ||
-                                xvel > MIN_FLING_VELOCITY)
+                        (
+                                releasedChild.left > width * HORIZONTAL_DISMISS_THRESHOLD ||
+                                        xvel > MIN_FLING_VELOCITY
+                                )
                     ) {
                         finalLeft = width
                         isDismissed = true
@@ -267,9 +343,10 @@ class DragDismissLayout @JvmOverloads constructor(
                 Direction.UP -> {
                     if (
                         releasedChild.top < 0 &&
-                        yvel < 0f &&
-                        (abs(releasedChild.top) > height * VERTICAL_DISMISS_THRESHOLD ||
-                                yvel < -MIN_FLING_VELOCITY)
+                        (
+                                abs(releasedChild.top) > height * VERTICAL_DISMISS_THRESHOLD ||
+                                        yvel < -MIN_FLING_VELOCITY
+                                )
                     ) {
                         finalTop = -height
                         isDismissed = true
@@ -279,9 +356,10 @@ class DragDismissLayout @JvmOverloads constructor(
                 Direction.DOWN -> {
                     if (
                         releasedChild.top > 0 &&
-                        yvel > 0f &&
-                        (releasedChild.top > height * VERTICAL_DISMISS_THRESHOLD ||
-                                yvel > MIN_FLING_VELOCITY)
+                        (
+                                releasedChild.top > height * VERTICAL_DISMISS_THRESHOLD ||
+                                        yvel > MIN_FLING_VELOCITY
+                                )
                     ) {
                         finalTop = height
                         isDismissed = true
@@ -289,7 +367,11 @@ class DragDismissLayout @JvmOverloads constructor(
                 }
             }
 
-            dragHelper.settleCapturedViewAt(finalLeft, finalTop)
+            dragHelper.settleCapturedViewAt(
+                finalLeft,
+                finalTop
+            )
+
             dragDirection = 0
             isDragging = false
 
@@ -298,8 +380,8 @@ class DragDismissLayout @JvmOverloads constructor(
     }
 
     private companion object {
-        const val HORIZONTAL_DISMISS_THRESHOLD = 0.30f
-        const val VERTICAL_DISMISS_THRESHOLD = 0.25f
-        const val MIN_FLING_VELOCITY = 4000f
+        private const val HORIZONTAL_DISMISS_THRESHOLD = 0.30f
+        private const val VERTICAL_DISMISS_THRESHOLD = 0.25f
+        private const val MIN_FLING_VELOCITY = 4000f
     }
 }

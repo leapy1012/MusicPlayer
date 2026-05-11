@@ -1,8 +1,9 @@
 package gd.app.musicplayer.playback
 
 import android.content.Intent
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.playback.PlaybackMode
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.playback.service.MusicPlaybackService
 
 class PlaybackServiceCommandHandler(
     private val service: MusicPlaybackService,
@@ -121,7 +122,7 @@ class PlaybackServiceCommandHandler(
             ?: callbacks.currentMusic()
 
         if (music == null || music.id <= 0L) {
-            gd.app.musicplayer.core.util.ToastUtil.show(
+            ToastUtil.show(
                 service.applicationContext,
                 service.getString(android.R.string.unknownName)
             )

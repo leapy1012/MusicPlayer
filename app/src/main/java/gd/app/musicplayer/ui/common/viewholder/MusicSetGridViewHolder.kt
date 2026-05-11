@@ -1,8 +1,7 @@
 package gd.app.musicplayer.ui.common.viewholder
 
-import androidx.room.util.ViewInfo
-import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.model.ListItem
+import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.model.ListItem
 import gd.app.musicplayer.databinding.FragmentAlbumGridItemBinding
 
 class MusicSetGridViewHolder(

@@ -11,10 +11,10 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.databinding.ActivityMainBinding
-import gd.app.musicplayer.ui.main.MainFragment
-import gd.app.musicplayer.core.extension.isTablet
-import gd.app.musicplayer.core.extension.screenWidth
-import gd.app.musicplayer.core.extension.startActivityCompat
+import gd.app.musicplayer.ui.home.MainFragment
+import gd.app.musicplayer.core.common.extension.isTablet
+import gd.app.musicplayer.core.common.extension.screenWidth
+import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 
 @AndroidEntryPoint

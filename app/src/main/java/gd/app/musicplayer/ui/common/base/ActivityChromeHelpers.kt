@@ -4,8 +4,8 @@ import android.view.View
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.applySystemBarInsets
-import gd.app.musicplayer.core.extension.navigateBack
+import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.core.common.extension.navigateBack
 
 fun BaseActivity.setupEdgeToEdgeToolbar(
     root: View,

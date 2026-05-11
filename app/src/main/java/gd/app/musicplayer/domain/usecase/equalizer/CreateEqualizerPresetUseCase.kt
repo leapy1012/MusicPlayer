@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.equalizer
 
-import gd.app.musicplayer.data.repository.EqualizerPresetRepository
+import gd.app.musicplayer.domain.repository.EqualizerPresetRepository
 import javax.inject.Inject
 
 class CreateEqualizerPresetUseCase @Inject constructor(

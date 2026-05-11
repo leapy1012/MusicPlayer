@@ -79,7 +79,7 @@
             android:layout_weight="1"
             android:padding="16dp" />
 
-        <gd.app.musicplayer.core.ui.view.ColorPickerView
+        <gd.app.musicplayer.core.designsystem.view.ColorPickerView
             android:id="@+id/accent_color_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -103,3 +103,4 @@
             android:text="@string/ok" />
     </LinearLayout>
 </LinearLayout>
+

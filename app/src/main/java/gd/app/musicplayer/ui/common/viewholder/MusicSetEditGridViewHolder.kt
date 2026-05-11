@@ -2,8 +2,8 @@ package gd.app.musicplayer.ui.common.viewholder
 
 import androidx.core.content.ContextCompat
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.ListItem
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.ListItem
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSetEditGridBinding
 
 class MusicSetEditGridViewHolder(

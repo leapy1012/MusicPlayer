@@ -2,10 +2,10 @@ package gd.app.musicplayer.ui.common.menu
 
 import android.content.Context
 import android.view.View
-import gd.app.musicplayer.core.theme.ThemePalette
-import gd.app.musicplayer.core.theme.accentColor
-import gd.app.musicplayer.data.model.ContextMenuItem
-import gd.app.musicplayer.data.model.MenuItemModel
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.domain.model.ContextMenuItem
+import gd.app.musicplayer.domain.model.MenuItemModel
 
 class EditMorePopupMenu(
     context: Context,

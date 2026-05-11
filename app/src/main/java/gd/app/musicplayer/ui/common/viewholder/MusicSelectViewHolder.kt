@@ -4,8 +4,8 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.highlight
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.core.common.extension.highlight
+import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
 
 class MusicSelectViewHolder(

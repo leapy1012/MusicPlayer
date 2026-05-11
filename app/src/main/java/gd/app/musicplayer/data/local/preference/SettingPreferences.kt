@@ -1,8 +1,8 @@
 package gd.app.musicplayer.data.local.preference
 
 import android.graphics.Color
-import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfig
-import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfigStore
+import gd.app.musicplayer.ui.library.model.LibraryTabConfig
+import gd.app.musicplayer.ui.library.model.LibraryTabConfigStore
 
 data class SettingPreferences(
     val playMode: Int = 1,

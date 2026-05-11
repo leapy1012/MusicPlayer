@@ -11,9 +11,10 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import gd.app.musicplayer.core.theme.ThemeObserver
-import gd.app.musicplayer.core.theme.ThemeRegistry
-import gd.app.musicplayer.data.repository.ThemeRepo
+import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
+import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.ui.theme.ThemeEngine
 import javax.inject.Inject
 
@@ -99,7 +100,7 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
         super.onStop()
     }
 
-    override fun onThemeChanged(palette: gd.app.musicplayer.core.theme.ThemePalette?) {
+    override fun onThemeChanged(palette: ThemePalette?) {
         applyThemeTo(findViewById(android.R.id.content))
     }
 

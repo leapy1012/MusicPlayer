@@ -1,29 +1,19 @@
 package gd.app.musicplayer.ui.common.base
 
-import android.app.Dialog
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.dialog.BaseBottomSheetDialogFragment
-import gd.app.musicplayer.core.ui.drawable.DrawableUtil
+import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
+import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
 
 abstract class BaseBottomRecyclerMenuDialog : BaseBottomSheetDialogFragment() {
 
@@ -73,11 +63,6 @@ abstract class BaseBottomRecyclerMenuDialog : BaseBottomSheetDialogFragment() {
         return view
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        (activity as? BaseActivity)?.applyThemeTo(view)
-    }
-
     override fun onDestroyView() {
         recyclerView = null
         super.onDestroyView()
@@ -107,7 +92,7 @@ abstract class BaseBottomRecyclerMenuDialog : BaseBottomSheetDialogFragment() {
     }
 
     protected fun applyDialogItemBackground(view: View, pressedColor: Int) {
-        view.background = DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
+        view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
     }
 
     protected open fun onReadArguments(arguments: Bundle) = Unit

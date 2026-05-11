@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.playback
 
-import gd.app.musicplayer.data.repository.PlaybackQueueRepo
+import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import javax.inject.Inject
 
 class ClearPersistedPlaybackQueueUseCase @Inject constructor(

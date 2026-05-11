@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.scan
 
-import gd.app.musicplayer.data.db.entity.MusicEntity
-import gd.app.musicplayer.data.repository.ScanRepo
+import gd.app.musicplayer.data.local.db.entity.MusicEntity
+import gd.app.musicplayer.domain.repository.ScanRepo
 import javax.inject.Inject
 
 class UpsertScannedTracksUseCase @Inject constructor(

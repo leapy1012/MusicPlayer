@@ -7,10 +7,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.isFavorite
-import gd.app.musicplayer.data.model.MenuItemModel
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.core.common.extension.isFavorite
+import gd.app.musicplayer.domain.model.MenuItemModel
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
@@ -21,10 +21,10 @@ import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
 import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
-import gd.app.musicplayer.ui.feature.selection.MusicEditActivity
-import gd.app.musicplayer.core.util.ToastUtil
-import gd.app.musicplayer.ui.feature.playlist.ActivityPlaylistSelect
-import gd.app.musicplayer.ui.feature.selection.MusicShareSupport
+import gd.app.musicplayer.ui.selection.MusicEditActivity
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.selection.MusicShareSupport
 import kotlinx.coroutines.launch
 
 /** c9.a **/

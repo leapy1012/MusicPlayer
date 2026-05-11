@@ -6,7 +6,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.ThemeGroup
+import gd.app.musicplayer.domain.model.ThemeGroup
 
 class ThemePagerAdapter(
     private val activity: FragmentActivity,

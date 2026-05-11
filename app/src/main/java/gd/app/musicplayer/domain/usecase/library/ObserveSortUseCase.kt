@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.library
 
 import gd.app.musicplayer.data.local.preference.SortPreferencesDataStore
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.MusicSet
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

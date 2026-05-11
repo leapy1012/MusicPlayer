@@ -13,9 +13,9 @@ import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.getMaxScreenSize
-import gd.app.musicplayer.core.extension.getMinScreenSize
-import gd.app.musicplayer.core.ui.drawable.DrawableUtil
+import gd.app.musicplayer.core.common.extension.getMaxScreenSize
+import gd.app.musicplayer.core.common.extension.getMinScreenSize
+import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
 
 abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
 
@@ -176,7 +176,7 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
 
             else -> {
                 if (pressedColor != null) {
-                    themedView.background = DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
+                    themedView.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
                     true
                 } else {
                     false

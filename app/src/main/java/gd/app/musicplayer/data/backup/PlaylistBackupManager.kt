@@ -2,9 +2,9 @@ package gd.app.musicplayer.data.backup
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.db.dao.MusicDao
-import gd.app.musicplayer.data.db.entity.MusicPlaylistEntity
-import gd.app.musicplayer.data.repository.PlaylistRepo
+import gd.app.musicplayer.data.local.db.dao.MusicDao
+import gd.app.musicplayer.data.local.db.entity.MusicPlaylistEntity
+import gd.app.musicplayer.domain.repository.PlaylistRepo
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File

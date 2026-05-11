@@ -4,9 +4,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.media.session.MediaSession
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.playback.MusicPlaybackService
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.playback.service.MusicPlaybackService
 
 class DefaultMusicNotificationContent(
     private val music: Music?,

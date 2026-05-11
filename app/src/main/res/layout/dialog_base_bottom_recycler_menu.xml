@@ -6,7 +6,7 @@
     android:background="@color/black"
     android:clipToPadding="false"
     android:orientation="vertical"
-    android:tag="dialogSurface">
+    android:tag="bottomDialogSurface">
 
     <LinearLayout
         android:id="@+id/bottom_recycler_title_container"

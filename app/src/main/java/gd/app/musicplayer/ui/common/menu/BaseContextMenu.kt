@@ -10,9 +10,9 @@ import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.PopupWindow
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.density
-import gd.app.musicplayer.core.extension.dpToPx
-import gd.app.musicplayer.data.model.ContextMenuItem
+import gd.app.musicplayer.core.common.extension.density
+import gd.app.musicplayer.core.common.extension.dpToPx
+import gd.app.musicplayer.domain.model.ContextMenuItem
 import kotlin.math.max
 
 abstract class BaseContextMenu(

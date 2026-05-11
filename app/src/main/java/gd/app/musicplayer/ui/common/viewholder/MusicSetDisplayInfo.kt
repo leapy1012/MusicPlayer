@@ -2,7 +2,7 @@ package gd.app.musicplayer.ui.common.viewholder
 
 import android.content.res.Resources
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
 
 internal data class MusicSetDisplayInfo(

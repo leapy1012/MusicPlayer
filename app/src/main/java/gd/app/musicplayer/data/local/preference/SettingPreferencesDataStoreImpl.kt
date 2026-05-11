@@ -4,8 +4,8 @@ import androidx.datastore.preferences.core.Preferences
 import gd.app.musicplayer.core.datastore.MusicDataStore
 import gd.app.musicplayer.core.datastore.SettingsKeys
 import gd.app.musicplayer.playback.PlaybackMode
-import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfig
-import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfigStore
+import gd.app.musicplayer.ui.library.model.LibraryTabConfig
+import gd.app.musicplayer.ui.library.model.LibraryTabConfigStore
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -313,3 +313,4 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
         )
     }
 }
+

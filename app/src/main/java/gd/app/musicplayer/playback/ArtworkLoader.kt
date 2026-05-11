@@ -6,8 +6,8 @@ import android.graphics.drawable.Drawable
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
-import gd.app.musicplayer.core.extension.albumArtSource
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.core.common.extension.albumArtSource
+import gd.app.musicplayer.domain.model.Music
 
 class ArtworkLoader(
     private val context: Context,

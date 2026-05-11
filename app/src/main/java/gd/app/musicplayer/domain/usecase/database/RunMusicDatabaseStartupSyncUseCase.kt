@@ -4,10 +4,10 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.db.MediaStoreMusicImporter
-import gd.app.musicplayer.data.db.MusicDatabase
-import gd.app.musicplayer.data.db.MusicDatabaseSeedProvider
-import gd.app.musicplayer.data.db.MusicDatabaseSeeder
+import gd.app.musicplayer.data.local.mediastore.MediaStoreMusicImporter
+import gd.app.musicplayer.data.local.db.MusicDatabase
+import gd.app.musicplayer.data.local.db.MusicDatabaseSeedProvider
+import gd.app.musicplayer.data.local.db.MusicDatabaseSeeder
 import gd.app.musicplayer.data.local.preference.AppStartupPreferenceDataStore
 import javax.inject.Inject
 import javax.inject.Singleton

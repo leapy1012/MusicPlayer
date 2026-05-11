@@ -1,178 +1,198 @@
 <?xml version="1.0" encoding="utf-8"?>
-<gd.app.lib.view.DragDismissLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
+<gd.app.lib.view.DragDismissLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/pull"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
     <FrameLayout
-        android:orientation="vertical"
-        android:background="@drawable/th_music_large"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="@drawable/th_music_large"
+        android:orientation="vertical">
+
         <gd.app.lib.model.image.SkinImageView
             android:id="@+id/lock_play_skin"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="centerCrop"/>
+            android:scaleType="centerCrop" />
+
         <LinearLayout
-            android:orientation="vertical"
-            android:background="#33000000"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:background="#33000000"
+            android:orientation="vertical">
+
             <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/sw_dp_32">
+                android:layout_marginTop="@dimen/sw_dp_32"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
                 <TextView
-                    android:textSize="46sp"
-                    android:textColor="#ffffff"
                     android:id="@+id/lock_time"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="02:30"
-                    android:singleLine="true"
-                    android:layout_weight="1"
                     android:layout_marginStart="20dp"
-                    android:layout_marginEnd="16dp"/>
+                    android:layout_marginEnd="16dp"
+                    android:layout_weight="1"
+                    android:singleLine="true"
+                    android:text="02:30"
+                    android:textColor="#ffffff"
+                    android:textSize="46sp" />
+
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/lock_play_favourite"
-                    android:background="@drawable/selector_image_bg_w"
-                    android:padding="6dp"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:scaleType="fitCenter"
                     android:layout_marginEnd="8dp"
-                    app:srcCompat="@drawable/vector_favorite_selector"/>
+                    android:background="@drawable/selector_image_bg_w"
+                    android:padding="6dp"
+                    android:scaleType="fitCenter"
+                    app:srcCompat="@drawable/vector_favorite_selector" />
+
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/lock_more"
-                    android:background="@drawable/selector_image_bg_w"
-                    android:padding="6dp"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:scaleType="fitCenter"
                     android:layout_marginEnd="8dp"
-                    app:srcCompat="@drawable/vector_more"/>
+                    android:background="@drawable/selector_image_bg_w"
+                    android:padding="6dp"
+                    android:scaleType="fitCenter"
+                    app:srcCompat="@drawable/vector_more" />
             </LinearLayout>
+
             <gd.app.lib.view.UnderlineTextView
-                android:textSize="16sp"
-                android:textColor="@color/white"
                 android:id="@+id/lock_date"
-                android:paddingBottom="@dimen/lock_margin_10dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/h_dp_8"
-                android:singleLine="true"
                 android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"/>
-            <TextView
-                android:textSize="20sp"
+                android:layout_marginTop="@dimen/h_dp_8"
+                android:layout_marginEnd="20dp"
+                android:paddingBottom="@dimen/lock_margin_10dp"
+                android:singleLine="true"
                 android:textColor="@color/white"
+                android:textSize="16sp" />
+
+            <TextView
                 android:id="@+id/lock_play_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/h_dp_24"
-                android:singleLine="true"
-                android:fontFamily="sans-serif-medium"
                 android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"/>
+                android:layout_marginTop="@dimen/h_dp_24"
+                android:layout_marginEnd="20dp"
+                android:fontFamily="sans-serif-medium"
+                android:singleLine="true"
+                android:textColor="@color/white"
+                android:textSize="20sp" />
+
             <TextView
-                android:textSize="14sp"
-                android:textColor="#b7ffffff"
                 android:id="@+id/lock_play_artist"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="haha"
-                android:singleLine="true"
                 android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"/>
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="20dp"
+                android:singleLine="true"
+                android:text="haha"
+                android:textColor="#b7ffffff"
+                android:textSize="14sp" />
+
             <FrameLayout
-                android:layout_gravity="center_horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="@dimen/h_dp_16"
-                android:layout_weight="1"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp">
+                android:layout_marginTop="@dimen/h_dp_16"
+                android:layout_marginEnd="20dp"
+                android:layout_weight="1">
+
                 <gd.app.lib.view.square.AspectRatioImageView
-                    android:layout_gravity="center"
                     android:id="@+id/lock_play_album"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:layout_gravity="center"
                     android:scaleType="centerCrop"
                     app:squareFactory="withMin"
-                    app:srcCompat="@drawable/default_album_identify"/>
+                    app:srcCompat="@drawable/default_album_identify" />
             </FrameLayout>
+
             <gd.app.lib.model.lrc.view.LyricView
                 android:id="@+id/lock_play_lrc"
-                android:tag="LyricView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/h_dp_16"
                 android:layout_marginStart="16dp"
+                android:layout_marginTop="@dimen/h_dp_16"
                 android:layout_marginEnd="16dp"
+                android:tag="LyricView"
                 app:lyricCurrentTextColor="@color/color_item_selected"
                 app:lyricCurrentTextSize="16sp"
                 app:lyricLineTextSize="13sp"
                 app:lyricMaxLines="1"
                 app:lyricNormalTextColor="#99ffffff"
                 app:lyricNormalTextSize="16sp"
-                app:lyricTextSpacing="6dp"/>
+                app:lyricTextSpacing="6dp" />
+
             <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/h_dp_16"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp">
+
                 <TextView
-                    android:textSize="12sp"
-                    android:textColor="#ffffff"
-                    android:gravity="center_horizontal"
                     android:id="@+id/lock_curr_time"
                     android:layout_width="40dp"
                     android:layout_height="wrap_content"
-                    android:text="00:00"/>
-                <gd.app.musicplayer.core.ui.view.SeekBar
+                    android:gravity="center_horizontal"
+                    android:text="00:00"
+                    android:textColor="#ffffff"
+                    android:textSize="12sp" />
+
+                <gd.app.musicplayer.core.designsystem.view.SeekBar
                     android:id="@+id/lock_progress"
-                    android:paddingTop="10dp"
-                    android:paddingBottom="10dp"
                     android:layout_width="0dp"
                     android:layout_height="32dp"
                     android:layout_weight="1"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
                     app:seekDrawGraduation="false"
                     app:seekIsVertical="false"
                     app:seekProgressDrawable="@drawable/music_play_progress_drawable"
                     app:seekProgressHeight="2dp"
                     app:seekRtlEnable="false"
-                    app:seekThumb="@drawable/seekbar_thumb_white"/>
+                    app:seekThumb="@drawable/seekbar_thumb_white" />
+
                 <TextView
-                    android:textSize="12sp"
-                    android:textColor="#ffffff"
-                    android:gravity="center_horizontal"
                     android:id="@+id/lock_total_time"
                     android:layout_width="40dp"
                     android:layout_height="wrap_content"
-                    android:text="0:00"/>
+                    android:gravity="center_horizontal"
+                    android:text="0:00"
+                    android:textColor="#ffffff"
+                    android:textSize="12sp" />
             </LinearLayout>
+
             <include
+                layout="@layout/lock_play_controller"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/h_dp_32"
-                layout="@layout/lock_play_controller"/>
+                android:layout_marginTop="@dimen/h_dp_32" />
+
             <androidx.appcompat.widget.AppCompatTextView
-                android:textSize="16sp"
-                android:textColor="#b3ffffff"
-                android:layout_gravity="center_horizontal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="@dimen/h_dp_32"
                 android:layout_marginBottom="@dimen/h_dp_32"
+                android:singleLine="true"
                 android:text="@string/slide_unlock"
-                android:singleLine="true"/>
+                android:textColor="#b3ffffff"
+                android:textSize="16sp" />
         </LinearLayout>
     </FrameLayout>
 </gd.app.lib.view.DragDismissLayout>

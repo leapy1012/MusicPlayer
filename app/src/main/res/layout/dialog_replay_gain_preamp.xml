@@ -33,7 +33,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <gd.app.musicplayer.core.ui.view.SeekBar
+        <gd.app.musicplayer.core.designsystem.view.SeekBar
             android:id="@+id/with_tag_seek"
             android:layout_width="0dp"
             android:layout_height="32dp"
@@ -83,7 +83,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <gd.app.musicplayer.core.ui.view.SeekBar
+        <gd.app.musicplayer.core.designsystem.view.SeekBar
             android:id="@+id/without_tag_seek"
             android:layout_width="0dp"
             android:layout_height="32dp"

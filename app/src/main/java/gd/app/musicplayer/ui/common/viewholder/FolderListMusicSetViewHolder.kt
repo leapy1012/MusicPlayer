@@ -1,13 +1,12 @@
 package gd.app.musicplayer.ui.common.viewholder
 
-import android.content.res.Resources
 import android.view.View
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.ListItem
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.ListItem
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentFolderListItemBinding
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
-import gd.app.musicplayer.ui.folder.isHiddenFoldersEntry
+import gd.app.musicplayer.ui.library.folder.isHiddenFoldersEntry
 
 class FolderListMusicSetViewHolder(
     private val binding: FragmentFolderListItemBinding

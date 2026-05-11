@@ -121,7 +121,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1" />
 
-            <gd.app.musicplayer.core.ui.view.CustomSpinner
+            <gd.app.musicplayer.core.designsystem.view.CustomSpinner
                 android:id="@+id/main_info_spinner"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
@@ -154,3 +154,4 @@
         style="@style/BottomConfirmButton"
         android:text="@string/confirm" />
 </LinearLayout>
+

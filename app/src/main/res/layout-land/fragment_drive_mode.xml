@@ -54,7 +54,7 @@
         android:paddingStart="24dp"
         android:paddingEnd="24dp">
 
-        <gd.app.musicplayer.core.ui.view.SeekBar
+        <gd.app.musicplayer.core.designsystem.view.SeekBar
             android:id="@+id/drive_mode_progress"
             android:layout_width="0dp"
             android:layout_height="32dp"

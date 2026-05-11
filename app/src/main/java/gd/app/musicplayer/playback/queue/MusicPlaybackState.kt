@@ -1,6 +1,6 @@
 package gd.app.musicplayer.playback.queue
 
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.domain.model.Music
 
 data class MusicPlaybackState(
     val initialized: Boolean = false,

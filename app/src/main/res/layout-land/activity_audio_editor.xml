@@ -30,7 +30,7 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <gd.app.musicplayer.ui.feature.editor.waveform.SoundWaveView
+        <gd.app.musicplayer.ui.editor.waveform.SoundWaveView
             android:id="@+id/audio_editor_wave"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -109,7 +109,7 @@
                     android:padding="8dp"
                     app:srcCompat="@drawable/sound_clip_minus" />
 
-                <gd.app.musicplayer.ui.feature.editor.waveform.TimeEditText
+                <gd.app.musicplayer.ui.editor.waveform.TimeEditText
                     android:id="@+id/audio_editor_start_time"
                     android:layout_width="64dp"
                     android:layout_height="wrap_content"
@@ -150,7 +150,7 @@
                     android:padding="8dp"
                     app:srcCompat="@drawable/sound_clip_minus" />
 
-                <gd.app.musicplayer.ui.feature.editor.waveform.TimeEditText
+                <gd.app.musicplayer.ui.editor.waveform.TimeEditText
                     android:id="@+id/audio_editor_end_time"
                     android:layout_width="64dp"
                     android:layout_height="wrap_content"
@@ -275,3 +275,4 @@
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
+

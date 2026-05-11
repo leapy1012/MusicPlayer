@@ -9,7 +9,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.AuxEffectInfo
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import gd.app.musicplayer.data.model.AudioEffectSettings
+import gd.app.musicplayer.domain.model.AudioEffectSettings
 import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -50,7 +50,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp">
-                <gd.app.musicplayer.core.ui.view.PreferenceItemView
+                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_enable"
                     android:tag="itemBackground"
                     android:layout_width="match_parent"
@@ -64,7 +64,7 @@
                     android:layout_height="1px"
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="8dp"/>
-                <gd.app.musicplayer.core.ui.view.PreferenceItemView
+                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_show_paused"
                     android:tag="itemBackground"
                     android:layout_width="match_parent"
@@ -78,7 +78,7 @@
                     android:layout_height="1px"
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="8dp"/>
-                <gd.app.musicplayer.core.ui.view.PreferenceItemView
+                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_clickable"
                     android:tag="itemBackground"
                     android:layout_width="match_parent"
@@ -92,7 +92,7 @@
                     android:layout_height="1px"
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="8dp"/>
-                <gd.app.musicplayer.core.ui.view.PreferenceItemView
+                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_content"
                     android:tag="itemBackground"
                     android:layout_width="match_parent"
@@ -106,7 +106,7 @@
                     android:layout_height="1px"
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="8dp"/>
-                <gd.app.musicplayer.core.ui.view.PreferenceItemView
+                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_gravity"
                     android:tag="itemBackground"
                     android:layout_width="match_parent"
@@ -226,7 +226,7 @@
                         android:layout_height="wrap_content"
                         app:barrierDirection="end"
                         app:constraint_referenced_ids="sbar_lyric_x,sbar_lyric_y,sbar_lyric_width,sbar_lyric_alpha,sbar_lyric_font_size"/>
-                    <gd.app.musicplayer.core.ui.view.SeekBar
+                    <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_x_seek"
                         android:tag="seekBar"
                         android:paddingTop="10dp"
@@ -241,7 +241,7 @@
                         app:seekMax="10000"
                         app:seekProgressHeight="3dp"
                         app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
-                    <gd.app.musicplayer.core.ui.view.SeekBar
+                    <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_y_seek"
                         android:tag="seekBar"
                         android:paddingTop="10dp"
@@ -256,7 +256,7 @@
                         app:seekMax="10000"
                         app:seekProgressHeight="3dp"
                         app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
-                    <gd.app.musicplayer.core.ui.view.SeekBar
+                    <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_width_seek"
                         android:tag="seekBar"
                         android:paddingTop="10dp"
@@ -271,7 +271,7 @@
                         app:seekMax="10000"
                         app:seekProgressHeight="3dp"
                         app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
-                    <gd.app.musicplayer.core.ui.view.SeekBar
+                    <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_alpha_seek"
                         android:tag="seekBar"
                         android:paddingTop="10dp"
@@ -285,7 +285,7 @@
                         app:layout_constraintTop_toTopOf="@+id/sbar_lyric_alpha"
                         app:seekProgressHeight="3dp"
                         app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
-                    <gd.app.musicplayer.core.ui.view.SeekBar
+                    <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_font_size_seek"
                         android:tag="seekBar"
                         android:paddingTop="10dp"

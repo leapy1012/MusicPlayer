@@ -1,0 +1,324 @@
+package gd.app.musicplayer.ui.selection
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import android.widget.ImageView
+import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
+import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.R
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.databinding.ActivityMusicEditBinding
+import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.ui.common.menu.EditBottomMenuController
+import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
+import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
+import gd.app.musicplayer.ui.library.ARG_MUSIC
+import gd.app.musicplayer.core.common.extension.parcelable
+import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
+import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
+import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
+import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+import gd.app.musicplayer.ui.library.ARG_MUSIC_SET
+import javax.inject.Inject
+import kotlinx.coroutines.launch
+
+@AndroidEntryPoint
+class MusicEditActivity : BaseActivity(),
+    MusicEditAdapter.SelectionCountChangedListener {
+
+    private val viewModel: EditViewModel by viewModels()
+
+    private lateinit var binding: ActivityMusicEditBinding
+    private lateinit var adapter: MusicEditAdapter
+    private lateinit var musicRecyclerView: MusicRecyclerView
+    private lateinit var selectAllImage: ImageView
+    private lateinit var indexBar: RecyclerIndexBar
+    private lateinit var emptyStateController: RecyclerEmptyStateController
+
+    @Inject lateinit var playTracksUseCase: PlayTracksUseCase
+    @Inject lateinit var playNextTracksUseCase: PlayNextTracksUseCase
+    @Inject lateinit var enqueueTracksUseCase: EnqueueTracksUseCase
+    @Inject lateinit var observePlaybackStateUseCase: ObservePlaybackStateUseCase
+    @Inject lateinit var getPlaybackQueueUseCase: GetPlaybackQueueUseCase
+    @Inject lateinit var replaceQueueUseCase: ReplaceQueueUseCase
+    @Inject lateinit var removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase
+    @Inject lateinit var deleteTracksUseCase: DeleteTracksUseCase
+    @Inject lateinit var hideSelectionUseCase: HideSelectionUseCase
+    @Inject lateinit var addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase
+
+    private lateinit var musicSet: MusicSet
+
+    private var selectedMusic: Music? = null
+    private var initialTopOffset: Int = 0
+    private var shouldScrollToInitialMusic = true
+    private var shouldApplyInitialSelection = true
+
+    private val searchTextWatcher = object : TextWatcher {
+        override fun afterTextChanged(editable: Editable?) {
+            handleSearchTextChanged(editable?.toString().orEmpty())
+        }
+
+        override fun beforeTextChanged(
+            text: CharSequence?,
+            start: Int,
+            count: Int,
+            after: Int
+        ) = Unit
+
+        override fun onTextChanged(
+            text: CharSequence?,
+            start: Int,
+            before: Int,
+            count: Int
+        ) = Unit
+    }
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        binding = ActivityMusicEditBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        if (!readIntentData()) {
+            finish()
+            return
+        }
+
+        setupToolbar()
+        setupRecyclerView()
+        setupSearch()
+        setupBottomMenu()
+        observeTracks()
+    }
+
+    private fun readIntentData(): Boolean {
+        musicSet = intent.parcelable(ARG_MUSIC_SET) ?: return false
+        selectedMusic = intent.parcelable(ARG_MUSIC)
+        initialTopOffset = intent.getIntExtra(ARG_TOP_OFFSET, intent.getIntExtra(ARG_OFFSET, 0))
+        return true
+    }
+
+    private fun setupToolbar() {
+        setupEdgeToEdgeToolbar(
+            root = binding.root,
+            statusBarView = binding.statusBarSpace,
+            bottomPaddingView = binding.musicEditLayout,
+            toolbar = binding.toolbar
+        )
+
+        selectAllImage = binding.toolbar.installSelectAllAction(layoutInflater) { view ->
+            toggleSelectAll(view)
+        }
+    }
+
+    private fun toggleSelectAll(view: View) {
+        if (adapter.itemCount == 0) return
+
+        view.isSelected = !view.isSelected
+        adapter.setAllSelected(view.isSelected)
+
+        updateSelectionTitle(adapter.getSelectedItems().size)
+    }
+
+    private fun setupRecyclerView() {
+        musicRecyclerView = binding.root.findViewById<MusicRecyclerView>(R.id.recyclerview).apply {
+            layoutManager = LinearLayoutManager(
+                this@MusicEditActivity,
+                LinearLayoutManager.VERTICAL,
+                false
+            )
+        }
+
+        adapter = buildAdapter()
+
+        musicRecyclerView.adapter = adapter
+
+        indexBar = binding.root.findViewById<RecyclerIndexBar>(R.id.recyclerview_index).apply {
+            onLabelSelected = { label -> scrollToLabel(label) }
+        }
+        emptyStateController = RecyclerEmptyStateController(
+            recyclerView = musicRecyclerView,
+            emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
+        ).apply {
+            setEmptyMessage(getString(R.string.music_empty))
+        }
+    }
+
+    private fun buildAdapter(): MusicEditAdapter =
+        MusicEditAdapter(
+            recyclerView = musicRecyclerView,
+            accentColor = themeRepo.getAccentColor(),
+            musicSet = musicSet,
+            dragEnabled = musicSet.id > 0,
+            onOrderChanged = viewModel::updateTrackOrder
+        ).apply {
+            setSelectionCountListener(this@MusicEditActivity)
+        }
+
+    private fun setupSearch() {
+        binding.searchEditClear.setOnClickListener {
+            binding.searchEditText.setText("")
+        }
+
+        binding.searchEditText.addTextChangedListener(searchTextWatcher)
+    }
+
+    private fun setupBottomMenu() {
+        EditBottomMenuController(
+            activity = this,
+            musicSet = musicSet,
+            menuContainer = binding.musicEditLayout,
+            playTracksUseCase = playTracksUseCase,
+            playNextTracksUseCase = playNextTracksUseCase,
+            enqueueTracksUseCase = enqueueTracksUseCase,
+            observePlaybackStateUseCase = observePlaybackStateUseCase,
+            getPlaybackQueueUseCase = getPlaybackQueueUseCase,
+            replaceQueueUseCase = replaceQueueUseCase,
+            removeTracksFromPlaylistUseCase = removeTracksFromPlaylistUseCase,
+            deleteTracksUseCase = deleteTracksUseCase,
+            hideSelectionUseCase = hideSelectionUseCase,
+            addTracksToPlaylistsUseCase = addTracksToPlaylistsUseCase
+        ).bindMenu()
+    }
+
+    private fun observeTracks() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.observeTracks(musicSet).collect { musicList ->
+                    renderMusicList(musicList)
+                }
+            }
+        }
+    }
+
+    private fun renderMusicList(musicList: List<Music>) {
+        adapter.submitList(musicList)
+        applyInitialSelectionIfNeeded()
+
+        updateSelectionTitle(adapter.getSelectedItems().size)
+        scrollToInitialMusicIfNeeded(musicList)
+        updateFilteredListChrome()
+    }
+
+    private fun applyInitialSelectionIfNeeded() {
+        if (!shouldApplyInitialSelection) return
+        shouldApplyInitialSelection = false
+        selectedMusic?.let(adapter::selectItem)
+    }
+
+    private fun scrollToInitialMusicIfNeeded(musicList: List<Music>) {
+        if (!shouldScrollToInitialMusic) return
+
+        shouldScrollToInitialMusic = false
+
+        val music = selectedMusic ?: return
+        val index = musicList.indexOfFirst { it.id == music.id && it.data == music.data }
+
+        if (index < 0) return
+
+        val layoutManager = musicRecyclerView.layoutManager as? LinearLayoutManager ?: return
+
+        layoutManager.scrollToPositionWithOffset(index, initialTopOffset)
+
+        musicRecyclerView.post {
+            layoutManager.scrollToPosition(index)
+        }
+    }
+
+    override fun onSelectionCountChanged(count: Int) {
+        updateSelectionTitle(count)
+    }
+
+    private fun updateSelectionTitle(selectedCount: Int) {
+        selectAllImage.renderSelectAllState(
+            SelectionUiState(
+                selectedCount = selectedCount,
+                hasSelectableItems = adapter.itemCount > 0,
+                allSelectableItemsSelected = adapter.areAllFilteredItemsSelected()
+            )
+        )
+
+        binding.toolbar.title = musicSelectionTitle(selectedCount)
+    }
+
+    private fun handleSearchTextChanged(text: String) {
+        val keyword = text.trim().lowercase()
+
+        adapter.setSearchKeyword(keyword)
+
+        binding.searchEditClear.visibility =
+            if (keyword.isEmpty()) View.GONE else View.VISIBLE
+
+        updateSelectionTitle(adapter.getSelectedItems().size)
+        updateFilteredListChrome()
+    }
+
+    private fun updateFilteredListChrome() {
+        val filteredItems = adapter.getFilteredItems()
+        emptyStateController.setVisible(filteredItems.isEmpty())
+        indexBar.submitLabels(buildIndexLabels(filteredItems))
+    }
+
+    private fun buildIndexLabels(items: List<Music>): List<String> {
+        return items.mapNotNull { music ->
+            music.title.trim().firstOrNull()?.uppercaseChar()?.toString()
+        }.distinct()
+    }
+
+    private fun scrollToLabel(label: String) {
+        val index = adapter.getFilteredItems().indexOfFirst { music ->
+            music.title.trim().startsWith(label, ignoreCase = true)
+        }
+        if (index >= 0) {
+            musicRecyclerView.scrollToPosition(index)
+        }
+    }
+
+    fun getSelectedItems(): List<Music> {
+        return adapter.getSelectedItems()
+    }
+
+    override fun onDestroy() {
+        binding.searchEditText.removeTextChangedListener(searchTextWatcher)
+        super.onDestroy()
+    }
+
+    companion object {
+        private const val ARG_OFFSET = "offset"
+        private const val ARG_TOP_OFFSET = "topOffset"
+
+        fun start(
+            context: Context,
+            musicSet: MusicSet,
+            selectedMusic: Music? = null,
+            offset: Int = 0
+        ) {
+            val intent = Intent(context, MusicEditActivity::class.java).apply {
+                putExtra(ARG_MUSIC_SET, musicSet)
+                selectedMusic?.let { putExtra(ARG_MUSIC, it) }
+                putExtra(ARG_TOP_OFFSET, offset)
+            }
+
+            context.startActivityCompat(intent)
+        }
+    }
+}

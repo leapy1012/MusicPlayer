@@ -2,7 +2,7 @@ package gd.app.musicplayer.domain.usecase.preferences
 
 
 import gd.app.musicplayer.data.local.preference.PlaylistPreferenceDataStore
-import gd.app.musicplayer.data.model.SmartPlaylistConfig
+import gd.app.musicplayer.domain.model.SmartPlaylistConfig
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 

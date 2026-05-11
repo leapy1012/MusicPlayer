@@ -2,12 +2,14 @@ package gd.app.musicplayer.playback
 
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
-import gd.app.musicplayer.ui.feature.widget.WidgetCatalog
+import gd.app.musicplayer.ui.widget.WidgetCatalog
 
 class PlaybackStatePublisher(
     private val context: Context,
@@ -16,6 +18,7 @@ class PlaybackStatePublisher(
     private val queueProvider: () -> List<Music>,
     private val currentIndexProvider: () -> Int,
 ) {
+    @OptIn(UnstableApi::class)
     fun publish() {
         val queue = queueProvider()
         val currentIndex = currentIndexProvider()

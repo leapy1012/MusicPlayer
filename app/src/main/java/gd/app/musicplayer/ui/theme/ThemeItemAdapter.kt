@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import gd.app.musicplayer.data.model.ThemeItem
+import gd.app.musicplayer.domain.model.ThemeItem
 import gd.app.musicplayer.databinding.FragmentThemeItemAddBinding
 import gd.app.musicplayer.databinding.FragmentThemeItemBinding
 import java.io.File

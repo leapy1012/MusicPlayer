@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor"
+    app:allowStatusBarPadding="true">
+
+    <View
+        android:id="@+id/status_bar_space"
+        android:layout_width="match_parent"
+        android:layout_height="0dp" />
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:minHeight="?attr/actionBarSize"
+        android:tag="toolbar"
+        app:navigationIcon="@drawable/vector_menu_back"
+        app:theme="@style/AppToolbar"
+        app:title="@string/edit_lyric"
+        app:titleTextAppearance="@style/AppToolbarTitle" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <gd.app.lib.model.lrc.view.LyricScrollView
+            android:id="@+id/lrc_edit_scroll_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="16dp"
+            android:tag="dialogEditTextBackground">
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/lrc_edit_input"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:cursorVisible="true"
+                android:gravity="start|top"
+                android:hint="@string/add_lyric_hint"
+                android:imeOptions="actionDone"
+                android:inputType="textMultiLine"
+                android:minLines="4"
+                android:padding="6dp"
+                android:scrollbars="none"
+                android:tag="dialogEditText"
+                android:textColor="#666666"
+                android:textColorHint="#999999"
+                android:textCursorDrawable="@null"
+                android:textSize="16sp" />
+        </gd.app.lib.model.lrc.view.LyricScrollView>
+
+        <LinearLayout
+            android:id="@+id/btn_paste"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="20dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="24dp"
+            android:paddingTop="8dp"
+            android:paddingRight="24dp"
+            android:paddingBottom="8dp"
+            android:tag="pasteBackground"
+            android:visibility="gone">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:scaleType="fitCenter"
+                android:tag="itemTextColor"
+                app:srcCompat="@drawable/vector_lyric_paste" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="sans-serif-medium"
+                android:singleLine="true"
+                android:tag="itemTextColor"
+                android:text="@string/lyric_paste"
+                android:textColor="#fff"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

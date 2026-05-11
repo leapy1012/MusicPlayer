@@ -12,11 +12,11 @@ import android.os.Build
 import android.os.Bundle
 import android.os.ResultReceiver
 import android.view.KeyEvent
-import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.shell.MainActivity
 
 class PlaybackMediaSessionController(

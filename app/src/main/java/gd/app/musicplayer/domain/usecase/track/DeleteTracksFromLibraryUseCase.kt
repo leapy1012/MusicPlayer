@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.track
 
-import gd.app.musicplayer.data.repository.LibraryRepo
+import gd.app.musicplayer.domain.repository.LibraryRepo
 import javax.inject.Inject
 
 class DeleteTracksFromLibraryUseCase @Inject constructor(

@@ -1,8 +1,8 @@
 package gd.app.musicplayer.data.local.preference
 
 import gd.app.musicplayer.core.datastore.SettingsKeys
-import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfig
-import gd.app.musicplayer.ui.feature.library.model.LibraryTabConfigStore
+import gd.app.musicplayer.ui.library.model.LibraryTabConfig
+import gd.app.musicplayer.ui.library.model.LibraryTabConfigStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -64,3 +64,4 @@ interface SettingPreferencesDataStore {
     suspend fun updatePlaylistAddPosition(position: Int)
     suspend fun updateClickAddQueueEnabled(enabled: Boolean)
 }
+

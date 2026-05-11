@@ -6,10 +6,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import gd.app.musicplayer.core.theme.DefaultThemeProvider
-import gd.app.musicplayer.core.theme.ThemeBitmapLoader
-import gd.app.musicplayer.core.theme.ThemeManager
-import gd.app.musicplayer.core.theme.ThemeRegistry
+import gd.app.musicplayer.core.designsystem.theme.DefaultThemeProvider
+import gd.app.musicplayer.core.designsystem.theme.ThemeBitmapLoader
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
 import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
 import kotlinx.coroutines.CoroutineScope
 

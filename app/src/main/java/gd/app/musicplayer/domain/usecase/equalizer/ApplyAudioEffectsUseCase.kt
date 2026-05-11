@@ -2,7 +2,6 @@ package gd.app.musicplayer.domain.usecase.equalizer
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.ui.player.PlayerViewModel
 import javax.inject.Inject
 
 class ApplyAudioEffectsUseCase @Inject constructor(

@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.playlist
 
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repository.PlaylistRepo
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.repository.PlaylistRepo
 import javax.inject.Inject
 
 class AddTracksToPlaylistsUseCase @Inject constructor(

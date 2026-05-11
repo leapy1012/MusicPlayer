@@ -4,7 +4,7 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="gd.app.musicplayer.ui.main.MainFragment"
+        android:name="gd.app.musicplayer.ui.home.MainFragment"
         android:label="Home" />
 
     <fragment
@@ -14,7 +14,7 @@
 
     <fragment
         android:id="@+id/folderFragment"
-        android:name="gd.app.musicplayer.ui.folder.FolderFragment"
+        android:name="gd.app.musicplayer.ui.library.folder.FolderFragment"
         android:label="@string/folder">
     </fragment>
 
@@ -24,7 +24,7 @@
 
         <argument
             android:name="music_set"
-            app:argType="gd.app.musicplayer.data.model.MusicSet" />
+            app:argType="gd.app.musicplayer.domain.model.MusicSet" />
     </fragment>
 
 </navigation>

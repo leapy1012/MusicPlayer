@@ -7,7 +7,7 @@
     android:orientation="horizontal"
     android:tag="bottomControlBackground">
 
-    <gd.app.musicplayer.core.ui.view.SeekBar
+    <gd.app.musicplayer.core.designsystem.view.SeekBar
         android:id="@+id/main_music_progress"
         android:layout_width="match_parent"
         android:layout_height="2dp"
@@ -37,7 +37,7 @@
             android:layout_weight="20"
             android:orientation="horizontal">
 
-            <gd.app.musicplayer.core.ui.view.RotationalImageView
+            <gd.app.musicplayer.core.designsystem.view.RotationalImageView
                 android:id="@+id/item_main_control_album"
                 android:layout_width="@dimen/main_control_banner_height"
                 android:layout_height="@dimen/main_control_banner_height"
@@ -139,3 +139,4 @@
             app:srcCompat="@drawable/vector_play_queue_menu" />
     </LinearLayout>
 </RelativeLayout>
+

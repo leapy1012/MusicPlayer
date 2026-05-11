@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <gd.app.musicplayer.core.ui.view.MusicRecyclerView
+    <gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
         android:id="@+id/recyclerview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -17,7 +17,7 @@
         android:scrollbars="vertical"
         android:tag="ignore" />
 
-    <gd.app.musicplayer.core.ui.view.RecyclerIndexBar
+    <gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
         android:id="@+id/recyclerview_index"
         android:layout_width="18dp"
         android:layout_height="wrap_content"

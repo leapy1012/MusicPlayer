@@ -3,7 +3,7 @@ package gd.app.musicplayer.playback
 import android.content.Intent
 import android.os.Build
 import android.os.Parcelable
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.domain.model.Music
 
 fun Intent?.musicListExtraCompat(key: String): List<Music> {
     if (this == null) return emptyList()

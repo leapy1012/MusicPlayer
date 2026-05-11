@@ -4,8 +4,7 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.view.View
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.theme.accentColor
-import gd.app.musicplayer.data.model.ContextMenuItem
+import gd.app.musicplayer.domain.model.ContextMenuItem
 
 class ViewAsContextMenu(
     context: Context,

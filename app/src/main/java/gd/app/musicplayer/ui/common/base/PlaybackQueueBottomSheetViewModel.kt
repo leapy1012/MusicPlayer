@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.Music
+import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.playback.ClearQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase

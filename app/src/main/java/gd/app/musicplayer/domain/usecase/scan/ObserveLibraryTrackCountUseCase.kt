@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.scan
 
-import gd.app.musicplayer.data.repository.MainRepo
+import gd.app.musicplayer.domain.repository.MainRepo
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 

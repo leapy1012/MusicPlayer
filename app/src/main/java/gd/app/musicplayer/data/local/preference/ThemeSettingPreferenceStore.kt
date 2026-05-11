@@ -6,7 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import gd.app.musicplayer.core.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.di.ThemeSettingsDataStore
 import javax.inject.Inject
 import javax.inject.Singleton

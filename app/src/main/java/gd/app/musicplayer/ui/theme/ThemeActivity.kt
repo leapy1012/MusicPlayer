@@ -12,14 +12,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
-import gd.app.musicplayer.core.extension.applySystemBarInsets
-import gd.app.musicplayer.core.extension.startActivityCompat
-import gd.app.musicplayer.data.repository.ThemeRepo
+import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityThemeBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.feature.library.ArtworkCropActivity
+import gd.app.musicplayer.ui.library.artwork.ArtworkCropActivity
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class ThemeActivity : BaseActivity() {
@@ -178,3 +176,4 @@ class ThemeActivity : BaseActivity() {
         super.onDestroy()
     }
 }
+

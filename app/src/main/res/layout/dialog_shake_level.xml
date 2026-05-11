@@ -42,7 +42,7 @@
             android:tag="dialogImageThemeButton"
             app:srcCompat="@drawable/vector_shake_minus" />
 
-        <gd.app.musicplayer.core.ui.view.SeekBar
+        <gd.app.musicplayer.core.designsystem.view.SeekBar
             android:id="@+id/shake_level_seek"
             android:layout_width="0dp"
             android:layout_height="32dp"

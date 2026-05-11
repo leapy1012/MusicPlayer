@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<gd.app.musicplayer.core.ui.view.EqualizerItemLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<gd.app.musicplayer.core.designsystem.view.EqualizerItemLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -14,7 +14,7 @@
         android:textColor="@drawable/selector_equalizer_text"
         android:textSize="12sp" />
 
-    <gd.app.musicplayer.core.ui.view.SeekBar
+    <gd.app.musicplayer.core.designsystem.view.SeekBar
         android:id="@+id/equalizer_item_seek"
         android:layout_width="@dimen/equalizer_seek_bar_width"
         android:layout_height="0dp"
@@ -35,4 +35,5 @@
         android:text="31"
         android:textColor="@drawable/selector_equalizer_text"
         android:textSize="11sp" />
-</gd.app.musicplayer.core.ui.view.EqualizerItemLayout>
+</gd.app.musicplayer.core.designsystem.view.EqualizerItemLayout>
+

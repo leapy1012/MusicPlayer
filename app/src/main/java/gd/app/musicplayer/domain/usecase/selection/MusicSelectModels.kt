@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.selection
 
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
 
 data class AddSelectedTracksToPlaylistRequest(
     val selectedTracks: List<Music>,

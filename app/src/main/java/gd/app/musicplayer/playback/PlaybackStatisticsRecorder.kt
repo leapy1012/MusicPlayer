@@ -1,7 +1,7 @@
 package gd.app.musicplayer.playback
 
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.repository.StatsRepo
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.repository.StatsRepo
 import gd.app.musicplayer.di.ApplicationScope
 import javax.inject.Inject
 import javax.inject.Singleton

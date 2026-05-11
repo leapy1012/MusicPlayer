@@ -3,7 +3,7 @@ package gd.app.musicplayer.ui.common.model
 import android.widget.ImageView
 import com.bumptech.glide.Glide
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.model.MusicSet
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseActivity
 
 fun MusicSet.resolvePlaceholderRes(useTextVariant: Boolean): Int {

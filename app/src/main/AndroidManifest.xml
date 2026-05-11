@@ -63,135 +63,148 @@
             android:configChanges="keyboardHidden|keyboard" />
 
         <activity
-            android:name=".ui.feature.library.AlbumActivity"
+            android:name=".ui.library.albums.AlbumActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.library.AlbumMusicActivity"
+            android:name=".ui.library.albums.AlbumMusicActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.selection.MusicEditActivity"
+            android:name=".ui.selection.MusicEditActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.selection.MusicSelectActivity"
+            android:name=".ui.selection.MusicSelectActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.playlist.ActivityPlaylistSelect"
+            android:name=".ui.playlist.ActivityPlaylistSelect"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.selection.MusicSetEditActivity"
+            android:name=".ui.selection.MusicSetEditActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.search.SearchActivity"
+            android:name=".ui.search.SearchActivity"
             android:configChanges="screenSize|orientation|keyboardHidden|keyboard"
             android:windowSoftInputMode="adjustPan" />
 
         <activity
-            android:name=".ui.feature.scan.ScanMusicActivity"
+            android:name=".ui.scan.ScanMusicActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.feature.duplicate.ActivityDuplicatedFinder"
-            android:exported="false"
-            android:launchMode="singleTop" />
-
-        <activity
-            android:name=".ui.feature.equalizer.EqualizerActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-        <activity
-            android:name=".ui.feature.equalizer.EffectGroupActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-        <activity
-            android:name=".ui.feature.tags.EditTagsActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-        <activity
-            android:name=".ui.feature.library.ArtworkCropActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-        <activity
-            android:name=".ui.feature.editor.ActivityAudioEditor"
+            android:name=".ui.duplicate.ActivityDuplicatedFinder"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.widget.WidgetActivity"
+            android:name=".ui.equalizer.EqualizerActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.feature.widget.WidgetConfigActivity"
+            android:name=".ui.equalizer.EffectGroupActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.tags.EditTagsActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.lyrics.LyricEditActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.library.artwork.ArtworkCropActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.editor.ActivityAudioEditor"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.widget.WidgetActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.widget.WidgetConfigActivity"
+            android:theme="@style/AppTheme.WidgetConfig"
             android:exported="true"
-            android:launchMode="singleTop">
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
         <activity
-            android:name=".ui.feature.sleep.SleepActivity"
+            android:name=".ui.sleep.SleepActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.drivemode.DriveModeActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
+            android:name=".ui.drivemode.DriveModeActivity"
+            android:theme="@style/AppTheme.Transparent"/>
         <activity
-            android:name=".ui.feature.drivemode.DriveRemindActivity"
+            android:name=".ui.drivemode.DriveRemindActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.setting.SettingActivity"
+            android:name=".ui.setting.SettingActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.feature.lyrics.ActivityStatusBarLyrics"
+            android:name=".ui.lyrics.ActivityStatusBarLyrics"
             android:exported="false"
             android:launchMode="singleTop" />
+
         <activity
-            android:name=".ui.feature.lock.LockActivity"
+            android:name=".ui.lock.LockActivity"
+            android:theme="@style/AppTheme.Transparent"
+            android:taskAffinity="${applicationId}.LOCK"
+            android:launchMode="singleInstance"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
             android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.player.full.MusicPlayActivity"
+            android:theme="@style/AppTheme.Transparent"
+            android:label="@string/music_player"
             android:exported="false"
             android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:taskAffinity="" />
+            android:excludeFromRecents="true"
+            android:configChanges="keyboardHidden|keyboard" />
 
         <activity
-            android:name=".ui.feature.player.MusicPlayActivity"
+            android:name=".ui.player.queue.PlayQueueActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.feature.player.PlayQueueActivity"
+            android:name=".ui.library.hidden.HiddenFoldersActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.hidden.HiddenFoldersActivity"
-            android:exported="false"
-            android:launchMode="singleTop" />
-
-        <activity
-            android:name=".ui.hidden.HiddenFoldersAddActivity"
+            android:name=".ui.library.hidden.HiddenFoldersAddActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <service
-            android:name=".playback.MusicPlaybackService"
+            android:name=".playback.service.MusicPlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
@@ -199,7 +212,7 @@
             </intent-filter>
         </service>
         <service
-            android:name=".ui.feature.widget.WidgetQueueService"
+            android:name=".ui.widget.WidgetQueueService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
@@ -213,7 +226,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.feature.widget.provider.Widget2x1Provider"
+            android:name=".ui.widget.provider.Widget2x1Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -226,7 +239,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.feature.widget.provider.Widget3x2Provider"
+            android:name=".ui.widget.provider.Widget3x2Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -239,7 +252,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.feature.widget.provider.Widget4x1Provider"
+            android:name=".ui.widget.provider.Widget4x1Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -252,7 +265,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.feature.widget.provider.Widget4x2Provider"
+            android:name=".ui.widget.provider.Widget4x2Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -265,7 +278,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.feature.widget.provider.Widget4x3Provider"
+            android:name=".ui.widget.provider.Widget4x3Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -278,7 +291,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.feature.widget.provider.Widget4x4Provider"
+            android:name=".ui.widget.provider.Widget4x4Provider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
@@ -291,7 +304,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.feature.widget.provider.WidgetListProvider"
+            android:name=".ui.widget.provider.WidgetListProvider"
             android:enabled="true"
             android:exported="false">
             <intent-filter>

@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.theme
 
 import android.content.Context
-import gd.app.musicplayer.data.repository.ThemeRepo
+import gd.app.musicplayer.domain.repository.ThemeRepo
 import javax.inject.Inject
 
 class ApplyPictureThemeUseCase @Inject constructor(

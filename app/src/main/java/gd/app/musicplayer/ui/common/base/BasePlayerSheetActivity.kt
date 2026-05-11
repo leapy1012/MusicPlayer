@@ -10,10 +10,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.ui.view.PlayerSheetDragInsetReceiver
-import gd.app.musicplayer.core.ui.view.PlayerSheetInsetHost
+import gd.app.musicplayer.core.designsystem.view.PlayerSheetDragInsetReceiver
+import gd.app.musicplayer.core.designsystem.view.PlayerSheetInsetHost
 
-abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
+abstract class BasePlayerSheetActivity : BaseActivity(),
+    gd.app.musicplayer.core.designsystem.view.PlayerSheetInsetHost {
 
     companion object {
         const val EXTRA_EXPAND_PLAYER = "gd.app.musicplayer.extra.EXPAND_PLAYER"
@@ -150,7 +151,7 @@ abstract class BasePlayerSheetActivity : BaseActivity(), PlayerSheetInsetHost {
 
     private fun notifyDraggingInsetsRecursively(fragment: Fragment) {
         if (!fragment.isAdded) return
-        if (fragment is PlayerSheetDragInsetReceiver) {
+        if (fragment is gd.app.musicplayer.core.designsystem.view.PlayerSheetDragInsetReceiver) {
             fragment.onPlayerSheetDragging()
         }
         fragment.childFragmentManager.fragments.forEach { child ->

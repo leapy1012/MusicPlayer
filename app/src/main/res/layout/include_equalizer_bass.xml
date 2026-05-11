@@ -12,7 +12,7 @@
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.5" />
 
-    <gd.app.musicplayer.core.ui.view.SelectBox
+    <gd.app.musicplayer.core.designsystem.view.SelectBox
         android:id="@+id/equalizer_bass_box"
         android:layout_width="@dimen/equalizer_toggle_width"
         android:layout_height="@dimen/equalizer_toggle_height"
@@ -24,7 +24,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/selector_equalizer_select_box" />
 
-    <gd.app.musicplayer.core.ui.view.SelectBox
+    <gd.app.musicplayer.core.designsystem.view.SelectBox
         android:id="@+id/equalizer_virtual_box"
         android:layout_width="@dimen/equalizer_toggle_width"
         android:layout_height="@dimen/equalizer_toggle_height"
@@ -35,7 +35,7 @@
         app:layout_constraintTop_toTopOf="@+id/equalizer_bass_box"
         app:srcCompat="@drawable/selector_equalizer_select_box" />
 
-    <gd.app.musicplayer.core.ui.view.RotateStepBar
+    <gd.app.musicplayer.core.designsystem.view.RotateStepBar
         android:id="@+id/equalizer_bass_rotate"
         android:layout_width="@dimen/equalizer_bass_height"
         android:layout_height="@dimen/equalizer_bass_height"
@@ -53,7 +53,7 @@
         app:rotateStepMax="100"
         app:rotateStepPlugPadding="@dimen/equalizer_plug_padding" />
 
-    <gd.app.musicplayer.core.ui.view.RotateStepBar
+    <gd.app.musicplayer.core.designsystem.view.RotateStepBar
         android:id="@+id/equalizer_virtual_rotate"
         android:layout_width="@dimen/equalizer_bass_height"
         android:layout_height="@dimen/equalizer_bass_height"
@@ -98,3 +98,4 @@
         app:layout_constraintStart_toStartOf="@+id/equalizer_virtual_rotate"
         app:layout_constraintTop_toTopOf="@+id/equalizer_bass_text" />
 </androidx.constraintlayout.widget.ConstraintLayout>
+

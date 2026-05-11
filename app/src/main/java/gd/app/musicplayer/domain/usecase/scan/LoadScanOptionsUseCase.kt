@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.scan
 
 import gd.app.musicplayer.data.local.preference.ScanOptionsPreferenceDataStore
-import gd.app.musicplayer.ui.feature.scan.ScanOptions
+import gd.app.musicplayer.ui.scan.ScanOptions
 import javax.inject.Inject
 
 class LoadScanOptionsUseCase @Inject constructor(

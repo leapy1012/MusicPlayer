@@ -2,15 +2,17 @@ package gd.app.musicplayer.ui.common.viewholder
 
 import android.view.View
 import androidx.core.graphics.ColorUtils
-import gd.app.musicplayer.data.model.ListItem
-import gd.app.musicplayer.data.model.Music
-import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.core.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.formatAddedDate
+import gd.app.musicplayer.core.common.extension.formatDuration
+import gd.app.musicplayer.core.common.extension.formatFileSize
+import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.core.designsystem.theme.itemTextColor
+import gd.app.musicplayer.domain.model.ListItem
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentMusicListItemBinding
-import gd.app.musicplayer.core.extension.formatAddedDate
-import gd.app.musicplayer.core.extension.formatDuration
-import gd.app.musicplayer.core.extension.formatFileSize
-import gd.app.musicplayer.core.theme.*
 
 class MusicViewHolder(
     val binding: FragmentMusicListItemBinding,
@@ -23,8 +25,17 @@ class MusicViewHolder(
 
     private var boundMusicId: Long = -1L
 
-    override fun onBind(item: ListItem, selected: Boolean, viewInfo: String) {
-        bind(item = item, isCurrentTrack = false, isPlaying = false, viewInfo)
+    override fun onBind(
+        item: ListItem,
+        selected: Boolean,
+        viewInfo: String
+    ) {
+        bind(
+            item = item,
+            isCurrentTrack = false,
+            isPlaying = false,
+            viewInfo = viewInfo
+        )
     }
 
     fun bind(
@@ -34,99 +45,175 @@ class MusicViewHolder(
         viewInfo: String
     ) {
         val music = (item as ListItem.MusicItem).music
+
         boundMusicId = music.id
 
         music.loadMusicArtwork(binding.musicItemAlbum)
+
         binding.musicItemTitle.text = music.title
         binding.musicItemArtist.text = music.artist
-        bindMetadata(music, isCurrentTrack, isPlaying, viewInfo)
-        renderPlaybackState(isCurrentTrack, isPlaying)
+
+        bindMetadata(
+            music = music,
+            isCurrentTrack = isCurrentTrack,
+            viewInfo = viewInfo
+        )
+
+        renderPlaybackState(
+            isCurrentTrack = isCurrentTrack,
+            isPlaying = isPlaying
+        )
+
         renderTextColors(isCurrentTrack)
 
-        itemView.setOnClickListener { onItemClick?.invoke(music) }
+        itemView.setOnClickListener {
+            onItemClick?.invoke(music)
+        }
+
         itemView.setOnLongClickListener {
             onItemLongClick?.invoke(music)
             onItemLongClick != null
         }
-        binding.musicItemMenu.setOnClickListener { onMenuClick?.invoke(music) }
+
+        binding.musicItemMenu.setOnClickListener {
+            onMenuClick?.invoke(music)
+        }
     }
 
-    fun updatePlaybackState(musicId: Long, isCurrentTrack: Boolean, isPlaying: Boolean) {
+    fun updatePlaybackState(
+        musicId: Long,
+        isCurrentTrack: Boolean,
+        isPlaying: Boolean
+    ) {
         if (boundMusicId != musicId) return
-        bindPlaybackMetadataOnly(isCurrentTrack, isPlaying)
-        renderPlaybackState(isCurrentTrack, isPlaying)
+
+        bindPlaybackMetadataOnly(
+            isCurrentTrack = isCurrentTrack
+        )
+
+        renderPlaybackState(
+            isCurrentTrack = isCurrentTrack,
+            isPlaying = isPlaying
+        )
+
         renderTextColors(isCurrentTrack)
     }
 
-    private fun renderPlaybackState(isCurrentTrack: Boolean, isPlaying: Boolean) {
-        val shouldShowState = when (musicSet) {
-            is MusicSet.MostPlayed -> isCurrentTrack && isPlaying
-            else -> isCurrentTrack
-        }
-        binding.musicItemState.visibility = if (shouldShowState) View.VISIBLE else View.GONE
+    fun updateMetadataDisplay(
+        music: Music,
+        viewInfo: String,
+        isCurrentTrack: Boolean,
+        isPlaying: Boolean
+    ) {
+        if (boundMusicId != music.id) return
+
+        bindMetadata(
+            music = music,
+            isCurrentTrack = isCurrentTrack,
+            viewInfo = viewInfo
+        )
+
+        renderTextColors(isCurrentTrack)
+    }
+
+    private fun renderPlaybackState(
+        isCurrentTrack: Boolean,
+        isPlaying: Boolean
+    ) {
+
+        binding.musicItemState.setColor(theme.accentColor)
+        binding.musicItemState.visibility =
+            if (isCurrentTrack) View.VISIBLE else View.GONE
+
         binding.musicItemState.setPaused(!isPlaying)
     }
 
-    private fun bindMetadata(music: Music, isCurrentTrack: Boolean, isPlaying: Boolean, viewInfo: String) {
-        if (musicSet is MusicSet.RecentlyAdded || viewInfo == VIEW_INFO_DATE) {
-            showTrackMetadata(music.formatAddedDate())
-            binding.musicItemCount.visibility = View.GONE
-        }
+    private fun bindMetadata(
+        music: Music,
+        isCurrentTrack: Boolean,
+        viewInfo: String
+    ) {
+        binding.musicItemSize.visibility = View.GONE
+        binding.musicItemCount.visibility = View.GONE
 
-        else if (musicSet is MusicSet.MostPlayed) {
-            binding.musicItemSize.visibility = View.GONE
-            binding.musicItemCount.visibility =
-                if (isCurrentTrack && isPlaying) View.GONE else View.VISIBLE
-            binding.musicItemCount.text = music.playCount.toString()
-        }
+        when {
+            musicSet is MusicSet.RecentlyAdded || viewInfo == VIEW_INFO_DATE -> {
+                showTrackMetadata(music.formatAddedDate())
+            }
 
-        else if (viewInfo == VIEW_INFO_SIZE) {
-            showTrackMetadata(music.formatFileSize(binding.root.context))
-            binding.musicItemCount.visibility = View.GONE
-        } else if (viewInfo == VIEW_INFO_DURATION) {
-            showTrackMetadata(music.formatDuration())
-            binding.musicItemCount.visibility = View.GONE
-        } else {
-            binding.musicItemCount.visibility = View.GONE
-            binding.musicItemSize.visibility = View.GONE
+            musicSet is MusicSet.MostPlayed -> {
+                binding.musicItemCount.visibility =
+                    if (isCurrentTrack) {
+                        View.GONE
+                    } else {
+                        View.VISIBLE
+                    }
+
+                binding.musicItemCount.text = music.playCount.toString()
+            }
+
+            viewInfo == VIEW_INFO_SIZE -> {
+                showTrackMetadata(
+                    music.formatFileSize(binding.root.context)
+                )
+            }
+
+            viewInfo == VIEW_INFO_DURATION -> {
+                showTrackMetadata(music.formatDuration())
+            }
+
+            else -> Unit
         }
     }
 
     private fun showTrackMetadata(value: String) {
         binding.musicItemSize.text = value
-        binding.musicItemSize.visibility = if (value.isBlank()) View.GONE else View.VISIBLE
+        binding.musicItemSize.visibility =
+            if (value.isBlank()) View.GONE else View.VISIBLE
     }
 
-    private fun bindPlaybackMetadataOnly(isCurrentTrack: Boolean, isPlaying: Boolean) {
+    private fun bindPlaybackMetadataOnly(
+        isCurrentTrack: Boolean
+    ) {
         if (musicSet is MusicSet.MostPlayed) {
             binding.musicItemCount.visibility =
-                if (isCurrentTrack && isPlaying) View.GONE else View.VISIBLE
+                if (isCurrentTrack) {
+                    View.GONE
+                } else {
+                    View.VISIBLE
+                }
         }
     }
 
     private fun renderTextColors(isCurrentTrack: Boolean) {
-        binding.musicItemTitle.setTextColor(
-            if (isCurrentTrack) theme.accentColor else theme.itemTextColor
-        )
-        binding.musicItemArtist.setTextColor(
-            if (isCurrentTrack) theme.accentColor
-            else ColorUtils.setAlphaComponent(theme.itemTextColor, 180)
-        )
+        val primaryTextColor =
+            if (isCurrentTrack) {
+                theme.accentColor
+            } else {
+                theme.itemTextColor
+            }
 
-        binding.musicItemCount.setTextColor(
-            if (isCurrentTrack) theme.accentColor
-            else ColorUtils.setAlphaComponent(theme.itemTextColor, 180)
-        )
+        val secondaryTextColor =
+            if (isCurrentTrack) {
+                theme.accentColor
+            } else {
+                ColorUtils.setAlphaComponent(
+                    theme.itemTextColor,
+                    SECONDARY_TEXT_ALPHA
+                )
+            }
 
-        binding.musicItemSize.setTextColor(
-            if (isCurrentTrack) theme.accentColor
-            else ColorUtils.setAlphaComponent(theme.itemTextColor, 180)
-        )
+        binding.musicItemTitle.setTextColor(primaryTextColor)
+        binding.musicItemArtist.setTextColor(secondaryTextColor)
+        binding.musicItemCount.setTextColor(secondaryTextColor)
+        binding.musicItemSize.setTextColor(secondaryTextColor)
     }
 
     private companion object {
         private const val VIEW_INFO_DATE = "date"
         private const val VIEW_INFO_SIZE = "size"
         private const val VIEW_INFO_DURATION = "duration"
+
+        private const val SECONDARY_TEXT_ALPHA = 180
     }
 }

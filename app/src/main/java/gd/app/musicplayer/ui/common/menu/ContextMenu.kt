@@ -1,21 +1,20 @@
 package gd.app.musicplayer.ui.common.menu
 
 import android.content.Context
-import android.graphics.drawable.Drawable
 import android.view.View
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.extension.supportsArtworkMenu
-import gd.app.musicplayer.core.extension.supportsPlayNextMenu
-import gd.app.musicplayer.core.extension.supportsRenameMenu
-import gd.app.musicplayer.core.extension.supportsShuffleAllMenu
-import gd.app.musicplayer.core.extension.supportsSortMenu
-import gd.app.musicplayer.core.extension.supportsViewModeMenu
-import gd.app.musicplayer.core.theme.ThemePalette
-import gd.app.musicplayer.core.theme.accentColor
-import gd.app.musicplayer.data.model.ContextMenuItem
-import gd.app.musicplayer.data.model.MusicSet
-import gd.app.musicplayer.data.model.isTrackCollection
-import gd.app.musicplayer.ui.feature.library.MusicSetAdapter
+import gd.app.musicplayer.core.common.extension.supportsArtworkMenu
+import gd.app.musicplayer.core.common.extension.supportsPlayNextMenu
+import gd.app.musicplayer.core.common.extension.supportsRenameMenu
+import gd.app.musicplayer.core.common.extension.supportsShuffleAllMenu
+import gd.app.musicplayer.core.common.extension.supportsSortMenu
+import gd.app.musicplayer.core.common.extension.supportsViewModeMenu
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.domain.model.ContextMenuItem
+import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.model.isTrackCollection
+import gd.app.musicplayer.ui.library.musicset.MusicSetAdapter
 
 class ContextMenu(
     context: Context,
