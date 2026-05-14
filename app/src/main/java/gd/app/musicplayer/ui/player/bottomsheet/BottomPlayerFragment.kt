@@ -125,15 +125,7 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
     }
 
     private fun onPlayPauseClicked() {
-        val currentTrackId = viewModel.trackUiState.value.musicId
-
-        if (currentTrackId == null) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewModel.playAllTracks(requireContext())
-            }
-        } else {
-            viewModel.togglePlayPause(requireContext())
-        }
+        viewModel.onPrimaryPlayPauseClicked(requireContext())
     }
 
     private fun collapsePlayerPanel() {
@@ -141,11 +133,11 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
     }
 
     private fun showPlaybackQueue() {
-        PlaybackQueueBottomSheetFragment.Companion.show(childFragmentManager)
+        PlaybackQueueBottomSheetFragment.show(childFragmentManager)
     }
 
     private fun openPlayerScreen() {
-        MusicPlayActivity.Companion.start(requireContext())
+        MusicPlayActivity.start(requireContext())
     }
 
     override fun onProgressChanged(

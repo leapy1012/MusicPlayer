@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -13,17 +14,25 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
-import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.core.common.extension.albumArtSource
+import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.toDurationString
+import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.databinding.ActivityDriveModeItemBinding
 import gd.app.musicplayer.databinding.FragmentDriveModeBinding
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackQueueUseCase
+import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
 import gd.app.musicplayer.core.designsystem.view.SeekBar
+import gd.app.musicplayer.ui.player.queue.PlayQueueActivity
 import javax.inject.Inject
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -31,11 +40,14 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     private var userSeeking = false
     private var pagerSyncFromState = false
     private var forwardBackwardSeconds = DEFAULT_FORWARD_BACKWARD_SECONDS
+    private var currentQueue: List<Music> = emptyList()
     private val pagerAdapter = DriveModePagerAdapter()
     private val viewModel: PlayerViewModel by viewModels()
     private val playModeViewModel: PlayModeViewModel by viewModels()
 
     @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
+    @Inject lateinit var observePlaybackQueueUseCase: ObservePlaybackQueueUseCase
+    @Inject lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentDriveModeBinding =
         FragmentDriveModeBinding.inflate(inflater)
@@ -43,6 +55,7 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     override fun onBindingCreated(binding: FragmentDriveModeBinding, savedInstanceState: Bundle?) {
         super.onBindingCreated(binding, savedInstanceState)
 
+        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
         binding.musicInfoPager.adapter = pagerAdapter
         binding.musicInfoPager.offscreenPageLimit = 2
         binding.musicInfoPager.setOnPageChangeListener(object : ViewPager.OnPageChangeListener {
@@ -50,11 +63,14 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             override fun onPageScrollStateChanged(state: Int) = Unit
 
             override fun onPageSelected(position: Int) {
-//                if (pagerSyncFromState) return
-//                val state = viewModel.playbackState.value
-//                if (state.queue.isNotEmpty() && position in state.queue.indices) {
-//                    viewModel.playQueue(requireContext(), state.queue, position)
-//                }
+                if (pagerSyncFromState) return
+
+                val selectedTrack = pagerAdapter.getItemOrNull(position) ?: return
+                val actualIndex = currentQueue.indexOfFirst { it.id == selectedTrack.id }
+
+                if (currentQueue.isNotEmpty() && actualIndex in currentQueue.indices) {
+                    viewModel.playQueue(requireContext(), currentQueue, actualIndex)
+                }
             }
         })
 
@@ -62,17 +78,10 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             requireActivity().finish()
         }
         binding.driveModeQueue.setOnClickListener {
-            PlaybackQueueBottomSheetFragment.show(parentFragmentManager)
+            PlayQueueActivity.start(requireContext())
         }
         binding.driveModePlayPause.setOnClickListener {
-//            val state = viewModel.playbackState.value
-//            if (state.queue.isEmpty()) {
-//                viewLifecycleOwner.lifecycleScope.launch {
-//                    viewModel.playAllTracks(requireContext())
-//                }
-//            } else {
-//                viewModel.togglePlayPause(requireContext())
-//            }
+            viewModel.onPrimaryPlayPauseClicked(requireContext())
         }
         binding.driveModePrevious.setOnClickListener {
             viewModel.playPrevious(requireContext())
@@ -81,18 +90,18 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             viewModel.playNext(requireContext())
         }
         binding.driveModeBackward.setOnClickListener {
-//            val current = viewModel.playbackState.value.positionMs
-//            viewModel.seekTo(
-//                requireContext(),
-//                (current - skipDurationMs().toLong()).coerceAtLeast(0L).toInt()
-//            )
+            val current = viewModel.playbackState.value.positionMs
+            viewModel.seekTo(
+                requireContext(),
+                (current - skipDurationMs().toLong()).coerceAtLeast(0L).toInt()
+            )
         }
         binding.driveModeForward.setOnClickListener {
-//            val state = viewModel.playbackState.value
-//            viewModel.seekTo(
-//                requireContext(),
-//                (state.positionMs + skipDurationMs().toLong()).coerceAtMost(state.durationMs).toInt()
-//            )
+            val state = viewModel.playbackState.value
+            viewModel.seekTo(
+                requireContext(),
+                (state.positionMs + skipDurationMs().toLong()).coerceAtMost(state.durationMs).toInt()
+            )
         }
         binding.driveModeFavorite.setOnClickListener {
             toggleFavorite()
@@ -102,11 +111,15 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
         }
 
         binding.driveModeProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) = Unit
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+
+                requireBinding().driveModeCurrTime.text = progress.toLong().toDurationString()
+                viewModel.seekTo(requireContext(), progress)
+            }
 
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 userSeeking = false
-                viewModel.seekTo(requireContext(), seekBar.getProgress())
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {
@@ -120,32 +133,48 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     }
 
     private fun observePlayback() {
-//        viewLifecycleOwner.lifecycleScope.launch {
-//            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-//                viewModel.playbackState.collect { state ->
-//                    val binding = requireBinding()
-//
-//                    binding.driveModePlayPause.isSelected = state.isPlaying
-//                    binding.driveModeFavorite.isSelected = state.currentTrack?.isFavorite() == true
-//                    binding.driveModeProgress.isEnabled = state.durationMs > 0
-//                    binding.driveModeProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
-//                    if (!userSeeking) {
-//                        binding.driveModeProgress.setProgress(state.positionMs.toInt())
-//                    }
-//                    binding.driveModeCurrTime.text = state.positionMs.toDurationString()
-//                    binding.driveModeTotalTime.text = state.durationMs.toDurationString()
-//
-//                    val queue = state.queue.ifEmpty { listOf(placeholderMusic(requireContext())) }
-//                    pagerAdapter.submitQueue(queue)
-//                    val targetIndex = state.currentIndex.takeIf { it in queue.indices } ?: 0
-//                    if (binding.musicInfoPager.currentItem != targetIndex) {
-//                        pagerSyncFromState = true
-//                        binding.musicInfoPager.setCurrentItem(targetIndex, false)
-//                        pagerSyncFromState = false
-//                    }
-//                }
-//            }
-//        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    viewModel.playbackState,
+                    viewModel.trackUiState,
+                    observePlaybackQueueUseCase()
+                ) { playbackState, trackState, queue ->
+                    Triple(playbackState, trackState, queue)
+                }.collect { (state, trackState, queue) ->
+                    val binding = requireBinding()
+
+                    currentQueue = queue
+                    binding.driveModePlayPause.isSelected = state.isPlaying
+                    binding.driveModeFavorite.isSelected = trackState.isFavorite
+                    binding.driveModeProgress.isEnabled = state.durationMs > 0L
+                    binding.driveModeProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
+
+                    if (!userSeeking) {
+                        binding.driveModeProgress.setProgress(state.positionMs.toInt())
+                    }
+
+                    binding.driveModeCurrTime.text = state.positionMs.toDurationString()
+                    binding.driveModeTotalTime.text = state.durationMs.toDurationString()
+
+                    val displayQueue = queue.ifEmpty {
+                        listOf(placeholderMusic(requireContext()))
+                    }
+                    pagerAdapter.submitQueue(displayQueue)
+
+                    val targetTrackId = state.currentTrack?.id
+                    val targetIndex = displayQueue.indexOfFirst { it.id == targetTrackId }
+                        .takeIf { it >= 0 }
+                        ?: 0
+
+                    if (binding.musicInfoPager.currentItem != targetIndex) {
+                        pagerSyncFromState = true
+                        binding.musicInfoPager.setCurrentItem(targetIndex, false)
+                        pagerSyncFromState = false
+                    }
+                }
+            }
+        }
     }
 
     private fun observePlayMode() {
@@ -163,24 +192,75 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 settingPreferencesDataStore.observeSettingPreferences().collect { settings ->
                     forwardBackwardSeconds = settings.normal.forwardBackwardSeconds
+                    applyForwardBackwardLayout(settings.normal.showForwardBackward)
                 }
             }
         }
     }
 
     private fun toggleFavorite() {
-//        val track = viewModel.playbackState.value.currentTrack ?: return
-//        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-//            val favorited = toggleFavoriteTrack(track.id)
-//            launch(Dispatchers.Main) {
-//                requireBinding().driveModeFavorite.isSelected = favorited
-//                pagerAdapter.updateFavorite(track.id, favorited)
-//            }
-//        }
+        val track = viewModel.playbackState.value.currentTrack ?: return
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val favorited = toggleFavoriteTrackUseCase(track.id)
+            requireBinding().driveModeFavorite.isSelected = favorited
+            pagerAdapter.updateFavorite(track.id, favorited)
+        }
     }
 
     private fun skipDurationMs(): Int {
         return forwardBackwardSeconds.coerceAtLeast(1) * 1000
+    }
+
+    private fun applyForwardBackwardLayout(enabled: Boolean) {
+        val binding = requireBinding()
+
+        binding.driveModeForward.visibility = if (enabled) View.VISIBLE else View.GONE
+        binding.driveModeBackward.visibility = if (enabled) View.VISIBLE else View.GONE
+
+        if (enabled) {
+            binding.driveModeBackward.setImageResource(forwardBackwardSeconds.toBackwardIconRes())
+            binding.driveModeForward.setImageResource(forwardBackwardSeconds.toForwardIconRes())
+            return
+        } else {
+            val defaultSize = requireContext().resources.getDimension(R.dimen.drive_large_icon_size)
+            val basePadding = ((defaultSize - requireContext().dpToPx(40f)) / 2).toInt()
+            val offset = requireContext().dpToPx(2f)
+            resizeControlButton(
+                view = binding.driveModePrevious,
+                size = defaultSize.toInt(),
+                left = basePadding - offset,
+                top = basePadding,
+                right = basePadding + offset,
+                bottom = basePadding
+            )
+            resizeControlButton(
+                view = binding.driveModeNext,
+                size = defaultSize.toInt(),
+                left = basePadding + offset,
+                top = basePadding,
+                right = basePadding - offset,
+                bottom = basePadding
+            )
+            resizeControlButton(binding.driveModePlayPause, defaultSize.toInt(), 0, 0, 0, 0)
+            binding.driveModePrevious.tag = "previousView"
+            binding.driveModeNext.tag = "nextView"
+        }
+    }
+
+    private fun resizeControlButton(
+        view: ImageView,
+        size: Int,
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int
+    ) {
+        view.layoutParams = view.layoutParams?.apply {
+            width = size
+            height = size
+        }
+        view.setPadding(left, top, right, bottom)
     }
 
     private companion object {
@@ -197,10 +277,34 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             duration = 0
         )
     }
+
+    private fun Int.toBackwardIconRes(): Int {
+        return when (this) {
+            5 -> R.drawable.vector_backward_5
+            10 -> R.drawable.vector_backward_10
+            15 -> R.drawable.vector_backward_15
+            20 -> R.drawable.vector_backward_20
+            30 -> R.drawable.vector_backward_30
+            else -> R.drawable.vector_backward_60
+        }
+    }
+
+    private fun Int.toForwardIconRes(): Int {
+        return when (this) {
+            5 -> R.drawable.vector_forward_5
+            10 -> R.drawable.vector_forward_10
+            15 -> R.drawable.vector_forward_15
+            20 -> R.drawable.vector_forward_20
+            30 -> R.drawable.vector_forward_30
+            else -> R.drawable.vector_forward_60
+        }
+    }
 }
 
 private class DriveModePagerAdapter : PagerAdapter() {
     private val queue = mutableListOf<Music>()
+
+    fun getItemOrNull(position: Int): Music? = queue.getOrNull(position)
 
     fun submitQueue(items: List<Music>) {
         val displayItems = items.asLoopFriendlyList()
@@ -228,6 +332,7 @@ private class DriveModePagerAdapter : PagerAdapter() {
             val newItem = items[index]
             oldItem.id == newItem.id &&
                 oldItem.data == newItem.data &&
+                oldItem.albumPicture == newItem.albumPicture &&
                 oldItem.playlistId == newItem.playlistId
         }
     }
@@ -245,7 +350,7 @@ private class DriveModePagerAdapter : PagerAdapter() {
         )
         binding.driveModeTitle.text = item.title
         binding.driveModeArtist.text = item.artist.ifBlank { binding.root.context.getString(R.string.artist) }
-        item.loadMusicArtwork(binding.driveModeCover)
+        binding.driveModeCover.loadMusicArtwork(item.albumArtSource())
         container.addView(binding.root)
         return binding.root
     }
@@ -263,4 +368,3 @@ private class DriveModePagerAdapter : PagerAdapter() {
         return listOf(this[0], this[1], this[0], this[1])
     }
 }
-

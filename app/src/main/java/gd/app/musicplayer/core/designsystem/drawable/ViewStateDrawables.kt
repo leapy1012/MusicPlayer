@@ -2,7 +2,6 @@ package gd.app.musicplayer.core.designsystem.drawable
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.StateListDrawable
 import androidx.appcompat.content.res.AppCompatResources
@@ -61,7 +60,7 @@ object ViewStateDrawables {
         )
     }
 
-    fun selectedDefaultColors(
+    fun selectedEnabledDefaultColors(
         defaultColor: Int,
         selectedColor: Int
     ): ColorStateList {

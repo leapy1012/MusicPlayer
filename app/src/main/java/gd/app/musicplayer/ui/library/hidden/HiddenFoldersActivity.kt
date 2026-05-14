@@ -12,16 +12,19 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersBinding
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersItemBinding
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersMusicHeaderBinding
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersMusicItemBinding
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersSetHeaderBinding
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -29,15 +32,14 @@ import gd.app.musicplayer.ui.common.viewholder.HiddenFolderHeaderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenFolderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenMusicHeaderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenMusicViewHolder
-import gd.app.musicplayer.core.common.extension.startActivityCompat
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class HiddenFoldersActivity : BaseActivity() {
+
     private val viewModel: HiddenFoldersViewModel by viewModels()
 
     private lateinit var binding: ActivityHiddenFoldersBinding
-    private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: HiddenItemsAdapter
     private lateinit var emptyStateController: RecyclerEmptyStateController
 
@@ -53,8 +55,6 @@ class HiddenFoldersActivity : BaseActivity() {
         observeHiddenItems()
     }
 
-    
-
     private fun setupToolbar() {
         setupEdgeToEdgeToolbar(
             root = binding.root,
@@ -63,21 +63,23 @@ class HiddenFoldersActivity : BaseActivity() {
             toolbar = binding.toolbar,
             titleRes = R.string.hidden_folders
         )
+
         binding.toolbar.inflateMenu(R.menu.menu_activity_hidden_folders)
+
         binding.toolbar.setOnMenuItemClickListener { menuItem ->
             if (menuItem.itemId == R.id.menu_add) {
                 HiddenFoldersAddActivity.start(this)
+                true
+            } else {
+                false
             }
-            true
         }
     }
 
     private fun setupRecyclerView() {
-        recyclerView = findViewById(R.id.recyclerview)
-        recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
         adapter = HiddenItemsAdapter(
-            applyTheme = { root ->
-                themeEngine.apply(root)
+            applyTheme = { view ->
+                themeEngine.apply(view)
             },
             onRemoveFolder = { folder ->
                 viewModel.removeHiddenFolder(folder.folderPath)
@@ -86,18 +88,28 @@ class HiddenFoldersActivity : BaseActivity() {
                 viewModel.unhideSong(music.id)
             }
         )
-        recyclerView.adapter = adapter
+
+        binding.root.findViewById<RecyclerView>(R.id.recyclerview).apply {
+            layoutManager = LinearLayoutManager(this@HiddenFoldersActivity)
+            adapter = this@HiddenFoldersActivity.adapter
+            setHasFixedSize(true)
+
+            (itemAnimator as? SimpleItemAnimator)
+                ?.supportsChangeAnimations = false
+        }
     }
 
     private fun setupEmptyStateController() {
         emptyStateController = RecyclerEmptyStateController(
-            recyclerView = recyclerView,
+            recyclerView = binding.root.findViewById(R.id.recyclerview),
             emptyViewStub = findViewById(R.id.layout_list_empty)
         ).apply {
             setActionButtonVisible(true)
             setExtraTextVisible(false)
             setActionButtonText(getString(R.string.add_files))
-            setActionClickListener { HiddenFoldersAddActivity.start(this@HiddenFoldersActivity) }
+            setActionClickListener {
+                HiddenFoldersAddActivity.start(this@HiddenFoldersActivity)
+            }
             setEmptyImage(R.drawable.folder_empty_image)
             setEmptyMessage(getString(R.string.no_hidden_folders))
         }
@@ -106,73 +118,58 @@ class HiddenFoldersActivity : BaseActivity() {
     private fun observeHiddenItems() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    val data = HiddenItemsData(
-                        hiddenFolders = state.hiddenFolders,
-                        hiddenSongs = state.hiddenSongs
-                    )
-                    adapter.submitData(data)
-                    val isEmpty = state.isEmpty
-                    binding.toolbar.menu.findItem(R.id.menu_add)?.isVisible = !isEmpty
-                    emptyStateController.setVisible(isEmpty)
-                }
+                viewModel.uiState.collect(::render)
             }
         }
     }
 
+    private fun render(state: HiddenFoldersUiState) {
+        adapter.submitHiddenData(
+            folders = state.hiddenFolders,
+            songs = state.hiddenSongs
+        )
+
+        binding.toolbar.menu.findItem(R.id.menu_add)?.isVisible = !state.isEmpty
+        emptyStateController.setVisible(state.isEmpty)
+    }
+
     companion object {
         fun start(context: Context) {
-            context.startActivityCompat(Intent(context, HiddenFoldersActivity::class.java))
+            context.startActivityCompat(
+                Intent(context, HiddenFoldersActivity::class.java)
+            )
         }
     }
 }
-
-data class HiddenItemsData(
-    val hiddenFolders: List<MusicSet.Folder>,
-    val hiddenSongs: List<Music>
-)
 
 private class HiddenItemsAdapter(
     private val applyTheme: (View) -> Unit,
     private val onRemoveFolder: (MusicSet.Folder) -> Unit,
     private val onRemoveMusic: (Music) -> Unit
-) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+) : ListAdapter<HiddenRow, RecyclerView.ViewHolder>(HiddenRowDiffCallback) {
 
-    private var rows: List<HiddenRow> = emptyList()
-
-    fun submitData(data: HiddenItemsData) {
-        val newRows = buildRows(data)
-        val oldRows = rows
-        rows = newRows
-        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
-            override fun getOldListSize(): Int = oldRows.size
-            override fun getNewListSize(): Int = newRows.size
-
-            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val old = oldRows[oldItemPosition]
-                val new = newRows[newItemPosition]
-                return when {
-                    old is HiddenRow.FolderHeader && new is HiddenRow.FolderHeader -> true
-                    old is HiddenRow.MusicHeader && new is HiddenRow.MusicHeader -> true
-                    old is HiddenRow.FolderItem && new is HiddenRow.FolderItem ->
-                        old.folder.folderPath == new.folder.folderPath
-                    old is HiddenRow.MusicItem && new is HiddenRow.MusicItem ->
-                        old.music.id == new.music.id
-                    else -> false
-                }
-            }
-
-            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                return oldRows[oldItemPosition] == newRows[newItemPosition]
-            }
-        })
-        diff.dispatchUpdatesTo(this)
+    init {
+        setHasStableIds(true)
     }
 
-    override fun getItemCount(): Int = rows.size
+    override fun getItemId(position: Int): Long {
+        return getItem(position).stableId
+    }
+
+    fun submitHiddenData(
+        folders: List<MusicSet.Folder>,
+        songs: List<Music>
+    ) {
+        submitList(
+            buildRows(
+                folders = folders,
+                songs = songs
+            )
+        )
+    }
 
     override fun getItemViewType(position: Int): Int {
-        return when (rows[position]) {
+        return when (getItem(position)) {
             is HiddenRow.FolderHeader -> VIEW_TYPE_FOLDER_HEADER
             is HiddenRow.FolderItem -> VIEW_TYPE_FOLDER
             is HiddenRow.MusicHeader -> VIEW_TYPE_MUSIC_HEADER
@@ -180,38 +177,78 @@ private class HiddenItemsAdapter(
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
+
         return when (viewType) {
             VIEW_TYPE_FOLDER_HEADER -> {
-                val binding = ActivityHiddenFoldersSetHeaderBinding.inflate(inflater, parent, false)
+                val binding = ActivityHiddenFoldersSetHeaderBinding.inflate(
+                    inflater,
+                    parent,
+                    false
+                )
+
                 applyTheme(binding.root)
+
                 HiddenFolderHeaderViewHolder(binding)
             }
 
             VIEW_TYPE_FOLDER -> {
-                val binding = ActivityHiddenFoldersItemBinding.inflate(inflater, parent, false)
+                val binding = ActivityHiddenFoldersItemBinding.inflate(
+                    inflater,
+                    parent,
+                    false
+                )
+
                 applyTheme(binding.root)
-                HiddenFolderViewHolder(binding, onRemoveFolder)
+
+                HiddenFolderViewHolder(
+                    binding,
+                    onRemoveFolder
+                )
             }
 
             VIEW_TYPE_MUSIC_HEADER -> {
-                val binding = ActivityHiddenFoldersMusicHeaderBinding.inflate(inflater, parent, false)
+                val binding = ActivityHiddenFoldersMusicHeaderBinding.inflate(
+                    inflater,
+                    parent,
+                    false
+                )
+
                 applyTheme(binding.root)
+
                 HiddenMusicHeaderViewHolder(binding)
             }
 
             VIEW_TYPE_MUSIC -> {
-                val binding = ActivityHiddenFoldersMusicItemBinding.inflate(inflater, parent, false)
+                val binding = ActivityHiddenFoldersMusicItemBinding.inflate(
+                    inflater,
+                    parent,
+                    false
+                )
+
                 applyTheme(binding.root)
-                HiddenMusicViewHolder(binding, onRemoveMusic)
+
+                HiddenMusicViewHolder(
+                    binding,
+                    onRemoveMusic
+                )
             }
-            else -> error("Unsupported hidden item view type: $viewType")
+
+            else -> {
+                error("Unsupported hidden item view type: $viewType")
+            }
         }
     }
 
-    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        when (val row = rows[position]) {
+    override fun onBindViewHolder(
+        holder: RecyclerView.ViewHolder,
+        position: Int
+    ) {
+        when (val row = getItem(position)) {
             is HiddenRow.FolderHeader -> {
                 (holder as HiddenFolderHeaderViewHolder).bind(row.count)
             }
@@ -230,32 +267,82 @@ private class HiddenItemsAdapter(
         }
     }
 
-    private fun buildRows(data: HiddenItemsData): List<HiddenRow> {
-        val hasFolders = data.hiddenFolders.isNotEmpty()
-        val hasMusics = data.hiddenSongs.isNotEmpty()
+    private fun buildRows(
+        folders: List<MusicSet.Folder>,
+        songs: List<Music>
+    ): List<HiddenRow> {
+        val hasFolders = folders.isNotEmpty()
+        val hasSongs = songs.isNotEmpty()
+
         return buildList {
-            if (hasFolders && hasMusics) {
-                add(HiddenRow.FolderHeader(data.hiddenFolders.size))
+            if (hasFolders && hasSongs) {
+                add(HiddenRow.FolderHeader(folders.size))
             }
-            data.hiddenFolders.forEach { add(HiddenRow.FolderItem(it)) }
-            if (hasFolders && hasMusics) {
-                add(HiddenRow.MusicHeader(data.hiddenSongs.size))
+
+            folders.forEach { folder ->
+                add(HiddenRow.FolderItem(folder))
             }
-            data.hiddenSongs.forEach { add(HiddenRow.MusicItem(it)) }
+
+            if (hasFolders && hasSongs) {
+                add(HiddenRow.MusicHeader(songs.size))
+            }
+
+            songs.forEach { song ->
+                add(HiddenRow.MusicItem(song))
+            }
         }
     }
 
-    private sealed interface HiddenRow {
-        data class FolderHeader(val count: Int) : HiddenRow
-        data class FolderItem(val folder: MusicSet.Folder) : HiddenRow
-        data class MusicHeader(val count: Int) : HiddenRow
-        data class MusicItem(val music: Music) : HiddenRow
+    private companion object {
+        private const val VIEW_TYPE_FOLDER_HEADER = 0
+        private const val VIEW_TYPE_FOLDER = 1
+        private const val VIEW_TYPE_MUSIC_HEADER = 2
+        private const val VIEW_TYPE_MUSIC = 3
+    }
+}
+
+private sealed interface HiddenRow {
+    val stableId: Long
+
+    data class FolderHeader(
+        val count: Int
+    ) : HiddenRow {
+        override val stableId: Long = -1L
     }
 
-    private companion object {
-        const val VIEW_TYPE_FOLDER_HEADER = 0
-        const val VIEW_TYPE_FOLDER = 1
-        const val VIEW_TYPE_MUSIC_HEADER = 2
-        const val VIEW_TYPE_MUSIC = 3
+    data class FolderItem(
+        val folder: MusicSet.Folder
+    ) : HiddenRow {
+        override val stableId: Long = folder.folderPath.hashCode().toLong()
+    }
+
+    data class MusicHeader(
+        val count: Int
+    ) : HiddenRow {
+        override val stableId: Long = -2L
+    }
+
+    data class MusicItem(
+        val music: Music
+    ) : HiddenRow {
+        override val stableId: Long = music.id
+    }
+}
+
+private object HiddenRowDiffCallback : DiffUtil.ItemCallback<HiddenRow>() {
+
+    override fun areItemsTheSame(
+        oldItem: HiddenRow,
+        newItem: HiddenRow
+    ): Boolean {
+        return oldItem::class == newItem::class &&
+                oldItem.stableId == newItem.stableId
+    }
+
+    override fun areContentsTheSame(
+        oldItem: HiddenRow,
+        newItem: HiddenRow
+    ): Boolean {
+        return oldItem == newItem
     }
 }

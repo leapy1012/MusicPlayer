@@ -2,19 +2,20 @@ package gd.app.musicplayer.ui.library.hidden
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
-import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.domain.usecase.hidden.ObserveHiddenFoldersUseCase
 import gd.app.musicplayer.domain.usecase.hidden.ObserveHiddenSongsUseCase
 import gd.app.musicplayer.domain.usecase.hidden.RemoveHiddenFolderUseCase
 import gd.app.musicplayer.domain.usecase.hidden.UnhideSongsUseCase
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class HiddenFoldersUiState(
     val hiddenFolders: List<MusicSet.Folder> = emptyList(),
@@ -26,25 +27,28 @@ data class HiddenFoldersUiState(
 
 @HiltViewModel
 class HiddenFoldersViewModel @Inject constructor(
-    private val observeHiddenFoldersUseCase: ObserveHiddenFoldersUseCase,
-    private val observeHiddenSongsUseCase: ObserveHiddenSongsUseCase,
+    observeHiddenFoldersUseCase: ObserveHiddenFoldersUseCase,
+    observeHiddenSongsUseCase: ObserveHiddenSongsUseCase,
     private val removeHiddenFolderUseCase: RemoveHiddenFolderUseCase,
     private val unhideSongsUseCase: UnhideSongsUseCase
 ) : ViewModel() {
 
-    val uiState: StateFlow<HiddenFoldersUiState> = combine(
-        observeHiddenFoldersUseCase(),
-        observeHiddenSongsUseCase()
-    ) { folders, songs ->
-        HiddenFoldersUiState(
-            hiddenFolders = folders,
-            hiddenSongs = songs
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = HiddenFoldersUiState()
-    )
+    val uiState: StateFlow<HiddenFoldersUiState> =
+        combine(
+            observeHiddenFoldersUseCase(),
+            observeHiddenSongsUseCase()
+        ) { folders, songs ->
+            HiddenFoldersUiState(
+                hiddenFolders = folders,
+                hiddenSongs = songs
+            )
+        }
+            .distinctUntilChanged()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+                initialValue = HiddenFoldersUiState()
+            )
 
     fun removeHiddenFolder(folderPath: String) {
         viewModelScope.launch {
@@ -56,5 +60,9 @@ class HiddenFoldersViewModel @Inject constructor(
         viewModelScope.launch {
             unhideSongsUseCase(listOf(songId))
         }
+    }
+
+    private companion object {
+        private const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }

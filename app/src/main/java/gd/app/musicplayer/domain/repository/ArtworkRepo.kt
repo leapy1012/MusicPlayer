@@ -7,11 +7,15 @@ import gd.app.musicplayer.domain.model.MusicSet
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
 
 @Singleton
 class ArtworkRepo @Inject constructor(
     private val libraryDao: LibraryDao
 ) {
+
+    fun observeTrackArtwork(trackId: Long): Flow<String?> =
+        libraryDao.observeTrackArtwork(trackId)
 
     suspend fun getCollectionArtwork(sourceId: Long, sourceName: String): String? =
         libraryDao.getAlbumPicture(sourceId, sourceName)
@@ -134,6 +138,10 @@ class ArtworkRepo @Inject constructor(
         sourceName: String,
         artworkPath: String?
     ) {
+        android.util.Log.e("Leapy", "sourceId" + sourceId)
+        android.util.Log.e("Leapy", "sourceName" + sourceName)
+        android.util.Log.e("Leapy", "artworkPath" + artworkPath)
+
         val existingRowId = libraryDao.getAlbumPictureRowId(sourceId, sourceName)
         if (existingRowId == null) {
             libraryDao.insertAlbumPicture(

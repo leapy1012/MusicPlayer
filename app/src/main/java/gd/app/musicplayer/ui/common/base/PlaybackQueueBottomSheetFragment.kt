@@ -10,7 +10,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -23,6 +22,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.messageColor
 import gd.app.musicplayer.core.designsystem.theme.titleColor
@@ -33,7 +34,7 @@ import gd.app.musicplayer.core.common.extension.isFavorite
 import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
 import gd.app.musicplayer.databinding.DialogQueueListBinding
 import gd.app.musicplayer.databinding.DialogQueueListItemBinding
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.ItemMoveListener
 import gd.app.musicplayer.ui.selection.ItemTouchStateListener
 import javax.inject.Inject
@@ -77,20 +78,23 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         }
         binding.currentListSave.setOnClickListener {
             val queue = viewModel.saveQueueToPlaylist(playbackState) ?: return@setOnClickListener
-            ActivityPlaylistSelect.start(requireContext(), queue)
+            PlaylistSelectActivity.start(requireContext(), queue)
         }
 
         binding.currentListDelete.setOnClickListener {
             if (playbackState.queue.isEmpty()) return@setOnClickListener
-            AlertDialog.Builder(requireContext())
-                .setTitle(R.string.clear)
-                .setMessage(R.string.clear_message)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.clear) { dialog: DialogInterface, _: Int ->
-                    viewModel.clearQueueOrDismiss(playbackState)
-                    dialog.dismiss()
-                }
-                .show()
+            requireActivity().showMessageDialog(
+                requireContext().createMessageDialogConfig(
+                    title = getString(R.string.clear),
+                    message = getString(R.string.clear_message),
+                    negativeText = getString(R.string.cancel),
+                    positiveText = getString(R.string.clear),
+                    positiveClickListener = DialogInterface.OnClickListener { dialog, _ ->
+                        viewModel.clearQueueOrDismiss(playbackState)
+                        dialog.dismiss()
+                    }
+                )
+            )
         }
 
         binding.currentListMode.setOnClickListener {

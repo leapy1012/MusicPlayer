@@ -2,13 +2,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical">
 
     <androidx.appcompat.widget.AppCompatTextView
-        android:id="@+id/common_dialog_title"
         style="@style/DialogTitle"
-        android:tag="titleColor"
         android:text="@string/replay_gain_preamp" />
 
     <TextView
@@ -18,10 +16,10 @@
         android:layout_marginTop="24dp"
         android:layout_marginEnd="24dp"
         android:singleLine="true"
-        android:tag="itemTextExtraColor"
+        android:tag="dialogMessage"
         android:text="@string/replay_gain_with_tags"
         android:textAlignment="viewStart"
-        android:textColor="#66000000"
+        android:textColor="@color/i_black_m"
         android:textSize="16sp" />
 
     <LinearLayout
@@ -54,10 +52,10 @@
             android:gravity="end"
             android:minWidth="64sp"
             android:singleLine="true"
-            android:tag="itemTextColor"
+            android:tag="dialogMessage"
             android:text="0dB"
             android:textAlignment="viewEnd"
-            android:textColor="#66000000"
+            android:textColor="@color/i_black_m"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -68,10 +66,10 @@
         android:layout_marginTop="20dp"
         android:layout_marginEnd="24dp"
         android:singleLine="true"
-        android:tag="itemTextExtraColor"
+        android:tag="dialogMessage"
         android:text="@string/replay_gain_without_tags"
         android:textAlignment="viewStart"
-        android:textColor="#66000000"
+        android:textColor="@color/i_black_m"
         android:textSize="16sp" />
 
     <LinearLayout
@@ -104,10 +102,10 @@
             android:gravity="end"
             android:minWidth="64sp"
             android:singleLine="true"
-            android:tag="itemTextColor"
+            android:tag="dialogMessage"
             android:text="0dB"
             android:textAlignment="viewEnd"
-            android:textColor="#66000000"
+            android:textColor="@color/i_black_m"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -123,7 +121,7 @@
 
         <TextView
             android:id="@+id/dialog_button_reset"
-            style="@style/DialogButton.Cancel"
+            style="@style/DialogButton.Old"
             android:text="@string/reset" />
 
         <View
@@ -133,12 +131,12 @@
 
         <TextView
             android:id="@+id/dialog_button_cancel"
-            style="@style/DialogButton.Cancel"
+            style="@style/DialogButton.Old"
             android:text="@string/cancel" />
 
         <TextView
             android:id="@+id/dialog_button_ok"
-            style="@style/DialogButton.Confirm"
+            style="@style/DialogButton.Old"
             android:text="@string/confirm" />
     </LinearLayout>
 </LinearLayout>

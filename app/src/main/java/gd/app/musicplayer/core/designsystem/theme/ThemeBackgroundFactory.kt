@@ -7,6 +7,7 @@ import gd.app.musicplayer.core.designsystem.drawable.OverlayCenterCropDrawable
 import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.graphics.drawable.toDrawable
 
 @Singleton
 class ThemeBackgroundFactory @Inject constructor(
@@ -18,7 +19,7 @@ class ThemeBackgroundFactory @Inject constructor(
     suspend fun createActivityBackground(): BitmapDrawable {
         val settings = themeSettingPreferenceStore.getSettingsSnapshot()
 
-        return _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.OverlayCenterCropDrawable(
+        return OverlayCenterCropDrawable(
             appContext.resources,
             themeBitmapLoader.loadBitmap(
                 context = appContext,
@@ -36,6 +37,6 @@ class ThemeBackgroundFactory @Inject constructor(
             imageName = settings.imageName
         ) ?: return null
 
-        return BitmapDrawable(appContext.resources, bitmap)
+        return bitmap.toDrawable(appContext.resources)
     }
 }

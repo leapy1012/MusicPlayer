@@ -2,6 +2,7 @@ package gd.app.musicplayer.ui.editor
 
 import android.content.Context
 import android.content.Intent
+import android.content.DialogInterface
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
@@ -10,7 +11,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,6 +21,8 @@ import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.data.local.mediastore.MediaStoreMusicImporter
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.scan.UpsertScannedTracksUseCase
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.databinding.ActivityAudioEditorBinding
 import gd.app.musicplayer.ui.editor.waveform.SoundWaveData
 import gd.app.musicplayer.ui.editor.waveform.SoundWaveView
@@ -353,11 +355,13 @@ class ActivityAudioEditor : BaseActivity(),
         val clipEnd = binding.audioEditorWave.getClipRightMilliseconds()
         val clipDuration = binding.audioEditorWave.getClipDuration()
         if (clipStart >= clipEnd || clipDuration <= 39) {
-            AlertDialog.Builder(this)
-                .setTitle(R.string.error)
-                .setMessage(R.string.song_clip_error)
-                .setPositiveButton(R.string.ok, null)
-                .show()
+            showMessageDialog(
+                createMessageDialogConfig(
+                    title = getString(R.string.error),
+                    message = getString(R.string.song_clip_error),
+                    positiveText = getString(R.string.ok)
+                )
+            )
             return
         }
 
@@ -371,26 +375,23 @@ class ActivityAudioEditor : BaseActivity(),
             setSingleLine()
         }
 
-        AlertDialog.Builder(this)
-            .setTitle(R.string.save)
-            .setView(input)
-            .setPositiveButton(R.string.save, null)
-            .setNegativeButton(R.string.cancel, null)
-            .create()
-            .also { dialog ->
-                dialog.setOnShowListener {
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val fileName = input.extractValidatedText(false)
-                        if (fileName.isNullOrBlank()) {
-                            ToastUtil.show(this, R.string.input_error)
-                            return@setOnClickListener
-                        }
-                        dialog.dismiss()
-                        saveClip(fileName, clipStart, clipEnd)
+        showMessageDialog(
+            createMessageDialogConfig(
+                title = getString(R.string.save),
+                customView = input,
+                positiveText = getString(R.string.save),
+                negativeText = getString(R.string.cancel),
+                positiveClickListener = DialogInterface.OnClickListener { dialog, _ ->
+                    val fileName = input.extractValidatedText(false)
+                    if (fileName.isNullOrBlank()) {
+                        ToastUtil.show(this, R.string.input_error)
+                        return@OnClickListener
                     }
+                    dialog.dismiss()
+                    saveClip(fileName, clipStart, clipEnd)
                 }
-            }
-            .show()
+            )
+        )
     }
 
     private fun saveClip(fileName: String, startMs: Int, endMs: Int) {

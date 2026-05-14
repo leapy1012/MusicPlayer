@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderChildItemBinding
@@ -163,7 +164,7 @@ class ActivityDuplicateBinder(
             binding.musicItemTitle.text = firstTrack.title
             binding.musicItemArtist.text = buildHeaderSubtitle(firstTrack)
             binding.musicItemAlbum.setImageResource(R.drawable.default_album_identify)
-            firstTrack.loadMusicArtwork(binding.musicItemAlbum)
+            binding.musicItemAlbum.loadMusicArtwork(firstTrack.albumArtSource())
             binding.root.setOnClickListener {
                 onGroupClick(groupKey)
             }

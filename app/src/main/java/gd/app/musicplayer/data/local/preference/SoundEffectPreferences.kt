@@ -21,12 +21,6 @@ class SoundEffectPreferences @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
 
-    val masterVolume: Flow<Float> =
-        dataStore.data
-            .map { preferences ->
-                preferences[KEY_MASTER_VOLUME] ?: DEFAULT_VOLUME
-            }
-            .distinctUntilChanged()
     val soundEffectSettings: Flow<SoundEffectSettings> =
         dataStore.data
             .map { preferences -> preferences.toSoundEffectSettings() }
@@ -59,10 +53,6 @@ class SoundEffectPreferences @Inject constructor(
 
     suspend fun getLastEffectId(bandMode: Int): Int {
         return dataStore.data.first()[effectIdKeyForMode(bandMode)] ?: DEFAULT_EFFECT_ID
-    }
-
-    suspend fun setMasterVolume(value: Float) {
-        set(KEY_MASTER_VOLUME, value.coerceIn(0f, 1f))
     }
 
     suspend fun setLoudnessEnabled(enabled: Boolean) {
@@ -139,8 +129,6 @@ class SoundEffectPreferences @Inject constructor(
 
     private fun Preferences.toSoundEffectSettings(): SoundEffectSettings {
         return SoundEffectSettings(
-            masterVolume = this[KEY_MASTER_VOLUME] ?: DEFAULT_VOLUME,
-
             loudnessEnabled = this[KEY_VOLUME_BOOST_ENABLED] ?: false,
             loudnessStrength = this[KEY_LOUDNESS_ENHANCER_PROGRESS] ?: 0f,
 
@@ -227,8 +215,6 @@ class SoundEffectPreferences @Inject constructor(
         private const val DEFAULT_EFFECT_ID = 2
         private const val DEFAULT_VOLUME = 1.0f
         private const val DEFAULT_EQUALIZER_LAST_TAB = 0
-
-        private val KEY_MASTER_VOLUME = floatPreferencesKey("master_volume")
         private val KEY_EQUALIZER_LAST_TAB = intPreferencesKey("equalizer_last_tab")
 
         private val KEY_BASS_ENABLED = booleanPreferencesKey("bass_enable")

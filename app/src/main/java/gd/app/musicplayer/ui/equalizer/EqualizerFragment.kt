@@ -1,8 +1,11 @@
 package gd.app.musicplayer.ui.equalizer
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
-import androidx.appcompat.app.AlertDialog
+import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.AdapterView
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -10,13 +13,25 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyLengthFilter
+import gd.app.musicplayer.core.common.extension.extractValidatedText
+import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.BaseDialog
+import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
+import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
+import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.view.RotateStepBar
 import gd.app.musicplayer.core.designsystem.view.SelectBox
 import gd.app.musicplayer.data.local.preference.EqualizerPreference
-import gd.app.musicplayer.domain.model.AudioEffectSettings
+import gd.app.musicplayer.domain.repository.EqualizerPresetRecord
 import gd.app.musicplayer.databinding.FragmentEqualizerBinding
+import gd.app.musicplayer.domain.usecase.equalizer.CreateEqualizerPresetUseCase
+import gd.app.musicplayer.domain.usecase.equalizer.DeleteEqualizerPresetUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
+import gd.app.musicplayer.domain.usecase.equalizer.LoadEqualizerPresetsUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.SaveAudioEffectSettingsUseCase
+import gd.app.musicplayer.domain.usecase.equalizer.UpdateEqualizerPresetUseCase
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
 import javax.inject.Inject
@@ -28,16 +43,24 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
 
     @Inject lateinit var loadAudioEffectSettingsUseCase: LoadAudioEffectSettingsUseCase
     @Inject lateinit var saveAudioEffectSettingsUseCase: SaveAudioEffectSettingsUseCase
+    @Inject lateinit var loadEqualizerPresetsUseCase: LoadEqualizerPresetsUseCase
+    @Inject lateinit var createEqualizerPresetUseCase: CreateEqualizerPresetUseCase
+    @Inject lateinit var updateEqualizerPresetUseCase: UpdateEqualizerPresetUseCase
+    @Inject lateinit var deleteEqualizerPresetUseCase: DeleteEqualizerPresetUseCase
+    @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
     private val equalizerViewModel: EqualizerViewModel by viewModels()
     private val playerViewModel: PlayerViewModel by viewModels()
 
     private lateinit var equalizerBandAdapter: EqualizerBandAdapter
-    private var presetNames: List<String> = emptyList()
+    private var presetRecords: List<EqualizerPresetRecord> = emptyList()
     private var currentBandLevels: MutableList<Int> = mutableListOf()
 
     private var latestSettings: EqualizerPreference = EqualizerPreference()
     private var isRendering: Boolean = false
+    private var lastAnimatedPresetId: Int? = null
+    private var lastAnimatedBandMode: Int? = null
+    private var loadedBandMode: Int? = null
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentEqualizerBinding {
         return FragmentEqualizerBinding.inflate(inflater)
@@ -49,7 +72,6 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     ) {
         super.onBindingCreated(binding, savedInstanceState)
 
-        presetNames = EqualizerPresets.defaultPresetNames(requireContext())
         setupEqualizerSwitch(binding)
         setupPresetSelector(binding)
         setupEditAndSave(binding)
@@ -63,8 +85,9 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         if (!isAdded || binding == null) return
         viewLifecycleOwner.lifecycleScope.launch {
             val settings = equalizerViewModel.settings.value
+            ensurePresetRecords(settings, force = true)
             latestSettings = settings
-            currentBandLevels = resolveBandLevels(settings, loadAudioEffectSettingsUseCase())
+            currentBandLevels = resolveBandLevels(settings)
             renderAll(requireBinding(), settings)
         }
     }
@@ -73,8 +96,9 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 equalizerViewModel.settings.collect { settings ->
+                    ensurePresetRecords(settings)
                     latestSettings = settings
-                    currentBandLevels = resolveBandLevels(settings, loadAudioEffectSettingsUseCase())
+                    currentBandLevels = resolveBandLevels(settings)
                     renderAll(requireBinding(), settings)
                 }
             }
@@ -109,16 +133,12 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     private fun setupEditAndSave(binding: FragmentEqualizerBinding) = with(binding) {
         equalizerEdit.setOnClickListener {
             if (isRendering || !latestSettings.equalizerEnabled) return@setOnClickListener
-            equalizerViewModel.setSelectedEffectId(USER_PRESET_ID)
+            showEditPresetDialog()
         }
 
         equalizerSave.setOnClickListener {
             if (isRendering || !latestSettings.equalizerEnabled) return@setOnClickListener
-            viewLifecycleOwner.lifecycleScope.launch {
-                saveCurrentCustomLevels()
-                equalizerViewModel.setSelectedEffectId(USER_PRESET_ID)
-                applyAudioEffects()
-            }
+            showSavePresetDialog()
         }
     }
 
@@ -146,8 +166,9 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     }
                 },
                 onTrackingChanged = { tracking ->
-                    requireBinding().root.requestDisallowInterceptTouchEvent(tracking)
-                }
+                    updateGestureInterception(tracking)
+                },
+                applyTheme = ::applyThemeTo
             )
             adapter = equalizerBandAdapter
         }
@@ -194,7 +215,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     view: RotateStepBar,
                     isTracking: Boolean
                 ) {
-                    requireBinding().root.requestDisallowInterceptTouchEvent(isTracking)
+                    updateGestureInterception(isTracking)
                 }
 
                 override fun onRotationChanged(
@@ -218,7 +239,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     view: RotateStepBar,
                     isTracking: Boolean
                 ) {
-                    requireBinding().root.requestDisallowInterceptTouchEvent(isTracking)
+                    updateGestureInterception(isTracking)
                 }
 
                 override fun onRotationChanged(
@@ -245,6 +266,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
 
         equalizerBox.isSelected = settings.equalizerEnabled
         equalizerText.text = resolveEffectName(settings.selectedEffectId)
+        equalizerSave.isSelected = settings.selectedEffectId == USER_PRESET_ID
 
         renderMainEnabledState(binding, settings)
         renderBandRecycler(binding, settings)
@@ -266,13 +288,21 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
 
         equalizerSeekParent.equalizerSeekGroup.isEnabled = settings.equalizerEnabled
         equalizerSeekParent.equalizerRecycler.isEnabled = settings.equalizerEnabled
-        equalizerBassParent.root.isEnabled = settings.equalizerEnabled
     }
 
     private fun renderBandRecycler(
         binding: FragmentEqualizerBinding,
         settings: EqualizerPreference
     ) = with(binding) {
+        if (
+            lastAnimatedPresetId != settings.selectedEffectId ||
+            lastAnimatedBandMode != settings.bandMode
+        ) {
+            equalizerBandAdapter.markAnimationsPending()
+            lastAnimatedPresetId = settings.selectedEffectId
+            lastAnimatedBandMode = settings.bandMode
+        }
+
         equalizerBandAdapter.submit(
             labels = EqualizerPresets.frequencies(settings.bandMode == TEN_BAND_MODE),
             levels = currentBandLevels.toIntArray(),
@@ -302,37 +332,42 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         binding: FragmentEqualizerBinding,
         settings: EqualizerPreference
     ) = with(binding.equalizerBassParent) {
-        val equalizerEnabled = settings.equalizerEnabled
+        equalizerBassBox.isEnabled = true
+        equalizerVirtualBox.isEnabled = true
 
-        equalizerBassBox.isEnabled = equalizerEnabled
-        equalizerVirtualBox.isEnabled = equalizerEnabled
+        equalizerBassRotate.isEnabled = settings.bassEnabled
+        equalizerBassText.isEnabled = settings.bassEnabled
 
-        equalizerBassRotate.isEnabled = equalizerEnabled && settings.bassEnabled
-        equalizerBassText.isEnabled = equalizerEnabled && settings.bassEnabled
-
-        equalizerVirtualRotate.isEnabled = equalizerEnabled && settings.virtualizerEnabled
-        equalizerVirtualText.isEnabled = equalizerEnabled && settings.virtualizerEnabled
+        equalizerVirtualRotate.isEnabled = settings.virtualizerEnabled
+        equalizerVirtualText.isEnabled = settings.virtualizerEnabled
     }
 
     private fun resolveEffectName(effectId: Int): String {
-        return presetNames.getOrNull(effectId)
+        return presetRecords.getOrNull(effectId)?.name
             ?: getString(R.string.equalizer_effect_user_defined)
     }
 
     private fun showPresetPickerDialog() {
-        if (presetNames.isEmpty()) return
-        val selected = latestSettings.selectedEffectId.coerceIn(0, presetNames.lastIndex)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val items = presetRecords.ifEmpty { loadPresetRecords(latestSettings) }.map { it.name }
+            if (items.isEmpty()) return@launch
 
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.equalizer)
-            .setSingleChoiceItems(presetNames.toTypedArray(), selected) { dialog, which ->
-                dialog.dismiss()
-                if (which == selected) return@setSingleChoiceItems
-                equalizerViewModel.setSelectedEffectId(which)
-                applyAudioEffects()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            val selected = latestSettings.selectedEffectId.coerceIn(0, items.lastIndex)
+            val config = materialDialogConfigFactory
+                .createMaterialListDialogConfig(requireContext(), items)
+                .apply {
+                    titleText = getString(R.string.equalizer_effect_msg)
+                    selectedItemIndex = selected
+                    onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
+                        if (which == selected) return@OnItemClickListener
+                        equalizerViewModel.setSelectedEffectId(which)
+                        applyAudioEffects()
+                        BaseDialog.dismissAll(requireActivity())
+                    }
+                }
+
+            OptionsListDialog.show(requireActivity(), config)
+        }
     }
 
     private suspend fun saveCurrentCustomLevels() {
@@ -345,22 +380,245 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         saveAudioEffectSettingsUseCase(updated)
     }
 
-    private fun resolveBandLevels(
-        settings: EqualizerPreference,
-        stored: AudioEffectSettings
-    ): MutableList<Int> {
-        val isTenBand = settings.bandMode == TEN_BAND_MODE
-        val defaults = EqualizerPresets.defaultBands(isTenBand)
-        val selected = settings.selectedEffectId
-        return if (selected != USER_PRESET_ID && selected in defaults.indices) {
-            defaults[selected].toMutableList()
-        } else {
-            (if (isTenBand) stored.customTenBandLevels else stored.customFiveBandLevels).toMutableList()
+    private fun showEditPresetDialog() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val editablePresets = presetRecords.ifEmpty {
+                loadPresetRecords(latestSettings)
+            }.drop(1)
+            if (editablePresets.isEmpty()) {
+                return@launch
+            }
+
+            val config = materialDialogConfigFactory
+                .createMaterialListDialogConfig(
+                    requireContext(),
+                    editablePresets.map { it.name }
+                )
+                .apply {
+                    titleText = getString(R.string.equalizer_edit)
+                    onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
+                        BaseDialog.dismissAll(requireActivity())
+                        editablePresets.getOrNull(which)?.let(::showEditActionsDialog)
+                    }
+                }
+
+            OptionsListDialog.show(requireActivity(), config)
         }
+    }
+
+    private fun showEditActionsDialog(record: EqualizerPresetRecord) {
+        val options = buildList {
+            add(getString(R.string.rename))
+            if (record.canDelete) {
+                add(getString(R.string.delete))
+            }
+        }
+
+        val config = materialDialogConfigFactory
+            .createMaterialListDialogConfig(requireContext(), options)
+            .apply {
+                titleText = getString(R.string.equalizer_edit)
+                onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
+                    BaseDialog.dismissAll(requireActivity())
+                    when {
+                        which == 0 -> showRenamePresetDialog(record)
+                        which == 1 && record.canDelete -> deletePreset(record)
+                    }
+                }
+            }
+
+        OptionsListDialog.show(requireActivity(), config)
+    }
+
+    private fun showRenamePresetDialog(record: EqualizerPresetRecord) {
+        val input = buildPresetInput(record.name)
+        showNameInputDialog(
+            title = getString(R.string.rename),
+            input = input
+        ) { dialog ->
+            val name = input.extractValidatedText(keepPathSeparators = false)
+            if (name == null) {
+                ToastUtil.show(requireContext(), R.string.equalizer_edit_input_error)
+                return@showNameInputDialog false
+            }
+            if (isPresetNameTaken(name, exceptId = record.id)) {
+                ToastUtil.show(requireContext(), R.string.name_exist)
+                return@showNameInputDialog false
+            }
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                updateEqualizerPresetUseCase(
+                    id = record.id,
+                    name = name,
+                    bands = record.bands,
+                    tenBand = latestSettings.bandMode == TEN_BAND_MODE
+                )
+                ensurePresetRecords(latestSettings, force = true)
+                renderAll(requireBinding(), latestSettings)
+                ToastUtil.show(requireContext(), R.string.rename_success)
+            }
+            dialog.dismiss()
+            true
+        }
+    }
+
+    private fun showSavePresetDialog() {
+        val input = buildPresetInput(buildNextPresetName())
+        input.setSelection(0, input.text.length)
+        showNameInputDialog(
+            title = getString(R.string.save),
+            input = input
+        ) { dialog ->
+            val name = input.extractValidatedText(keepPathSeparators = false)
+            if (name == null) {
+                ToastUtil.show(requireContext(), R.string.equalizer_edit_input_error)
+                return@showNameInputDialog false
+            }
+            if (isPresetNameTaken(name)) {
+                ToastUtil.show(requireContext(), R.string.name_exist)
+                return@showNameInputDialog false
+            }
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                createEqualizerPresetUseCase(
+                    name = name,
+                    bands = currentBandLevels.toList(),
+                    tenBand = latestSettings.bandMode == TEN_BAND_MODE,
+                    preset = EqualizerPresetRecord.USER_CREATED_PRESET
+                )
+                ensurePresetRecords(latestSettings, force = true)
+                equalizerViewModel.setSelectedEffectId(presetRecords.lastIndex)
+                applyAudioEffects()
+                ToastUtil.show(requireContext(), R.string.save_success)
+            }
+            dialog.dismiss()
+            true
+        }
+    }
+
+    private fun deletePreset(record: EqualizerPresetRecord) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val currentIndex = latestSettings.selectedEffectId
+            val deleteIndex = presetRecords.indexOfFirst { it.id == record.id }
+            if (deleteIndex == -1) {
+                return@launch
+            }
+
+            deleteEqualizerPresetUseCase(
+                id = record.id,
+                tenBand = latestSettings.bandMode == TEN_BAND_MODE
+            )
+            ensurePresetRecords(latestSettings, force = true)
+
+            val nextIndex = when {
+                currentIndex == deleteIndex -> USER_PRESET_ID
+                currentIndex > deleteIndex -> currentIndex - 1
+                else -> currentIndex
+            }.coerceIn(0, presetRecords.lastIndex.coerceAtLeast(0))
+
+            equalizerViewModel.setSelectedEffectId(nextIndex)
+            applyAudioEffects()
+            ToastUtil.show(requireContext(), R.string.delete_success)
+        }
+    }
+
+    private fun buildPresetInput(initialValue: String): EditText {
+        val input = layoutInflater.inflate(
+            R.layout.layout_edittext,
+            null as ViewGroup?
+        ) as EditText
+        input.applyLengthFilter(120)
+        input.setText(initialValue)
+        applyThemeTo(input)
+        input.showKeyboardDelayed()
+        return input
+    }
+
+    private fun showNameInputDialog(
+        title: String,
+        input: EditText,
+        onPositiveClick: (MessageDialog) -> Boolean
+    ) {
+        val config = materialDialogConfigFactory
+            .createMaterialMessageDialogConfig(requireContext())
+            .apply {
+                titleText = title
+                customView = input
+                positiveButtonText = getString(R.string.ok)
+                negativeButtonText = getString(R.string.cancel)
+                positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
+                    onPositiveClick(dialog as MessageDialog)
+                }
+            }
+
+        MessageDialog.show(requireActivity(), config)
+    }
+
+    private fun isPresetNameTaken(
+        name: String,
+        exceptId: Long? = null
+    ): Boolean {
+        return presetRecords.any { record ->
+            record.id != exceptId && record.name.equals(name, ignoreCase = true)
+        }
+    }
+
+    private fun buildNextPresetName(): String {
+        val prefix = getString(R.string.equalizer_new_effect)
+        var index = 1
+        while (true) {
+            val candidate = "$prefix $index"
+            if (!isPresetNameTaken(candidate)) {
+                return candidate
+            }
+            index += 1
+        }
+    }
+
+    private fun resolveBandLevels(settings: EqualizerPreference): MutableList<Int> {
+        val selected = settings.selectedEffectId
+        return presetRecords.getOrNull(selected)?.bands?.toMutableList()
+            ?: MutableList(if (settings.bandMode == TEN_BAND_MODE) 10 else 5) { 0 }
     }
 
     private fun applyAudioEffects() {
         playerViewModel.applyAudioEffects(requireContext())
+    }
+
+    private suspend fun loadPresetRecords(settings: EqualizerPreference): List<EqualizerPresetRecord> {
+        val tenBand = settings.bandMode == TEN_BAND_MODE
+        val presets = loadEqualizerPresetsUseCase(tenBand)
+        return if (presets.isNotEmpty()) {
+            presets
+        } else {
+            EqualizerPresets.defaultPresetNames(requireContext()).mapIndexed { index, name ->
+                EqualizerPresetRecord(
+                    id = index.toLong(),
+                    name = name,
+                    bands = EqualizerPresets.defaultBands(tenBand).getOrElse(index) {
+                        List(if (tenBand) 10 else 5) { 0 }
+                    },
+                    preset = EqualizerPresetRecord.FACTORY_PRESET
+                )
+            }
+        }
+    }
+
+    private suspend fun ensurePresetRecords(
+        settings: EqualizerPreference,
+        force: Boolean = false
+    ) {
+        if (!force && loadedBandMode == settings.bandMode && presetRecords.isNotEmpty()) {
+            return
+        }
+        presetRecords = loadPresetRecords(settings)
+        loadedBandMode = settings.bandMode
+    }
+
+    private fun updateGestureInterception(intercept: Boolean) {
+        val binding = binding ?: return
+        binding.equalizerSeekParent.equalizerRecycler.requestDisallowInterceptTouchEvent(intercept)
+        binding.root.requestDisallowInterceptTouchEvent(intercept)
     }
 
     private fun updateContentHeight() {
@@ -383,4 +641,3 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         private const val TEN_BAND_MODE = 1
     }
 }
-

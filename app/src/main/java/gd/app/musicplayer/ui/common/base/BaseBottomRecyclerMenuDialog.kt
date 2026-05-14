@@ -92,7 +92,7 @@ abstract class BaseBottomRecyclerMenuDialog : BaseBottomSheetDialogFragment() {
     }
 
     protected fun applyDialogItemBackground(view: View, pressedColor: Int) {
-        view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
+        view.background = DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
     }
 
     protected open fun onReadArguments(arguments: Bundle) = Unit

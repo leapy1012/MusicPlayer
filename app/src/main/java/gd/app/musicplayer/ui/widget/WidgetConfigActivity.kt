@@ -4,16 +4,18 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Bundle
-import android.view.LayoutInflater
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseAdapter
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.ViewFlipper
 import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,8 +25,6 @@ import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.databinding.ActivityWidgetConfigBinding
-import gd.app.musicplayer.databinding.ActivityWidgetConfigStyleItemBinding
-import gd.app.musicplayer.databinding.ActivityWidgetConfigThemeItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.widget.provider.WidgetPlaybackSnapshotLoader
 import gd.app.musicplayer.ui.widget.provider.WidgetRenderer
@@ -42,6 +42,7 @@ private const val CLASSIFY_LIST = "List"
 
 @AndroidEntryPoint
 class WidgetConfigActivity : BaseActivity() {
+
     @Inject lateinit var store: WidgetConfigStore
     @Inject lateinit var snapshotLoader: WidgetPlaybackSnapshotLoader
     @Inject lateinit var widgetUpdateCoordinator: WidgetUpdateCoordinator
@@ -49,200 +50,592 @@ class WidgetConfigActivity : BaseActivity() {
     private lateinit var binding: ActivityWidgetConfigBinding
     private lateinit var spec: WidgetProviderSpec
 
+    private lateinit var themeAdapter: WidgetThemeAdapter
+    private lateinit var styleAdapter: WidgetStyleAdapter
+
     private var appWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+
     private var selectedStyle: WidgetStyleOption? = null
-    private var selectedTheme: WidgetThemeOption? = null
+    private var selectedThemeOption: WidgetThemeOption? = null
+    private var selectedThemeAlpha: Float = DEFAULT_THEME_ALPHA
 
-    companion object {
-        private const val EXTRA_CLASSIFY = "widget_classify"
-        private const val EXTRA_CLASSIFY_LEGACY = "KEY_WIDGET_CLASSIFY"
-        private const val EXTRA_APP_WIDGET_ID_LEGACY = "appWidgetId"
-
-        fun intent(context: Context, appWidgetId: Int, classify: String): Intent {
-            return Intent(context, WidgetConfigActivity::class.java).apply {
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                putExtra(EXTRA_CLASSIFY, classify)
-                putExtra(EXTRA_CLASSIFY_LEGACY, classify)
-                putExtra(EXTRA_APP_WIDGET_ID_LEGACY, appWidgetId)
-            }
-        }
-    }
+    private var previewRoot: View? = null
+    private var previewBackgroundImage: ImageView? = null
+    private var previewQueueAdapter: WidgetQueueAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         binding = ActivityWidgetConfigBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        binding.root.visibility = View.VISIBLE
-        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
-        binding.widgetBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        appWidgetId = intent.getIntExtra(
-            AppWidgetManager.EXTRA_APPWIDGET_ID,
-            intent.getIntExtra(EXTRA_APP_WIDGET_ID_LEGACY, AppWidgetManager.INVALID_APPWIDGET_ID)
-        )
+        setupBaseUi()
+
         lifecycleScope.launch {
-            if (!handleIntent(intent)) return@launch
-
-            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                setResult(RESULT_CANCELED)
-            }
-
-            val currentConfig = store.load(appWidgetId, spec.classify)
-            selectedStyle = resolveStyleOption(spec, currentConfig.styleKey)
-            selectedTheme = WidgetCatalog.themeOption(currentConfig.themeType, currentConfig.themeIndex)
-
-            setupThemeRecycler()
-            setupStyleRecycler()
-            setupOpacity()
-            renderPreview()
-
-            binding.widgetSave.setOnClickListener { saveAndFinish() }
+            loadFromIntent(intent)
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+
         setIntent(intent)
+
         lifecycleScope.launch {
-            handleIntent(intent)
+            loadFromIntent(intent)
         }
     }
 
-    private suspend fun handleIntent(intent: Intent): Boolean {
-        val classify = resolveClassify(intent) ?: run {
-            finish()
-            return false
+    private fun setupBaseUi() {
+        binding.root.visibility = View.VISIBLE
+        binding.root.applySystemBarInsets(
+            binding.statusBarSpace,
+            binding.widgetBottomLayout
+        )
+
+        binding.widgetBack.setOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
         }
+
+        binding.widgetSave.setOnClickListener {
+            saveAndFinish()
+        }
+
+        setupThemeRecycler()
+        setupStyleRecycler()
+        setupOpacity()
+    }
+
+    private suspend fun loadFromIntent(intent: Intent) {
+        appWidgetId = intent.getIntExtra(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            intent.getIntExtra(
+                EXTRA_APP_WIDGET_ID_LEGACY,
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            )
+        )
+
+        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            setResult(RESULT_CANCELED)
+        }
+
+        val classify = resolveClassify(intent)
+
+        if (classify == null) {
+            finish()
+            return
+        }
+
         spec = WidgetCatalog.specForClassify(classify)
-        return true
+
+        val currentConfig = store.load(
+            appWidgetId = appWidgetId,
+            classify = spec.classify
+        )
+
+        selectedStyle = resolveStyleOption(
+            spec = spec,
+            rawStyleKey = currentConfig.styleKey
+        )
+
+        selectedThemeOption = WidgetCatalog.themeOption(currentConfig.themeType, currentConfig.themeIndex)
+
+        selectedThemeAlpha = currentConfig.alpha.coerceIn(0f, 1f)
+
+        themeAdapter.submitSelection(selectedThemeOption)
+        styleAdapter.setItems(
+            items = spec.styles,
+            classify = spec.classify
+        )
+        styleAdapter.submitSelection(selectedStyle)
+
+        syncOpacityLabel()
+        renderPreview()
+        scrollSelectedItemsIntoView()
     }
 
     private suspend fun resolveClassify(intent: Intent): String? {
-        intent.getStringExtra(EXTRA_CLASSIFY)?.let { return it }
-        intent.getStringExtra(EXTRA_CLASSIFY_LEGACY)?.let { return it }
+        intent.getStringExtra(EXTRA_CLASSIFY)?.let { classify ->
+            return classify
+        }
+
+        intent.getStringExtra(EXTRA_CLASSIFY_LEGACY)?.let { classify ->
+            return classify
+        }
+
         if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            store.loadClassify(appWidgetId)?.let { return it }
-            val providerInfo = AppWidgetManager.getInstance(this).getAppWidgetInfo(appWidgetId)
+            store.loadClassify(appWidgetId)?.let { classify ->
+                return classify
+            }
+
+            val providerInfo = AppWidgetManager
+                .getInstance(this)
+                .getAppWidgetInfo(appWidgetId)
+
             if (providerInfo != null) {
-                return WidgetCatalog.classifyForProvider(Class.forName(providerInfo.provider.className))
+                return WidgetCatalog.classifyForProvider(
+                    Class.forName(providerInfo.provider.className)
+                )
             }
         }
+
         return null
     }
 
     private fun setupThemeRecycler() {
-        binding.widgetThemeRecycler.layoutManager =
-            LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
-        if (binding.widgetThemeRecycler.itemDecorationCount == 0) {
-            binding.widgetThemeRecycler.addItemDecoration(
-                EdgeSpacingItemDecoration(
-                    edge = resources.getDimensionPixelSize(R.dimen.widget_config_content_margin_start),
-                    spacing = resources.getDimensionPixelSize(R.dimen.widget_config_item_space)
-                )
-            )
-        }
-        lateinit var adapter: ThemeAdapter
-        adapter = ThemeAdapter(
+        themeAdapter = WidgetThemeAdapter(
             items = WidgetCatalog.themeOptions,
-            onSelected = {
-                selectedTheme = it
-                syncOpacityLabel()
-                adapter.selected = it
-                renderPreview()
-            }
+            applyTheme = ::applyThemeTo,
+            onSelected = ::onThemeSelected
         )
-        adapter.selected = selectedTheme
-        binding.widgetThemeRecycler.adapter = adapter
+
+        binding.widgetThemeRecycler.apply {
+            layoutManager = LinearLayoutManager(
+                this@WidgetConfigActivity,
+                RecyclerView.HORIZONTAL,
+                false
+            )
+
+            if (itemDecorationCount == 0) {
+                addItemDecoration(
+                    EdgeSpacingItemDecoration(
+                        edge = resources.getDimensionPixelSize(
+                            R.dimen.widget_config_content_margin_start
+                        ),
+                        spacing = resources.getDimensionPixelSize(
+                            R.dimen.widget_config_item_space
+                        )
+                    )
+                )
+            }
+
+            adapter = themeAdapter
+            setHasFixedSize(true)
+        }
     }
 
     private fun setupStyleRecycler() {
-        binding.widgetStyleRecycler.layoutManager =
-            LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
-        if (binding.widgetStyleRecycler.itemDecorationCount == 0) {
-            binding.widgetStyleRecycler.addItemDecoration(
-                EdgeSpacingItemDecoration(
-                    edge = resources.getDimensionPixelSize(R.dimen.widget_config_content_margin_start),
-                    spacing = resources.getDimensionPixelSize(R.dimen.widget_config_item_space)
-                )
-            )
-        }
-        lateinit var adapter: StyleAdapter
-        adapter = StyleAdapter(
-            items = spec.styles,
-            classify = spec.classify,
-            onSelected = {
-                selectedStyle = it
-                adapter.selected = it
-                renderPreview()
-            }
+        styleAdapter = WidgetStyleAdapter(
+            applyTheme = ::applyThemeTo,
+            onSelected = ::onStyleSelected
         )
-        adapter.selected = selectedStyle
-        binding.widgetStyleRecycler.adapter = adapter
+
+        binding.widgetStyleRecycler.apply {
+            layoutManager = LinearLayoutManager(
+                this@WidgetConfigActivity,
+                RecyclerView.HORIZONTAL,
+                false
+            )
+
+            if (itemDecorationCount == 0) {
+                addItemDecoration(
+                    EdgeSpacingItemDecoration(
+                        edge = resources.getDimensionPixelSize(
+                            R.dimen.widget_config_content_margin_start
+                        ),
+                        spacing = resources.getDimensionPixelSize(
+                            R.dimen.widget_config_item_space
+                        )
+                    )
+                )
+            }
+
+            adapter = styleAdapter
+            setHasFixedSize(true)
+        }
     }
 
     private fun setupOpacity() {
-        binding.widgetOpacitySeek.setMax(100)
-        binding.widgetOpacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(
-                seekBar: SeekBar,
-                progress: Int,
-                fromUser: Boolean
-            ) {
-                binding.widgetOpacitySeekText.text = "$progress%"
-                if (fromUser) {
-                    selectedTheme = selectedTheme?.copy(alpha = progress / 100f)
-                    renderPreview()
+        binding.widgetOpacitySeek.setMax(OPACITY_MAX_PROGRESS)
+
+        binding.widgetOpacitySeek.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    binding.widgetOpacitySeekText.text = "$progress%"
+
+                    if (!fromUser) return
+
+                    selectedThemeAlpha =
+                        progress.toFloat() / OPACITY_MAX_PROGRESS.toFloat()
+
+                    /*
+                     * Important:
+                     * Do not call renderPreview() here.
+                     * The reference app only changes background alpha while dragging.
+                     */
+                    previewBackgroundImage?.alpha = selectedThemeAlpha
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                    binding.widgetScrollView.requestDisallowInterceptTouchEvent(true)
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    binding.widgetScrollView.requestDisallowInterceptTouchEvent(false)
                 }
             }
+        )
+    }
 
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                binding.widgetScrollView.requestDisallowInterceptTouchEvent(false)
-            }
+    private fun onThemeSelected(theme: WidgetThemeOption) {
+        selectedThemeOption = theme
+        selectedThemeAlpha = theme.alpha.coerceIn(0f, 1f)
 
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
-                binding.widgetScrollView.requestDisallowInterceptTouchEvent(true)
-            }
-        })
+        themeAdapter.submitSelection(theme)
+
         syncOpacityLabel()
+        renderPreview()
+
+        val selectedIndex = WidgetCatalog.themeOptions.indexOf(theme)
+        if (selectedIndex >= 0) {
+            binding.widgetThemeRecycler.smoothScrollToPosition(selectedIndex)
+        }
+    }
+
+    private fun onStyleSelected(style: WidgetStyleOption) {
+        selectedStyle = style
+        styleAdapter.submitSelection(style)
+
+        /*
+         * Reference behavior may reset background to the style's recommended background.
+         * Your model currently does not expose a style default theme, so we preserve current theme.
+         */
+        renderPreview()
+
+        val selectedIndex = spec.styles.indexOf(style)
+        if (selectedIndex >= 0) {
+            binding.widgetStyleRecycler.smoothScrollToPosition(selectedIndex)
+        }
     }
 
     private fun syncOpacityLabel() {
-        val progress = ((selectedTheme?.alpha ?: 0.7f) * 100f).toInt().coerceIn(0, 100)
+        val progress = (selectedThemeAlpha * OPACITY_MAX_PROGRESS)
+            .toInt()
+            .coerceIn(0, OPACITY_MAX_PROGRESS)
+
         binding.widgetOpacitySeek.setProgress(progress)
         binding.widgetOpacitySeekText.text = "$progress%"
     }
 
     private fun renderPreview() {
         val style = selectedStyle ?: return
-        val theme = selectedTheme ?: return
+        val theme = currentThemeSelection() ?: return
+
         binding.widgetPreviewContainer.removeAllViews()
-        val preview = layoutInflater.inflate(style.layoutRes, binding.widgetPreviewContainer, false)
-        binding.widgetPreviewContainer.addView(preview, previewLayoutParams(spec.classify))
-        applyPreviewTheme(preview, theme)
-        if (spec.classify == CLASSIFY_LIST) {
-            (preview.findViewById<ListView>(R.id.widget_queue))?.adapter =
-                PreviewQueueAdapter(this, theme.drawableRes == R.drawable.widget_color_bg_012)
+
+        val preview = layoutInflater.inflate(
+            style.layoutRes,
+            binding.widgetPreviewContainer,
+            false
+        )
+
+        previewRoot = preview
+        previewBackgroundImage = preview.findViewById(R.id.widget_background_image)
+
+        binding.widgetPreviewContainer.addView(
+            preview,
+            previewLayoutParams(spec.classify)
+        )
+
+        applyPreviewTheme(
+            root = preview,
+            theme = theme
+        )
+
+        preview.findViewById<ViewFlipper?>(R.id.widget_flipper_play_pause)
+            ?.displayedChild = PLAYING_FLIPPER_INDEX
+
+        /*
+         * Reference behavior:
+         * Any preview layout containing widget_queue gets an adapter.
+         * Do not restrict this only to classify == "List".
+         */
+        preview.findViewById<ListView?>(R.id.widget_queue)?.let { queueView ->
+            val adapter = WidgetQueueAdapter(
+                context = this,
+                primaryColor = previewPrimaryColor(theme),
+                secondaryColor = previewSecondaryColor(theme)
+            )
+
+            previewQueueAdapter = adapter
+            queueView.adapter = adapter
+        }
+
+        previewBackgroundImage =
+            preview.findViewById<ImageView?>(R.id.widget_background_image)
+                ?.apply {
+                    setImageResource(theme.drawableRes)
+                    alpha = theme.alpha
+                }
+    }
+
+    private fun applyPreviewTheme(
+        root: View,
+        theme: WidgetThemeOption
+    ) {
+        val primaryColor = previewPrimaryColor(theme)
+        val secondaryColor = previewSecondaryColor(theme)
+
+        root.findViewById<TextView?>(R.id.widget_title)
+            ?.setTextColor(primaryColor)
+
+        root.findViewById<TextView?>(R.id.widget_artist)
+            ?.setTextColor(secondaryColor)
+
+        root.findViewById<TextView?>(R.id.widget_queue_info)
+            ?.setTextColor(secondaryColor)
+
+        root.findViewById<ImageView?>(R.id.widget_background_image)?.apply {
+            setImageResource(theme.drawableRes)
+            alpha = theme.alpha
+        }
+
+        root.findViewById<ImageView?>(R.id.widget_album_image)
+            ?.setImageResource(
+                WidgetCatalog.artworkStyle(
+                    (selectedStyle ?: spec.styles.first()).styleKey
+                ).previewRes
+            )
+
+        WIDGET_PRIMARY_ICON_IDS.forEach { id ->
+            root.findViewById<ImageView?>(id)?.let { imageView ->
+                ImageViewCompat.setImageTintList(
+                    imageView,
+                    android.content.res.ColorStateList.valueOf(primaryColor)
+                )
+            }
+        }
+
+        root.findViewById<ImageView?>(R.id.widget_favorite_selected)
+            ?.setColorFilter(
+                ContextCompat.getColor(
+                    this,
+                    R.color.color_theme
+                )
+            )
+
+        val useDarkForeground = theme.shouldUseDarkForeground()
+
+        val buttonBackground = if (useDarkForeground) {
+            R.drawable.widget_click_bg_btn_black
+        } else {
+            R.drawable.widget_click_bg_btn
+        }
+
+        val settingBackground = if (useDarkForeground) {
+            R.drawable.widget_click_bg_setting_black
+        } else {
+            R.drawable.widget_click_bg_setting
+        }
+
+        WIDGET_BUTTON_BACKGROUND_IDS.forEach { id ->
+            root.findViewById<View?>(id)
+                ?.setBackgroundResource(buttonBackground)
+        }
+
+        root.findViewById<View?>(R.id.widget_flipper_play_pause)
+            ?.setBackgroundResource(buttonBackground)
+
+        root.findViewById<View?>(R.id.widget_flipper_favorite)
+            ?.setBackgroundResource(buttonBackground)
+
+        root.findViewById<View?>(R.id.widget_setting)
+            ?.setBackgroundResource(settingBackground)
+
+        root.findViewById<ViewFlipper?>(R.id.widget_progress_flipper)
+            ?.displayedChild = if (useDarkForeground) {
+            DARK_PROGRESS_FLIPPER_INDEX
+        } else {
+            LIGHT_PROGRESS_FLIPPER_INDEX
+        }
+
+        root.findViewById<ViewFlipper?>(R.id.widget_flipper_play_pause)
+            ?.displayedChild = PLAYING_FLIPPER_INDEX
+
+        previewQueueAdapter?.updateColors(
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor
+        )
+    }
+
+    private fun previewLayoutParams(classify: String): FrameLayout.LayoutParams {
+        val width = when (classify) {
+            CLASSIFY_2X1 -> {
+                (screenWidth * 0.45f).toInt()
+            }
+
+            CLASSIFY_3X2 -> {
+                (screenWidth * 0.75f).toInt()
+            }
+
+            CLASSIFY_4X4,
+            CLASSIFY_LIST -> {
+                resources.getDimensionPixelSize(R.dimen.widget_4x4_height)
+            }
+
+            else -> {
+                screenWidth -
+                        resources.getDimensionPixelSize(R.dimen.widget_preview_margin_h) * 2
+            }
+        }
+
+        val heightRes = when (classify) {
+            CLASSIFY_2X1 -> R.dimen.widget_2x1_height
+            CLASSIFY_3X2 -> R.dimen.widget_3x2_height
+            CLASSIFY_4X2 -> R.dimen.widget_4x2_height
+            CLASSIFY_4X3 -> R.dimen.widget_4x3_height
+            CLASSIFY_4X4,
+            CLASSIFY_LIST -> R.dimen.widget_4x4_height
+            else -> R.dimen.widget_4x1_height
+        }
+
+        return FrameLayout.LayoutParams(
+            width,
+            resources.getDimensionPixelSize(heightRes)
+        ).apply {
+            gravity = Gravity.CENTER
         }
     }
 
-    private fun applyPreviewTheme(root: View, theme: WidgetThemeOption) {
-        val title = root.findViewById<TextView?>(R.id.widget_title)
-        val artist = root.findViewById<TextView?>(R.id.widget_artist)
-        val queueInfo = root.findViewById<TextView?>(R.id.widget_queue_info)
-        val background = root.findViewById<ImageView?>(R.id.widget_background_image)
-        val album = root.findViewById<ImageView?>(R.id.widget_album_image)
-        val useDarkForeground = theme.drawableRes == R.drawable.widget_color_bg_012
-        val textColor = if (useDarkForeground) Color.BLACK else Color.WHITE
-        val subTextColor = if (useDarkForeground) 0x99000000.toInt() else 0xB3FFFFFF.toInt()
+    private fun saveAndFinish() {
+        val style = selectedStyle ?: return
+        val theme = currentThemeSelection() ?: return
 
-        title?.setTextColor(textColor)
-        artist?.setTextColor(subTextColor)
-        queueInfo?.setTextColor(subTextColor)
-        background?.setImageResource(theme.drawableRes)
-        background?.alpha = theme.alpha
-        album?.setImageResource(R.drawable.widget_preview_album)
+        val config = WidgetConfig(
+            classify = spec.classify,
+            styleKey = style.styleKey,
+            themeType = theme.themeType,
+            themeIndex = theme.index,
+            alpha = theme.alpha
+        )
 
-        val iconIds = intArrayOf(
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            finish()
+            return
+        }
+
+        lifecycleScope.launch {
+            store.save(
+                appWidgetId = appWidgetId,
+                config = config
+            )
+
+            WidgetRenderer.updateWidgets(
+                context = this@WidgetConfigActivity,
+                manager = AppWidgetManager.getInstance(this@WidgetConfigActivity),
+                appWidgetIds = intArrayOf(appWidgetId),
+                classify = spec.classify,
+                snapshot = snapshotLoader.load(),
+                configs = mapOf(appWidgetId to config)
+            )
+
+            setResult(
+                RESULT_OK,
+                Intent()
+                    .putExtra(
+                        AppWidgetManager.EXTRA_APPWIDGET_ID,
+                        appWidgetId
+                    )
+                    .putExtra(
+                        EXTRA_APP_WIDGET_ID_LEGACY,
+                        appWidgetId
+                    )
+            )
+
+            finish()
+        }
+    }
+
+    private fun scrollSelectedItemsIntoView() {
+        val themeIndex = WidgetCatalog.themeOptions.indexOf(selectedThemeOption)
+
+        if (themeIndex >= 0) {
+            binding.widgetThemeRecycler.scrollToPosition(themeIndex)
+        }
+
+        val styleIndex = spec.styles.indexOf(selectedStyle)
+
+        if (styleIndex >= 0) {
+            binding.widgetStyleRecycler.scrollToPosition(styleIndex)
+        }
+    }
+
+    private fun resolveStyleOption(
+        spec: WidgetProviderSpec,
+        rawStyleKey: String
+    ): WidgetStyleOption {
+        val normalized = normalizeStyleKey(rawStyleKey)
+
+        return spec.styles.firstOrNull { option ->
+            normalizeStyleKey(option.styleKey) == normalized
+        } ?: spec.styles.first()
+    }
+
+    private fun normalizeStyleKey(styleKey: String): String {
+        val key = styleKey.trim()
+
+        return when {
+            key.equals("list", ignoreCase = true) -> {
+                "LIST"
+            }
+
+            key.startsWith("3x2_", ignoreCase = true) -> {
+                key.replace(
+                    oldValue = "3x2_",
+                    newValue = "3X2_",
+                    ignoreCase = true
+                )
+            }
+
+            else -> {
+                key.uppercase()
+            }
+        }
+    }
+
+    private fun currentThemeSelection(): WidgetThemeOption? {
+        return selectedThemeOption?.copy(
+            alpha = selectedThemeAlpha.coerceIn(0f, 1f)
+        )
+    }
+
+    private fun previewPrimaryColor(theme: WidgetThemeOption): Int {
+        return if (theme.shouldUseDarkForeground()) {
+            DARK_FOREGROUND_PRIMARY
+        } else {
+            Color.WHITE
+        }
+    }
+
+    private fun previewSecondaryColor(theme: WidgetThemeOption): Int {
+        return if (theme.shouldUseDarkForeground()) {
+            DARK_FOREGROUND_SECONDARY
+        } else {
+            LIGHT_FOREGROUND_SECONDARY
+        }
+    }
+
+    companion object {
+        private const val EXTRA_CLASSIFY = "widget_classify"
+        private const val EXTRA_CLASSIFY_LEGACY = "KEY_WIDGET_CLASSIFY"
+        private const val EXTRA_APP_WIDGET_ID_LEGACY = "appWidgetId"
+
+        private const val DEFAULT_THEME_ALPHA = 0.7f
+        private const val OPACITY_MAX_PROGRESS = 100
+
+        private const val LIGHT_PROGRESS_FLIPPER_INDEX = 0
+        private const val DARK_PROGRESS_FLIPPER_INDEX = 1
+        private const val PLAYING_FLIPPER_INDEX = 1
+
+        private const val DARK_FOREGROUND_PRIMARY = -570425344
+        private const val DARK_FOREGROUND_SECONDARY = -1979711488
+        private const val LIGHT_FOREGROUND_SECONDARY = -1275068417
+
+        private val WIDGET_PRIMARY_ICON_IDS = intArrayOf(
             R.id.widget_previous,
             R.id.widget_next,
             R.id.widget_play,
@@ -251,217 +644,40 @@ class WidgetConfigActivity : BaseActivity() {
             R.id.widget_setting,
             R.id.widget_favorite_unselected
         )
-        iconIds.forEach { id ->
-            root.findViewById<ImageView?>(id)?.setColorFilter(textColor)
-        }
-        root.findViewById<ImageView?>(R.id.widget_favorite_selected)
-            ?.setColorFilter(ContextCompat.getColor(this, R.color.color_theme))
 
-        root.findViewById<ViewFlipper?>(R.id.widget_progress_flipper)?.displayedChild =
-            if (useDarkForeground) 1 else 0
-        root.findViewById<View?>(R.id.widget_play)?.visibility = View.GONE
-        root.findViewById<View?>(R.id.widget_pause)?.visibility = View.VISIBLE
-    }
-
-    private fun previewLayoutParams(classify: String): ViewGroup.LayoutParams {
-        val width = when (classify) {
-            CLASSIFY_2X1 -> (screenWidth * 0.45f).toInt()
-            CLASSIFY_3X2 -> (screenWidth * 0.75f).toInt()
-            CLASSIFY_4X4, CLASSIFY_LIST -> resources.getDimensionPixelSize(R.dimen.widget_4x4_height)
-            else -> screenWidth - resources.getDimensionPixelSize(R.dimen.widget_preview_margin_h) * 2
-        }
-        val heightRes = when (classify) {
-            CLASSIFY_2X1 -> R.dimen.widget_2x1_height
-            CLASSIFY_3X2 -> R.dimen.widget_3x2_height
-            CLASSIFY_4X2 -> R.dimen.widget_4x2_height
-            CLASSIFY_4X3 -> R.dimen.widget_4x3_height
-            CLASSIFY_4X4, CLASSIFY_LIST -> R.dimen.widget_4x4_height
-            else -> R.dimen.widget_4x1_height
-        }
-        return ViewGroup.LayoutParams(width, resources.getDimensionPixelSize(heightRes))
-    }
-
-    private fun saveAndFinish() {
-        val style = selectedStyle ?: return
-        val theme = selectedTheme ?: return
-        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            lifecycleScope.launch {
-                store.save(
-                    appWidgetId,
-                    WidgetConfig(
-                        classify = spec.classify,
-                        styleKey = style.styleKey,
-                        themeType = theme.themeType,
-                        themeIndex = theme.index,
-                        alpha = theme.alpha
-                    )
-                )
-                WidgetRenderer.updateWidgets(
-                    context = this@WidgetConfigActivity,
-                    manager = AppWidgetManager.getInstance(this@WidgetConfigActivity),
-                    appWidgetIds = intArrayOf(appWidgetId),
-                    classify = spec.classify,
-                    snapshot = snapshotLoader.load(),
-                    configs = mapOf(
-                        appWidgetId to WidgetConfig(
-                            classify = spec.classify,
-                            styleKey = style.styleKey,
-                            themeType = theme.themeType,
-                            themeIndex = theme.index,
-                            alpha = theme.alpha
-                        )
-                    )
-                )
-                setResult(
-                    RESULT_OK,
-                    Intent()
-                        .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                        .putExtra(EXTRA_APP_WIDGET_ID_LEGACY, appWidgetId)
-                )
-                finish()
-            }
-            return
-        }
-        finish()
-    }
-
-    private fun resolveStyleOption(spec: WidgetProviderSpec, rawStyleKey: String): WidgetStyleOption {
-        val normalized = normalizeStyleKey(rawStyleKey)
-        return spec.styles.firstOrNull { normalizeStyleKey(it.styleKey) == normalized } ?: spec.styles.first()
-    }
-
-    private fun normalizeStyleKey(styleKey: String): String {
-        val key = styleKey.trim()
-        if (key.equals("list", ignoreCase = true)) return "LIST"
-        if (key.startsWith("3x2_", ignoreCase = true)) return key.replace("3x2_", "3X2_", ignoreCase = true)
-        return key.uppercase()
-    }
-}
-
-private class ThemeAdapter(
-    private val items: List<WidgetThemeOption>,
-    private val onSelected: (WidgetThemeOption) -> Unit
-) : RecyclerView.Adapter<ThemeAdapter.ViewHolder>() {
-    var selected: WidgetThemeOption? = null
-        set(value) {
-            field = value
-            notifyDataSetChanged()
-        }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ActivityWidgetConfigThemeItemBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
+        private val WIDGET_BUTTON_BACKGROUND_IDS = intArrayOf(
+            R.id.widget_previous,
+            R.id.widget_next,
+            R.id.widget_mode
         )
-        return ViewHolder(binding, onSelected)
-    }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position], items[position] == selected)
-    }
-
-    override fun getItemCount(): Int = items.size
-
-    class ViewHolder(
-        private val binding: ActivityWidgetConfigThemeItemBinding,
-        private val onSelected: (WidgetThemeOption) -> Unit
-    ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: WidgetThemeOption, isSelected: Boolean) {
-            binding.itemImage.setImageResource(item.drawableRes)
-            binding.itemImage.imageAlpha = (item.alpha * 255f).toInt()
-            binding.itemSelect.visibility = if (isSelected) View.VISIBLE else View.GONE
-            binding.root.setOnClickListener { onSelected(item) }
-        }
-    }
-}
-
-private class StyleAdapter(
-    private val items: List<WidgetStyleOption>,
-    private val classify: String,
-    private val onSelected: (WidgetStyleOption) -> Unit
-) : RecyclerView.Adapter<StyleAdapter.ViewHolder>() {
-    var selected: WidgetStyleOption? = null
-        set(value) {
-            field = value
-            notifyDataSetChanged()
-        }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ActivityWidgetConfigStyleItemBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
-        return ViewHolder(binding, onSelected)
-    }
-
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position], items[position] == selected, classify)
-    }
-
-    override fun getItemCount(): Int = items.size
-
-    class ViewHolder(
-        private val binding: ActivityWidgetConfigStyleItemBinding,
-        private val onSelected: (WidgetStyleOption) -> Unit
-    ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: WidgetStyleOption, isSelected: Boolean, classify: String) {
-            binding.itemImage.setImageResource(item.previewRes)
-            binding.itemSelect.visibility = if (isSelected) View.VISIBLE else View.GONE
-            val heightRes = when (classify) {
-                CLASSIFY_2X1 -> R.dimen.widget_config_style_h_2x1
-                CLASSIFY_3X2 -> R.dimen.widget_config_style_h_3x2
-                CLASSIFY_4X1 -> R.dimen.widget_config_style_h_4x1
-                CLASSIFY_4X2 -> R.dimen.widget_config_style_h_4x2
-                CLASSIFY_4X3 -> R.dimen.widget_config_style_h_4x3
-                else -> R.dimen.widget_config_style_h_4x4
+        fun intent(
+            context: Context,
+            appWidgetId: Int,
+            classify: String
+        ): Intent {
+            return Intent(
+                context,
+                WidgetConfigActivity::class.java
+            ).apply {
+                putExtra(
+                    AppWidgetManager.EXTRA_APPWIDGET_ID,
+                    appWidgetId
+                )
+                putExtra(
+                    EXTRA_CLASSIFY,
+                    classify
+                )
+                putExtra(
+                    EXTRA_CLASSIFY_LEGACY,
+                    classify
+                )
+                putExtra(
+                    EXTRA_APP_WIDGET_ID_LEGACY,
+                    appWidgetId
+                )
             }
-            binding.root.layoutParams = binding.root.layoutParams.apply {
-                height = binding.root.resources.getDimensionPixelSize(heightRes)
-            }
-            binding.root.setOnClickListener { onSelected(item) }
         }
-    }
-}
-
-private class PreviewQueueAdapter(
-    private val context: Context,
-    private val useDarkForeground: Boolean
-) : BaseAdapter() {
-    private val items = listOf(
-        context.getString(R.string.music) to context.getString(R.string.artist),
-        context.getString(R.string.music) to context.getString(R.string.artist),
-        context.getString(R.string.music) to context.getString(R.string.artist)
-    )
-
-    override fun getCount(): Int = items.size
-
-    override fun getItem(position: Int): Pair<String, String> = items[position]
-
-    override fun getItemId(position: Int): Long = position.toLong()
-
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val view = convertView ?: LayoutInflater.from(context).inflate(R.layout.widget_queue_item, parent, false)
-        val holder = (view.tag as? ViewHolder) ?: ViewHolder(view).also { view.tag = it }
-        holder.position.text = (position + 1).toString()
-        holder.title.text = items[position].first
-        holder.artist.text = items[position].second
-        val mainColor = if (useDarkForeground) Color.BLACK else Color.WHITE
-        val subColor = if (useDarkForeground) 0x99000000.toInt() else 0xB3FFFFFF.toInt()
-        holder.position.setTextColor(subColor)
-        holder.title.setTextColor(mainColor)
-        holder.artist.setTextColor(subColor)
-        holder.divider.visibility =
-            if (position == items.lastIndex) View.GONE else View.VISIBLE
-        return view
-    }
-
-    private class ViewHolder(root: View) {
-        val position: TextView = root.findViewById(R.id.widget_queue_item_position)
-        val title: TextView = root.findViewById(R.id.widget_queue_item_title)
-        val artist: TextView = root.findViewById(R.id.widget_queue_item_artist)
-        val divider: View = root.findViewById(R.id.widget_queue_item_divider)
     }
 }
 
@@ -469,16 +685,30 @@ private class EdgeSpacingItemDecoration(
     private val edge: Int,
     private val spacing: Int
 ) : RecyclerView.ItemDecoration() {
+
     override fun getItemOffsets(
-        outRect: android.graphics.Rect,
+        outRect: Rect,
         view: View,
         parent: RecyclerView,
         state: RecyclerView.State
     ) {
         val position = parent.getChildAdapterPosition(view)
         val count = parent.adapter?.itemCount ?: 0
+
         if (position == RecyclerView.NO_POSITION || count == 0) return
-        outRect.left = if (position == 0) edge else spacing
-        outRect.right = if (position == count - 1) edge else spacing
+
+        outRect.left =
+            if (position == 0) {
+                edge
+            } else {
+                spacing
+            }
+
+        outRect.right =
+            if (position == count - 1) {
+                edge
+            } else {
+                spacing
+            }
     }
 }

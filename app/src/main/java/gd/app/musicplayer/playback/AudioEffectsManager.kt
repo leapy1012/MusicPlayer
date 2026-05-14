@@ -5,6 +5,7 @@ import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
 import android.media.audiofx.PresetReverb
 import android.media.audiofx.Virtualizer
+import android.os.Build
 import androidx.annotation.OptIn
 import androidx.media3.common.AuxEffectInfo
 import androidx.media3.common.util.UnstableApi
@@ -56,7 +57,6 @@ class AudioEffectsManager @Inject constructor(
         if (sessionId <= 0) {
             withContext(Dispatchers.Main.immediate) {
                 clearAuxEffectOnMain(player)
-                applyDefaultPlayerVolumeOnMain(player)
             }
             return
         }
@@ -100,24 +100,6 @@ class AudioEffectsManager @Inject constructor(
                 player = player,
                 settings = effectiveSettings
             )
-
-            applyPlayerVolumeOnMain(
-                settings = effectiveSettings,
-                player = player
-            )
-        }
-    }
-
-    @OptIn(UnstableApi::class)
-    suspend fun applyPlayerVolume(player: ExoPlayer) {
-        val settings = loadSettings()
-        val effectiveSettings = EffectGroupPresets.applyTo(settings)
-
-        withContext(Dispatchers.Main.immediate) {
-            applyPlayerVolumeOnMain(
-                settings = effectiveSettings,
-                player = player
-            )
         }
     }
 
@@ -142,33 +124,38 @@ class AudioEffectsManager @Inject constructor(
             eq.numberOfBands.toInt()
         }.getOrDefault(0)
 
-        if (settings.eqEnabled && targetUiBands > 0 && targetEqBands > 0) {
-            for (band in 0 until targetEqBands) {
-                val sourceIndex = if (targetEqBands == 1) {
-                    0
-                } else {
-                    (
-                            band * (targetUiBands - 1).toFloat() /
-                                    (targetEqBands - 1)
-                            ).roundToInt()
-                }
+        if (!settings.eqEnabled || targetUiBands <= 0 || targetEqBands <= 0) {
+            runCatching {
+                eq.enabled = false
+            }
+            return
+        }
 
-                val desiredLevel = levels[sourceIndex].coerceIn(
-                    minimumValue = minLevel,
-                    maximumValue = maxLevel
+        for (band in 0 until targetEqBands) {
+            val sourceIndex = if (targetEqBands == 1) {
+                0
+            } else {
+                (
+                        band * (targetUiBands - 1).toFloat() /
+                                (targetEqBands - 1)
+                        ).roundToInt()
+            }
+
+            val desiredLevel = levels[sourceIndex].coerceIn(
+                minimumValue = minLevel,
+                maximumValue = maxLevel
+            )
+
+            runCatching {
+                eq.setBandLevel(
+                    band.toShort(),
+                    desiredLevel.toShort()
                 )
-
-                runCatching {
-                    eq.setBandLevel(
-                        band.toShort(),
-                        desiredLevel.toShort()
-                    )
-                }
             }
         }
 
         runCatching {
-            eq.enabled = settings.eqEnabled
+            eq.enabled = true
         }
     }
 
@@ -261,22 +248,6 @@ class AudioEffectsManager @Inject constructor(
         )
     }
 
-    private fun applyDefaultPlayerVolumeOnMain(player: ExoPlayer) {
-        player.volume = DEFAULT_PLAYER_VOLUME
-    }
-
-    private fun applyPlayerVolumeOnMain(
-        settings: AudioEffectSettings,
-        player: ExoPlayer
-    ) {
-        val masterVolume = settings.masterVolume.coerceIn(
-            minimumValue = MIN_PLAYER_VOLUME,
-            maximumValue = MAX_PLAYER_VOLUME
-        )
-
-        player.volume = masterVolume
-    }
-
     private fun releaseInternal() {
         runCatching {
             equalizer?.release()
@@ -293,17 +264,19 @@ class AudioEffectsManager @Inject constructor(
         presetReverb = null
     }
 
-    private companion object {
+    companion object {
         private const val DEFAULT_MIN_EQ_LEVEL = -1500
         private const val DEFAULT_MAX_EQ_LEVEL = 1500
 
         private const val MAX_EFFECT_STRENGTH = 1000f
-        private const val MAX_LOUDNESS_GAIN = 1000f
-
-        private const val MIN_PLAYER_VOLUME = 0f
-        private const val MAX_PLAYER_VOLUME = 1f
-        private const val DEFAULT_PLAYER_VOLUME = 1f
+        // The reference app maps loudness_enhancer_progress to 0..15 input gain.
+        // LoudnessEnhancer expects millibels, so use 0..15000 mB for parity.
+        private const val MAX_LOUDNESS_GAIN = 15_000f
 
         private const val DEFAULT_REVERB_SEND_LEVEL = 1.0f
+
+        fun supportsLoudnessEnhancer(): Boolean {
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+        }
     }
 }

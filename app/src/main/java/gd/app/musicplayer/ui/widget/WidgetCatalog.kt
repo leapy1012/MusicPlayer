@@ -18,11 +18,47 @@ data class WidgetThemeOption(
     val alpha: Float
 )
 
+/*
+     * Best long-term:
+     * Add `useDarkForeground: Boolean` to WidgetThemeOption.
+     *
+     * For now, this keeps your existing behavior but centralizes it.
+     */
+fun WidgetThemeOption.shouldUseDarkForeground(): Boolean {
+    return drawableRes == R.drawable.widget_color_bg_012
+}
+
 data class WidgetStyleOption(
     val styleKey: String,
     @param:LayoutRes val layoutRes: Int,
     @param:DrawableRes val previewRes: Int
 )
+
+enum class WidgetArtworkStyle(
+    @DrawableRes val previewRes: Int,
+    @DrawableRes val placeholderRes: Int
+) {
+    DEFAULT(
+        previewRes = R.drawable.widget_preview_album,
+        placeholderRes = R.drawable.widget_default_album
+    ),
+    ROUNDED(
+        previewRes = R.drawable.widget_preview_album_corner,
+        placeholderRes = R.drawable.widget_default_album_corner
+    ),
+    CIRCLE(
+        previewRes = R.drawable.widget_preview_album_circle,
+        placeholderRes = R.drawable.widget_default_album_circle
+    ),
+    CIRCLE_LARGE(
+        previewRes = R.drawable.widget_preview_album_circle_large,
+        placeholderRes = R.drawable.widget_default_album_circle_large
+    ),
+    CIRCLE_TRANSPARENT(
+        previewRes = R.drawable.widget_preview_album_circle,
+        placeholderRes = R.drawable.widget_default_album_circle_t
+    )
+}
 
 data class WidgetProviderSpec(
     val classify: String,
@@ -206,6 +242,28 @@ object WidgetCatalog {
 
     fun defaultStyle(classify: String): WidgetStyleOption {
         return specForClassify(classify).styles.first()
+    }
+
+    fun artworkStyle(styleKey: String): WidgetArtworkStyle {
+        return when (styleKey.lowercase()) {
+            "2x1_2",
+            "4x1_3",
+            "4x2_3",
+            "4x3_5" -> WidgetArtworkStyle.CIRCLE
+
+            "3x2_2",
+            "4x2_2",
+            "4x3_1" -> WidgetArtworkStyle.ROUNDED
+
+            "4x1_4",
+            "4x3_4",
+            "4x4_2" -> WidgetArtworkStyle.CIRCLE_TRANSPARENT
+
+            "4x3_6",
+            "4x4_3" -> WidgetArtworkStyle.CIRCLE_LARGE
+
+            else -> WidgetArtworkStyle.DEFAULT
+        }
     }
 
     fun defaultThemeOption(): WidgetThemeOption {

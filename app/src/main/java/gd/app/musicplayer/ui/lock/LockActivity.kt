@@ -18,6 +18,7 @@ import gd.app.lib.model.image.SkinImageView
 import gd.app.lib.model.lrc.view.LyricView
 import gd.app.lib.view.DragDismissLayout
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.core.common.extension.isFavorite
@@ -114,7 +115,7 @@ class LockActivity : BaseActivity(),
             R.id.lock_play_queue -> PlaybackQueueBottomSheetFragment.show(supportFragmentManager)
             R.id.control_mode -> cyclePlayMode()
             R.id.control_previous -> playerViewModel.playPrevious(this)
-            R.id.control_play_pause -> playerViewModel.togglePlayPause(this)
+            R.id.control_play_pause -> playerViewModel.onPrimaryPlayPauseClicked(this)
             R.id.control_next -> playerViewModel.playNext(this)
         }
     }
@@ -193,6 +194,7 @@ class LockActivity : BaseActivity(),
                 }
 
                 val trackChanged = currentTrack?.id != track.id
+                val artworkChanged = currentTrack?.albumPicture != track.albumPicture
                 currentTrack = track
 
                 titleView.text = track.title
@@ -212,10 +214,13 @@ class LockActivity : BaseActivity(),
                 }
 
                 lyricView.setCurrentTime(state.positionMs)
-                track.loadMusicArtwork(albumImage)
+                albumImage.loadMusicArtwork(track.albumArtSource())
+
+                if (trackChanged || artworkChanged) {
+                    updateBackground(track)
+                }
 
                 if (trackChanged) {
-                    updateBackground(track)
                     loadLyrics(track)
                 }
             }

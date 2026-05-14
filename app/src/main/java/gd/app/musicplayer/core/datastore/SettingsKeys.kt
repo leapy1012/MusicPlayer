@@ -39,6 +39,10 @@ object SettingsKeys {
     val HEADSET_CONTROL_ALLOWED = booleanPreferencesKey("preference_headset_control_allow")
     val LIBRARY_TAB_CONFIG = stringPreferencesKey("preference_tab")
     val LIBRARY_LAST_TAB = intPreferencesKey("preference_tab_id")
+    val HOME_PLAYLIST_DRAG_GUIDE_SHOWN =
+        booleanPreferencesKey("home_playlist_drag_guide_shown")
+    val PLAYLIST_DRAG_GUIDE_SHOWN =
+        booleanPreferencesKey("playlist_drag_guide_shown")
 
     val KEY_BLUETOOTH_LYRIC_ENABLED =
         booleanPreferencesKey("bluetooth_lyric_enabled")

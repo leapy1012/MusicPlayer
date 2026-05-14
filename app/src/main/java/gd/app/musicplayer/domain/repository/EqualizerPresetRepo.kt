@@ -12,15 +12,16 @@ data class EqualizerPresetRecord(
     val bands: List<Int>,
     val preset: Int
 ) {
-    val isUserDefined: Boolean
-        get() = preset == USER_DEFINED_PRESET
+    val canDelete: Boolean
+        get() = preset != FACTORY_PRESET
 
     fun bandsArray(): IntArray {
         return bands.toIntArray()
     }
 
     companion object {
-        const val USER_DEFINED_PRESET = 0
+        const val USER_CREATED_PRESET = 0
+        const val FACTORY_PRESET = 1
     }
 }
 
@@ -56,7 +57,7 @@ class EqualizerPresetRepository @Inject constructor(
         name: String,
         bands: List<Int>,
         tenBand: Boolean,
-        preset: Int = EqualizerPresetRecord.USER_DEFINED_PRESET
+        preset: Int = EqualizerPresetRecord.USER_CREATED_PRESET
     ): Long {
         val normalizedBands = bands.normalizedBandLevels(tenBand)
 

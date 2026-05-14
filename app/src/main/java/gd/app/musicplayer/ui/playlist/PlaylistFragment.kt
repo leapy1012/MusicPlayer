@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
+import gd.app.musicplayer.data.local.preference.GuidePreferenceStore
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.util.ToastUtil
@@ -27,6 +29,8 @@ import gd.app.musicplayer.ui.search.SearchActivity
 import gd.app.musicplayer.ui.selection.MusicSetEditActivity
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
+import gd.app.musicplayer.ui.common.guide.DragGuideDialogFragment
+import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
 import gd.app.musicplayer.ui.common.menu.ContextMenu
 import gd.app.musicplayer.ui.common.menu.ContextMenuAction
@@ -42,6 +46,7 @@ class PlaylistFragment :
     ListMoreMenuHost {
 
     @Inject lateinit var themeRepo: ThemeRepo
+    @Inject lateinit var guidePreferenceStore: GuidePreferenceStore
 
     private val viewModel: PlaylistViewModel by viewModels()
 
@@ -79,6 +84,7 @@ class PlaylistFragment :
 
         observeUiState()
         observeEvents()
+        maybeShowPlaylistDragGuide()
     }
 
     private fun setupInsets(binding: FragmentPlaylistBinding) = with(binding) {
@@ -136,6 +142,22 @@ class PlaylistFragment :
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.events.collect(::handleEvent)
+            }
+        }
+    }
+
+    private fun maybeShowPlaylistDragGuide() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!guidePreferenceStore.shouldShowPlaylistDragGuide()) {
+                return@launch
+            }
+
+            guidePreferenceStore.markPlaylistDragGuideShown()
+
+            if (parentFragmentManager.findFragmentByTag(DRAG_GUIDE_TAG) == null) {
+                DragGuideDialogFragment
+                    .newVerticalInstance()
+                    .showSafely(parentFragmentManager, DRAG_GUIDE_TAG)
             }
         }
     }
@@ -267,6 +289,8 @@ class PlaylistFragment :
                 false
             )
 
+            binding.root.applyRoundedOutline(R.dimen.item_image_corner_radius)
+
             return ViewHolder(
                 binding = binding,
                 onPlaylistClick = onPlaylistClick,
@@ -359,7 +383,8 @@ class PlaylistFragment :
                     playlist.musicCount
                 )
 
-                binding.musicItemAlbum.setImageResource(
+                playlist.loadArtwork(
+                    binding.musicItemAlbum,
                     playlist.resolvePlaceholderRes(false)
                 )
             }
@@ -367,6 +392,8 @@ class PlaylistFragment :
     }
 
     companion object {
+        private const val DRAG_GUIDE_TAG = "playlist_drag_guide"
+
         fun newInstance(): PlaylistFragment {
             return PlaylistFragment()
         }

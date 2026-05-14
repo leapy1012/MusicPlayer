@@ -26,7 +26,6 @@ class MediaStyleMusicNotificationBuilder(
     private var cachedBuilder: MutableNotificationBuilder? = null
 
     override fun buildNotification(content: MusicNotificationContent): Notification {
-        android.util.Log.e("Leapy", "buildNotification " + content.isFavorite() + ":" + content.getTitle())
         createNotificationChannelIfNeeded()
         val art = content.getAlbumArt(1)
         val builder = ensureBuilder(content)
@@ -62,14 +61,9 @@ class MediaStyleMusicNotificationBuilder(
             mediaStyle.setMediaSession(MediaSessionCompat.Token.fromToken(token))
         }
         builder.setStyle(mediaStyle)
+        builder.setColor(resolveColorStyle(art).backgroundColor)
+        builder.setColorized(true)
 
-        val skipColorizeForVivoApi28 =
-            Build.VERSION.SDK_INT == Build.VERSION_CODES.P &&
-                Build.MANUFACTURER.contains("vivo", ignoreCase = true)
-        if (!skipColorizeForVivoApi28) {
-            builder.setColor(resolveColorStyle(art).backgroundColor)
-            builder.setColorized(true)
-        }
         return builder.build()
     }
 

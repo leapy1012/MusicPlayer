@@ -95,10 +95,10 @@ class OptionsListDialog(
                     selectedItemTextColor = -15032591
                     singleLineItems = true
 
-                    negativeButtonBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    negativeButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
                     negativeButtonTextColor = -15032591
 
-                    positiveButtonBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    positiveButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
                     positiveButtonTextColor = -15032591
 
                     titleTextColor = -16777216
@@ -157,7 +157,7 @@ class OptionsListDialog(
 
                 val tintList = config.itemIconTintList ?: run {
                     val inactiveColor = ColorUtils.setAlphaComponent(config.itemTextColor, 128)
-                    _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.disabledSelectedDefaultColors(inactiveColor, config.selectedItemTextColor, inactiveColor)
+                    ViewStateDrawables.disabledSelectedDefaultColors(inactiveColor, config.selectedItemTextColor, inactiveColor)
                 }
 
                 iconView.setImageResource(config.itemIconRes)
@@ -170,11 +170,11 @@ class OptionsListDialog(
             }
 
             holder.titleView.setTextColor(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.selectedDefaultColors(config.itemTextColor, config.selectedItemTextColor)
+                ViewStateDrawables.selectedEnabledDefaultColors(config.itemTextColor, config.selectedItemTextColor)
             )
             holder.titleView.setTextSize(0, config.itemTextSizePx.toFloat())
 
-            holder.root.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.pressedDefaultColorDrawable(Color.TRANSPARENT, pressedOverlayColor)
+            holder.root.background = ViewStateDrawables.pressedDefaultColorDrawable(Color.TRANSPARENT, pressedOverlayColor)
         }
     }
 

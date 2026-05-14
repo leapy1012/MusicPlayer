@@ -68,9 +68,12 @@ class MusicSetListFragment : BaseListFragment() {
         val displayAdapter = if (musicSet is MusicSet.Folders) {
             ConcatAdapter(
                 adapter,
-                FolderFooterAdapter {
+                FolderFooterAdapter(
+                    applyTheme = ::applyThemeTo,
+                    onScanClick = {
                     ScanMusicActivity.start(requireContext())
-                }
+                    }
+                )
             )
         } else {
             adapter

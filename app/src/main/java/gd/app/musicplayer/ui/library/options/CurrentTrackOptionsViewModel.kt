@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 import javax.inject.Inject
 
 data class CurrentTrackOptionsUiState(
@@ -131,12 +130,27 @@ class CurrentTrackOptionsViewModel @Inject constructor(
 
     private fun buildSleepTimerLabel(state: SleepTimerState): String {
         if (!state.isActive) return appContext.getString(R.string.sleep_timer_2)
+
         val detail = when {
-            state.stopAfterCurrentTrack -> appContext.getString(R.string.sleep_end_stop)
-            state.action == SleepTimerState.ACTION_EXIT_PLAYER -> appContext.getString(R.string.sleep_end_exit)
+            state.isPendingTrackEnd -> {
+                if (state.action == SleepTimerState.ACTION_EXIT_PLAYER) {
+                    appContext.getString(R.string.sleep_end_exit)
+                } else {
+                    appContext.getString(R.string.sleep_end_stop)
+                }
+            }
+
             else -> {
-                val minutes = (state.remainingMs / 60_000f).roundToInt().coerceAtLeast(1)
-                appContext.getString(R.string.sleep_mode_tips, minutes.toString())
+                val totalSeconds = (state.remainingMs / 1000L).coerceAtLeast(0L)
+                val hours = totalSeconds / 3600L
+                val minutes = (totalSeconds % 3600L) / 60L
+                val seconds = totalSeconds % 60L
+
+                if (hours > 0L) {
+                    "%d:%02d:%02d".format(hours, minutes, seconds)
+                } else {
+                    "%02d:%02d".format(minutes, seconds)
+                }
             }
         }
         return appContext.getString(R.string.sleep_timer_2) + "\n" + detail

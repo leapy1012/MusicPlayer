@@ -8,14 +8,17 @@ import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.repository.PlaylistRepo
+import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
 import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.flatMapLatest
@@ -55,6 +58,7 @@ class PlayerViewModel @Inject constructor(
     private val playbackController: PlaybackController,
     private val playlistRepo: PlaylistRepo,
     private val getTracksUseCase: GetTracksUseCase,
+    private val observeAlbumPictureUseCase: ObserveAlbumPictureUseCase,
 ) : ViewModel() {
 
     private val playbackStateFlow = observePlaybackStateUseCase()
@@ -75,12 +79,13 @@ class PlayerViewModel @Inject constructor(
                 if (music == null) {
                     flowOf(TrackUiState())
                 } else {
-                    playlistRepo.observeIsFavorite(music.id)
-                        .map { isFavorite ->
-                            music.toTrackUiState(
-                                isFavorite = isFavorite
-                            )
-                        }
+                    combine(
+                        playlistRepo.observeIsFavorite(music.id),
+                        observeAlbumPicture(music)
+                    ) { isFavorite, albumPicture ->
+                        music.copy(albumPicture = albumPicture)
+                            .toTrackUiState(isFavorite = isFavorite)
+                    }
                 }
             }
             .stateIn(
@@ -210,6 +215,21 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun onPrimaryPlayPauseClicked(context: Context) {
+        val currentTrackId = trackUiState.value.musicId
+
+        if (currentTrackId == null) {
+            playAllTracks(context)
+            return
+        }
+
+        if (progressUiState.value.isPlaying) {
+            pause(context)
+        } else {
+            play(context)
+        }
+    }
+
     fun togglePlayPause(context: Context) {
         playbackController.togglePlayPause(context)
     }
@@ -319,6 +339,14 @@ class PlayerViewModel @Inject constructor(
             artworkSource = albumArtSource(),
             isFavorite = isFavorite
         )
+    }
+
+    private fun observeAlbumPicture(music: Music): Flow<String?> {
+        return observeAlbumPictureUseCase(music.id)
+            .map { artworkPath ->
+                artworkPath ?: music.albumPicture
+            }
+            .distinctUntilChanged()
     }
 
     private companion object {

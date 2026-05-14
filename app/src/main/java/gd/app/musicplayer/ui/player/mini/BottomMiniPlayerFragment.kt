@@ -118,23 +118,15 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
     }
 
     private fun onPlayPauseClicked() {
-        val currentTrackId = playerViewModel.trackUiState.value.musicId
-
-        if (currentTrackId == null) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                playerViewModel.playAllTracks(requireContext())
-            }
-        } else {
-            playerViewModel.togglePlayPause(requireContext())
-        }
+        playerViewModel.onPrimaryPlayPauseClicked(requireContext())
     }
 
     private fun showPlaybackQueue() {
-        PlaybackQueueBottomSheetFragment.Companion.show(childFragmentManager)
+        PlaybackQueueBottomSheetFragment.show(childFragmentManager)
     }
 
     private fun openPlayer() {
-        MusicPlayActivity.Companion.start(requireContext())
+        MusicPlayActivity.start(requireContext())
     }
 
 }

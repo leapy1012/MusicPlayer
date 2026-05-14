@@ -7,8 +7,8 @@
 
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/main_item_image"
-        android:layout_width="@dimen/main_image_size"
-        android:layout_height="@dimen/main_image_size"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_centerInParent="true"
         android:scaleType="centerCrop" />
 

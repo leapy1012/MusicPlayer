@@ -1,7 +1,6 @@
 package gd.app.musicplayer.playback
 
 import android.content.Intent
-import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 
@@ -10,7 +9,6 @@ class PlaybackServiceCommandHandler(
     private val callbacks: Callbacks,
 ) {
     interface Callbacks {
-        fun updateNotificationDelayed()
         fun refreshNotificationStyle()
         fun exitService()
         fun pauseAndPersistForNotificationClose()
@@ -19,12 +17,14 @@ class PlaybackServiceCommandHandler(
         fun pausePlayback()
         fun playNext()
         fun playPrevious()
+        fun stopPlayback()
         fun stopPlaybackWithoutClearingQueue()
         fun restartCurrentTrack()
         fun clearQueueKeepingNotification()
         fun cyclePlaybackMode()
         fun setPlaybackMode(mode: Int)
         fun toggleFavorite(music: Music)
+        fun setFavorite(music: Music, favorited: Boolean)
         fun playIndex(index: Int)
         fun playFromQueue(queue: List<Music>, index: Int)
         fun enqueue(queue: List<Music>)
@@ -34,16 +34,12 @@ class PlaybackServiceCommandHandler(
         fun setStopAfterCurrentTrack(enabled: Boolean)
         fun applyAudioEffects()
         fun applyPlaybackTuning()
-        fun toggleDesktopLyricsLock()
+        fun setDesktopLyricsLocked(locked: Boolean)
         fun currentMusic(): Music?
     }
 
     fun handle(intent: Intent?, action: String?): Boolean {
         when (action) {
-            MusicPlaybackService.ACTION_UPDATE_NOTIFICATION,
-            MusicPlaybackService.ACTION_FOREGROUND -> callbacks.updateNotificationDelayed()
-
-            MusicPlaybackService.ACTION_NOTIFICATION_STYLE,
             MusicPlaybackService.ACTION_REFRESH_NOTIFICATION_STYLE -> callbacks.refreshNotificationStyle()
 
             MusicPlaybackService.ACTION_EXIT -> {
@@ -53,10 +49,9 @@ class PlaybackServiceCommandHandler(
 
             MusicPlaybackService.ACTION_QUIT -> {
                 callbacks.pauseAndPersistForNotificationClose()
-                return false
+                return true
             }
 
-            MusicPlaybackService.ACTION_PLAY_PAUSE,
             MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE -> callbacks.togglePlayPause()
 
             MusicPlaybackService.ACTION_PLAY -> callbacks.resumePlayback()
@@ -64,22 +59,24 @@ class PlaybackServiceCommandHandler(
             MusicPlaybackService.ACTION_NEXT -> callbacks.playNext()
             MusicPlaybackService.ACTION_PREVIOUS -> callbacks.playPrevious()
 
-            MusicPlaybackService.ACTION_STOP,
+            MusicPlaybackService.ACTION_STOP -> callbacks.stopPlayback()
             MusicPlaybackService.ACTION_CUSTOM_STOP -> callbacks.stopPlaybackWithoutClearingQueue()
 
             MusicPlaybackService.ACTION_RESTART_CURRENT -> callbacks.restartCurrentTrack()
             MusicPlaybackService.ACTION_CLEAR_QUEUE -> callbacks.clearQueueKeepingNotification()
             MusicPlaybackService.ACTION_CHANGE_MODE -> callbacks.cyclePlaybackMode()
             MusicPlaybackService.ACTION_MODE_RANDOM -> callbacks.setPlaybackMode(PlaybackMode.SHUFFLE_ALL)
-            MusicPlaybackService.ACTION_MODE_LOOP -> callbacks.setPlaybackMode(PlaybackMode.LOOP_ALL)
-            MusicPlaybackService.ACTION_CHANGE_FAVORITE -> handleFavoriteAction(intent)
 
-            MusicPlaybackService.ACTION_TOGGLE_FAVORITE,
-            MusicPlaybackService.ACTION_CUSTOM_FAVORITE,
-            MusicPlaybackService.ACTION_CUSTOM_UNFAVORITE -> callbacks.currentMusic()?.let(callbacks::toggleFavorite)
+            MusicPlaybackService.ACTION_TOGGLE_FAVORITE -> callbacks.currentMusic()?.let(callbacks::toggleFavorite)
+            MusicPlaybackService.ACTION_CUSTOM_FAVORITE -> callbacks.currentMusic()?.let { music ->
+                callbacks.setFavorite(music, true)
+            }
+            MusicPlaybackService.ACTION_CUSTOM_UNFAVORITE -> callbacks.currentMusic()?.let { music ->
+                callbacks.setFavorite(music, false)
+            }
 
             MusicPlaybackService.ACTION_CHANGE_MUSIC_BY_INDEX -> handlePlayByIndex(intent)
-            MusicPlaybackService.ACTION_DESK_LRC_LOCK -> callbacks.toggleDesktopLyricsLock()
+            MusicPlaybackService.ACTION_DESK_LRC_LOCK -> callbacks.setDesktopLyricsLocked(false)
 
             MusicPlaybackService.ACTION_PLAY_FROM_QUEUE -> {
                 val queue = intent.musicListExtraCompat(MusicPlaybackService.EXTRA_QUEUE_ITEMS)
@@ -115,20 +112,6 @@ class PlaybackServiceCommandHandler(
             MusicPlaybackService.ACTION_APPLY_PLAYBACK_TUNING -> callbacks.applyPlaybackTuning()
         }
         return true
-    }
-
-    private fun handleFavoriteAction(intent: Intent?) {
-        val music = intent.parcelableExtraCompat<Music>(MusicPlaybackService.EXTRA_ACTION_DATA)
-            ?: callbacks.currentMusic()
-
-        if (music == null || music.id <= 0L) {
-            ToastUtil.show(
-                service.applicationContext,
-                service.getString(android.R.string.unknownName)
-            )
-            return
-        }
-        callbacks.toggleFavorite(music)
     }
 
     private fun handlePlayByIndex(intent: Intent?) {

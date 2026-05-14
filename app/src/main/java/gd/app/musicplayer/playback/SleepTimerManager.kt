@@ -10,16 +10,26 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.max
 
 data class SleepTimerState(
-    val isActive: Boolean = false,
+    val status: Int = STATUS_IDLE,
     val durationMinutes: Int = 0,
     val endAtMs: Long = 0L,
     val remainingMs: Long = 0L,
     val stopAfterCurrentTrack: Boolean = false,
     val action: Int = ACTION_STOP_PLAYBACK
 ) {
+    val isActive: Boolean
+        get() = status != STATUS_IDLE
+
+    val isPendingTrackEnd: Boolean
+        get() = status == STATUS_PENDING_TRACK_END
+
     companion object {
         const val ACTION_STOP_PLAYBACK = 0
         const val ACTION_EXIT_PLAYER = 1
+
+        const val STATUS_RUNNING = 0
+        const val STATUS_PENDING_TRACK_END = 1
+        const val STATUS_IDLE = 2
     }
 }
 
@@ -44,19 +54,50 @@ object SleepTimerManager {
         val endAt = now + clampedMinutes * 60_000L
         appContext = context.applicationContext
         mutableState.value = SleepTimerState(
-            isActive = true,
+            status = SleepTimerState.STATUS_RUNNING,
             durationMinutes = clampedMinutes,
             endAtMs = endAt,
             remainingMs = clampedMinutes * 60_000L,
             stopAfterCurrentTrack = stopAfterCurrentTrack,
             action = action
         )
+        SleepTimerFeedback.showScheduled(context, clampedMinutes * 60_000L)
         startTicker()
     }
 
     fun cancel() {
         stopTicker()
         appContext?.let { setStopAfterCurrentTrack(it, false) }
+        mutableState.value = SleepTimerState()
+        appContext?.let { SleepTimerFeedback.showScheduled(it, 0L) }
+    }
+
+    fun updateBehavior(
+        action: Int,
+        stopAfterCurrentTrack: Boolean
+    ) {
+        val current = mutableState.value
+
+        if (!current.isActive) return
+
+        if (
+            current.status == SleepTimerState.STATUS_PENDING_TRACK_END &&
+            current.stopAfterCurrentTrack &&
+            !stopAfterCurrentTrack
+        ) {
+            appContext?.let { setStopAfterCurrentTrack(it, false) }
+            mutableState.value = SleepTimerState()
+            return
+        }
+
+        mutableState.value = current.copy(
+            action = action,
+            stopAfterCurrentTrack = stopAfterCurrentTrack
+        )
+    }
+
+    fun finishPendingTrackEnd() {
+        stopTicker()
         mutableState.value = SleepTimerState()
     }
 
@@ -70,8 +111,8 @@ object SleepTimerManager {
                 val now = System.currentTimeMillis()
                 val remaining = max(0L, current.endAtMs - now)
                 if (remaining <= 0L) {
-                    fireAction(current)
-                    mutableState.value = SleepTimerState()
+                    val nextState = fireAction(current)
+                    mutableState.value = nextState
                     stopTicker()
                     return
                 }
@@ -88,21 +129,29 @@ object SleepTimerManager {
         ticker = null
     }
 
-    private fun fireAction(current: SleepTimerState) {
-        val context = appContext ?: return
+    private fun fireAction(current: SleepTimerState): SleepTimerState {
+        val context = appContext ?: return SleepTimerState()
         if (current.stopAfterCurrentTrack) {
             setStopAfterCurrentTrack(context, true)
-            return
+            return current.copy(
+                status = SleepTimerState.STATUS_PENDING_TRACK_END,
+                remainingMs = 0L
+            )
         }
         when (current.action) {
             SleepTimerState.ACTION_STOP_PLAYBACK,
             SleepTimerState.ACTION_EXIT_PLAYER -> {
                 val intent = android.content.Intent(context, MusicPlaybackService::class.java).apply {
-                    action = MusicPlaybackService.ACTION_STOP
+                    action = if (current.action == SleepTimerState.ACTION_EXIT_PLAYER) {
+                        MusicPlaybackService.ACTION_EXIT
+                    } else {
+                        MusicPlaybackService.ACTION_STOP
+                    }
                 }
                 context.startService(intent)
             }
         }
+        return SleepTimerState()
     }
 
     private fun setStopAfterCurrentTrack(context: Context, enabled: Boolean) {

@@ -1,10 +1,17 @@
 package gd.app.musicplayer.ui.home
 
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.ColorFilter
+import android.graphics.PixelFormat
+import android.graphics.Rect
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import gd.app.lib.view.square.FixedSizeMeasurePolicy
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
@@ -97,21 +104,83 @@ class MainPlaylistAdapter(
             playlist: MusicSet.Playlist,
             onPlaylistClick: (MusicSet.Playlist) -> Unit
         ) {
-            binding.mainItemImageParent.setBackgroundColor(PLAYLIST_BACKGROUND_COLOR)
             binding.mainItemBanner.visibility = View.VISIBLE
             binding.mainItemName.text = playlist.name
             binding.mainItemExtra.text = playlist.musicCount.toString()
-            binding.mainItemImage.setImageResource(R.drawable.main_list)
+            val placeholder = PlaylistCardPlaceholderDrawable(
+                context = binding.root.context,
+                iconResId = R.drawable.main_list,
+                backgroundColor = PLAYLIST_BACKGROUND_COLOR
+            )
+            val artworkSource = playlist.albumArt?.takeIf { it.isNotBlank() }
+
+            if (artworkSource.isNullOrEmpty()) {
+                Glide.with(binding.mainItemImage).clear(binding.mainItemImage)
+                binding.mainItemImage.setImageDrawable(placeholder)
+            } else {
+                Glide.with(binding.mainItemImage)
+                    .load(artworkSource)
+                    .placeholder(placeholder)
+                    .error(placeholder)
+                    .centerCrop()
+                    .into(binding.mainItemImage)
+            }
             binding.root.setOnClickListener { onPlaylistClick(playlist) }
         }
 
         fun bindAdd(onAddClick: () -> Unit) {
-            binding.mainItemImageParent.setBackgroundColor(ADD_BACKGROUND_COLOR)
             binding.mainItemBanner.visibility = View.GONE
             binding.mainItemName.text = ""
             binding.mainItemExtra.text = ""
-            binding.mainItemImage.setImageResource(R.drawable.main_new_list)
+            Glide.with(binding.mainItemImage).clear(binding.mainItemImage)
+            binding.mainItemImage.setImageDrawable(
+                PlaylistCardPlaceholderDrawable(
+                    context = binding.root.context,
+                    iconResId = R.drawable.main_new_list,
+                    backgroundColor = ADD_BACKGROUND_COLOR
+                )
+            )
             binding.root.setOnClickListener { onAddClick() }
+        }
+    }
+
+    private class PlaylistCardPlaceholderDrawable(
+        context: Context,
+        iconResId: Int,
+        private val backgroundColor: Int
+    ) : Drawable() {
+        private val iconDrawable = AppCompatResources.getDrawable(context, iconResId)
+        private val iconBounds = Rect(0, 0, iconSize(context), iconSize(context))
+
+        override fun draw(canvas: Canvas) {
+            canvas.drawColor(backgroundColor)
+            iconDrawable?.let { drawable ->
+                drawable.bounds = iconBounds
+                drawable.draw(canvas)
+            }
+        }
+
+        override fun onBoundsChange(bounds: Rect) {
+            super.onBoundsChange(bounds)
+            val left = bounds.left + ((bounds.width() - iconBounds.width()) / 2)
+            val top = bounds.top + ((bounds.height() - iconBounds.height()) / 2)
+            iconBounds.offsetTo(left, top)
+        }
+
+        override fun setAlpha(alpha: Int) {
+            iconDrawable?.alpha = alpha
+        }
+
+        override fun setColorFilter(colorFilter: ColorFilter?) {
+            iconDrawable?.colorFilter = colorFilter
+        }
+
+        @Deprecated("Deprecated in Java")
+        override fun getOpacity(): Int = iconDrawable?.opacity ?: PixelFormat.TRANSLUCENT
+
+        companion object {
+            private fun iconSize(context: Context): Int =
+                context.resources.getDimensionPixelOffset(R.dimen.main_image_size)
         }
     }
 

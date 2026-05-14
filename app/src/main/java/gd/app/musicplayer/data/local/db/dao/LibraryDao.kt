@@ -173,6 +173,16 @@ interface LibraryDao {
 
     @Query(
         """
+        SELECT album_pic
+        FROM musictbl
+        WHERE _id = :trackId
+        LIMIT 1
+        """
+    )
+    fun observeTrackArtwork(trackId: Long): Flow<String?>
+
+    @Query(
+        """
         UPDATE musictbl
         SET play_time = :playTime
         WHERE _id = :trackId

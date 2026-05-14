@@ -85,6 +85,6 @@
             layout="@layout/layout_recyclerview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:layout_behavior=".core.ui.view.FixScrollingFooterBehavior" />
+            app:layout_behavior=".core.designsystem.view.FixScrollingFooterBehavior" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

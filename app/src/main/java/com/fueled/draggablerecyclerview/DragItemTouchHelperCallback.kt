@@ -2,6 +2,7 @@ package com.fueled.draggablerecyclerview
 
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import gd.app.musicplayer.ui.selection.ItemTouchStateListener
 
 class DragItemTouchHelperCallback private constructor(
     dragDirs: Int,
@@ -62,15 +63,43 @@ class DragItemTouchHelperCallback private constructor(
 
     override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
         if (actionState != ItemTouchHelper.ACTION_STATE_IDLE) {
-            viewHolder?.itemView?.alpha = DRAG_ALPHA
+            val stateListener = viewHolder as? ItemTouchStateListener
+            if (stateListener != null) {
+                stateListener.onItemSelected()
+            } else {
+                viewHolder?.itemView?.alpha = DRAG_ALPHA
+            }
         }
         super.onSelectedChanged(viewHolder, actionState)
     }
 
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-        viewHolder.itemView.alpha = ALPHA_FULL
+        val stateListener = viewHolder as? ItemTouchStateListener
+        if (stateListener != null) {
+            stateListener.onItemCleared()
+        } else {
+            viewHolder.itemView.alpha = ALPHA_FULL
+        }
         super.clearView(recyclerView, viewHolder)
         onDragFinishedListener?.onDragFinished()
+    }
+
+    override fun getAnimationDuration(
+        recyclerView: RecyclerView,
+        animationType: Int,
+        animateDx: Float,
+        animateDy: Float
+    ): Long {
+        if (animationType == ItemTouchHelper.ANIMATION_TYPE_DRAG) {
+            return DRAG_ANIMATION_DURATION_MS
+        }
+
+        return super.getAnimationDuration(
+            recyclerView,
+            animationType,
+            animateDx,
+            animateDy
+        )
     }
 
     fun interface OnItemDragListener {
@@ -116,5 +145,6 @@ class DragItemTouchHelperCallback private constructor(
     companion object {
         const val ALPHA_FULL = 1.0f
         private const val DRAG_ALPHA = 0.8f
+        private const val DRAG_ANIMATION_DURATION_MS = 300L
     }
 }

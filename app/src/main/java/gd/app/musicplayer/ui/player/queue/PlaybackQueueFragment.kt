@@ -22,6 +22,8 @@ import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyStatusBarInsetHeight
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.util.ToastUtil
@@ -35,7 +37,7 @@ import gd.app.musicplayer.core.designsystem.theme.titleColor
 import gd.app.musicplayer.databinding.FragmentQueueBinding
 import gd.app.musicplayer.databinding.MusicPlayFragmentListItemBinding
 import gd.app.musicplayer.ui.library.options.QueueTrackOptionsDialog
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.ItemMoveListener
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
@@ -52,7 +54,8 @@ import javax.inject.Inject
 class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     Toolbar.OnMenuItemClickListener {
 
-    @Inject lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
+    @Inject
+    lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
 
     private val viewModel: PlayerViewModel by viewModels()
     private val queueViewModel: QueueViewModel by viewModels()
@@ -65,6 +68,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
     private var currentQueue: List<Music> = emptyList()
     private var currentIndex: Int = -1
     private var localQueueOverride: List<Music>? = null
+    private var initialScrollPending = true
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentQueueBinding =
         FragmentQueueBinding.inflate(inflater)
@@ -82,7 +86,8 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         setupToolbar(binding)
         adapter = buildAdapter()
 
-        recyclerView.layoutManager = WrapContentLinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
+        recyclerView.layoutManager =
+            WrapContentLinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
         recyclerView.adapter = adapter
         recyclerView.isNestedScrollingEnabled = true
         emptyStateController = RecyclerEmptyStateController(
@@ -108,7 +113,18 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             if (resolveQueue().isEmpty()) {
                 ToastUtil.show(requireContext(), R.string.list_is_empty)
             } else {
-                viewModel.clearQueue(requireContext())
+                requireActivity().showMessageDialog(
+                    requireContext().createMessageDialogConfig(
+                        title = getString(R.string.clear),
+                        message = getString(R.string.clear_message),
+                        negativeText = getString(R.string.cancel),
+                        positiveText = getString(R.string.clear),
+                        positiveClickListener = { dialog, _ ->
+                            viewModel.clearQueue(requireContext())
+                            dialog.dismiss()
+                        }
+                    )
+                )
             }
         }
     }
@@ -155,6 +171,13 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                     binding.collapsingToolbar.isTitleEnabled = isEmpty.not()
                     updateCollapsingHeight(isEmpty)
                     updateQueueInfo(queue)
+                    if (!isEmpty && initialScrollPending && currentIndex in queue.indices) {
+                        initialScrollPending = false
+                        recyclerView.post {
+                            (recyclerView.layoutManager as? LinearLayoutManager)
+                                ?.scrollToPositionWithOffset(currentIndex, 0)
+                        }
+                    }
                 }
             }
         }
@@ -216,7 +239,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                 if (queue.isEmpty()) {
                     ToastUtil.show(requireContext(), R.string.list_is_empty)
                 } else {
-                    ActivityPlaylistSelect.start(requireContext(), queue)
+                    PlaylistSelectActivity.start(requireContext(), queue)
                 }
             }
         }

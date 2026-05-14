@@ -340,21 +340,21 @@
                     android:layout_marginEnd="8dp"
                     android:background="@color/list_divider_color" />
 
-                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
-                    android:id="@+id/preference_swipe_change_songs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?android:attr/listPreferredItemHeight"
-                    android:tag="itemBackground"
-                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
-                    app:preference_item_title="@string/swipe_change_songs" />
+<!--                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView-->
+<!--                    android:id="@+id/preference_swipe_change_songs"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:minHeight="?android:attr/listPreferredItemHeight"-->
+<!--                    android:tag="itemBackground"-->
+<!--                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"-->
+<!--                    app:preference_item_title="@string/swipe_change_songs" />-->
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="@color/list_divider_color" />
+<!--                <View-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="1px"-->
+<!--                    android:layout_marginStart="8dp"-->
+<!--                    android:layout_marginEnd="8dp"-->
+<!--                    android:background="@color/list_divider_color" />-->
 
                 <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_simultaneous_play"

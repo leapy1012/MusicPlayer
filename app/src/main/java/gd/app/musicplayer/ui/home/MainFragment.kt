@@ -13,11 +13,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.data.local.preference.GuidePreferenceStore
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentMainBinding
 import gd.app.musicplayer.ui.shell.MainActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
+import gd.app.musicplayer.ui.common.guide.DragGuideDialogFragment
 import gd.app.musicplayer.ui.library.albums.AlbumActivity
 import gd.app.musicplayer.ui.library.albums.AlbumMusicActivity
 import gd.app.musicplayer.ui.search.SearchActivity
@@ -25,12 +27,14 @@ import gd.app.musicplayer.ui.playlist.PlaylistInputDialog
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainFragment :
     ViewBindingFragment<FragmentMainBinding>() {
     private val viewModel: MainViewModel by viewModels()
+    @Inject lateinit var guidePreferenceStore: GuidePreferenceStore
 
     private val mainAdapter by lazy(LazyThreadSafetyMode.NONE) {
         MainAdapter(emptyList(), ::onMainCategoryClick)
@@ -61,10 +65,11 @@ class MainFragment :
         setupMainGrid(binding)
         setupPlaylist(binding)
         observeUiState()
+        maybeShowPlaylistDragGuide()
     }
 
     private fun setupInsets(binding: FragmentMainBinding) = with(binding) {
-        root.applySystemBarInsets(statusBarSpace, root)
+        root.applySystemBarInsets(statusBarSpace)
     }
 
 
@@ -109,6 +114,22 @@ class MainFragment :
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect(::render)
+            }
+        }
+    }
+
+    private fun maybeShowPlaylistDragGuide() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!guidePreferenceStore.shouldShowHomePlaylistDragGuide()) {
+                return@launch
+            }
+
+            guidePreferenceStore.markHomePlaylistDragGuideShown()
+
+            if (parentFragmentManager.findFragmentByTag(DRAG_GUIDE_TAG) == null) {
+                DragGuideDialogFragment
+                    .newHorizontalInstance()
+                    .showSafely(parentFragmentManager, DRAG_GUIDE_TAG)
             }
         }
     }
@@ -161,6 +182,10 @@ class MainFragment :
                 false
             }
         }
+    }
+
+    private companion object {
+        const val DRAG_GUIDE_TAG = "home_playlist_drag_guide"
     }
 }
 

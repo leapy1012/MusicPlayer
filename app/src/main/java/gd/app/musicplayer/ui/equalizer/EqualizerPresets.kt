@@ -7,11 +7,15 @@ import kotlin.math.roundToInt
 
 internal object EqualizerPresets {
 
+    private val FIVE_BAND_FREQUENCIES = listOf("60", "230", "910", "3.6K", "14K")
+    private val TEN_BAND_FREQUENCIES =
+        listOf("31", "62", "125", "250", "500", "1K", "2K", "4K", "8K", "16K")
+
     fun frequencies(useTenBand: Boolean): List<String> {
         return if (useTenBand) {
-            listOf("31", "62", "125", "250", "500", "1K", "2K", "4K", "8K", "16K")
+            TEN_BAND_FREQUENCIES
         } else {
-            listOf("60", "230", "910", "3.6K", "14K")
+            FIVE_BAND_FREQUENCIES
         }
     }
 

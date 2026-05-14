@@ -1,6 +1,7 @@
 package gd.app.musicplayer.core.common.extension
 
 import android.content.Context
+import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import gd.app.musicplayer.core.common.util.MaxLengthInputFilter
@@ -33,11 +34,22 @@ fun EditText.hideKeyboard() {
     }
 }
 
-fun EditText.showKeyboardDelayed(delayMs: Long = 400L) {
-    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-    rootView.postDelayed({
-        rootView.requestFocus()
-        imm.showSoftInput(rootView, 0)
-    }, delayMs)
-}
+fun EditText.showKeyboardDelayed(
+    delayMs: Long = 400L
+) {
+    postDelayed(
+        {
+            requestFocus()
 
+            val imm = context.getSystemService(
+                Context.INPUT_METHOD_SERVICE
+            ) as InputMethodManager
+
+            imm.showSoftInput(
+                this,
+                InputMethodManager.SHOW_IMPLICIT
+            )
+        },
+        delayMs
+    )
+}

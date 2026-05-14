@@ -12,7 +12,15 @@ class PlaybackQueuePersistence(
     fun save(queue: List<Music>) {
         val snapshot = queue.toList()
         scope.launch {
-            if (snapshot.isEmpty()) queueRepo.clearQueue() else queueRepo.replaceQueue(snapshot)
+            if (snapshot.isNotEmpty()) {
+                queueRepo.replaceQueue(snapshot)
+            }
+        }
+    }
+
+    fun clear() {
+        scope.launch {
+            queueRepo.clearQueue()
         }
     }
 }

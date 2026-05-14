@@ -45,7 +45,7 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun ensureResourcesLoaded(context: Context, themeBitmapLoader: ThemeBitmapLoader): Boolean = true
 
-    override fun getActivityBackgroundDrawable(context: Context): Drawable = ColorDrawable(-1)
+    override fun getActivityBackgroundDrawable(context: Context): Drawable = Color.WHITE.toDrawable()
 
     override fun isActionAreaLight(): Boolean = true
 
@@ -59,7 +59,7 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun isDarkMode(): Boolean = false
 
-    override fun getPopupBackgroundDrawable(context: Context): Drawable = ColorDrawable(-1)
+    override fun getPopupBackgroundDrawable(context: Context): Drawable = Color.WHITE.toDrawable()
 
     override fun getHeaderSecondaryTextColor(): Int = ThemeColorUtils.maskColor(isHeaderSurfaceLight())
 
@@ -105,7 +105,7 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun getAccentColor(): Int = -16776961
 
-    override fun getBlurredBackgroundDrawable(context: Context): Drawable = ColorDrawable(-1)
+    override fun getBlurredBackgroundDrawable(context: Context): Drawable = Color.WHITE.toDrawable()
 
     open fun setDefaultAccentColor(accentColor: Int) = Unit
 
@@ -113,6 +113,6 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun getEditTextBackground(context: Context): Drawable {
         val fillColor = if (getTitleColor() == Color.WHITE) 352321535 else 335544320
-        return _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.gradientDrawable(context.resources.displayMetrics.density * 8f, fillColor)
+        return DrawableUtil.gradientDrawable(context.resources.displayMetrics.density * 8f, fillColor)
     }
 }

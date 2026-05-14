@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.selection
 
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -19,6 +18,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSetEditBinding
@@ -26,7 +27,7 @@ import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.library.ARG_MUSIC_SET
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.library.folder.isHiddenFoldersEntry
 
 import gd.app.musicplayer.core.common.extension.dpToPx
@@ -312,7 +313,7 @@ class MusicSetEditActivity : BaseActivity() {
             }
 
             when (action) {
-                ACTION_ADD_TO -> ActivityPlaylistSelect.start(this@MusicSetEditActivity, tracks)
+                ACTION_ADD_TO -> PlaylistSelectActivity.start(this@MusicSetEditActivity, tracks)
                 ACTION_PLAY -> playTracksUseCase(this@MusicSetEditActivity, tracks, 0)
 
                 ACTION_ENQUEUE -> {
@@ -346,22 +347,25 @@ class MusicSetEditActivity : BaseActivity() {
             getString(R.string.remove_songs_from_list_msg, tracks.size.toString())
         }
 
-        AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(message)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                lifecycleScope.launch {
-                    val deletedCount = viewModel.deleteTracks(tracks)
-                    Toast.makeText(
-                        this@MusicSetEditActivity,
-                        if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented,
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    clearSelection()
+        showMessageDialog(
+            createMessageDialogConfig(
+                title = getString(R.string.delete),
+                message = message,
+                negativeText = getString(android.R.string.cancel),
+                positiveText = getString(R.string.delete),
+                positiveClickListener = { _, _ ->
+                    lifecycleScope.launch {
+                        val deletedCount = viewModel.deleteTracks(tracks)
+                        Toast.makeText(
+                            this@MusicSetEditActivity,
+                            if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        clearSelection()
+                    }
                 }
-            }
-            .show()
+            )
+        )
     }
 
     private fun clearSelection() {

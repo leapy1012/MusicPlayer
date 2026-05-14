@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.library.options
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -13,8 +12,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
 import gd.app.musicplayer.ui.library.albums.AlbumMusicActivity
@@ -33,8 +34,8 @@ class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
     override fun provideMenuItems(): List<MenuItem> = listOf(
         MenuItem.create(R.string.operation_play, R.drawable.ic_menu_play),
         MenuItem.create(R.string.add_to, R.drawable.ic_menu_add),
-        MenuItem.create(R.string.dlg_more_view_album, R.drawable.main_album_simple),
-        MenuItem.create(R.string.dlg_more_view_artist, R.drawable.main_artist_simple),
+        MenuItem.create(R.string.dlg_more_view_album, R.drawable.ic_more_album),
+        MenuItem.create(R.string.dlg_more_view_artist, R.drawable.ic_more_artist),
         MenuItem.create(R.string.remove, R.drawable.ic_menu_remove),
         MenuItem.create(R.string.dlg_ringtone_2, R.drawable.ic_menu_ringtone),
         MenuItem.create(R.string.dlg_share_music, R.drawable.ic_menu_share),
@@ -84,20 +85,23 @@ class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     private fun confirmDeleteTrack() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.delete)
-            .setMessage(music.title)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                viewModel.onDeleteConfirmed(music)
-            }
-            .show()
+        requireActivity().showMessageDialog(
+            requireContext().createMessageDialogConfig(
+                title = getString(R.string.delete),
+                message = music.title,
+                negativeText = getString(android.R.string.cancel),
+                positiveText = getString(R.string.delete),
+                positiveClickListener = { _, _ ->
+                    viewModel.onDeleteConfirmed(music)
+                }
+            )
+        )
     }
 
     private fun handleEvent(event: QueueTrackOptionsEvent) {
         when (event) {
             QueueTrackOptionsEvent.Dismiss -> dismissAllowingStateLoss()
-            is QueueTrackOptionsEvent.OpenAddTo -> ActivityPlaylistSelect.start(requireContext(), event.tracks)
+            is QueueTrackOptionsEvent.OpenAddTo -> PlaylistSelectActivity.start(requireContext(), event.tracks)
             is QueueTrackOptionsEvent.OpenAlbum -> AlbumMusicActivity.start(requireContext(), event.album)
             is QueueTrackOptionsEvent.OpenArtist -> AlbumMusicActivity.start(requireContext(), event.artist)
             is QueueTrackOptionsEvent.Share -> MusicShareSupport.share(requireContext(), event.tracks)

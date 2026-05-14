@@ -76,8 +76,9 @@
         android:id="@+id/current_list_close"
         android:layout_width="match_parent"
         android:layout_height="56dp"
+        android:background="@drawable/selector_item_bg_t_aw"
         android:gravity="center"
-        android:tag="dialogButton"
+        android:tag="dialogItem"
         android:text="@string/close"
         android:textColor="#ffffff"
         android:textSize="16sp" />

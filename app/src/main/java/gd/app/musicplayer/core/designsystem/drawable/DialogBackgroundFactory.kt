@@ -49,7 +49,7 @@ object DialogBackgroundFactory {
         return if (blurredThemeBitmap == null) {
             COLOR_PICTURE_FALLBACK.toDrawable()
         } else {
-            _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ScaledOverlayDrawable(
+            ScaledOverlayDrawable(
                 blurredThemeBitmap.toDrawable(context.resources)
             ).apply {
                 setForegroundOverlayColor(COLOR_PICTURE_OVERLAY)
@@ -69,7 +69,7 @@ object DialogBackgroundFactory {
     ): Drawable {
         val base = pictureDialogBackgroundBase(context, blurredThemeBitmap)
 
-        return _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.RoundedMaskDrawable(
+        return RoundedMaskDrawable(
             base,
             context.dpToPx(12f).toFloat()
         )

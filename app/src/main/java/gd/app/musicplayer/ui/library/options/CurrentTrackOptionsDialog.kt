@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.library.options
 
-import android.app.AlertDialog
 import android.content.Context
 import android.media.AudioManager
 import android.os.Bundle
@@ -18,12 +17,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import gd.app.musicplayer.ui.sleep.SleepActivity
 import gd.app.musicplayer.ui.tags.EditTagsActivity
@@ -229,20 +230,23 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     private fun confirmDeleteTrack() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.delete)
-            .setMessage(music.title)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                viewModel.deleteTrack()
-            }
-            .show()
+        requireActivity().showMessageDialog(
+            requireContext().createMessageDialogConfig(
+                title = getString(R.string.delete),
+                message = music.title,
+                negativeText = getString(android.R.string.cancel),
+                positiveText = getString(R.string.delete),
+                positiveClickListener = { _, _ ->
+                    viewModel.deleteTrack()
+                }
+            )
+        )
     }
 
     private fun handleEvent(event: CurrentTrackOptionsEvent) {
         when (event) {
             is CurrentTrackOptionsEvent.ShowToast -> ToastUtil.show(requireContext(), event.messageRes)
-            is CurrentTrackOptionsEvent.OpenAddTo -> ActivityPlaylistSelect.start(requireContext(), event.tracks)
+            is CurrentTrackOptionsEvent.OpenAddTo -> PlaylistSelectActivity.start(requireContext(), event.tracks)
             is CurrentTrackOptionsEvent.OpenAlbum -> AlbumMusicActivity.start(requireContext(), event.album)
             is CurrentTrackOptionsEvent.OpenArtist -> AlbumMusicActivity.start(requireContext(), event.artist)
         }

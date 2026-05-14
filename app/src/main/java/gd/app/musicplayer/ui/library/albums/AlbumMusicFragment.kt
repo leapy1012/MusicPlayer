@@ -334,7 +334,7 @@ class AlbumMusicFragment :
     }
 
     private fun showManageArtworkDialog() {
-        ManageArtworkDialogFragment.Companion
+        ManageArtworkDialogFragment
             .newInstance(
                 ArtworkRequest.MusicSetTarget(musicSet)
             )
@@ -346,17 +346,17 @@ class AlbumMusicFragment :
 
     private fun registerArtworkResultListener() {
         parentFragmentManager.setFragmentResultListener(
-            ManageArtworkDialogFragment.Companion.RESULT_KEY_ARTWORK_APPLIED,
+            ManageArtworkDialogFragment.RESULT_KEY_ARTWORK_APPLIED,
             viewLifecycleOwner
         ) { _, bundle ->
-            val request = bundle.parcelable<ArtworkRequest>(ManageArtworkDialogFragment.Companion.RESULT_REQUEST)
+            val request = bundle.parcelable<ArtworkRequest>(ManageArtworkDialogFragment.RESULT_REQUEST)
                 as? ArtworkRequest.MusicSetTarget
                 ?: return@setFragmentResultListener
             if (!request.musicSet.matchesArtworkTarget(musicSet)) {
                 return@setFragmentResultListener
             }
 
-            val artworkPath = bundle.getString(ManageArtworkDialogFragment.Companion.RESULT_ARTWORK_PATH)
+            val artworkPath = bundle.getString(ManageArtworkDialogFragment.RESULT_ARTWORK_PATH)
             musicSet = musicSet.withUpdatedAlbumArt(artworkPath)
 
             if (!isCompactHeader) {

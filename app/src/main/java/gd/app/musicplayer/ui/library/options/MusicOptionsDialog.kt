@@ -22,7 +22,7 @@ import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.editor.ActivityAudioEditor
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import gd.app.musicplayer.ui.tags.EditTagsActivity
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
@@ -92,7 +92,7 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
 
             R.string.add_to -> {
                 dismiss()
-                ActivityPlaylistSelect.start(requireContext(), listOf(music))
+                PlaylistSelectActivity.start(requireContext(), listOf(music))
             }
 
             R.string.dlg_ringtone_2 -> {

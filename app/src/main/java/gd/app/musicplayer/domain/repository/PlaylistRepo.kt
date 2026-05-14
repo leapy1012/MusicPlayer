@@ -2,6 +2,7 @@ package gd.app.musicplayer.domain.repository
 
 import gd.app.musicplayer.core.common.extension.isValidId
 import gd.app.musicplayer.data.local.preference.PlaylistPreferenceDataStore
+import gd.app.musicplayer.data.local.preference.SortPreferencesDataStore
 import gd.app.musicplayer.data.local.db.dao.PlaylistDao
 import gd.app.musicplayer.data.local.db.entity.MusicPlaylistEntity
 import gd.app.musicplayer.data.local.db.entity.PlaylistEntity
@@ -15,7 +16,8 @@ import javax.inject.Singleton
 class PlaylistRepo @Inject constructor(
     private val playlistDao: PlaylistDao,
     private val artworkRepo: ArtworkRepo,
-    private val playlistPreference: PlaylistPreferenceDataStore
+    private val playlistPreference: PlaylistPreferenceDataStore,
+    private val sortPreference: SortPreferencesDataStore
 ) {
 
     fun observePlaylists(): Flow<List<MusicSet.Playlist>> {
@@ -50,6 +52,8 @@ class PlaylistRepo @Inject constructor(
             playlistId = playlistId,
             trackIdsInDisplayOrder = trackIds
         )
+
+        resetTrackCollectionSortToDefault(playlistId)
     }
 
     suspend fun playlistNameExists(
@@ -176,6 +180,9 @@ class PlaylistRepo @Inject constructor(
         if (refsToInsert.isEmpty()) return 0
 
         playlistDao.insertMusicPlaylistRefs(refsToInsert)
+        targetPlaylistIds.forEach { playlistId ->
+            normalizePlaylistTrackOrderAndResetSort(playlistId)
+        }
 
         return refsToInsert.size
     }
@@ -288,6 +295,53 @@ class PlaylistRepo @Inject constructor(
                 )
             )
         )
+
+        normalizePlaylistTrackOrderAndResetSort(playlistId)
+    }
+
+    private suspend fun normalizePlaylistTrackOrderAndResetSort(
+        playlistId: Long
+    ) {
+        val trackIds = playlistDao.getPlaylistTrackIds(playlistId)
+        if (trackIds.isNotEmpty()) {
+            playlistDao.updatePlaylistTrackOrder(
+                playlistId = playlistId,
+                trackIdsInDisplayOrder = trackIds
+            )
+        }
+        resetTrackCollectionSortToDefault(playlistId)
+    }
+
+    private suspend fun resetTrackCollectionSortToDefault(
+        playlistId: Long
+    ) {
+        val musicSet = if (playlistId == MusicSet.FAVORITES) {
+            MusicSet.Favorites
+        } else {
+            MusicSet.Playlist(
+                id = playlistId,
+                name = "",
+                albumArt = null,
+                musicCount = 0,
+                disabled = false,
+                sort = 0L,
+                setup_time = 0L,
+                album_id = 0L,
+                s_pic = ""
+            )
+        }
+
+        when (musicSet) {
+            is MusicSet.Playlist -> {
+                sortPreference.setPlaylistSortStyle(musicSet, SORT_DEFAULT)
+                sortPreference.setPlaylistSortReversed(musicSet, false)
+            }
+
+            else -> {
+                sortPreference.setSortStyle(musicSet, SORT_DEFAULT)
+                sortPreference.setSortDescending(musicSet, false)
+            }
+        }
     }
 
     private suspend fun getExistingTrackIdsByPlaylist(
@@ -377,5 +431,6 @@ class PlaylistRepo @Inject constructor(
     companion object {
         private const val INVALID_PLAYLIST_ID = -1L
         private const val ADD_TO_END = 1
+        private const val SORT_DEFAULT = "default"
     }
 }

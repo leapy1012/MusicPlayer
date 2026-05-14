@@ -168,7 +168,7 @@ class MusicEditActivity : BaseActivity(),
             recyclerView = musicRecyclerView,
             accentColor = themeRepo.getAccentColor(),
             musicSet = musicSet,
-            dragEnabled = musicSet.id > 0,
+            dragEnabled = musicSet is MusicSet.Playlist || musicSet is MusicSet.Favorites,
             onOrderChanged = viewModel::updateTrackOrder
         ).apply {
             setSelectionCountListener(this@MusicEditActivity)

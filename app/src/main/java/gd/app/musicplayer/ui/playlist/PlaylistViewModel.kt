@@ -164,8 +164,6 @@ class PlaylistViewModel @Inject constructor(
         style: String,
         reversed: Boolean
     ): List<MusicSet.Playlist> {
-        Log.e("Leapy", "playlist sort" + style)
-        Log.e("Leapy", "playlist sort reversed" + reversed)
         val comparator = when (style) {
             SORT_STYLE_NAME -> {
                 compareBy<MusicSet.Playlist, String>(

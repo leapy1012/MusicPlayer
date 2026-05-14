@@ -19,9 +19,15 @@ import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.session.MediaSessionService
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
@@ -37,6 +43,7 @@ import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.PlaybackSession
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
+import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.playback.ArtworkLoader
@@ -55,49 +62,77 @@ import gd.app.musicplayer.playback.PlaybackStatePublisher
 import gd.app.musicplayer.playback.PlaybackStatisticsRecorder
 import gd.app.musicplayer.playback.PlaybackTuningController
 import gd.app.musicplayer.playback.ScreenOffLockReceiver
+import gd.app.musicplayer.playback.StereoBalanceAudioProcessor
+import gd.app.musicplayer.playback.SleepTimerManager
 import gd.app.musicplayer.playback.VolumeFader
 import gd.app.musicplayer.ui.shell.MainActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class MusicPlaybackService : MediaSessionService() {
 
     @Inject
     lateinit var playbackRuntimeStateStore: PlaybackRuntimeStateStore
+
     @Inject
     lateinit var playbackSessionStore: PlaybackSessionStore
+
     @Inject
     lateinit var playbackQueueRepo: PlaybackQueueRepo
+
     @Inject
     lateinit var desktopLyricPreferenceStore: DesktopLyricPreferenceStore
+
     @Inject
     lateinit var playbackStatePreferenceStore: PlaybackStatePreferenceStore
+
     @Inject
     lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
+
     @Inject
     lateinit var headsetMediaButtonHandler: HeadsetMediaButtonHandler
+
     @Inject
     lateinit var audioEffectsManager: AudioEffectsManager
+
     @Inject
     lateinit var soundEffectPreferences: SoundEffectPreferences
+
     @Inject
     lateinit var dispatchers: AppDispatchers
+
     @Inject
     lateinit var observeTracksUseCase: ObserveTracksUseCase
+
+    @Inject
+    lateinit var observeAlbumPictureUseCase: ObserveAlbumPictureUseCase
+
     @Inject
     lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
+
     @Inject
     lateinit var musicDao: MusicDao
+
     @Inject
     lateinit var statisticsRecorder: PlaybackStatisticsRecorder
 
@@ -115,6 +150,7 @@ class MusicPlaybackService : MediaSessionService() {
     private lateinit var queuePersistence: PlaybackQueuePersistence
     private lateinit var screenOffLockReceiver: ScreenOffLockReceiver
     private lateinit var statePublisher: PlaybackStatePublisher
+    private lateinit var stereoBalanceAudioProcessor: StereoBalanceAudioProcessor
     private lateinit var volumeFader: VolumeFader
 
     private val compatMediaSession: MediaSession
@@ -123,7 +159,13 @@ class MusicPlaybackService : MediaSessionService() {
     private var media3Session: androidx.media3.session.MediaSession? = null
 
     private val progressHandler = Handler(Looper.getMainLooper())
+    private val restoreMutex = Mutex()
 
+    @Volatile
+    private var restoreStatus: RestoreStatus = RestoreStatus.NotStarted
+
+    private var resumeJob: Job? = null
+    private var currentTrackArtworkObserverJob: Job? = null
     private var screenReceiverRegistered = false
 
     private var queue: List<Music> = emptyList()
@@ -137,6 +179,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     private var keepIdleNotification = false
     private var stopAfterCurrentTrack = false
+    private var notificationDismissedByUser = false
     private var isNightMode = false
 
     @Volatile
@@ -145,10 +188,20 @@ class MusicPlaybackService : MediaSessionService() {
     @Volatile
     private var latestDesktopLyricPreference = DesktopLyricPreference()
 
+    private enum class RestoreStatus {
+        NotStarted,
+        Restoring,
+        Restored,
+        Empty,
+        Failed
+    }
+
     private val progressTicker = object : Runnable {
         override fun run() {
             maybeHandleTimedTransition()
-            statePublisher.publish()
+            if (shouldPublishProgressState()) {
+                statePublisher.publish()
+            }
             progressHandler.postDelayed(this, PROGRESS_TICK_MS)
         }
     }
@@ -171,12 +224,13 @@ class MusicPlaybackService : MediaSessionService() {
         configurePlayer()
         configureControllers()
         observePreferences()
+        observeCurrentTrackArtwork()
 
         notificationController.createNotificationChannel()
 
         restoreLastSessionIntoRuntimeStateIfNeeded()
         registerScreenOffReceiver()
-        android.util.Log.e("Leapy", "queue" + queue.toString())
+
         progressHandler.post(progressTicker)
     }
 
@@ -191,22 +245,16 @@ class MusicPlaybackService : MediaSessionService() {
         flags: Int,
         startId: Int
     ): Int {
-        super.onStartCommand(intent, flags, startId)
+        super.onStartCommand(
+            intent,
+            flags,
+            startId
+        )
 
-        val action = intent?.action
+        val action = intent?.action ?: return handleEmptyStartCommand(startId)
 
-        if (action == ACTION_APP_TASK_REMOVED) {
-            stopServiceIfAppClosedAndNotPlaying()
-            return START_NOT_STICKY
-        }
-
-        if (action == null && !isEffectivelyPlaying() && currentIndex !in queue.indices) {
-            isRunning = false
-            stopSelf(startId)
-            return START_NOT_STICKY
-        }
-
-        if (action?.requiresImmediateForegroundPromotion() == true) {
+        if (action.requiresImmediateForegroundPromotion()) {
+            notificationDismissedByUser = false
             notificationController.ensureForegroundStarted()
         }
 
@@ -219,15 +267,11 @@ class MusicPlaybackService : MediaSessionService() {
             return START_NOT_STICKY
         }
 
-        stopForegroundIfIdle()
-        statePublisher.publish()
-
         return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        stopServiceIfAppClosedAndNotPlaying()
-//        super.onTaskRemoved(rootIntent)
+        handleAppTaskRemoved()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -237,12 +281,17 @@ class MusicPlaybackService : MediaSessionService() {
 
         if (newNightMode != isNightMode) {
             isNightMode = newNightMode
-            notificationController.update(force = true)
+            updateNotification(force = true)
         }
     }
 
     override fun onDestroy() {
         progressHandler.removeCallbacksAndMessages(null)
+
+        resumeJob?.cancel()
+        resumeJob = null
+        currentTrackArtworkObserverJob?.cancel()
+        currentTrackArtworkObserverJob = null
 
         if (::volumeFader.isInitialized) {
             volumeFader.cancel()
@@ -282,9 +331,65 @@ class MusicPlaybackService : MediaSessionService() {
         super.onDestroy()
     }
 
+    private fun handleEmptyStartCommand(startId: Int): Int {
+        val hasQueueItem = currentIndex in queue.indices
+
+        if (!isEffectivelyPlaying() && !hasQueueItem) {
+            isRunning = false
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
+
+        updateNotification()
+        statePublisher.publish()
+
+        return START_STICKY
+    }
+
+    private fun handleAppTaskRemoved() {
+        if (isEffectivelyPlaying()) {
+            updateNotification(force = true)
+            statePublisher.publish()
+            return
+        }
+
+        shutdownPlayback(
+            clearQueue = false,
+            clearPersistedQueue = false,
+            clearRuntimeState = false,
+            removeNotification = true,
+            stopService = true
+        )
+    }
+
     private fun observePreferences() {
         observeSettingPreferences()
         observeDesktopLyricPreference()
+        observeAudioEffectPreferences()
+    }
+
+    private fun observeCurrentTrackArtwork() {
+        currentTrackArtworkObserverJob?.cancel()
+        currentTrackArtworkObserverJob = serviceScope.launch {
+            playbackRuntimeStateStore.state
+                .map { state -> state.currentTrack?.id }
+                .distinctUntilChanged()
+                .flatMapLatest { musicId: Long? ->
+                    if (musicId == null) {
+                        emptyFlow<Pair<Long, String?>>()
+                    } else {
+                        observeAlbumPictureUseCase(musicId)
+                            .distinctUntilChanged()
+                            .map { artworkPath: String? -> musicId to artworkPath }
+                    }
+                }
+                .collect { (musicId, artworkPath) ->
+                    syncCurrentTrackArtwork(
+                        trackId = musicId,
+                        artworkPath = artworkPath
+                    )
+                }
+        }
     }
 
     private fun observeSettingPreferences() {
@@ -303,8 +408,43 @@ class MusicPlaybackService : MediaSessionService() {
             .launchIn(serviceScope)
     }
 
+    private fun observeAudioEffectPreferences() {
+        combine(
+            soundEffectPreferences.equalizerPreference,
+            soundEffectPreferences.soundEffectSettings
+        ) { equalizerPreference, soundEffectSettings ->
+            equalizerPreference to soundEffectSettings
+        }
+            .distinctUntilChanged()
+            .onEach {
+                if (::player.isInitialized) {
+                    applyAudioEffectsFromPreferences()
+                }
+            }
+            .launchIn(serviceScope)
+    }
+
+    @androidx.annotation.OptIn(UnstableApi::class)
     private fun configurePlayer() {
-        player = ExoPlayer.Builder(this)
+        stereoBalanceAudioProcessor = StereoBalanceAudioProcessor()
+
+        val renderersFactory = object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean
+            ): androidx.media3.exoplayer.audio.AudioSink {
+                return DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setAudioProcessors(
+                        arrayOf<AudioProcessor>(stereoBalanceAudioProcessor)
+                    )
+                    .build()
+            }
+        }
+
+        player = ExoPlayer.Builder(this, renderersFactory)
             .setHandleAudioBecomingNoisy(true)
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -345,13 +485,19 @@ class MusicPlaybackService : MediaSessionService() {
                         )
                     }
 
-                    publishAllRuntimeState()
+                    publishAllRuntimeState(forceNotification = true)
                 }
 
                 override fun onMediaItemTransition(
                     mediaItem: MediaItem?,
                     reason: Int
                 ) {
+                    val playerIndex = player.currentMediaItemIndex
+
+                    if (playerIndex in queue.indices) {
+                        currentIndex = playerIndex
+                    }
+
                     resetTimedTransitionState()
                     playbackTuningController.applyResolvedPlayerVolume()
                     refreshArtworkAndSession(force = true)
@@ -362,10 +508,12 @@ class MusicPlaybackService : MediaSessionService() {
                             force = true
                         )
                     }
+
+                    publishAllRuntimeState(forceNotification = true)
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
-                    playNext()
+                    playNextInternal()
                 }
             }
         )
@@ -382,7 +530,10 @@ class MusicPlaybackService : MediaSessionService() {
             playbackStatePreferenceStore = playbackStatePreferenceStore,
             settingPreferencesDataStore = settingPreferencesDataStore,
             soundEffectPreferences = soundEffectPreferences,
-            currentMusicProvider = { queue.getOrNull(currentIndex) },
+            stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
+            currentMusicProvider = {
+                queue.getOrNull(currentIndex)
+            },
             applicationScope = serviceScope
         )
 
@@ -412,9 +563,15 @@ class MusicPlaybackService : MediaSessionService() {
 
         audioFocusController = AudioFocusController(
             context = this,
-            isPlaying = { player.isPlaying },
-            pausePlayback = { pausePlayback(withFade = false) },
-            resumePlayback = { resumePlayback() },
+            isPlaying = {
+                player.isPlaying
+            },
+            pausePlayback = {
+                pausePlayback(withFade = false)
+            },
+            resumePlayback = {
+                resumePlayback()
+            },
             isSimultaneousPlayEnabled = {
                 latestSettingPreferences.audio.simultaneousPlayEnabled
             }
@@ -424,16 +581,26 @@ class MusicPlaybackService : MediaSessionService() {
             context = applicationContext,
             player = player,
             runtimeStateStore = playbackRuntimeStateStore,
-            queueProvider = { queue },
-            currentIndexProvider = { currentIndex }
+            queueProvider = {
+                queue
+            },
+            currentIndexProvider = {
+                currentIndex
+            }
         )
 
         mediaSessionController = PlaybackMediaSessionController(
             context = this,
             player = player,
-            queueProvider = { queue },
-            currentIndexProvider = { currentIndex },
-            isEffectivelyPlaying = { isEffectivelyPlaying() },
+            queueProvider = {
+                queue
+            },
+            currentIndexProvider = {
+                currentIndex
+            },
+            isEffectivelyPlaying = {
+                isEffectivelyPlaying()
+            },
             headsetMediaButtonHandler = headsetMediaButtonHandler,
             callbacks = object : PlaybackMediaSessionController.Callbacks {
                 override fun play() = resumePlayback()
@@ -458,11 +625,21 @@ class MusicPlaybackService : MediaSessionService() {
         notificationController = PlaybackNotificationController(
             service = this,
             notificationManager = notificationManager,
-            mediaSessionTokenProvider = { compatMediaSession.sessionToken },
-            currentMusicProvider = { queue.getOrNull(currentIndex) },
-            currentArtworkProvider = { currentArtwork },
-            artworkTrackIdProvider = { currentArtworkTrackId },
-            isEffectivelyPlaying = { isEffectivelyPlaying() },
+            mediaSessionTokenProvider = {
+                compatMediaSession.sessionToken
+            },
+            currentMusicProvider = {
+                queue.getOrNull(currentIndex)
+            },
+            currentArtworkProvider = {
+                currentArtwork
+            },
+            artworkTrackIdProvider = {
+                currentArtworkTrackId
+            },
+            isEffectivelyPlaying = {
+                isEffectivelyPlaying()
+            },
             isFavoriteProvider = {
                 queue.getOrNull(currentIndex)?.playlistId == MusicSet.FAVORITES
             },
@@ -478,16 +655,12 @@ class MusicPlaybackService : MediaSessionService() {
             service = this,
             callbacks = object : PlaybackServiceCommandHandler.Callbacks {
 
-                override fun updateNotificationDelayed() {
-                    progressHandler.postDelayed(
-                        { notificationController.update() },
-                        NOTIFICATION_UPDATE_DELAY_MS
-                    )
-                }
-
                 override fun refreshNotificationStyle() {
                     notificationController.refreshStyle { delayMs, block ->
-                        progressHandler.postDelayed(block, delayMs)
+                        progressHandler.postDelayed(
+                            block,
+                            delayMs
+                        )
                     }
                 }
 
@@ -519,6 +692,10 @@ class MusicPlaybackService : MediaSessionService() {
                     this@MusicPlaybackService.playPrevious()
                 }
 
+                override fun stopPlayback() {
+                    this@MusicPlaybackService.stopPlayback()
+                }
+
                 override fun stopPlaybackWithoutClearingQueue() {
                     this@MusicPlaybackService.stopPlaybackWithoutClearingQueue()
                 }
@@ -543,11 +720,18 @@ class MusicPlaybackService : MediaSessionService() {
                     this@MusicPlaybackService.toggleFavorite(music)
                 }
 
-                override fun playIndex(index: Int) {
-                    this@MusicPlaybackService.playIndex(
-                        index = index,
-                        playWhenReady = true
+                override fun setFavorite(
+                    music: Music,
+                    favorited: Boolean
+                ) {
+                    this@MusicPlaybackService.setFavorite(
+                        music = music,
+                        favorited = favorited
                     )
+                }
+
+                override fun playIndex(index: Int) {
+                    this@MusicPlaybackService.playIndexFromCommand(index)
                 }
 
                 override fun playFromQueue(
@@ -594,11 +778,9 @@ class MusicPlaybackService : MediaSessionService() {
                     playbackTuningController.applyPlaybackTuning()
                 }
 
-                override fun toggleDesktopLyricsLock() {
+                override fun setDesktopLyricsLocked(locked: Boolean) {
                     serviceScope.launch {
-                        desktopLyricPreferenceStore.setLocked(
-                            !latestDesktopLyricPreference.locked
-                        )
+                        desktopLyricPreferenceStore.setLocked(locked)
                     }
                 }
 
@@ -623,8 +805,7 @@ class MusicPlaybackService : MediaSessionService() {
                     true
                 )
             },
-            PendingIntent.FLAG_UPDATE_CURRENT or
-                    PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         return androidx.media3.session.MediaSession.Builder(
@@ -633,6 +814,124 @@ class MusicPlaybackService : MediaSessionService() {
         )
             .setSessionActivity(sessionActivity)
             .build()
+    }
+
+    private fun restoreLastSessionIntoRuntimeStateIfNeeded() {
+        serviceScope.launch {
+            ensurePlaybackRestored()
+        }
+    }
+
+    private suspend fun ensurePlaybackRestored() {
+        if (isRestoreFinished()) return
+
+        restoreMutex.withLock {
+            if (isRestoreFinished()) return
+
+            restoreStatus = RestoreStatus.Restoring
+
+            runCatching {
+                restorePlaybackStateInternal()
+            }.onSuccess { restored ->
+                restoreStatus = if (restored) {
+                    RestoreStatus.Restored
+                } else {
+                    RestoreStatus.Empty
+                }
+            }.onFailure {
+                restoreStatus = RestoreStatus.Failed
+                playbackRuntimeStateStore.initializeIfNeeded()
+                statePublisher.publish()
+            }
+        }
+    }
+
+    private fun isRestoreFinished(): Boolean {
+        return restoreStatus == RestoreStatus.Restored ||
+                restoreStatus == RestoreStatus.Empty ||
+                restoreStatus == RestoreStatus.Failed
+    }
+
+    private suspend fun restorePlaybackStateInternal(): Boolean {
+        val restoredQueue = withContext(dispatchers.io) {
+            playbackQueueRepo.getQueue()
+        }
+
+        if (restoreStatus != RestoreStatus.Restoring) {
+            return queue.isNotEmpty()
+        }
+
+        playbackRuntimeStateStore.initializeIfNeeded()
+
+        if (restoredQueue.isEmpty()) {
+            clearQueueState()
+            syncControllersAfterQueueRestore(forceArtwork = false)
+            statePublisher.publish()
+            return false
+        }
+
+        val restoredSession = withContext(dispatchers.io) {
+            playbackSessionStore.getLastSession()
+        }
+
+        val safeIndex = restoredSession?.let { session ->
+            resolveStartIndex(
+                queue = restoredQueue,
+                session = session
+            )
+        } ?: 0
+
+        val safePosition = restoredSession
+            ?.positionMs
+            ?.coerceAtLeast(0L)
+            ?: 0L
+
+        if (restoreStatus != RestoreStatus.Restoring) {
+            return queue.isNotEmpty()
+        }
+
+        setQueueState(
+            newQueue = restoredQueue,
+            requestedIndex = safeIndex
+        )
+
+        prepareRestoredPlayerState(
+            index = safeIndex,
+            positionMs = safePosition
+        )
+
+        syncControllersAfterQueueRestore(forceArtwork = true)
+
+        statePublisher.publishRestored(
+            safeIndex,
+            safePosition,
+            restoredQueue
+        )
+
+        return true
+    }
+
+    private fun syncControllersAfterQueueRestore(forceArtwork: Boolean) {
+        mediaSessionController.updateQueue()
+        refreshArtworkAndSession(force = forceArtwork)
+        mediaSessionController.updatePlaybackState()
+        updateNotification(force = true)
+    }
+
+    private fun prepareRestoredPlayerState(
+        index: Int,
+        positionMs: Long
+    ) {
+        if (index !in queue.indices) return
+
+        setPlayerQueue(
+            queue = queue,
+            startIndex = index,
+            startPositionMs = positionMs,
+            playWhenReady = false
+        )
+
+        playbackTuningController.applyResolvedPlayerVolume()
     }
 
     private fun handleTrackEnded() {
@@ -644,134 +943,27 @@ class MusicPlaybackService : MediaSessionService() {
 
         if (stopAfterCurrentTrack) {
             stopAfterCurrentTrack = false
-            stopPlayback()
+            SleepTimerManager.finishPendingTrackEnd()
+            stopAndClearQueue()
             return
         }
 
-        playNext(fromAutoTransition = true)
+        playNextInternal(fromAutoTransition = true)
     }
 
-    private fun restoreLastSessionIntoRuntimeStateIfNeeded() {
-        val runtimeAlreadyInitialized = playbackRuntimeStateStore.isInitialized()
-
+    private fun resumeWithDefaultQueue() {
         serviceScope.launch {
-            val restoredQueue = withContext(dispatchers.io) {
-                playbackQueueRepo.getQueue()
-            }
-
-            android.util.Log.e("Leapy", "restoredQueue = " + restoredQueue)
-
-            if (restoredQueue.isEmpty()) return@launch
-
-            if (runtimeAlreadyInitialized) {
-                val runtimeIndex = playbackRuntimeStateStore.state.value.currentIndex
-
-                setQueueState(
-                    newQueue = restoredQueue,
-                    requestedIndex = runtimeIndex
-                )
-
-                syncControllersAfterQueueRestore(forceArtwork = true)
-                return@launch
-            }
-
-            val restoredSession = withContext(dispatchers.io) {
-                playbackSessionStore.getLastSession()
-            } ?: return@launch
-
-            val safeIndex = resolveStartIndex(
-                queue = restoredQueue,
-                session = restoredSession
-            )
-
-            val safePosition = restoredSession.positionMs.coerceAtLeast(0L)
-
-            if (playbackRuntimeStateStore.isInitialized()) {
-                val runtimeIndex = playbackRuntimeStateStore.state.value.currentIndex
-
-                setQueueState(
-                    newQueue = restoredQueue,
-                    requestedIndex = runtimeIndex
-                )
-
-                syncControllersAfterQueueRestore(forceArtwork = true)
-                return@launch
-            }
-
-            playbackRuntimeStateStore.initializeIfNeeded()
-
-            setQueueState(
-                newQueue = restoredQueue,
-                requestedIndex = safeIndex
-            )
-
-            syncControllersAfterQueueRestore(forceArtwork = true)
-
-            statePublisher.publishRestored(safeIndex, safePosition, restoredQueue)
-        }
-    }
-
-    private fun syncControllersAfterQueueRestore(forceArtwork: Boolean) {
-        mediaSessionController.updateQueue()
-        refreshArtworkAndSession(force = forceArtwork)
-        mediaSessionController.updatePlaybackState()
-        notificationController.update(force = true)
-    }
-
-    private fun resumeWithPersistedOrDefaultQueue() {
-        serviceScope.launch {
-            val persistedQueue = withContext(dispatchers.io) {
-                runCatching {
-                    playbackQueueRepo.queue.first()
-                }.getOrDefault(emptyList())
-            }
-
-            val persistedSession = withContext(dispatchers.io) {
-                playbackSessionStore.getLastSession()
-            }
-
-            if (persistedQueue.isNotEmpty()) {
-                val startIndex = persistedSession
-                    ?.let { session ->
-                        resolveStartIndex(
-                            queue = persistedQueue,
-                            session = session
-                        )
-                    }
-                    ?: 0
-
-                val startPositionMs = persistedSession
-                    ?.positionMs
-                    ?.coerceAtLeast(0L)
-                    ?: 0L
-
-                setQueueState(
-                    newQueue = persistedQueue,
-                    requestedIndex = startIndex
-                )
-
-                mediaSessionController.updateQueue()
-
-                playIndex(
-                    index = currentIndex,
-                    playWhenReady = true
-                )
-
-                if (startPositionMs > 0L) {
-                    player.seekTo(startPositionMs)
-                    statePublisher.publish()
-                }
-
-                return@launch
-            }
-
             val tracks = withContext(dispatchers.io) {
                 runCatching {
                     observeTracksUseCase(MusicSet.Tracks).first()
                 }.getOrDefault(emptyList())
             }
 
-            if (tracks.isEmpty()) return@launch
+            if (tracks.isEmpty()) {
+                playbackRuntimeStateStore.initializeIfNeeded()
+                statePublisher.publish()
+                return@launch
+            }
 
             withContext(dispatchers.io) {
                 playbackQueueRepo.replaceQueue(tracks)
@@ -787,12 +979,23 @@ class MusicPlaybackService : MediaSessionService() {
                 requestedIndex = 0
             )
 
+            restoreStatus = RestoreStatus.Restored
+
             mediaSessionController.updateQueue()
 
-            playIndex(
-                index = 0,
+            if (!audioFocusController.request()) {
+                return@launch
+            }
+
+            setPlayerQueue(
+                queue = queue,
+                startIndex = 0,
+                startPositionMs = 0L,
                 playWhenReady = true
             )
+
+            refreshArtworkAndSession(force = true)
+            publishAllRuntimeState(forceNotification = true)
         }
     }
 
@@ -822,6 +1025,8 @@ class MusicPlaybackService : MediaSessionService() {
     ) {
         if (incomingQueue.isEmpty()) return
 
+        restoreStatus = RestoreStatus.Restored
+
         setQueueState(
             newQueue = incomingQueue,
             requestedIndex = incomingIndex
@@ -830,10 +1035,19 @@ class MusicPlaybackService : MediaSessionService() {
         queuePersistence.save(queue)
         mediaSessionController.updateQueue()
 
-        playIndex(
-            index = currentIndex,
+        if (!audioFocusController.request()) {
+            return
+        }
+
+        setPlayerQueue(
+            queue = queue,
+            startIndex = currentIndex,
+            startPositionMs = 0L,
             playWhenReady = true
         )
+
+        refreshArtworkAndSession(force = true)
+        publishAllRuntimeState(forceNotification = true)
     }
 
     private fun handleEnqueue(incomingQueue: List<Music>) {
@@ -843,6 +1057,8 @@ class MusicPlaybackService : MediaSessionService() {
         val nextQueue = queue + incomingQueue
         val nextIndex = if (wasEmpty) 0 else currentIndex
 
+        restoreStatus = RestoreStatus.Restored
+
         setQueueState(
             newQueue = nextQueue,
             requestedIndex = nextIndex
@@ -850,11 +1066,29 @@ class MusicPlaybackService : MediaSessionService() {
 
         queuePersistence.save(queue)
         mediaSessionController.updateQueue()
+
+        if (wasEmpty || !isPlayerPlaylistSynced()) {
+            setPlayerQueue(
+                queue = queue,
+                startIndex = currentIndex.coerceAtLeast(0),
+                startPositionMs = player.currentPosition.coerceAtLeast(0L),
+                playWhenReady = isEffectivelyPlaying()
+            )
+        } else {
+            player.addMediaItems(
+                incomingQueue.mapNotNull { music ->
+                    music.toMediaItemOrNull()
+                }
+            )
+        }
+
         publishAllRuntimeState()
     }
 
     private fun handlePlayNextQueue(incomingQueue: List<Music>) {
         if (incomingQueue.isEmpty()) return
+
+        restoreStatus = RestoreStatus.Restored
 
         if (queue.isEmpty()) {
             setQueueState(
@@ -865,10 +1099,19 @@ class MusicPlaybackService : MediaSessionService() {
             queuePersistence.save(queue)
             mediaSessionController.updateQueue()
 
-            playIndex(
-                index = 0,
+            if (!audioFocusController.request()) {
+                return
+            }
+
+            setPlayerQueue(
+                queue = queue,
+                startIndex = 0,
+                startPositionMs = 0L,
                 playWhenReady = true
             )
+
+            refreshArtworkAndSession(force = true)
+            publishAllRuntimeState(forceNotification = true)
 
             return
         }
@@ -896,6 +1139,23 @@ class MusicPlaybackService : MediaSessionService() {
 
         queuePersistence.save(queue)
         mediaSessionController.updateQueue()
+
+        if (isPlayerPlaylistSynced()) {
+            player.addMediaItems(
+                insertIndex,
+                incomingQueue.mapNotNull { music ->
+                    music.toMediaItemOrNull()
+                }
+            )
+        } else {
+            setPlayerQueue(
+                queue = queue,
+                startIndex = currentIndex,
+                startPositionMs = player.currentPosition.coerceAtLeast(0L),
+                playWhenReady = isEffectivelyPlaying()
+            )
+        }
+
         publishAllRuntimeState()
     }
 
@@ -908,13 +1168,22 @@ class MusicPlaybackService : MediaSessionService() {
             return
         }
 
+        restoreStatus = RestoreStatus.Restored
+
+        val previousQueue = queue
         val previousTrackId = queue.getOrNull(currentIndex)?.id
+        val previousPositionMs = player.currentPosition.coerceAtLeast(0L)
         val wasPlaying = isEffectivelyPlaying()
+        val wasPlayerQueueSynced = isPlayerPlaylistSynced()
 
         val preservedIndex = previousTrackId?.let { trackId ->
             newQueue
-                .indexOfFirst { music -> music.id == trackId }
-                .takeIf { index -> index >= 0 }
+                .indexOfFirst { music ->
+                    music.id == trackId
+                }
+                .takeIf { index ->
+                    index >= 0
+                }
         }
 
         val targetIndex = (preservedIndex ?: requestedIndex).coerceIn(
@@ -930,78 +1199,213 @@ class MusicPlaybackService : MediaSessionService() {
         queuePersistence.save(queue)
         mediaSessionController.updateQueue()
 
-        val selectedTrack = queue.getOrNull(currentIndex)
-
-        val canKeepCurrentTrack =
-            previousTrackId != null &&
-                    selectedTrack?.id == previousTrackId &&
-                    player.currentMediaItem != null &&
-                    player.playbackState != Player.STATE_IDLE
-
-        if (canKeepCurrentTrack) {
-            refreshArtworkAndSession(force = false)
-            publishAllRuntimeState()
-            return
+        val reorderedInPlace = if (
+            wasPlayerQueueSynced &&
+            player.playbackState != Player.STATE_IDLE &&
+            haveSameQueueContents(previousQueue, newQueue)
+        ) {
+            applyInPlaceQueueReorder(previousQueue, newQueue)
+        } else {
+            false
         }
 
-        playIndex(
-            index = currentIndex,
-            playWhenReady = wasPlaying
-        )
+        if (!reorderedInPlace) {
+            val shouldPreservePosition =
+                previousTrackId != null &&
+                        queue.getOrNull(currentIndex)?.id == previousTrackId &&
+                        player.playbackState != Player.STATE_IDLE
+
+            setPlayerQueue(
+                queue = queue,
+                startIndex = currentIndex,
+                startPositionMs = if (shouldPreservePosition) previousPositionMs else 0L,
+                playWhenReady = wasPlaying
+            )
+        }
+
+        refreshArtworkAndSession(force = true)
+        publishAllRuntimeState(forceNotification = true)
+    }
+
+    private fun haveSameQueueContents(
+        previousQueue: List<Music>,
+        newQueue: List<Music>
+    ): Boolean {
+        if (previousQueue.size != newQueue.size) return false
+
+        val counts = HashMap<Long, Int>(previousQueue.size)
+        previousQueue.forEach { music ->
+            counts[music.id] = (counts[music.id] ?: 0) + 1
+        }
+        newQueue.forEach { music ->
+            val count = counts[music.id] ?: return false
+            if (count == 1) {
+                counts.remove(music.id)
+            } else {
+                counts[music.id] = count - 1
+            }
+        }
+        return counts.isEmpty()
+    }
+
+    private fun applyInPlaceQueueReorder(
+        previousQueue: List<Music>,
+        newQueue: List<Music>
+    ): Boolean {
+        val currentIds = previousQueue.map { it.id }.toMutableList()
+        val targetIds = newQueue.map { it.id }
+
+        for (targetIndex in targetIds.indices) {
+            val targetId = targetIds[targetIndex]
+            if (currentIds[targetIndex] == targetId) continue
+
+            val fromIndex = ((targetIndex + 1) until currentIds.size)
+                .firstOrNull { index -> currentIds[index] == targetId }
+                ?: return false
+
+            player.moveMediaItem(fromIndex, targetIndex)
+            val movedId = currentIds.removeAt(fromIndex)
+            currentIds.add(targetIndex, movedId)
+        }
+
+        return true
+    }
+
+    private fun playIndexFromCommand(index: Int) {
+        serviceScope.launch {
+            ensurePlaybackRestored()
+
+            playIndex(
+                index = index,
+                playWhenReady = true
+            )
+        }
     }
 
     private fun playIndex(
         index: Int,
         playWhenReady: Boolean
     ) {
-        if (queue.isEmpty()) return
         if (index !in queue.indices) return
-
-        currentIndex = index
-
-        statisticsRecorder.reset()
-        resetTimedTransitionState()
-
-        val music = queue[index]
-        val mediaUri = music.resolveMediaUri() ?: run {
-            playNext()
-            return
-        }
 
         if (playWhenReady && !audioFocusController.request()) {
             return
         }
 
-        player.setMediaItem(MediaItem.fromUri(mediaUri))
+        if (!isPlayerPlaylistSynced()) {
+            setPlayerQueue(
+                queue = queue,
+                startIndex = index,
+                startPositionMs = 0L,
+                playWhenReady = playWhenReady
+            )
+        } else {
+            player.seekTo(
+                index,
+                0L
+            )
+            player.playWhenReady = playWhenReady
+
+            if (playWhenReady) {
+                player.play()
+            }
+        }
+
+        currentIndex = index
+
+        statisticsRecorder.reset()
+        resetTimedTransitionState()
+        applyVolumeForPlaybackStart(playWhenReady)
+
+        refreshArtworkAndSession(force = true)
+        publishAllRuntimeState(forceNotification = true)
+    }
+
+    private fun setPlayerQueue(
+        queue: List<Music>,
+        startIndex: Int,
+        startPositionMs: Long = 0L,
+        playWhenReady: Boolean
+    ) {
+        if (queue.isEmpty()) return
+
+        val mediaItems = queue.mapNotNull { music ->
+            music.toMediaItemOrNull()
+        }
+
+        if (mediaItems.isEmpty()) return
+
+        val safeIndex = startIndex.coerceIn(
+            0,
+            mediaItems.lastIndex
+        )
+
+        player.setMediaItems(
+            mediaItems,
+            safeIndex,
+            startPositionMs.coerceAtLeast(0L)
+        )
+
         player.prepare()
         player.playWhenReady = playWhenReady
+    }
 
-        if (playWhenReady && playbackTuningController.isPlayPauseFadeEnabled()) {
-            volumeFader.fade(
-                from = 0f,
-                to = playbackTuningController.resolveTargetPlaybackVolume(),
+    private fun isPlayerPlaylistSynced(): Boolean {
+        if (!::player.isInitialized) return false
+        if (player.mediaItemCount != queue.size) return false
+
+        for (index in queue.indices) {
+            val playerMediaId = player.getMediaItemAt(index).mediaId
+            val queueMediaId = queue[index].id.toString()
+
+            if (playerMediaId != queueMediaId) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private fun applyVolumeForPlaybackStart(playWhenReady: Boolean) {
+        if (
+            playWhenReady &&
+            playbackTuningController.isPlayPauseFadeEnabled()
+        ) {
+            volumeFader.fadePercent(
+                volumeProvider = playbackTuningController::resolveTargetPlaybackVolume,
+                fromPercent = 0f,
+                toPercent = 1f,
                 durationMs = PLAY_PAUSE_FADE_DURATION_MS
             )
         } else {
             playbackTuningController.applyResolvedPlayerVolume()
         }
-
-        refreshArtworkAndSession(force = true)
-        publishAllRuntimeState()
     }
 
     private fun togglePlayPause() {
-        if (isEffectivelyPlaying()) {
-            pausePlayback()
-        } else {
-            resumePlayback()
+        serviceScope.launch {
+            ensurePlaybackRestored()
+
+            if (isEffectivelyPlaying()) {
+                pausePlaybackInternal()
+            } else {
+                resumePlaybackInternal()
+            }
         }
     }
 
     private fun resumePlayback() {
-        android.util.Log.e("Leapy", "resume queue" + queue.toString())
+        if (resumeJob?.isActive == true) return
+
+        resumeJob = serviceScope.launch {
+            ensurePlaybackRestored()
+            resumePlaybackInternal()
+        }
+    }
+
+    private fun resumePlaybackInternal() {
         if (queue.isEmpty()) {
-            resumeWithPersistedOrDefaultQueue()
+            resumeWithDefaultQueue()
             return
         }
 
@@ -1012,6 +1416,20 @@ class MusicPlaybackService : MediaSessionService() {
                 index = 0,
                 playWhenReady = true
             )
+            return
+        }
+
+        if (!isPlayerPlaylistSynced()) {
+            setPlayerQueue(
+                queue = queue,
+                startIndex = currentIndex,
+                startPositionMs = player.currentPosition.coerceAtLeast(0L),
+                playWhenReady = true
+            )
+
+            applyVolumeForPlaybackStart(playWhenReady = true)
+            refreshArtworkAndSession(force = true)
+            publishAllRuntimeState(forceNotification = true)
             return
         }
 
@@ -1029,53 +1447,72 @@ class MusicPlaybackService : MediaSessionService() {
             applyAudioEffectsFromPreferences()
 
             if (playbackTuningController.isPlayPauseFadeEnabled()) {
-                volumeFader.fade(
-                    from = 0f,
-                    to = playbackTuningController.resolveTargetPlaybackVolume(),
+                volumeFader.fadePercent(
+                    volumeProvider = playbackTuningController::resolveTargetPlaybackVolume,
+                    fromPercent = 0f,
+                    toPercent = 1f,
                     durationMs = PLAY_PAUSE_FADE_DURATION_MS
                 )
             }
 
-            publishAllRuntimeState()
+            publishAllRuntimeState(forceNotification = true)
         }
     }
 
     private fun pausePlayback(
         withFade: Boolean = playbackTuningController.isPlayPauseFadeEnabled()
     ) {
+        pausePlaybackInternal(withFade)
+    }
+
+    private fun pausePlaybackInternal(
+        withFade: Boolean = playbackTuningController.isPlayPauseFadeEnabled()
+    ) {
         if (!isEffectivelyPlaying()) return
 
         if (withFade && player.isPlaying) {
-            volumeFader.fade(
-                from = player.volume,
-                to = 0f,
+            volumeFader.fadePercent(
+                volumeProvider = playbackTuningController::resolveTargetPlaybackVolume,
+                fromPercent = resolvePauseFadeStartPercent(),
+                toPercent = 0f,
                 durationMs = PLAY_PAUSE_FADE_DURATION_MS
             ) {
                 player.pause()
                 playbackTuningController.applyResolvedPlayerVolume()
-                publishAllRuntimeState()
+                publishAllRuntimeState(forceNotification = true)
             }
             return
         }
 
         player.pause()
-        publishAllRuntimeState()
+        publishAllRuntimeState(forceNotification = true)
     }
 
     private fun restartCurrentTrack() {
-        if (currentIndex !in queue.indices) return
+        serviceScope.launch {
+            ensurePlaybackRestored()
 
-        resetTimedTransitionState()
-        player.seekTo(0)
+            if (currentIndex !in queue.indices) return@launch
 
-        if (!isEffectivelyPlaying()) {
-            resumePlayback()
-        } else {
-            publishAllRuntimeState()
+            resetTimedTransitionState()
+            player.seekTo(0L)
+
+            if (!isEffectivelyPlaying()) {
+                resumePlaybackInternal()
+            } else {
+                publishAllRuntimeState()
+            }
         }
     }
 
     private fun playNext(fromAutoTransition: Boolean = false) {
+        serviceScope.launch {
+            ensurePlaybackRestored()
+            playNextInternal(fromAutoTransition)
+        }
+    }
+
+    private fun playNextInternal(fromAutoTransition: Boolean = false) {
         if (queue.isEmpty()) return
 
         resetTimedTransitionState()
@@ -1085,22 +1522,49 @@ class MusicPlaybackService : MediaSessionService() {
             currentIndex = currentIndex
         ) ?: run {
             if (fromAutoTransition) {
-                stopPlayback()
+                stopAndClearQueue()
             }
             return
         }
 
-        playIndex(
-            index = nextIndex,
-            playWhenReady = true
-        )
+        if (!audioFocusController.request()) return
+
+        currentIndex = nextIndex
+
+        if (!isPlayerPlaylistSynced()) {
+            setPlayerQueue(
+                queue = queue,
+                startIndex = nextIndex,
+                startPositionMs = 0L,
+                playWhenReady = true
+            )
+        } else {
+            player.seekTo(
+                nextIndex,
+                0L
+            )
+            player.playWhenReady = true
+            player.play()
+        }
+
+        statisticsRecorder.reset()
+        applyVolumeForPlaybackStart(playWhenReady = true)
+        refreshArtworkAndSession(force = true)
+        publishAllRuntimeState(forceNotification = true)
     }
 
     private fun playPrevious() {
+        serviceScope.launch {
+            ensurePlaybackRestored()
+            playPreviousInternal()
+        }
+    }
+
+    private fun playPreviousInternal() {
         if (queue.isEmpty()) return
 
         if (player.currentPosition > PREVIOUS_RESTART_WINDOW_MS) {
-            seekTo(0)
+            seekToInternal(0)
             return
         }
 
@@ -1110,13 +1574,40 @@ class MusicPlaybackService : MediaSessionService() {
             shouldRestartCurrent = false
         ) ?: return
 
-        playIndex(
-            index = previousIndex,
-            playWhenReady = true
-        )
+        if (!audioFocusController.request()) return
+
+        currentIndex = previousIndex
+
+        if (!isPlayerPlaylistSynced()) {
+            setPlayerQueue(
+                queue = queue,
+                startIndex = previousIndex,
+                startPositionMs = 0L,
+                playWhenReady = true
+            )
+        } else {
+            player.seekTo(
+                previousIndex,
+                0L
+            )
+            player.playWhenReady = true
+            player.play()
+        }
+
+        statisticsRecorder.reset()
+        applyVolumeForPlaybackStart(playWhenReady = true)
+        refreshArtworkAndSession(force = true)
+        publishAllRuntimeState(forceNotification = true)
     }
 
     private fun seekTo(positionMs: Int) {
+        serviceScope.launch {
+            ensurePlaybackRestored()
+            seekToInternal(positionMs)
+        }
+    }
+
+    private fun seekToInternal(positionMs: Int) {
         if (currentIndex !in queue.indices) return
 
         val fallbackDurationMs = queue.getOrNull(currentIndex)?.duration ?: 0
@@ -1145,8 +1636,37 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     private fun stopPlayback() {
+        keepIdleNotification = false
+        stopAfterCurrentTrack = false
+        notificationDismissedByUser = false
+
+        statisticsRecorder.reset()
+        resetTimedTransitionState()
+
+        if (::volumeFader.isInitialized) {
+            volumeFader.cancel()
+        }
+
+        persistSessionFromCurrentState()
+
+        if (::player.isInitialized) {
+            player.pause()
+            player.stop()
+        }
+
+        if (::audioFocusController.isInitialized) {
+            audioFocusController.abandon()
+        }
+
+        publishStateAfterShutdown()
+        updateNotification(force = true)
+    }
+
+    private fun stopAndClearQueue() {
+        notificationDismissedByUser = false
         shutdownPlayback(
             clearQueue = true,
+            clearPersistedQueue = false,
             clearRuntimeState = true,
             removeNotification = true,
             stopService = true
@@ -1154,8 +1674,10 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     private fun stopPlaybackWithoutClearingQueue() {
+        notificationDismissedByUser = false
         shutdownPlayback(
             clearQueue = false,
+            clearPersistedQueue = false,
             clearRuntimeState = false,
             removeNotification = true,
             stopService = true
@@ -1163,32 +1685,44 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     private fun pauseAndPersistForNotificationClose() {
-        if (isEffectivelyPlaying()) {
+        val snapshotTrack = queue.getOrNull(currentIndex)
+        val snapshotPositionMs = resolveCurrentSnapshotPositionMs()
+        val snapshotDurationMs = resolveCurrentSnapshotDurationMs(snapshotTrack)
+        val snapshotAudioSessionId = runCatching {
+            player.audioSessionId
+        }.getOrDefault(playbackRuntimeStateStore.state.value.audioSessionId)
+        notificationDismissedByUser = true
+
+        if (player.isPlaying || player.playWhenReady) {
             player.pause()
         }
 
-        publishAllRuntimeState()
-        persistSessionFromRuntimeStateStore()
+        runBlocking {
+            withContext(dispatchers.io) {
+                persistSessionSnapshot(
+                    track = snapshotTrack,
+                    index = currentIndex,
+                    positionMs = snapshotPositionMs
+                )
+            }
+        }
+        mediaSessionController.updatePlaybackState()
+        statePublisher.publishSnapshot(
+            currentIndex = currentIndex,
+            currentTrack = snapshotTrack,
+            isPlaying = false,
+            positionMs = snapshotPositionMs,
+            durationMs = snapshotDurationMs,
+            audioSessionId = snapshotAudioSessionId
+        )
+
         notificationController.stopForegroundAndRemove()
     }
 
     private fun exitService() {
         shutdownPlayback(
             clearQueue = false,
-            clearRuntimeState = false,
-            removeNotification = true,
-            stopService = true
-        )
-    }
-
-    private fun stopServiceIfAppClosedAndNotPlaying() {
-        if (isEffectivelyPlaying()) {
-            notificationController.update(force = true)
-            return
-        }
-
-        shutdownPlayback(
-            clearQueue = false,
+            clearPersistedQueue = false,
             clearRuntimeState = false,
             removeNotification = true,
             stopService = true
@@ -1197,9 +1731,11 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun clearQueueKeepingNotification() {
         keepIdleNotification = true
+        notificationDismissedByUser = false
 
         shutdownPlayback(
             clearQueue = true,
+            clearPersistedQueue = true,
             clearRuntimeState = true,
             removeNotification = false,
             stopService = false
@@ -1211,18 +1747,23 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun shutdownPlayback(
         clearQueue: Boolean,
+        clearPersistedQueue: Boolean,
         clearRuntimeState: Boolean,
         removeNotification: Boolean,
         stopService: Boolean
     ) {
-        persistSessionFromRuntimeStateStore()
+        persistSessionFromCurrentState()
 
         keepIdleNotification = false
         stopAfterCurrentTrack = false
+        notificationDismissedByUser = false
 
         statisticsRecorder.reset()
         resetTimedTransitionState()
-        volumeFader.cancel()
+
+        if (::volumeFader.isInitialized) {
+            volumeFader.cancel()
+        }
 
         if (::player.isInitialized) {
             player.pause()
@@ -1237,9 +1778,16 @@ class MusicPlaybackService : MediaSessionService() {
         if (clearQueue) {
             clearArtworkState()
             clearQueueState()
-            queuePersistence.save(queue)
-            mediaSessionController.clearMetadata()
-            mediaSessionController.clearQueue()
+            if (clearPersistedQueue) {
+                queuePersistence.clear()
+            }
+
+            if (::mediaSessionController.isInitialized) {
+                mediaSessionController.clearMetadata()
+                mediaSessionController.clearQueue()
+            }
+
+            restoreStatus = RestoreStatus.Empty
         }
 
         if (clearRuntimeState) {
@@ -1248,7 +1796,7 @@ class MusicPlaybackService : MediaSessionService() {
             publishStateAfterShutdown()
         }
 
-        if (removeNotification) {
+        if (removeNotification && ::notificationController.isInitialized) {
             notificationController.stopForegroundAndRemove()
         }
 
@@ -1263,15 +1811,18 @@ class MusicPlaybackService : MediaSessionService() {
         statePublisher.publish()
     }
 
-    private fun stopForegroundIfIdle() {
-        notificationController.stopForegroundIfIdle(
-            hasQueueItem = currentIndex in queue.indices,
-            keepIdleNotification = keepIdleNotification
-        )
-    }
-
     private fun handleNotificationFavoriteToggle() {
         queue.getOrNull(currentIndex)?.let(::toggleFavorite)
+    }
+
+    private fun setFavorite(
+        music: Music,
+        favorited: Boolean
+    ) {
+        val isCurrentlyFavorited = music.playlistId == MusicSet.FAVORITES
+        if (isCurrentlyFavorited == favorited) return
+
+        toggleFavorite(music)
     }
 
     private fun toggleFavorite(music: Music) {
@@ -1282,7 +1833,7 @@ class MusicPlaybackService : MediaSessionService() {
 
             val updatedTrack = music.copy(
                 playlistId = if (favorited) {
-                    MusicSet.Companion.FAVORITES
+                    MusicSet.FAVORITES
                 } else {
                     0L
                 }
@@ -1297,8 +1848,8 @@ class MusicPlaybackService : MediaSessionService() {
             }
 
             queuePersistence.save(queue)
-            publishAllRuntimeState()
-            notificationController.update(force = true)
+            publishAllRuntimeState(forceNotification = true)
+            updateNotification(force = true)
         }
     }
 
@@ -1363,7 +1914,7 @@ class MusicPlaybackService : MediaSessionService() {
             durationMs = fadeDurationMs.toLong()
         ) {
             if (queue.getOrNull(currentIndex)?.id == currentTrackId) {
-                playNext(fromAutoTransition = true)
+                playNextInternal(fromAutoTransition = true)
             }
         }
     }
@@ -1385,8 +1936,18 @@ class MusicPlaybackService : MediaSessionService() {
         ) {
             timedTransitionTrackId = currentTrackId
             timedTransitionStartedAtMs = SystemClock.elapsedRealtime()
-            playNext(fromAutoTransition = true)
+            playNextInternal(fromAutoTransition = true)
         }
+    }
+
+    private fun resolvePauseFadeStartPercent(): Float {
+        val targetVolume = playbackTuningController.resolveTargetPlaybackVolume()
+
+        if (targetVolume <= 0f) {
+            return 0f
+        }
+
+        return (player.volume / targetVolume).coerceAtLeast(0f)
     }
 
     private fun refreshArtworkAndSession(force: Boolean = false) {
@@ -1396,7 +1957,7 @@ class MusicPlaybackService : MediaSessionService() {
             currentArtwork = null
             currentArtworkTrackId = NO_TRACK_ID
             mediaSessionController.clearMetadata()
-            notificationController.update()
+            updateNotification(force = true)
             return
         }
 
@@ -1406,26 +1967,36 @@ class MusicPlaybackService : MediaSessionService() {
                 artwork = currentArtwork ?: defaultArtwork
             )
 
-            notificationController.update()
+            updateNotification()
             return
         }
+
+        val requestedTrackId = music.id
 
         artworkLoader.load(
             music = music,
             onLoaded = { bitmap ->
+                if (queue.getOrNull(currentIndex)?.id != requestedTrackId) {
+                    return@load
+                }
+
                 handleArtworkLoaded(
                     music = music,
                     bitmap = bitmap
                 )
             },
             onFailed = { bitmap ->
+                if (queue.getOrNull(currentIndex)?.id != requestedTrackId) {
+                    return@load
+                }
+
                 handleArtworkLoaded(
                     music = music,
                     bitmap = bitmap
                 )
             },
             onCleared = {
-                if (currentArtworkTrackId == music.id) {
+                if (currentArtworkTrackId == requestedTrackId) {
                     currentArtwork = defaultArtwork
                 }
             }
@@ -1436,6 +2007,8 @@ class MusicPlaybackService : MediaSessionService() {
         music: Music,
         bitmap: Bitmap
     ) {
+        if (queue.getOrNull(currentIndex)?.id != music.id) return
+
         currentArtwork = bitmap
         currentArtworkTrackId = music.id
 
@@ -1444,13 +2017,48 @@ class MusicPlaybackService : MediaSessionService() {
             artwork = bitmap
         )
 
-        notificationController.update()
+        updateNotification(force = true)
     }
 
-    private fun publishAllRuntimeState() {
-        notificationController.update()
+    private fun publishAllRuntimeState(
+        forceNotification: Boolean = false
+    ) {
+        updateNotification(force = forceNotification)
         mediaSessionController.updatePlaybackState()
         statePublisher.publish()
+    }
+
+    private fun updateNotification(force: Boolean = false) {
+        if (isEffectivelyPlaying()) {
+            notificationDismissedByUser = false
+        }
+
+        notificationController.update(
+            force = force,
+            keepWhenPaused = !notificationDismissedByUser
+        )
+    }
+
+    private fun syncCurrentTrackArtwork(
+        trackId: Long,
+        artworkPath: String?
+    ) {
+        if (currentIndex !in queue.indices) return
+
+        val currentTrack = queue[currentIndex]
+        if (currentTrack.id != trackId || currentTrack.albumPicture == artworkPath) return
+
+        queue = queue.map { music ->
+            if (music.id == trackId) {
+                music.copy(albumPicture = artworkPath)
+            } else {
+                music
+            }
+        }
+
+        queuePersistence.save(queue)
+        statePublisher.publish()
+        refreshArtworkAndSession(force = true)
     }
 
     private fun setQueueState(
@@ -1533,24 +2141,83 @@ class MusicPlaybackService : MediaSessionService() {
                 Configuration.UI_MODE_NIGHT_YES
     }
 
-    private fun persistSessionFromRuntimeStateStore() {
-        val runtimeState = playbackRuntimeStateStore.state.value
+    private fun shouldPublishProgressState(): Boolean {
+        return when (restoreStatus) {
+            RestoreStatus.NotStarted -> queue.isNotEmpty() || playbackRuntimeStateStore.isInitialized()
+            RestoreStatus.Restoring -> false
+            RestoreStatus.Restored,
+            RestoreStatus.Empty,
+            RestoreStatus.Failed -> true
+        }
+    }
 
-        serviceScope.launch {
+    private fun persistSessionFromCurrentState() {
+        val track = queue.getOrNull(currentIndex)
+        val positionMs = if (
+            currentIndex in queue.indices &&
+            ::player.isInitialized
+        ) {
+            player.currentPosition.coerceAtLeast(0L)
+        } else {
+            playbackRuntimeStateStore.state.value.positionMs.coerceAtLeast(0L)
+        }
+
+        runBlocking {
             withContext(dispatchers.io) {
-                val track = runtimeState.currentTrack
-
-                if (track == null || runtimeState.currentIndex < 0) {
-                    playbackSessionStore.clearSession()
-                } else {
-                    playbackSessionStore.saveSession(
-                        musicId = track.id,
-                        positionMs = runtimeState.positionMs.coerceAtLeast(0L),
-                        currentIndex = runtimeState.currentIndex
-                    )
-                }
+                persistSessionSnapshot(
+                    track = track,
+                    index = currentIndex,
+                    positionMs = positionMs
+                )
             }
         }
+    }
+
+    private suspend fun persistSessionSnapshot(
+        track: Music?,
+        index: Int,
+        positionMs: Long
+    ) {
+        if (track == null || index < 0) {
+            playbackSessionStore.clearSession()
+            return
+        }
+
+        playbackSessionStore.saveSession(
+            musicId = track.id,
+            positionMs = positionMs.coerceAtLeast(0L),
+            currentIndex = index
+        )
+    }
+
+    private fun resolveCurrentSnapshotPositionMs(): Long {
+        return if (
+            currentIndex in queue.indices &&
+            ::player.isInitialized
+        ) {
+            runCatching {
+                player.currentPosition.coerceAtLeast(0L)
+            }.getOrDefault(
+                playbackRuntimeStateStore.state.value.positionMs.coerceAtLeast(0L)
+            )
+        } else {
+            playbackRuntimeStateStore.state.value.positionMs.coerceAtLeast(0L)
+        }
+    }
+
+    private fun resolveCurrentSnapshotDurationMs(track: Music?): Long {
+        val fallbackDurationMs = track?.duration?.toLong()?.coerceAtLeast(0L)
+            ?: playbackRuntimeStateStore.state.value.durationMs.coerceAtLeast(0L)
+
+        if (!::player.isInitialized) {
+            return fallbackDurationMs
+        }
+
+        return runCatching {
+            player.duration
+                .takeIf { duration -> duration != C.TIME_UNSET }
+                ?.coerceAtLeast(0L)
+        }.getOrNull() ?: fallbackDurationMs
     }
 
     private fun Music.resolveMediaUri(): Uri? {
@@ -1565,6 +2232,22 @@ class MusicPlaybackService : MediaSessionService() {
         }
     }
 
+    private fun Music.toMediaItemOrNull(): MediaItem? {
+        val mediaUri = resolveMediaUri() ?: return null
+
+        return MediaItem.Builder()
+            .setMediaId(id.toString())
+            .setUri(mediaUri)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setArtist(artist)
+                    .setAlbumTitle(album)
+                    .build()
+            )
+            .build()
+    }
+
     private fun String.requiresImmediateForegroundPromotion(): Boolean {
         return this == ACTION_PLAY_FROM_QUEUE ||
                 this == ACTION_PLAY ||
@@ -1576,15 +2259,9 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     companion object {
-        const val ACTION_UPDATE_NOTIFICATION = "ACTION_UPDATE_NOTIFICATION"
-        const val ACTION_FOREGROUND = "ACTION_FOREGROUND"
-        const val ACTION_NOTIFICATION_STYLE = "ACTION_NOTIFICATION_STYLE"
         const val ACTION_EXIT = "opraton_action_exit"
-        const val ACTION_PLAY_PAUSE = "music_action_play_pause"
         const val ACTION_CHANGE_MODE = "opraton_action_change_mode"
         const val ACTION_MODE_RANDOM = "ACTION_MODE_RANDOM"
-        const val ACTION_MODE_LOOP = "ACTION_MODE_LOOP"
-        const val ACTION_CHANGE_FAVORITE = "opraton_action_change_favourite"
         const val ACTION_CHANGE_MUSIC_BY_INDEX = "music_action_change_music2"
         const val ACTION_DESK_LRC_LOCK = "ACTION_DESK_LRC_LOCK"
 
@@ -1613,9 +2290,6 @@ class MusicPlaybackService : MediaSessionService() {
         const val ACTION_CUSTOM_UNFAVORITE = "gd.app.musicplayer.action.UNFAVORITE"
         const val ACTION_CUSTOM_STOP = "gd.app.musicplayer.action.STOP_CUSTOM"
 
-        const val ACTION_APP_TASK_REMOVED =
-            "gd.app.musicplayer.action.APP_TASK_REMOVED"
-
         const val EXTRA_QUEUE_ITEMS = "queue_items"
         const val EXTRA_INDEX = "index"
         const val EXTRA_ACTION_DATA = "music_action_data"
@@ -1630,7 +2304,6 @@ class MusicPlaybackService : MediaSessionService() {
         private const val NO_TRACK_ID = Long.MIN_VALUE
 
         private const val PROGRESS_TICK_MS = 500L
-        private const val NOTIFICATION_UPDATE_DELAY_MS = 50L
         private const val MEDIA3_SESSION_ACTIVITY_REQUEST_CODE = 2
         private const val PREVIOUS_RESTART_WINDOW_MS = 5_000L
         private const val PLAY_PAUSE_FADE_DURATION_MS = 1_000L

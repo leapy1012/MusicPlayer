@@ -45,7 +45,7 @@ open class PictureThemePalette : BaseThemePalette() {
     }
 
     override fun getActivityBackgroundDrawable(context: Context): Drawable =
-        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.OverlayCenterCropDrawable(
+        OverlayCenterCropDrawable(
             context.resources,
             backgroundBitmap,
             themeBackgroundOverlayColor
@@ -60,7 +60,7 @@ open class PictureThemePalette : BaseThemePalette() {
 
     override fun getHeaderBackgroundDrawable(context: Context): Drawable =
         if (isHeaderSurfaceLight()) {
-            _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.RoundedMaskDrawable(
+            RoundedMaskDrawable(
                 637534208.toDrawable(),
                 context.resources.displayMetrics.density * 1.5f
             )
@@ -75,13 +75,16 @@ open class PictureThemePalette : BaseThemePalette() {
     override fun getDefaultAccentColor(): Int = -12467
 
     override fun getDialogSurfaceDrawable(context: Context): Drawable =
-        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DialogBackgroundFactory.pictureDialogBackground(context, blurredBitmap)
+        DialogBackgroundFactory.pictureDialogBackground(context, blurredBitmap)
 
     override fun setAccentColor(accentColor: Int) {
         themeAccentColor = accentColor
     }
 
-    override fun isPopupSurfaceLight(): Boolean = isDialogSurfaceLight()
+    // Spinner/context popups use the shared light popup background asset (`popup_bg`),
+    // so popup foreground colors must be computed against a light surface even when
+    // the picture theme's dialog/content surfaces are dark.
+    override fun isPopupSurfaceLight(): Boolean = true
 
     override fun isHeaderSurfaceLight(): Boolean = isContentSurfaceLight()
 
@@ -98,7 +101,7 @@ open class PictureThemePalette : BaseThemePalette() {
     }
 
     fun getBottomDialogSurfaceDrawable(context: Context): Drawable =
-        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DialogBackgroundFactory.pictureDialogBackgroundBase(context, blurredBitmap)
+        DialogBackgroundFactory.pictureDialogBackgroundBase(context, blurredBitmap)
 
     fun setImageName(imageName: String?) {
         themeImageName = imageName?.takeUnless(String::isBlank) ?: ThemeSettingPreferenceStore.DEFAULT_THEME_IMAGE

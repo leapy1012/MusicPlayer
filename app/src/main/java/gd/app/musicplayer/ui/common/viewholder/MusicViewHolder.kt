@@ -2,6 +2,7 @@ package gd.app.musicplayer.ui.common.viewholder
 
 import android.view.View
 import androidx.core.graphics.ColorUtils
+import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.formatAddedDate
 import gd.app.musicplayer.core.common.extension.formatDuration
 import gd.app.musicplayer.core.common.extension.formatFileSize
@@ -13,6 +14,7 @@ import gd.app.musicplayer.domain.model.ListItem
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentMusicListItemBinding
+import gd.app.musicplayer.ui.selection.ItemTouchStateListener
 
 class MusicViewHolder(
     val binding: FragmentMusicListItemBinding,
@@ -21,7 +23,7 @@ class MusicViewHolder(
     val onItemClick: ((Music) -> Unit)?,
     val onItemLongClick: ((Music) -> Unit)?,
     val onMenuClick: ((Music) -> Unit)?
-) : BaseViewHolder(binding.root) {
+) : BaseViewHolder(binding.root), ItemTouchStateListener {
 
     private var boundMusicId: Long = -1L
 
@@ -48,7 +50,7 @@ class MusicViewHolder(
 
         boundMusicId = music.id
 
-        music.loadMusicArtwork(binding.musicItemAlbum)
+        binding.musicItemAlbum.loadMusicArtwork(music.albumArtSource())
 
         binding.musicItemTitle.text = music.title
         binding.musicItemArtist.text = music.artist
@@ -70,9 +72,13 @@ class MusicViewHolder(
             onItemClick?.invoke(music)
         }
 
-        itemView.setOnLongClickListener {
-            onItemLongClick?.invoke(music)
-            onItemLongClick != null
+        if (onItemLongClick != null) {
+            itemView.setOnLongClickListener {
+                onItemLongClick.invoke(music)
+                true
+            }
+        } else {
+            itemView.setOnLongClickListener(null)
         }
 
         binding.musicItemMenu.setOnClickListener {
@@ -209,11 +215,21 @@ class MusicViewHolder(
         binding.musicItemSize.setTextColor(secondaryTextColor)
     }
 
+    override fun onItemSelected() {
+        itemView.alpha = DRAG_ALPHA
+    }
+
+    override fun onItemCleared() {
+        itemView.alpha = DRAG_ALPHA_FULL
+    }
+
     private companion object {
         private const val VIEW_INFO_DATE = "date"
         private const val VIEW_INFO_SIZE = "size"
         private const val VIEW_INFO_DURATION = "duration"
 
         private const val SECONDARY_TEXT_ALPHA = 180
+        private const val DRAG_ALPHA = 0.8f
+        private const val DRAG_ALPHA_FULL = 1f
     }
 }

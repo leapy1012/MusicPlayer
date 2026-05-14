@@ -1,64 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:descendantFocusability="blocksDescendants"
-    android:focusable="false"
-    android:focusableInTouchMode="false"
+    android:paddingHorizontal="24dp"
+    android:paddingVertical="32dp"
     android:paddingLeft="24dp"
     android:paddingTop="32dp"
     android:paddingRight="24dp"
-    android:paddingBottom="32dp"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:paddingHorizontal="24dp"
-    android:paddingVertical="32dp">
+    android:paddingBottom="32dp">
+
     <TextView
-        android:textSize="14sp"
-        android:textColor="@color/secondary_text_default_material_dark"
-        android:gravity="center_horizontal"
-        android:tag="folderFootDes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:tag="folderFootDes"
         android:text="@string/scan_folder_des_1"
-        android:textAlignment="center"/>
+        android:textAlignment="center"
+        android:textColor="@color/i_white_m"
+        android:textSize="14sp" />
+
     <TextView
-        android:textSize="14sp"
-        android:textColor="@color/secondary_text_default_material_dark"
-        android:gravity="center_horizontal"
-        android:tag="folderFootDes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:tag="folderFootDes"
         android:text="@string/scan_folder_des_2"
-        android:textAlignment="center"/>
+        android:textAlignment="center"
+        android:textColor="@color/i_white_m"
+        android:textSize="14sp" />
+
     <LinearLayout
-        android:gravity="center_vertical"
-        android:layout_gravity="center_horizontal"
-        android:orientation="horizontal"
         android:id="@+id/folder_footer_scan"
-        android:tag="folderFootScanBg"
-        android:focusable="false"
-        android:focusableInTouchMode="false"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="24dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="8dp"
         android:paddingLeft="24dp"
         android:paddingTop="8dp"
         android:paddingRight="24dp"
         android:paddingBottom="8dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="8dp">
+        android:tag="folderFootScanBg">
+
         <androidx.appcompat.widget.AppCompatImageView
-            android:tag="folderFootScanIcon"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            app:srcCompat="@drawable/vector_left_menu_scan"/>
+            android:tag="folderFootScanIcon"
+            app:srcCompat="@drawable/vector_left_menu_scan" />
+
         <androidx.appcompat.widget.AppCompatTextView
-            android:textSize="14sp"
-            android:textColor="#fff"
-            android:tag="folderFootScanText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:tag="folderFootScanText"
             android:text="@string/scan_library"
-            android:layout_marginStart="8dp"/>
+            android:textColor="#fff"
+            android:textSize="14sp" />
     </LinearLayout>
 </LinearLayout>

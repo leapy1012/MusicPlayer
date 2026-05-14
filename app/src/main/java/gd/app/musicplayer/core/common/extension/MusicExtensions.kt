@@ -2,12 +2,7 @@ package gd.app.musicplayer.core.common.extension
 
 import android.content.Context
 import android.text.format.Formatter
-import android.widget.ImageView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DecodeFormat
-import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.ui.common.base.BaseActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -24,42 +19,6 @@ fun Music.albumArtSource(): Any {
             "content://media/external/audio/albumart/$it"
         } ?: data.orEmpty()
     return artworkSource
-}
-
-fun Music.loadMusicArtwork(imageView: ImageView, placeholderResId: Int) {
-    val context = imageView.context
-    if (context is BaseActivity && context.isDestroyed) return
-
-    val imageSize = context.getMinScreenSize()
-
-    val artworkSource = albumArtSource()
-
-    Glide.with(context)
-        .load(artworkSource)
-        .placeholder(placeholderResId)
-        .format(DecodeFormat.PREFER_ARGB_8888)
-        .error(placeholderResId)
-        .override(imageSize, imageSize)
-        .transform(_root_ide_package_.gd.app.musicplayer.core.designsystem.image.CircleArtworkTransformation.INSTANCE)
-        .into(imageView)
-}
-
-fun Music.loadMusicArtwork(imageView: ImageView) {
-    val context = imageView.context
-    if (context is BaseActivity && context.isDestroyed) return
-
-    val imageSize = context.getMinScreenSize()
-
-    val artworkSource = albumArtSource()
-
-    Glide.with(context)
-        .load(artworkSource)
-        .placeholder(R.drawable.default_album_identify)
-        .format(DecodeFormat.PREFER_ARGB_8888)
-        .error(R.drawable.default_album_identify)
-        .centerCrop()
-        .override(imageSize, imageSize)
-        .into(imageView)
 }
 
 fun Music.formatAddedDate(): String {

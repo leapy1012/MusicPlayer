@@ -4,6 +4,7 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -54,8 +55,7 @@ class FolderSelectAdapter(
         fun bind(item: MusicSet.Folder, highlightQuery: String) {
             val context = binding.root.context
 
-            binding.musicItemMenu.setImageResource(R.drawable.vector_menu_folder)
-            binding.musicItemMenu.clearColorFilter()
+            binding.musicItemMenu.visibility = View.GONE
             binding.musicItemSize.text = context.resources.getQuantityString(
                 R.plurals.plurals_track,
                 item.musicCount,

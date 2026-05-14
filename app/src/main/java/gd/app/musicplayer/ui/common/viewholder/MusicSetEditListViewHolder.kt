@@ -5,6 +5,8 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.ListItem
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityMusicSetEditItemBinding
+import gd.app.musicplayer.ui.common.model.loadArtwork
+import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
 
 class MusicSetEditListViewHolder(
     val binding: ActivityMusicSetEditItemBinding,
@@ -17,7 +19,7 @@ class MusicSetEditListViewHolder(
 
         binding.musicItemTitle.text = musicSet.name
         musicSet.toDisplayInfo(binding.root.resources)?.let { info ->
-            binding.musicItemImage.setImageResource(info.iconRes)
+            musicSet.loadArtwork(binding.musicItemImage, musicSet.resolvePlaceholderRes(false))
             binding.musicItemArtist.text = info.subtitle
         }
 

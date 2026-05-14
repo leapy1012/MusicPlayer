@@ -10,13 +10,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.databinding.DialogTabManagerBinding
 import gd.app.musicplayer.databinding.DialogTabManagerItemBinding
-import gd.app.musicplayer.ui.selection.DragSwipeCallback
 import gd.app.musicplayer.ui.selection.ItemMoveListener
-import gd.app.musicplayer.ui.selection.ItemTouchStateListener
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
 import gd.app.musicplayer.ui.library.model.LibraryTabConfig
 import gd.app.musicplayer.ui.library.model.LibraryTabConfigStore
@@ -60,10 +59,13 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
         binding.tabManagerRecycler.layoutManager = LinearLayoutManager(requireContext())
         binding.tabManagerRecycler.adapter = adapter
 
-        val callback = DragSwipeCallback(null).apply {
-            setLongPressDragEnabled(false)
-            setDragDirections(ItemTouchHelper.UP or ItemTouchHelper.DOWN)
-        }
+        val callback = DragItemTouchHelperCallback.Builder(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+            0
+        )
+            .setDragEnabled(false)
+            .onItemDragListener(adapter::onItemMove)
+            .build()
         itemTouchHelper = ItemTouchHelper(callback)
         itemTouchHelper.attachToRecyclerView(binding.tabManagerRecycler)
 
@@ -165,7 +167,7 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
             private val binding: DialogTabManagerItemBinding,
             private val visibleCount: () -> Int,
             private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
-        ) : RecyclerView.ViewHolder(binding.root), View.OnClickListener, ItemTouchStateListener {
+        ) : RecyclerView.ViewHolder(binding.root), View.OnClickListener {
 
             private var item: LibraryTabConfig? = null
 
@@ -196,14 +198,6 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
                     item = updated
                     binding.tabManagerItemSelect.isSelected = updated.visible
                 }
-            }
-
-            override fun onItemSelected() {
-                itemView.alpha = 0.8f
-            }
-
-            override fun onItemCleared() {
-                itemView.alpha = 1f
             }
         }
     }

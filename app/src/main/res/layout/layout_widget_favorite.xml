@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
+
     <ImageView
+        style="@style/WidgetUnfavorite"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        style="@style/WidgetUnfavorite"/>
+        android:layout_height="match_parent" />
+
     <ImageView
+        style="@style/WidgetFavorite"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        style="@style/WidgetFavorite"/>
+        android:layout_height="match_parent" />
 </merge>

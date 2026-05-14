@@ -5,6 +5,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.ListItem
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentFolderListItemBinding
+import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
 import gd.app.musicplayer.ui.library.folder.isHiddenFoldersEntry
 
@@ -23,7 +24,7 @@ class FolderListMusicSetViewHolder(
                 binding.musicItemArtist.visibility = View.GONE
                 binding.musicItemDes.visibility = View.GONE
             } else {
-                binding.musicItemAlbum.setImageResource(musicSet.resolvePlaceholderRes(false))
+                musicSet.loadArtwork(binding.musicItemAlbum, musicSet.resolvePlaceholderRes(false))
                 binding.musicItemTitle.text = musicSet.name
                 binding.musicItemArtist.visibility = View.VISIBLE
                 binding.musicItemDes.visibility = View.VISIBLE

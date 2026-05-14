@@ -27,6 +27,7 @@ class PlaybackStatePublisher(
         val transitionPlaying = player.playWhenReady && currentIndex in queue.indices && player.playbackState != Player.STATE_IDLE
 
         val state = MusicPlaybackState(
+            initialized = true,
             currentIndex = currentIndex,
             currentTrack = queue.getOrNull(currentIndex),
             isPlaying = player.isPlaying || transitionPlaying,
@@ -45,6 +46,7 @@ class PlaybackStatePublisher(
         val music = restoredQueue.getOrNull(restoredIndex) ?: return
 
         val state = MusicPlaybackState(
+            initialized = true,
             currentIndex = restoredIndex,
             currentTrack = music,
             isPlaying = player.isPlaying || transitionPlaying,
@@ -52,6 +54,28 @@ class PlaybackStatePublisher(
             durationMs = music.duration.toLong(),
             audioSessionId = player.audioSessionId
         )
+        runtimeStateStore.setState(state)
+        notifyWidgets()
+    }
+
+    fun publishSnapshot(
+        currentIndex: Int,
+        currentTrack: Music?,
+        isPlaying: Boolean,
+        positionMs: Long,
+        durationMs: Long,
+        audioSessionId: Int = player.audioSessionId
+    ) {
+        val state = MusicPlaybackState(
+            initialized = true,
+            currentIndex = currentIndex,
+            currentTrack = currentTrack,
+            isPlaying = isPlaying,
+            positionMs = positionMs.coerceAtLeast(0L),
+            durationMs = durationMs.coerceAtLeast(0L),
+            audioSessionId = audioSessionId
+        )
+
         runtimeStateStore.setState(state)
         notifyWidgets()
     }
@@ -78,7 +102,7 @@ class PlaybackStatePublisher(
         currentPosition.coerceIn(0L, durationMs)
     }.getOrDefault(0L)
 
-    private companion object {
+    companion object {
         const val ACTION_PLAYBACK_SESSION_UPDATED =
             "gd.app.musicplayer.action.WIDGET_PLAYBACK_SESSION_UPDATED"
     }

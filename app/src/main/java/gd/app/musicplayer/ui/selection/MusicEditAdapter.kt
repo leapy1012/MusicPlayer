@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -12,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityMusicEditListItemBinding
 import gd.app.musicplayer.core.common.extension.highlightText
@@ -47,14 +49,19 @@ class MusicEditAdapter(
     private val selectedRowTokens = LinkedHashSet<Long>()
     private var selectionCountListener: SelectionCountChangedListener? = null
     private var itemTouchHelper: ItemTouchHelper? = null
-    private var isDragging = false
     private var nextRowToken = 1L
 
     init {
         setHasStableIds(true)
         if (dragEnabled) {
-            val callback = DragSwipeCallback(null)
-            callback.setLongPressDragEnabled(false)
+            val callback = DragItemTouchHelperCallback.Builder(
+                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                0
+            )
+                .setDragEnabled(false)
+                .onItemDragListener(::onItemMove)
+                .onDragFinishedListener(::persistSortedMusic)
+                .build()
             itemTouchHelper = ItemTouchHelper(callback)
             itemTouchHelper?.attachToRecyclerView(recyclerView)
         }
@@ -64,8 +71,7 @@ class MusicEditAdapter(
         val binding: ActivityMusicEditListItemBinding,
     ) : RecyclerView.ViewHolder(binding.root),
         View.OnClickListener,
-        View.OnTouchListener,
-        ItemTouchStateListener {
+        View.OnTouchListener {
 
         private var currentMusic: Music? = null
         private var currentToken: Long? = null
@@ -107,20 +113,6 @@ class MusicEditAdapter(
             itemTouchHelper?.startDrag(this)
             return true
         }
-
-        override fun onItemSelected() {
-            isDragging = true
-            binding.root.alpha = 0.8f
-        }
-
-        override fun onItemCleared() {
-            binding.root.alpha = 1.0f
-            if (isDragging) {
-                isDragging = false
-                persistSortedMusic()
-            }
-        }
-
         fun bind(row: RowEntry) {
             currentToken = row.token
             bindMusic(row.music)
@@ -136,7 +128,7 @@ class MusicEditAdapter(
             currentMusic = music
             val context = binding.root.context
 
-            music.loadMusicArtwork(binding.musicItemAlbum)
+            binding.musicItemAlbum.loadMusicArtwork(music.albumArtSource())
             binding.musicItemTitle.text = context.highlightText(music.title, searchKeyword, accentColor, "")
             binding.musicItemArtist.text = context.highlightText(music.artist, searchKeyword, accentColor, "")
             renderSelectionState(currentToken?.let(::isRowSelected) == true)

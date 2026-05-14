@@ -174,7 +174,7 @@ class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarCh
         return if (abs(speed - speed.roundToInt()) < 0.05f) {
             speed.roundToInt().toString()
         } else {
-            String.Companion.format(Locale.getDefault(), "%.2f", speed).trimEnd('0').trimEnd('.')
+            String.format(Locale.getDefault(), "%.2f", speed).trimEnd('0').trimEnd('.')
         }
     }
 

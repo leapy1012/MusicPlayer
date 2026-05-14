@@ -71,12 +71,14 @@ class MusicSetListViewModel @Inject constructor(
                 combine(
                     observeMusicSetsUseCase(musicSet),
                     observeSortUseCase(musicSet),
-                    observeViewModeUseCase(musicSet)
+                    observeViewModeUseCase(musicSet),
+                    shouldShowHiddenFoldersEntryUseCase()
 
-                ) { items, sortSelection, viewMode ->
+                ) { items, sortSelection, viewMode, shouldShowHiddenFoldersEntry ->
                         val displayItems = buildDisplayItems(
                             musicSet = musicSet,
-                            items = items
+                            items = items,
+                            shouldShowHiddenFoldersEntry = shouldShowHiddenFoldersEntry
                         )
 
                         MusicSetListUiState(
@@ -122,20 +124,24 @@ class MusicSetListViewModel @Inject constructor(
 
     private fun buildDisplayItems(
         musicSet: MusicSet,
-        items: List<MusicSet>
+        items: List<MusicSet>,
+        shouldShowHiddenFoldersEntry: Boolean
     ): List<MusicSet> {
         if (musicSet !is MusicSet.Folders) {
             return items
         }
 
-        return buildFolderDisplayItems(items)
+        return buildFolderDisplayItems(items, shouldShowHiddenFoldersEntry)
     }
 
-    private fun buildFolderDisplayItems(items: List<MusicSet>): List<MusicSet> {
+    private fun buildFolderDisplayItems(
+        items: List<MusicSet>,
+        shouldShowHiddenFoldersEntry: Boolean
+    ): List<MusicSet> {
         val folders = items.filterIsInstance<MusicSet.Folder>()
 
         return buildList {
-            if (shouldShowHiddenFoldersEntryUseCase()) {
+            if (shouldShowHiddenFoldersEntry) {
                 add(hiddenFoldersEntry(appContext))
             }
 

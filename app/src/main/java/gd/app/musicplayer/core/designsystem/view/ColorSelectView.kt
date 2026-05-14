@@ -78,7 +78,7 @@ class ColorSelectView @JvmOverloads constructor(
             val colorView = ImageView(context).apply {
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 setImageDrawable(
-                    _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.selectedDefaultDrawableFromRes(context, intArrayOf(
+                    ViewStateDrawables.selectedDefaultDrawableFromRes(context, intArrayOf(
                         R.drawable.vector_color_unselect,
                         R.drawable.vector_color_select
                     ))
@@ -124,7 +124,7 @@ class ColorSelectView @JvmOverloads constructor(
         cornerRadius: Int,
         borderWidth: Int
     ) = if (color == WHITE_COLOR) {
-        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.outlinedRoundedRipple(
+        DrawableUtil.outlinedRoundedRipple(
             cornerRadius,
             borderWidth,
             WHITE_BORDER_COLOR,
@@ -132,7 +132,7 @@ class ColorSelectView @JvmOverloads constructor(
             WHITE_BORDER_COLOR
         )
     } else {
-        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(color, PRESSED_OVERLAY_COLOR, cornerRadius.toFloat())
+        DrawableUtil.roundedRipple(color, PRESSED_OVERLAY_COLOR, cornerRadius.toFloat())
     }
 
     companion object {

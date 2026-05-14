@@ -405,6 +405,14 @@ internal object LibraryQueryBuilder {
         sortDescending: Boolean,
         sourceId: Int
     ): String {
+        if (sortStyle == SORT_DEFAULT && sourceId == MusicSet.FAVORITES.toInt()) {
+            return appendPlaylistDefaultOrder(sortDescending)
+        }
+
+        if (sortStyle == SORT_DEFAULT && sourceId > 0) {
+            return appendPlaylistDefaultOrder(sortDescending)
+        }
+
         if (sortStyle == SORT_RANDOM) {
             return appendOrderBy("random()")
         }
@@ -438,6 +446,13 @@ internal object LibraryQueryBuilder {
         }
 
         return appendOrderBy(orderExpression)
+    }
+
+    private fun String.appendPlaylistDefaultOrder(
+        sortDescending: Boolean
+    ): String {
+        val direction = if (sortDescending) "desc" else "asc"
+        return appendOrderBy("map.sort $direction, map.rowid $direction")
     }
 
     private fun buildAlbumOrderBy(
@@ -608,6 +623,7 @@ internal object LibraryQueryBuilder {
     }
 
     private const val SORT_NAME = "name"
+    private const val SORT_DEFAULT = "default"
     private const val SORT_RANDOM = "random"
 
     private const val TRACK_TITLE_COLUMN = "title"

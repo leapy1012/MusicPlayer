@@ -1,10 +1,12 @@
 package gd.app.musicplayer.ui.widget.provider
 
+import android.content.ComponentName
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import dagger.hilt.android.EntryPointAccessors
+import gd.app.musicplayer.playback.PlaybackStatePublisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,6 +53,7 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
         super.onReceive(context, intent)
 
         when (intent.action) {
+            PlaybackStatePublisher.ACTION_PLAYBACK_SESSION_UPDATED,
             ACTION_REFRESH_WIDGETS,
             ACTION_TOGGLE_MODE,
             ACTION_TOGGLE_FAVORITE,
@@ -78,6 +81,18 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
         val coordinator = coordinator(context)
 
         when (intent.action) {
+            PlaybackStatePublisher.ACTION_PLAYBACK_SESSION_UPDATED -> {
+                val appWidgetIds = AppWidgetManager
+                    .getInstance(context)
+                    .getAppWidgetIds(ComponentName(context, javaClass))
+
+                coordinator.updateWidgets(
+                    appWidgetIds = appWidgetIds,
+                    classify = classify
+                )
+                return
+            }
+
             ACTION_REFRESH_WIDGETS -> {
                 coordinator.updateAll()
             }

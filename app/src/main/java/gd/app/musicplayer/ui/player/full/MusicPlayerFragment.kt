@@ -136,7 +136,7 @@ class MusicPlayerFragment :
         binding.toolbar.setOnMenuItemClickListener { item: MenuItem ->
             when (item.itemId) {
                 R.id.menu_list_menu -> {
-                    PlayQueueActivity.Companion.startQueue(requireContext())
+                    PlayQueueActivity.startQueue(requireContext(), MusicPlayActivity::class.java.name)
                     true
                 }
 
@@ -516,22 +516,14 @@ class MusicPlayerFragment :
             R.id.music_play_lyric_search -> openLyricSearch()
 
             R.id.music_lyric_setting -> openLyricSettings()
-            R.id.music_play_tempo -> TempoDialogFragment.Companion.show(childFragmentManager)
+            R.id.music_play_tempo -> TempoDialogFragment.show(childFragmentManager)
             R.id.music_play_favourite -> playerViewModel.toggleFavorite()
             R.id.music_play_artist -> openArtist()
         }
     }
 
     private fun onPlayPauseClicked() {
-        val currentTrackId = playerViewModel.trackUiState.value.musicId
-
-        if (currentTrackId == null) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                playerViewModel.playAllTracks(requireContext())
-            }
-        } else {
-            playerViewModel.togglePlayPause(requireContext())
-        }
+        playerViewModel.onPrimaryPlayPauseClicked(requireContext())
     }
 
     private fun openTrackOptions() {

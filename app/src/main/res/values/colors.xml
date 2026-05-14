@@ -36,5 +36,7 @@
     <color name="equalizer_background_color">#131619</color>
     <color name="i_black_m">#8a000000</color>
     <color name="app_icon_background">#ffffff</color>
-
+    <color name="rate_dialog_message_b">#646464</color>
+    <color name="main_text_black">#db000000</color>
+    <color name="extra_text_black">#8a000000</color>
 </resources>

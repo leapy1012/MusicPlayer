@@ -38,11 +38,12 @@ class SaveAudioEffectSettingsUseCase @Inject constructor(
 
         soundEffectPreferences.setBassEnabled(settings.bassEnabled)
         soundEffectPreferences.setBassProgress(settings.bassStrength)
+        soundEffectPreferences.setBassPresetId(-1)
         soundEffectPreferences.setVirtualizerEnabled(settings.virtualizerEnabled)
         soundEffectPreferences.setVirtualizerProgress(settings.virtualizerStrength)
+        soundEffectPreferences.setVirtualizerPresetId(-1)
         soundEffectPreferences.setLoudnessEnabled(settings.loudnessEnabled)
         soundEffectPreferences.setLoudnessStrength(settings.loudnessStrength)
-        soundEffectPreferences.setMasterVolume(settings.masterVolume)
         soundEffectPreferences.setBalanceEnabled(settings.balanceEnabled)
         soundEffectPreferences.setBalanceLeft(settings.balanceLeft)
         soundEffectPreferences.setBalanceRight(settings.balanceRight)

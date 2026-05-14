@@ -3,6 +3,7 @@ package gd.app.musicplayer.core.designsystem.theme
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
 import gd.app.musicplayer.core.common.util.FastBlur
 import java.io.File
@@ -54,7 +55,8 @@ class ThemeBitmapLoader @Inject constructor() {
         imageName: String,
         blurRadius: Int = DEFAULT_BLUR_BACKGROUND_RADIUS
     ): Bitmap? {
-        val cacheKey = "$imageName#$blurRadius"
+        val overlayColor = 855638016 // #33000000
+        val cacheKey = "$imageName#$blurRadius#$overlayColor"
 
         cachedBlurBackgroundBitmap?.takeIf {
             cachedBlurBackgroundBitmapKey == cacheKey && !it.isRecycled
@@ -62,7 +64,16 @@ class ThemeBitmapLoader @Inject constructor() {
 
         val original = loadSourceBitmap(context, imageName) ?: return null
 
-        val rendered = FastBlur.blur(original, blurRadius, true)
+        val blurred = FastBlur.blur(
+            original,
+            blurRadius,
+            true
+        ) ?: return null
+
+        val rendered = blurred.copy(Bitmap.Config.ARGB_8888, true)
+
+        val canvas = Canvas(rendered)
+        canvas.drawColor(overlayColor)
 
         cachedBlurBackgroundBitmapKey = cacheKey
         cachedBlurBackgroundBitmap = rendered

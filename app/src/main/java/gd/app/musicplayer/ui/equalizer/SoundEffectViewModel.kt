@@ -23,12 +23,6 @@ class SoundEffectViewModel @Inject constructor(
             initialValue = SoundEffectSettings()
         )
 
-    fun setMasterVolume(value: Float) {
-        viewModelScope.launch {
-            soundEffectPreferences.setMasterVolume(value)
-        }
-    }
-
     fun setLoudnessEnabled(enabled: Boolean) {
         viewModelScope.launch {
             soundEffectPreferences.setLoudnessEnabled(enabled)

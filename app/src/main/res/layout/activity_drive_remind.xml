@@ -55,6 +55,7 @@
                 android:layout_height="match_parent"
                 android:text="@android:string/no"
                 android:layout_weight="1"
+                android:tag="dialogCancel"
                 android:textAlignment="center"/>
             <Space
                 android:layout_width="24dp"
@@ -68,6 +69,7 @@
                 android:layout_height="match_parent"
                 android:text="@android:string/ok"
                 android:layout_weight="1"
+                android:tag="buttonConfirm"
                 android:textAlignment="center"/>
         </LinearLayout>
         <Space

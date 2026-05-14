@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlin.math.roundToInt
 
 @Singleton
 class SettingPreferencesDataStoreImpl @Inject constructor(
@@ -30,9 +31,15 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
         dataStore.data
             .map { preferences ->
                 ReplayGainSettingPreference(
-                    mode = preferences[SettingsKeys.REPLAY_GAIN_MODE] ?: 0,
-                    preampWithTag = preferences[SettingsKeys.REPLAY_GAIN_PREAMP_WITH_TAG] ?: 0f,
-                    preampWithoutTag = preferences[SettingsKeys.REPLAY_GAIN_PREAMP_WITHOUT_TAG] ?: 0f
+                    mode = normalizeReplayGainMode(
+                        preferences[SettingsKeys.REPLAY_GAIN_MODE]
+                    ),
+                    preampWithTag = normalizeReplayGainPreampDb(
+                        preferences[SettingsKeys.REPLAY_GAIN_PREAMP_WITH_TAG]
+                    ),
+                    preampWithoutTag = normalizeReplayGainPreampDb(
+                        preferences[SettingsKeys.REPLAY_GAIN_PREAMP_WITHOUT_TAG]
+                    )
                 )
             }
             .distinctUntilChanged()
@@ -166,10 +173,18 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
 
     override suspend fun updateGaplessPlaybackEnabled(enabled: Boolean) {
         dataStore.set(SettingsKeys.GAPLESS_PLAYBACK, enabled)
+
+        if (enabled) {
+            dataStore.set(SettingsKeys.CROSS_FADE, false)
+        }
     }
 
     override suspend fun updateCrossFadeEnabled(enabled: Boolean) {
         dataStore.set(SettingsKeys.CROSS_FADE, enabled)
+
+        if (enabled) {
+            dataStore.set(SettingsKeys.GAPLESS_PLAYBACK, false)
+        }
     }
 
     override suspend fun updateTrackClickOperationEnabled(enabled: Boolean) {
@@ -190,8 +205,14 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
     }
 
     override suspend fun updateReplayGainPreamp(withTag: Float, withoutTag: Float) {
-        dataStore.set(SettingsKeys.REPLAY_GAIN_PREAMP_WITH_TAG, withTag)
-        dataStore.set(SettingsKeys.REPLAY_GAIN_PREAMP_WITHOUT_TAG, withoutTag)
+        dataStore.set(
+            SettingsKeys.REPLAY_GAIN_PREAMP_WITH_TAG,
+            normalizeReplayGainPreampDb(withTag)
+        )
+        dataStore.set(
+            SettingsKeys.REPLAY_GAIN_PREAMP_WITHOUT_TAG,
+            normalizeReplayGainPreampDb(withoutTag)
+        )
     }
 
     override suspend fun updateLockBackgroundMode(mode: Int) {
@@ -270,8 +291,9 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
                 bluetoothLyricEnabled = preferences[SettingsKeys.BLUETOOTH_LYRIC] ?: true
             ),
             audio = AudioSettingPreference(
-                fadeDurationSeconds = ((preferences[SettingsKeys.FADE_DURATION_MS]
-                    ?: 6000) / 1000).coerceIn(1, 12),
+                fadeDurationSeconds = normalizeFadeDurationSeconds(
+                    preferences[SettingsKeys.FADE_DURATION_MS]
+                ),
                 shakeEnabled = preferences[SettingsKeys.SHAKE_CHANGE_MUSIC] ?: false,
                 shakeLevel = preferences[SettingsKeys.SHAKE_LEVEL] ?: 0.5f,
                 swipeChangeSongsEnabled = preferences[SettingsKeys.SWIPE_CHANGE_SONGS] ?: true,
@@ -284,9 +306,13 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
                 replaySongEnabled = preferences[SettingsKeys.REPLAY_SONG] ?: false
             ),
             replayGain = ReplayGainSettingPreference(
-                mode = preferences[SettingsKeys.REPLAY_GAIN_MODE] ?: 0,
-                preampWithTag = preferences[SettingsKeys.REPLAY_GAIN_PREAMP_WITH_TAG] ?: 0f,
-                preampWithoutTag = preferences[SettingsKeys.REPLAY_GAIN_PREAMP_WITHOUT_TAG] ?: 0f
+                mode = normalizeReplayGainMode(preferences[SettingsKeys.REPLAY_GAIN_MODE]),
+                preampWithTag = normalizeReplayGainPreampDb(
+                    preferences[SettingsKeys.REPLAY_GAIN_PREAMP_WITH_TAG]
+                ),
+                preampWithoutTag = normalizeReplayGainPreampDb(
+                    preferences[SettingsKeys.REPLAY_GAIN_PREAMP_WITHOUT_TAG]
+                )
             ),
             playlist = PlaylistSettingPreference(
                 addPosition = preferences[SettingsKeys.PLAYLIST_ADD_POSITION] ?: 0,
@@ -311,6 +337,42 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
                 headsetControlAllowed = preferences[SettingsKeys.HEADSET_CONTROL_ALLOWED] ?: true
             )
         )
+    }
+
+    private fun normalizeFadeDurationSeconds(durationMs: Int?): Int {
+        return ((durationMs ?: DEFAULT_FADE_DURATION_MS) / 1000)
+            .coerceIn(MIN_FADE_DURATION_SECONDS, MAX_FADE_DURATION_SECONDS)
+    }
+
+    private fun normalizeReplayGainMode(mode: Int?): Int {
+        return (mode ?: DEFAULT_REPLAY_GAIN_MODE).coerceIn(
+            MIN_REPLAY_GAIN_MODE,
+            MAX_REPLAY_GAIN_MODE
+        )
+    }
+
+    private fun normalizeReplayGainPreampDb(value: Float?): Float {
+        val clamped = (value ?: DEFAULT_REPLAY_GAIN_PREAMP_DB).coerceIn(
+            MIN_REPLAY_GAIN_PREAMP_DB,
+            MAX_REPLAY_GAIN_PREAMP_DB
+        )
+
+        return (clamped * PREAMP_ROUNDING_SCALE).roundToInt() / PREAMP_ROUNDING_SCALE
+    }
+
+    private companion object {
+        private const val DEFAULT_FADE_DURATION_MS = 6_000
+        private const val MIN_FADE_DURATION_SECONDS = 1
+        private const val MAX_FADE_DURATION_SECONDS = 12
+
+        private const val DEFAULT_REPLAY_GAIN_MODE = 0
+        private const val MIN_REPLAY_GAIN_MODE = 0
+        private const val MAX_REPLAY_GAIN_MODE = 2
+
+        private const val DEFAULT_REPLAY_GAIN_PREAMP_DB = 0f
+        private const val MIN_REPLAY_GAIN_PREAMP_DB = -15f
+        private const val MAX_REPLAY_GAIN_PREAMP_DB = 15f
+        private const val PREAMP_ROUNDING_SCALE = 10f
     }
 }
 

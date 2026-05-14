@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentArtistAlbumItemBinding
+import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
 
 class ArtistAlbumAdapter(
@@ -36,7 +37,8 @@ class ArtistAlbumAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: ArtistAlbumItem) {
-            binding.musicItemAlbum.setImageResource(
+            item.album.loadArtwork(
+                binding.musicItemAlbum,
                 item.album.resolvePlaceholderRes(false)
             )
             binding.musicItemTitle.text = item.album.name

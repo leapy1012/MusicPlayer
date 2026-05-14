@@ -4,7 +4,7 @@
     android:minHeight="@dimen/widget_1_min_height"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_4x1_1"
-    android:configure="gd.app.musicplayer.ui.feature.widget.WidgetConfigActivity"
+    android:configure="gd.app.musicplayer.ui.widget.WidgetConfigActivity"
     android:previewImage="@drawable/widget_4x1_1"
     android:resizeMode="vertical|horizontal"
     android:minResizeWidth="@dimen/widget_4_min_width"

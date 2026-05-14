@@ -2,6 +2,7 @@ package gd.app.musicplayer.core.designsystem.theme
 
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.GradientDrawable
 import android.view.View
@@ -19,8 +20,16 @@ import gd.app.lib.model.scan.MusicScanProgressView
 import gd.app.lib.view.MaskImageView
 import gd.app.lib.model.lrc.view.LyricView
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+import gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables
 import gd.app.musicplayer.ui.editor.waveform.SoundWaveView
 import gd.app.musicplayer.ui.theme.ThemeTags
+import androidx.core.view.size
+import gd.app.musicplayer.core.common.extension.dpToPx
+import gd.app.musicplayer.core.designsystem.view.PlayStateView
+import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
+import gd.app.musicplayer.core.designsystem.view.RotateStepBar
+import gd.app.musicplayer.core.designsystem.view.SeekBar
 
 class DefaultThemeBinder : ThemeViewBinder {
     override fun bind(palette: ThemePalette, payload: Any?, view: View): Boolean {
@@ -46,7 +55,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                 return true
             }
 
-            ThemeTags.CONTENT_BACKGROUND, ThemeTags.BOTTOM_CONTENT -> {
+            ThemeTags.CONTENT_BACKGROUND -> {
                 applyContentBackground(view, contentOverlay, rippleColor)
                 return true
             }
@@ -71,13 +80,28 @@ class DefaultThemeBinder : ThemeViewBinder {
                 return true
             }
 
+            ThemeTags.SETTING_CONTENT -> {
+                view.setBackgroundColor(
+                    if (usesDarkForegroundPalette(palette)) 0xFFF5F5F5.toInt() else Color.TRANSPARENT
+                )
+                return true
+            }
+
+            ThemeTags.SETTING_GROUP -> {
+                view.background = DrawableUtil.roundedFill(
+                    view.context.resources.displayMetrics.density * 6f,
+                    if (usesDarkForegroundPalette(palette)) Color.WHITE else 0x10FFFFFF
+                )
+                return true
+            }
+
             ThemeTags.MAIN_BOTTOM_CONTROL -> {
                 view.setBackgroundColor(strongerOverlay)
                 return true
             }
 
             ThemeTags.SLEEP_CONTENT -> {
-                view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedFill(
+                view.background = DrawableUtil.roundedFill(
                     view.context.resources.displayMetrics.density * 4f,
                     if (usesDarkForegroundPalette(palette)) 0x0D000000 else 0x0DFFFFFF
                 )
@@ -109,7 +133,20 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             ThemeTags.DIALOG_ITEM_BACKGROUND, "dialogItemBackground" -> {
                 view.background =
-                    _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.rectRipple(Color.TRANSPARENT, palette.dialogPressedOverlayColor)
+                    DrawableUtil.rectRipple(Color.TRANSPARENT, palette.dialogPressedOverlayColor)
+                return true
+            }
+
+            ThemeTags.DIALOG_EDIT_TEXT_BACKGROUND -> {
+                view.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    setColor(Color.TRANSPARENT)
+                    setStroke(
+                        (view.context.resources.displayMetrics.density * 1.5f).toInt(),
+                        if (usesDarkForegroundPalette(palette)) 0x1A000000 else 0x26FFFFFF
+                    )
+                    cornerRadius = view.context.resources.displayMetrics.density * 8f
+                }
                 return true
             }
 
@@ -119,9 +156,35 @@ class DefaultThemeBinder : ThemeViewBinder {
             "dialogTitleIcon" -> {
                 if (view is ImageView) {
                     view.imageTintList = ColorStateList.valueOf(palette.dialogTitleColor)
-                    view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.ovalRipple(
+                    view.background = DrawableUtil.ovalRipple(
                         Color.TRANSPARENT,
                         palette.dialogPressedOverlayColor
+                    )
+                }
+                return true
+            }
+
+            ThemeTags.DIALOG_IMAGE_THEME_BUTTON -> {
+                if (view is ImageView) {
+                    view.imageTintList = ColorStateList.valueOf(accentColor)
+                    view.background = DrawableUtil.ovalRipple(
+                        Color.TRANSPARENT,
+                        palette.dialogPressedOverlayColor
+                    )
+                }
+                return true
+            }
+
+            ThemeTags.DIALOG_IMAGE -> {
+                view.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    setColor(accentColor)
+                    val radius = view.context.resources.displayMetrics.density * 12f
+                    cornerRadii = floatArrayOf(
+                        radius, radius,
+                        radius, radius,
+                        0f, 0f,
+                        0f, 0f
                     )
                 }
                 return true
@@ -137,15 +200,15 @@ class DefaultThemeBinder : ThemeViewBinder {
                 return true
             }
 
-            ThemeTags.DIALOG_SEEK_BAR, ThemeTags.LYRIC_SETTINGS_SEEK, "dialogSeekBar" -> {
-                if (view is gd.app.musicplayer.core.designsystem.view.SeekBar) {
+            ThemeTags.DIALOG_SEEK_BAR, ThemeTags.LYRIC_SETTINGS_SEEK -> {
+                if (view is SeekBar) {
                     val backgroundColor = ColorUtils.setAlphaComponent(
                         palette.dialogTitleColor,
                         77
                     )
                     val radius = (view.context.resources.displayMetrics.density * 8f).toInt()
                     view.setProgressDrawable(
-                        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedProgress(backgroundColor, palette.accentColor, radius)
+                        DrawableUtil.roundedProgress(backgroundColor, palette.accentColor, radius)
                     )
                     view.setThumbColor(palette.accentColor)
                 }
@@ -163,7 +226,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                 if (view is TextView) {
                     view.setTextColor(Color.WHITE)
                 }
-                view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+                view.background = DrawableUtil.roundedRipple(
                     accentColor,
                     palette.confirmRippleColor,
                     1000.0f
@@ -175,7 +238,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                 if (view is TextView) {
                     view.setTextColor(accentColor)
                 }
-                view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.rectRipple(
+                view.background = DrawableUtil.rectRipple(
                     fillColor = Color.TRANSPARENT,
                     rippleColor = palette.dialogPressedOverlayColor
                 )
@@ -186,7 +249,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                 if (view is TextView) {
                     view.setTextColor(palette.cancelTextColor)
                 }
-                view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+                view.background = DrawableUtil.roundedRipple(
                     fillColor = palette.cancelBaseColor,
                     rippleColor = palette.rippleColor,
                     radius = 1000f
@@ -200,17 +263,16 @@ class DefaultThemeBinder : ThemeViewBinder {
             }
 
             ThemeTags.ITEM_BACKGROUND, ThemeTags.BOTTOM_MENU_ITEM -> {
-                view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.rectRipple(0, rippleColor)
+                view.background = DrawableUtil.rectRipple(0, rippleColor)
                 return true
             }
 
             ThemeTags.ITEM_BACKGROUND_COLOR -> {
                 val radius = view.context.resources.displayMetrics.density * 16f
-                val fillColor = contentOverlay
                 view.background = if (view.isClickable) {
-                    _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(fillColor, rippleColor, radius)
+                    DrawableUtil.roundedRipple(contentOverlay, rippleColor, radius)
                 } else {
-                    _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedFill(radius, fillColor)
+                    DrawableUtil.roundedFill(radius, contentOverlay)
                 }
                 return true
             }
@@ -229,7 +291,7 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             ThemeTags.THEME_COLOR -> {
                 when (view) {
-                    is gd.app.musicplayer.core.designsystem.view.PlayStateView -> view.setColor(accentColor)
+                    is PlayStateView -> view.setColor(accentColor)
                     is TextView -> view.setTextColor(accentColor)
                     is ImageView -> view.imageTintList = ColorStateList.valueOf(accentColor)
                 }
@@ -256,7 +318,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                     is ImageView -> {
                         view.imageTintList = ColorStateList.valueOf(titleColor)
                         if (view.isClickable) {
-                            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.ovalRipple(0, rippleColor)
+                            view.background = DrawableUtil.ovalRipple(0, rippleColor)
                         }
                     }
 
@@ -277,21 +339,21 @@ class DefaultThemeBinder : ThemeViewBinder {
                     view.setHintTextColor(ColorUtils.setAlphaComponent(titleColor, 128))
                     val background = DrawableCompat.wrap(
                         view.background?.mutate()
-                            ?: _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.gradientDrawable(
+                            ?: DrawableUtil.gradientDrawable(
                                 view.context.resources.displayMetrics.density * 8f,
                                 fillColor
                             ).mutate()
                     )
                     DrawableCompat.setTintList(
                         background,
-                        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.focusedDefaultColors(
+                        ViewStateDrawables.focusedDefaultColors(
                             ColorUtils.setAlphaComponent(titleColor, 77),
                             accentColor
                         )
                     )
                     view.background = background
                 } else {
-                    view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.gradientDrawable(
+                    view.background = DrawableUtil.gradientDrawable(
                         view.context.resources.displayMetrics.density * 8f,
                         fillColor
                     )
@@ -320,7 +382,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             view.setSubtitleTextColor(ColorUtils.setAlphaComponent(Color.WHITE, 180))
             view.navigationIcon?.setTint(Color.WHITE)
             view.overflowIcon?.setTint(Color.WHITE)
-            for (index in 0 until view.menu.size()) {
+            for (index in 0 until view.menu.size) {
                 view.menu.getItem(index).icon?.setTint(Color.WHITE)
             }
             return true
@@ -330,7 +392,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             view.setTabTextColors(itemTextColor, accentColor)
             view.setSelectedTabIndicatorColor(accentColor)
             if (tag == ThemeTags.EQUALIZER_TAB_LAYOUT) {
-                val tabItemBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.pressedDefaultColorDrawable(
+                val tabItemBackground = ViewStateDrawables.pressedDefaultColorDrawable(
                     Color.TRANSPARENT,
                     palette.headerPressedOverlayColor
                 )
@@ -382,14 +444,14 @@ class DefaultThemeBinder : ThemeViewBinder {
             view.highlightColor = ColorUtils.setAlphaComponent(accentColor, 77)
             val background = DrawableCompat.wrap(
                 view.background?.mutate()
-                    ?: _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.gradientDrawable(
+                    ?: DrawableUtil.gradientDrawable(
                         view.context.resources.displayMetrics.density * 8f,
                         if (usesDarkForegroundPalette(palette)) 335544320 else 352321535
                     ).mutate()
             )
             DrawableCompat.setTintList(
                 background,
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.focusedDefaultColors(
+                ViewStateDrawables.focusedDefaultColors(
                     ColorUtils.setAlphaComponent(palette.dialogTitleColor, 77),
                     accentColor
                 )
@@ -398,12 +460,27 @@ class DefaultThemeBinder : ThemeViewBinder {
             return true
         }
 
+        if (tag == ThemeTags.DIALOG_LYRIC_BUTTON && view is TextView) {
+            view.setTextColor(palette.dialogTitleColor)
+            view.compoundDrawables.filterNotNull().forEach { drawable ->
+                DrawableCompat.setTint(drawable.mutate(), palette.dialogTitleColor)
+            }
+            view.compoundDrawablesRelative.filterNotNull().forEach { drawable ->
+                DrawableCompat.setTint(drawable.mutate(), palette.dialogTitleColor)
+            }
+            view.background = DrawableUtil.rectRipple(
+                Color.TRANSPARENT,
+                palette.dialogPressedOverlayColor
+            )
+            return true
+        }
+
         if (tag == ThemeTags.LYRIC_ALIGN_BUTTON && view is ImageView) {
-            view.imageTintList = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.selectedDefaultColors(
+            view.imageTintList = ViewStateDrawables.selectedEnabledDefaultColors(
                 palette.dialogTitleColor,
                 accentColor
             )
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.pressedDefaultColorDrawable(
+            view.background = ViewStateDrawables.pressedDefaultColorDrawable(
                 Color.TRANSPARENT,
                 palette.dialogPressedOverlayColor
             )
@@ -412,13 +489,13 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.LYRIC_TYPEFACE_BUTTON && view is TextView) {
             view.setTextColor(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.selectedDefaultColors(
+                ViewStateDrawables.selectedEnabledDefaultColors(
                     palette.dialogTitleColor,
                     accentColor
                 )
             )
             val radius = view.context.resources.displayMetrics.density * 4f
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+            view.background = DrawableUtil.roundedRipple(
                 Color.TRANSPARENT,
                 palette.dialogPressedOverlayColor,
                 radius
@@ -438,19 +515,19 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.SPEED_ITEM_TEXT && view is TextView) {
             view.setTextColor(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.selectedDefaultColors(
+                ViewStateDrawables.selectedEnabledDefaultColors(
                     ColorUtils.setAlphaComponent(palette.titleColor, 180),
                     Color.WHITE
                 )
             )
             val radius = view.context.resources.displayMetrics.density * 6f
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.buildStateDrawable(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+            view.background = ViewStateDrawables.buildStateDrawable(
+                DrawableUtil.roundedRipple(
                     fillColor = ColorUtils.setAlphaComponent(palette.titleColor, 28),
                     rippleColor = palette.rippleColor,
                     radius = radius
                 ),
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+                DrawableUtil.roundedRipple(
                     fillColor = palette.accentColor,
                     rippleColor = palette.confirmRippleColor,
                     radius = radius
@@ -481,7 +558,7 @@ class DefaultThemeBinder : ThemeViewBinder {
         if (tag == ThemeTags.EMPTY_BUTTON || tag == ThemeTags.THEME_STROKE_BUTTON) {
             if (view is TextView) {
                 view.setTextColor(accentColor)
-                view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.outlinedRoundedRipple(
+                view.background = DrawableUtil.outlinedRoundedRipple(
                     (view.context.resources.displayMetrics.density * 100f).toInt(),
                     (view.context.resources.displayMetrics.density * 1f).toInt(),
                     ColorUtils.setAlphaComponent(itemTextColor, 51),
@@ -493,7 +570,7 @@ class DefaultThemeBinder : ThemeViewBinder {
         }
 
         if (tag == ThemeTags.SAVE_BUTTON) {
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+            view.background = DrawableUtil.roundedRipple(
                 accentColor,
                 0x26FFFFFF,
                 view.context.resources.displayMetrics.density * 100f
@@ -534,27 +611,27 @@ class DefaultThemeBinder : ThemeViewBinder {
             return true
         }
 
-        if ((tag == ThemeTags.SEEK_BAR || tag == ThemeTags.EQUALIZER_SEEK_BAR) && view is gd.app.musicplayer.core.designsystem.view.SeekBar) {
+        if ((tag == ThemeTags.SEEK_BAR || tag == ThemeTags.EQUALIZER_SEEK_BAR) && view is SeekBar) {
             if (tag == ThemeTags.EQUALIZER_SEEK_BAR) {
                 val disabledColor = view.context.getColor(R.color.equalizer_disable_color)
                 val backgroundColor = view.context.getColor(R.color.equalizer_background_color)
                 val cornerRadius = view.context.resources.displayMetrics.density * 2f
                 view.setThumbOverlayColor(
-                    _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.enabledDisabledColors(accentColor, disabledColor)
+                    ViewStateDrawables.enabledDisabledColors(accentColor, disabledColor)
                 )
                 view.setProgressDrawable(
-                    _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.layeredProgress(
-                        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.gradientDrawable(cornerRadius, backgroundColor),
-                        _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.defaultWithDisabledDrawable(
-                            _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.gradientDrawable(cornerRadius, accentColor),
-                            _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.gradientDrawable(cornerRadius, disabledColor)
+                    DrawableUtil.layeredProgress(
+                        DrawableUtil.gradientDrawable(cornerRadius, backgroundColor),
+                        ViewStateDrawables.defaultWithDisabledDrawable(
+                            DrawableUtil.gradientDrawable(cornerRadius, accentColor),
+                            DrawableUtil.gradientDrawable(cornerRadius, disabledColor)
                         )
                     )
                 )
             } else {
                 view.setThumbColor(accentColor)
                 view.setProgressDrawable(
-                    _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedProgress(
+                    DrawableUtil.roundedProgress(
                         if (usesDarkForegroundPalette(palette)) 0x26000000 else -2130706433,
                         accentColor,
                         (view.context.resources.displayMetrics.density * 20f).toInt()
@@ -564,10 +641,10 @@ class DefaultThemeBinder : ThemeViewBinder {
             return true
         }
 
-        if (tag == ThemeTags.GROUP_SEEK && view is gd.app.musicplayer.core.designsystem.view.SeekBar) {
+        if (tag == ThemeTags.GROUP_SEEK && view is SeekBar) {
             view.setThumbColor(accentColor)
             view.setProgressDrawable(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedProgress(
+                DrawableUtil.roundedProgress(
                     ColorUtils.setAlphaComponent(Color.WHITE, 128),
                     accentColor,
                     (view.context.resources.displayMetrics.density * 10f).toInt()
@@ -581,7 +658,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                 AppCompatResources.getDrawable(view.context, R.drawable.equalizer_toggle_off)
             val toggleOnDrawable =
                 AppCompatResources.getDrawable(view.context, R.drawable.equalizer_toggle_on)
-            val toggleOverlayDrawable = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.tinted(
+            val toggleOverlayDrawable = DrawableUtil.tinted(
                 AppCompatResources.getDrawable(
                     view.context,
                     R.drawable.equalizer_toggle_on_overlay
@@ -590,7 +667,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             )
 
             view.setImageDrawable(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.buildStateDrawable(
+                ViewStateDrawables.buildStateDrawable(
                     toggleOffDrawable,
                     LayerDrawable(
                         listOfNotNull(
@@ -604,16 +681,16 @@ class DefaultThemeBinder : ThemeViewBinder {
             return true
         }
 
-        if (tag == ThemeTags.EQUALIZER_ROTATE_STEP_BAR && view is gd.app.musicplayer.core.designsystem.view.RotateStepBar) {
+        if (tag == ThemeTags.EQUALIZER_ROTATE_STEP_BAR && view is RotateStepBar) {
             val disabledColor = view.context.getColor(R.color.equalizer_disable_color)
             val backgroundColor = view.context.getColor(R.color.equalizer_background_color)
-            val tintList = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.disabledSelectedDefaultColors(
+            val tintList = ViewStateDrawables.disabledSelectedDefaultColors(
                 backgroundColor,
                 accentColor,
                 disabledColor
             )
             view.setIndicatorOverlayTintList(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.enabledDisabledColors(accentColor, disabledColor)
+                ViewStateDrawables.enabledDisabledColors(accentColor, disabledColor)
             )
             view.setPrimaryGraduationTintList(tintList)
             view.setSecondaryGraduationTintList(tintList)
@@ -622,14 +699,35 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if ((tag == ThemeTags.BACK_BUTTON || tag == ThemeTags.CONTROL_BUTTON) && view is ImageView) {
             view.imageTintList = ColorStateList.valueOf(itemTextColor)
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.ovalRipple(0, rippleColor)
+            view.background = DrawableUtil.ovalRipple(0, rippleColor)
+            return true
+        }
+
+        if ((tag == "previousView" || tag == "nextView")) {
+            view.background = DrawableUtil.ovalRipple(
+                if (usesDarkForegroundPalette(palette)) 436207616 else 452984831,
+                rippleColor
+            )
+            return true
+        }
+
+        if (tag == "seekBar" && view is SeekBar) {
+            view.setThumbColor(accentColor)
+            view.setProgressDrawable(
+                DrawableUtil.roundedProgress(
+                    if (usesDarkForegroundPalette(
+                            palette
+                        )
+                    ) 637534208 else -2130706433, accentColor, 20
+                )
+            )
             return true
         }
 
         if (tag == ThemeTags.PLAY_PAUSE_BUTTON && view is ImageView) {
-            view.imageTintList = ColorStateList(
-                arrayOf(intArrayOf(android.R.attr.state_selected), intArrayOf()),
-                intArrayOf(accentColor, ColorUtils.setAlphaComponent(itemTextColor, 204))
+            view.imageTintList = ViewStateDrawables.pressedDefaultColors(
+                if (usesDarkForegroundPalette(palette)) accentColor else itemTextColor,
+                ColorUtils.setAlphaComponent(itemTextColor, 204)
             )
             return true
         }
@@ -643,13 +741,13 @@ class DefaultThemeBinder : ThemeViewBinder {
             view is ImageView
         ) {
             view.imageTintList = if (tag == ThemeTags.EQUALIZER_ICON) {
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.disabledSelectedDefaultColors(
+                ViewStateDrawables.disabledSelectedDefaultColors(
                     Color.WHITE,
                     accentColor,
                     view.context.getColor(R.color.equalizer_disable_color)
                 )
             } else if (tag == ThemeTags.GROUP_SELECT_BOX) {
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.selectedDefaultColors(
+                ViewStateDrawables.selectedEnabledDefaultColors(
                     0xB3FFFFFF.toInt(),
                     accentColor
                 )
@@ -661,7 +759,7 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.BANNER_IMAGE && view is ImageView) {
             view.imageTintList =
-                ColorStateList.valueOf(if (usesDarkForegroundPalette(palette)) 0x66000000 else Color.WHITE)
+                ColorStateList.valueOf(if (usesDarkForegroundPalette(palette)) 1711276032 else Color.WHITE)
             return true
         }
 
@@ -669,7 +767,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             when (view) {
                 is TextView -> {
                     view.setTextColor(accentColor)
-                    view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.outlinedRoundedRipple(
+                    view.background = DrawableUtil.outlinedRoundedRipple(
                         (view.context.resources.displayMetrics.density * 100f).toInt(),
                         (view.context.resources.displayMetrics.density * 1.5f).toInt(),
                         accentColor,
@@ -683,20 +781,27 @@ class DefaultThemeBinder : ThemeViewBinder {
             return true
         }
 
-        if (tag == ThemeTags.FAVORITE && view is ImageView) {
-            view.imageTintList = ColorStateList(
-                arrayOf(intArrayOf(android.R.attr.state_selected), intArrayOf()),
-                intArrayOf(accentColor, itemTextColor)
+        if (tag == ThemeTags.PASTE_BACKGROUND) {
+            view.background = DrawableUtil.roundedRipple(
+                fillColor = accentColor,
+                rippleColor = palette.rippleColor,
+                radius = view.context.resources.displayMetrics.density * 50f
             )
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.ovalRipple(0, rippleColor)
+            return true
+        }
+
+        if (tag == ThemeTags.FAVORITE && view is ImageView) {
+            view.imageTintList =
+                ViewStateDrawables.selectedEnabledDefaultColors(itemTextColor, -42406)
+            view.background = DrawableUtil.ovalRipple(0, rippleColor)
             return true
         }
 
         if (tag == ThemeTags.FOLDER_FOOT_SCAN_BG) {
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
-                accentColor,
-                rippleColor,
-                view.context.resources.displayMetrics.density * 100f
+            view.background = DrawableUtil.roundedRipple(
+                if (usesDarkForegroundPalette(palette)) 218103808 else 452984831,
+                if (usesDarkForegroundPalette(palette)) 654311423 else 452984831,
+                view.context.dpToPx(100f).toFloat()
             )
             return true
         }
@@ -709,7 +814,7 @@ class DefaultThemeBinder : ThemeViewBinder {
         if (tag == ThemeTags.SELECT_ALL || tag == ThemeTags.SELECT_BOX || tag == ThemeTags.SELECT_BOX_2) {
             if (view is ImageView) {
                 if (view.isClickable) {
-                    view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.ovalRipple(0, rippleColor)
+                    view.background = DrawableUtil.ovalRipple(0, rippleColor)
                 }
                 view.imageTintList = ColorStateList(
                     arrayOf(
@@ -731,17 +836,15 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.BANNER_IMAGE_BACKGROUND) {
             if (view is MaskImageView) {
-                view.setMaskColor(if (usesDarkForegroundPalette(palette)) 0x33000000 else 0x4D000000)
-            }
-            if (view is ImageView) {
+                view.setMaskColor(if (usesDarkForegroundPalette(palette)) 855638016 else 1291845632)
                 view.imageTintList =
-                    if (usesDarkForegroundPalette(palette)) ColorStateList.valueOf(0x1A000000) else null
+                    if (usesDarkForegroundPalette(palette)) ColorStateList.valueOf(436207616) else null
             }
             return true
         }
 
         if (tag == ThemeTags.RECYCLER_INDEX_BAR) {
-            if (view is gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar) {
+            if (view is RecyclerIndexBar) {
                 view.setTextColor(accentColor)
             } else {
                 view.setBackgroundColor(ColorUtils.setAlphaComponent(itemTextColor, 36))
@@ -752,11 +855,11 @@ class DefaultThemeBinder : ThemeViewBinder {
         if (tag == ThemeTags.REVERB_ITEM) {
             val baseDrawable =
                 AppCompatResources.getDrawable(view.context, R.drawable.equalizer_button)
-            val selectedOverlay = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.tinted(
+            val selectedOverlay = DrawableUtil.tinted(
                 AppCompatResources.getDrawable(view.context, R.drawable.equalizer_button_select),
                 ColorUtils.setAlphaComponent(accentColor, 204)
             )
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.buildStateDrawable(
+            view.background = ViewStateDrawables.buildStateDrawable(
                 baseDrawable,
                 LayerDrawable(listOfNotNull(baseDrawable, selectedOverlay).toTypedArray()),
                 null
@@ -777,7 +880,7 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.GROUP_EFFECT_TEXT && view is TextView) {
             view.setTextColor(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.selectedDefaultColors(
+                ViewStateDrawables.selectedEnabledDefaultColors(
                     0xB3FFFFFF.toInt(),
                     accentColor
                 )
@@ -787,7 +890,7 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.GROUP_BOOST && view is TextView) {
             view.setTextColor(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.selectedDefaultColors(
+                ViewStateDrawables.selectedEnabledDefaultColors(
                     0xB3FFFFFF.toInt(),
                     accentColor
                 )
@@ -795,15 +898,15 @@ class DefaultThemeBinder : ThemeViewBinder {
             val radius = view.context.resources.displayMetrics.density * 50f
             val strokeWidth = (view.context.resources.displayMetrics.density * 1.5f).toInt()
             val fillColor = 0x1AFFFFFF
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.buildStateDrawable(
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.outlinedRoundedRipple(
+            view.background = ViewStateDrawables.buildStateDrawable(
+                DrawableUtil.outlinedRoundedRipple(
                     cornerRadius = radius.toInt(),
                     strokeWidth = strokeWidth,
                     strokeColor = 0xB3FFFFFF.toInt(),
                     fillColor = fillColor,
                     rippleColor = fillColor
                 ),
-                _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.outlinedRoundedRipple(
+                DrawableUtil.outlinedRoundedRipple(
                     cornerRadius = radius.toInt(),
                     strokeWidth = strokeWidth,
                     strokeColor = accentColor,
@@ -820,7 +923,7 @@ class DefaultThemeBinder : ThemeViewBinder {
 
     private fun applyContentBackground(view: View, fillColor: Int, rippleColor: Int) {
         if (view.isClickable) {
-            view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.rectRipple(fillColor, rippleColor)
+            view.background = DrawableUtil.rectRipple(fillColor, rippleColor)
         } else {
             view.setBackgroundColor(fillColor)
         }
@@ -831,7 +934,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             is ImageView -> {
                 view.imageTintList = ColorStateList.valueOf(color)
                 if (view.isClickable) {
-                    view.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.ovalRipple(0, rippleColor)
+                    view.background = DrawableUtil.ovalRipple(0, rippleColor)
                 }
             }
 

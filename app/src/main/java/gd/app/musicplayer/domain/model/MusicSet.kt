@@ -176,3 +176,6 @@ fun MusicSet.asBrowseCategory(): MusicSet.BrowseCategory? =
 
 fun MusicSet.asTrackCollection(): MusicSet.TrackCollection? =
     this as? MusicSet.TrackCollection
+
+val MusicSet.isUserPlaylist : Boolean
+    get() = this is MusicSet.Playlist && this.id != MusicSet.FAVORITES

@@ -83,7 +83,7 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.playlist.ActivityPlaylistSelect"
+            android:name=".ui.playlist.PlaylistSelectActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -205,7 +205,7 @@
 
         <service
             android:name=".playback.service.MusicPlaybackService"
-            android:exported="false"
+            android:exported="true"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />

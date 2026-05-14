@@ -10,7 +10,6 @@ import android.text.Selection
 import android.text.TextWatcher
 import android.view.MenuItem
 import android.view.View
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.getSystemService
 import androidx.lifecycle.lifecycleScope
@@ -18,6 +17,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.databinding.ActivityLyricEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -169,27 +170,33 @@ class LyricEditActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun confirmDeleteLyrics() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(R.string.lyric_edit_delete_msg)
-            .setPositiveButton(R.string.delete) { dialog, _ ->
-                dialog.dismiss()
-                deleteLyrics()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        showMessageDialog(
+            createMessageDialogConfig(
+                title = getString(R.string.delete),
+                message = getString(R.string.lyric_edit_delete_msg),
+                positiveText = getString(R.string.delete),
+                negativeText = getString(R.string.cancel),
+                positiveClickListener = { dialog, _ ->
+                    dialog.dismiss()
+                    deleteLyrics()
+                }
+            )
+        )
     }
 
     private fun confirmDiscardChanges() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.lyric_edit_back_title)
-            .setMessage(R.string.lyric_edit_back_msg)
-            .setPositiveButton(R.string.lyric_edit_back_title) { dialog, _ ->
-                dialog.dismiss()
-                finish()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        showMessageDialog(
+            createMessageDialogConfig(
+                title = getString(R.string.lyric_edit_back_title),
+                message = getString(R.string.lyric_edit_back_msg),
+                positiveText = getString(R.string.lyric_edit_back_title),
+                negativeText = getString(R.string.cancel),
+                positiveClickListener = { dialog, _ ->
+                    dialog.dismiss()
+                    finish()
+                }
+            )
+        )
     }
 
     private fun saveLyrics() {

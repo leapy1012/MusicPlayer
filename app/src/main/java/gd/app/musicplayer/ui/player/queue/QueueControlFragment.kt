@@ -2,8 +2,6 @@ package gd.app.musicplayer.ui.player.queue
 
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -12,31 +10,25 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.viewpager.widget.PagerAdapter
-import androidx.viewpager.widget.ViewPager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.local.preference.PlaybackUiPreferenceStore
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
-import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.loadCircularArtwork
 import gd.app.musicplayer.databinding.FragmentQueueControlBinding
-import gd.app.musicplayer.databinding.ItemMainControlPagerBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
+import gd.app.musicplayer.ui.player.full.MusicPlayActivity
+import gd.app.musicplayer.ui.player.full.PlaybackProgressUiState
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
-import javax.inject.Inject
+import gd.app.musicplayer.ui.player.full.TrackUiState
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() {
-    @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
-    @Inject lateinit var playbackUiPreferenceStore: PlaybackUiPreferenceStore
 
-    private val viewModel: PlayerViewModel by viewModels()
-    private val pagerAdapter by lazy { QueueControlPagerAdapter { PlayQueueActivity.start(requireContext()) } }
+    private val playerViewModel: PlayerViewModel by viewModels()
+    private val queueViewModel: QueueViewModel by viewModels()
 
-    private var pagerSyncFromState = false
-    private var slidingSwitchEnabled = true
+    private var isFromMusicPlayActivity = false
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentQueueControlBinding =
         FragmentQueueControlBinding.inflate(inflater)
@@ -47,58 +39,26 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
     ) {
         super.onBindingCreated(binding, savedInstanceState)
 
+        isFromMusicPlayActivity =
+            arguments?.getString(ARG_FROM_CLASS) == MusicPlayActivity::class.java.name
+
         applyInsets(binding)
-        binding.mainControlPager.adapter = pagerAdapter
-        binding.mainControlPager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
-            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) = Unit
-
-            override fun onPageScrollStateChanged(state: Int) = Unit
-
-            override fun onPageSelected(position: Int) {
-                if (pagerSyncFromState || !pagerAdapter.isSwipeEnabled) return
-                if (isSlidingSwitchEnabled()) {
-                    setSlidingSwitchEnabled(false)
-                    pagerAdapter.updateSlideHintEnabled(false)
-                }
-//                val state = viewModel.playbackState.value
-//                if (state.queue.isNotEmpty() && position in state.queue.indices) {
-//                    viewModel.playQueue(requireContext(), state.queue, position)
-//                }
-            }
-        })
-
-        binding.mainControlPlayPause.setOnClickListener {
-//            val state = viewModel.playbackState.value
-//            if (state.queue.isEmpty()) {
-//                viewLifecycleOwner.lifecycleScope.launch {
-//                    viewModel.playAllTracks(requireContext())
-//                }
-//            } else {
-//                viewModel.togglePlayPause(requireContext())
-//            }
-        }
-        binding.mainControlLocation.setOnClickListener {
-            (parentFragmentManager.findFragmentByTag(PlaybackQueueFragment::class.java.simpleName) as? PlaybackQueueFragment)
-                ?.scrollToCurrentTrack()
-        }
-
-        observePlayback()
-        observePreferences()
+        setupClickListeners(binding)
+        observeTrackMetadata()
+        observePlaybackProgress()
+        observeQueueState()
     }
 
     private fun applyInsets(binding: FragmentQueueControlBinding) {
-
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainBottomControlPanel) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val toolbarHeight = resources.getDimensionPixelSize(R.dimen.main_control_banner_height) + systemBars.bottom
+            val toolbarHeight =
+                resources.getDimensionPixelSize(R.dimen.main_control_banner_height) + systemBars.bottom
 
             view.updateLayoutParams {
                 height = toolbarHeight
             }
-
-            view.updatePadding(
-                bottom = systemBars.bottom
-            )
+            view.updatePadding(bottom = systemBars.bottom)
 
             insets
         }
@@ -106,142 +66,112 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
         ViewCompat.requestApplyInsets(binding.mainBottomControlPanel)
     }
 
-    private fun observePlayback() {
-//        viewLifecycleOwner.lifecycleScope.launch {
-//            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-//                viewModel.playbackState.collect { state ->
-//                    val binding = requireBinding()
-//                    binding.mainControlPlayPause.isSelected = state.isPlaying
-//                    binding.mainMusicProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
-//                    binding.mainMusicProgress.setProgress(state.positionMs.coerceAtLeast(0L).toInt())
-//
-//                    val queue = state.queue.ifEmpty { listOf(placeholderMusic()) }
-//                    pagerAdapter.submitQueue(
-//                        queue = queue,
-//                        swipeEnabled = musicPreferencesRepository.getBooleanPreference(KEY_SWIPE_CHANGE_SONGS, true),
-//                        showSlideHint = musicPreferencesRepository.isSlidingSwitchEnabled()
-//                    )
-//                    val targetIndex = state.currentIndex.takeIf { it in queue.indices } ?: 0
-//                    if (binding.mainControlPager.currentItem != targetIndex) {
-//                        pagerSyncFromState = true
-//                        binding.mainControlPager.setCurrentItem(targetIndex, false)
-//                        pagerSyncFromState = false
-//                    }
-//                }
-//            }
-//        }
+    private fun setupClickListeners(binding: FragmentQueueControlBinding) = with(binding) {
+        mainControlPlayPause.setOnClickListener { onPlayPauseClicked() }
+        mainControlLocation.setOnClickListener { scrollToCurrentTrack() }
+
+        val openPlayerClick = { handleMainPanelClick() }
+        itemMainControlAlbum.setOnClickListener { openPlayerClick() }
+        itemMainControlTitle.setOnClickListener { openPlayerClick() }
+        itemMainControlArtist.setOnClickListener { openPlayerClick() }
     }
 
-    private fun observePreferences() {
+    private fun observeTrackMetadata() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    playbackUiPreferenceStore.slidingSwitchEnabled.collect { enabled ->
-                        slidingSwitchEnabled = enabled
-                        pagerAdapter.updateSlideHintEnabled(enabled)
-                    }
-                }
-
-                launch {
-                    settingPreferencesDataStore.observeSettingPreferences().collect { preferences ->
-                    val enabled = preferences.audio.swipeChangeSongsEnabled
-                    requireBinding().mainControlPager.isEnabled = enabled
-                    pagerAdapter.updateSwipeEnabled(enabled)
-                    pagerAdapter.updateSlideHintEnabled(slidingSwitchEnabled)
-                    }
+                playerViewModel.trackUiState.collect { state ->
+                    renderTrackMetadata(state)
                 }
             }
         }
     }
 
-    private fun isSlidingSwitchEnabled(): Boolean {
-        return slidingSwitchEnabled
-    }
-
-    private fun setSlidingSwitchEnabled(enabled: Boolean) {
-        slidingSwitchEnabled = enabled
+    private fun observePlaybackProgress() {
         viewLifecycleOwner.lifecycleScope.launch {
-            playbackUiPreferenceStore.setSlidingSwitchEnabled(enabled)
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playerViewModel.progressUiState.collect { state ->
+                    renderPlaybackProgress(state)
+                }
+            }
         }
     }
 
-    private fun placeholderMusic(): Music = Music(
-        id = -1L,
-        title = getString(R.string.music),
-        artist = getString(R.string.artist),
-        album = "",
-        albumId = "",
-        playlistId = 0L,
-        data = null,
-        duration = 0
-    )
+    private fun observeQueueState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    queueViewModel.queueState,
+                    playerViewModel.trackUiState
+                ) { queueState, trackState ->
+                    queueState to trackState
+                }.collect { (queueState, trackState) ->
+                    val binding = requireBinding()
+                    val hasQueue = queueState.queue.isNotEmpty()
 
-    private companion object {
-    }
-}
+                    binding.mainControlLocation.isEnabled = hasQueue
+                    binding.mainControlLocation.alpha = if (hasQueue) 1f else 0.4f
+                    binding.mainControlLocation.isSelected =
+                        hasQueue && queueState.currentIndex in queueState.queue.indices
 
-private class QueueControlPagerAdapter(
-    private val onItemClick: () -> Unit
-) : PagerAdapter() {
-    private val realQueue = mutableListOf<Music>()
-    private val displayQueue = mutableListOf<Music>()
-
-    var isSwipeEnabled: Boolean = true
-        private set
-
-    private var showSlideHint = true
-
-    fun submitQueue(queue: List<Music>, swipeEnabled: Boolean, showSlideHint: Boolean) {
-        val loopFriendlyQueue = if (queue.size == 2) listOf(queue[0], queue[1], queue[0], queue[1]) else queue
-        realQueue.clear()
-        realQueue.addAll(queue)
-        displayQueue.clear()
-        displayQueue.addAll(loopFriendlyQueue)
-        isSwipeEnabled = swipeEnabled
-        this.showSlideHint = showSlideHint
-        notifyDataSetChanged()
-    }
-
-    fun updateSwipeEnabled(enabled: Boolean) {
-        if (isSwipeEnabled == enabled) return
-        isSwipeEnabled = enabled
-        notifyDataSetChanged()
-    }
-
-    fun updateSlideHintEnabled(enabled: Boolean) {
-        if (showSlideHint == enabled) return
-        showSlideHint = enabled
-        notifyDataSetChanged()
-    }
-
-    override fun getCount(): Int = displayQueue.size
-
-    override fun isViewFromObject(view: View, `object`: Any): Boolean = view === `object`
-
-    override fun instantiateItem(container: ViewGroup, position: Int): Any {
-        val binding = ItemMainControlPagerBinding.inflate(
-            LayoutInflater.from(container.context),
-            container,
-            false
-        )
-        val music = displayQueue[position]
-        binding.itemMainControlTitle.text = music.title
-        binding.itemMainControlArtist.text =
-            if (isSwipeEnabled && showSlideHint && realQueue.size > 1) {
-                binding.root.context.getString(R.string.sliding_to_swtich)
-            } else {
-                music.artist.ifBlank { binding.root.context.getString(R.string.artist) }
+                    if (!hasQueue && trackState.musicId == null) {
+                        renderTrackMetadata(TrackUiState())
+                    }
+                }
             }
-        music.loadMusicArtwork(binding.itemMainControlAlbum)
-        binding.root.setOnClickListener { onItemClick() }
-        container.addView(binding.root)
-        return binding.root
+        }
     }
 
-    override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {
-        container.removeView(`object` as View)
+    private fun renderTrackMetadata(state: TrackUiState) {
+        val binding = requireBinding()
+
+        binding.itemMainControlTitle.text = state.title.ifBlank {
+            getString(R.string.music)
+        }
+        binding.itemMainControlArtist.text = state.artist.ifBlank {
+            getString(R.string.artist)
+        }
+        binding.itemMainControlAlbum.loadCircularArtwork(
+            state.artworkSource ?: "",
+            R.drawable.notify_default_album_circle
+        )
     }
 
-    override fun getItemPosition(`object`: Any): Int = POSITION_NONE
+    private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
+        val binding = requireBinding()
+        val durationMs = state.durationMs.coerceAtLeast(1L)
+        val positionMs = state.positionMs.coerceIn(0L, durationMs)
+
+        binding.mainControlPlayPause.isSelected = state.isPlaying
+        binding.mainMusicProgress.setMax(durationMs.toInt())
+        binding.mainMusicProgress.setProgress(positionMs.toInt())
+    }
+
+    private fun onPlayPauseClicked() {
+        playerViewModel.onPrimaryPlayPauseClicked(requireContext())
+    }
+
+    private fun handleMainPanelClick() {
+        if (isFromMusicPlayActivity) {
+            requireActivity().finish()
+        } else {
+            MusicPlayActivity.start(requireContext())
+        }
+    }
+
+    private fun scrollToCurrentTrack() {
+        (parentFragmentManager.findFragmentByTag(PlaybackQueueFragment::class.java.simpleName) as? PlaybackQueueFragment)
+            ?.scrollToCurrentTrack()
+    }
+
+    companion object {
+        private const val ARG_FROM_CLASS = "from_class"
+
+        fun newInstance(fromClass: String): QueueControlFragment {
+            return QueueControlFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_FROM_CLASS, fromClass)
+                }
+            }
+        }
+    }
 }
-

@@ -40,7 +40,7 @@ class MaterialDialogConfigFactory @Inject constructor(
             dimAmount = DEFAULT_DIM_AMOUNT
             cancelable = true
 
-            itemIconTintList = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.disabledSelectedDefaultColors(
+            itemIconTintList = ViewStateDrawables.disabledSelectedDefaultColors(
                 colors.disabledItemColor,
                 palette.accentColor,
                 colors.disabledItemColor
@@ -79,13 +79,13 @@ class MaterialDialogConfigFactory @Inject constructor(
         positiveButtonTextColor = Color.WHITE
         negativeButtonTextColor = colors.secondaryButtonTextColor
 
-        positiveButtonBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+        positiveButtonBackground = DrawableUtil.roundedRipple(
             colors.accentColor,
             colors.primaryRippleColor,
             DEFAULT_CORNER_RADIUS
         )
 
-        negativeButtonBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+        negativeButtonBackground = DrawableUtil.roundedRipple(
             colors.secondaryRippleColor,
             colors.secondaryPressedColor,
             DEFAULT_CORNER_RADIUS
@@ -99,13 +99,13 @@ class MaterialDialogConfigFactory @Inject constructor(
         negativeButtonTextColor = colors.secondaryButtonTextColor
         neutralButtonTextColor = colors.secondaryButtonTextColor
 
-        positiveButtonBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+        positiveButtonBackground = DrawableUtil.roundedRipple(
             colors.accentColor,
             colors.primaryRippleColor,
             DEFAULT_CORNER_RADIUS
         )
 
-        val secondaryBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.roundedRipple(
+        val secondaryBackground = DrawableUtil.roundedRipple(
             colors.secondaryRippleColor,
             colors.secondaryPressedColor,
             DEFAULT_CORNER_RADIUS

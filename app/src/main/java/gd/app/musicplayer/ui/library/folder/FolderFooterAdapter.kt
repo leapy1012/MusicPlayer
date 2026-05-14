@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.databinding.FragmentFolderFooterBinding
 
 class FolderFooterAdapter(
+    private val applyTheme: (android.view.View) -> Unit,
     private val onScanClick: () -> Unit
 ) : RecyclerView.Adapter<FolderFooterAdapter.FolderFooterViewHolder>() {
 
@@ -15,6 +16,7 @@ class FolderFooterAdapter(
             parent,
             false
         )
+        applyTheme(binding.root)
         return FolderFooterViewHolder(binding, onScanClick)
     }
 

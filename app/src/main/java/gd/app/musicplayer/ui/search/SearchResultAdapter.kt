@@ -30,6 +30,8 @@ class SearchResultAdapter(
         fun onSongClicked(song: Music)
         fun onSongMenuClicked(song: Music)
         fun onMusicSetClicked(musicSet: MusicSet)
+
+        fun onMusicSetMenuClicked(musicSet: MusicSet)
     }
 
     private val inflater = LayoutInflater.from(context)
@@ -110,6 +112,9 @@ class SearchResultAdapter(
                 holder.binding.musicItemTitle.text = highlight(item.musicSet.name)
                 holder.itemView.setOnClickListener {
                     listener?.onMusicSetClicked(item.musicSet)
+                }
+                holder.binding.musicItemMenu.setOnClickListener {
+                    listener?.onMusicSetMenuClicked(item.musicSet)
                 }
             }
         }

@@ -41,7 +41,7 @@ class AlbumActivity : BasePlayerSheetActivity() {
         if (savedInstanceState == null) {
             val fragment = readMusicSetFromIntent()?.let { musicSet ->
                 when (musicSet) {
-                    is MusicSet.Artists, is MusicSet.Albums, is MusicSet.Genres -> MusicSetListFragment.Companion.newInstance(musicSet)
+                    is MusicSet.Artists, is MusicSet.Albums, is MusicSet.Genres -> MusicSetListFragment.newInstance(musicSet)
                     is MusicSet.Folders -> FolderFragment.newInstance()
                     is MusicSet.Playlists -> PlaylistFragment.newInstance()
                     else -> null

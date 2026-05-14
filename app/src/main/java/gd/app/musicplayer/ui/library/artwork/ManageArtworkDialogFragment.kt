@@ -1,13 +1,9 @@
 package gd.app.musicplayer.ui.library.artwork
 
-import android.content.res.ColorStateList
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -15,15 +11,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.designsystem.theme.messageColor
-import gd.app.musicplayer.core.designsystem.theme.rippleColor
-import gd.app.musicplayer.core.designsystem.theme.titleColor
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.repository.ArtworkRepo
-import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.databinding.DialogManageArtworkBinding
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -31,7 +22,6 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClickListener {
 
-    @Inject lateinit var themeRepo: ThemeRepo
     @Inject lateinit var artworkRepo: ArtworkRepo
 
     private var _binding: DialogManageArtworkBinding? = null
@@ -55,7 +45,6 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val path = result.data?.getStringExtra(ArtworkCropActivity.RESULT_ARTWORK_PATH)
                 ?: return@registerForActivityResult
-            dismiss()
             applyArtwork(path)
         }
 
@@ -70,18 +59,13 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        applyDialogBackground(binding.root)
-        applyTagStyles(binding.sheetContent)
-
         binding.albumFromReset.setOnClickListener(this)
         binding.albumFromGallery.setOnClickListener(this)
         binding.albumFromAlbumArtwork.setOnClickListener(this)
         binding.albumApplyAll.setOnClickListener(this)
 
-        applyActionStyling()
         renderApplyAll()
         loadTrackAlbumArtwork()
-
     }
 
     override fun onDestroyView() {
@@ -106,13 +90,11 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
             }
 
             R.id.album_from_reset -> {
-                dismiss()
                 applyArtwork(null)
             }
 
             R.id.album_from_album_artwork -> {
                 val artworkPath = trackAlbumArtworkPath ?: return
-                dismiss()
                 applyArtwork(artworkPath)
             }
 
@@ -134,103 +116,6 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
             is MusicSet.Genre -> getString(R.string.album_apply_all_genre)
             else -> null
         }
-    }
-
-    private fun applyActionStyling() {
-        val palette = themeRepo.getCorePalette()
-        val actionViews = listOf(
-            binding.dialogTitle,
-            binding.albumFromReset,
-            binding.albumFromGallery,
-            binding.albumFromAlbumArtwork,
-            binding.albumApplyAllType
-        )
-        actionViews.forEach { view ->
-            view.setTextColor(palette.titleColor)
-        }
-
-        val clickableRows = listOf(
-            binding.albumFromReset,
-            binding.albumFromGallery,
-            binding.albumFromAlbumArtwork,
-            binding.albumApplyAll
-        )
-        clickableRows.forEach { row ->
-            row.background = DrawableUtil.rectRipple(
-                fillColor = Color.TRANSPARENT,
-                rippleColor = palette.rippleColor
-            )
-        }
-    }
-
-    private fun applyDialogBackground(rootView: View) {
-        val context = rootView.context
-        rootView.background = themeRepo
-            .getCorePalette()
-            .getDialogSurfaceDrawable(context)
-    }
-
-    private fun applyTagStyles(rootView: View) {
-        val accentColor = themeRepo.getAccentColor()
-        val palette = themeRepo.getCorePalette()
-
-        val titleColor = palette.titleColor
-        val messageColor = palette.messageColor
-        val rippleColor = palette.rippleColor
-        val selectBoxNormalColor =
-            if (titleColor == Color.WHITE) -2171170 else -3355444
-
-        fun apply(view: View) {
-            when (view.tag as? String) {
-                "dialogTitle", "dialogTitleColor", "dialogTitleIcon", "dialogItem" -> {
-                    when (view) {
-                        is TextView -> view.setTextColor(titleColor)
-                        is ImageView -> view.imageTintList = ColorStateList.valueOf(titleColor)
-                    }
-                }
-
-                "dialogMessage", "dialogMessageColor" -> {
-                    when (view) {
-                        is TextView -> view.setTextColor(messageColor)
-                        is ImageView -> view.imageTintList = ColorStateList.valueOf(messageColor)
-                    }
-                }
-
-                "dialogItemBackground" -> {
-                    view.background = DrawableUtil.rectRipple(
-                        fillColor = Color.TRANSPARENT,
-                        rippleColor = rippleColor
-                    )
-                }
-
-                "dialogSelectBox" -> {
-                    if (view is ImageView) {
-                        view.imageTintList = ColorStateList(
-                            arrayOf(
-                                intArrayOf(android.R.attr.state_selected),
-                                intArrayOf(android.R.attr.state_checked),
-                                intArrayOf(android.R.attr.state_activated),
-                                intArrayOf()
-                            ),
-                            intArrayOf(
-                                accentColor,
-                                accentColor,
-                                accentColor,
-                                selectBoxNormalColor
-                            )
-                        )
-                    }
-                }
-            }
-
-            if (view is ViewGroup) {
-                for (index in 0 until view.childCount) {
-                    apply(view.getChildAt(index))
-                }
-            }
-        }
-
-        apply(rootView)
     }
 
     private fun loadTrackAlbumArtwork() {
@@ -269,6 +154,7 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
                 }
             )
             ToastUtil.show(appContext, R.string.succeed)
+            dismissAllowingStateLoss()
         }
     }
 

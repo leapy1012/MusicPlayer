@@ -4,20 +4,16 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.databinding.ActivityWidgetBinding
-import gd.app.musicplayer.databinding.ActivityWidgetItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 
@@ -78,7 +74,7 @@ class WidgetActivity : BaseActivity() {
             )
         }
 
-        binding.recyclerView.adapter = WidgetAdapter(
+        binding.recyclerView.adapter = WidgetSizeAdapter(
             items = WidgetCatalog.items,
             applyTheme = { root ->
                 themeEngine.apply(root)
@@ -112,18 +108,19 @@ class WidgetActivity : BaseActivity() {
     }
 
     private fun showManualAddDialog() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.widget)
-            .setMessage(
+        showMessageDialog(
+            createMessageDialogConfig(
+                title = getString(R.string.widget),
+                message =
                 listOf(
                     getString(R.string.dlg_add_widget_tips_1),
                     getString(R.string.dlg_add_widget_tips_2),
                     getString(R.string.dlg_add_widget_tips_3),
                     getString(R.string.dlg_add_widget_tips_4)
-                ).joinToString(separator = "\n\n")
+                ).joinToString(separator = "\n\n"),
+                positiveText = getString(android.R.string.ok)
             )
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
+        )
     }
 
     companion object {
@@ -131,65 +128,6 @@ class WidgetActivity : BaseActivity() {
             context.startActivityCompat(
                 Intent(context, WidgetActivity::class.java)
             )
-        }
-    }
-}
-
-private class WidgetAdapter(
-    private val items: List<WidgetProviderSpec>,
-    private val applyTheme: (View) -> Unit,
-    private val onAddClicked: (WidgetProviderSpec) -> Unit
-) : RecyclerView.Adapter<WidgetAdapter.ViewHolder>() {
-
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int
-    ): ViewHolder {
-        val binding = ActivityWidgetItemBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
-
-        applyTheme(binding.root)
-
-        return ViewHolder(
-            binding = binding,
-            onAddClicked = onAddClicked
-        )
-    }
-
-    override fun onBindViewHolder(
-        holder: ViewHolder,
-        position: Int
-    ) {
-        holder.bind(items[position])
-    }
-
-    override fun getItemCount(): Int {
-        return items.size
-    }
-
-    class ViewHolder(
-        private val binding: ActivityWidgetItemBinding,
-        private val onAddClicked: (WidgetProviderSpec) -> Unit
-    ) : RecyclerView.ViewHolder(binding.root) {
-
-        fun bind(item: WidgetProviderSpec) = with(binding) {
-            itemTitle.setText(item.titleRes)
-            itemSize.text = root.context.getString(
-                R.string.size
-            ) + ": " + item.classify
-
-            itemImage.setImageResource(item.previewRes)
-
-            root.setOnClickListener {
-                onAddClicked(item)
-            }
-
-            itemAdd.setOnClickListener {
-                onAddClicked(item)
-            }
         }
     }
 }

@@ -4,10 +4,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.isFavorite
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.domain.model.MenuItemModel
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
@@ -23,7 +24,7 @@ import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCas
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.ui.selection.MusicEditActivity
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import kotlinx.coroutines.launch
 
@@ -160,7 +161,7 @@ class EditBottomMenuController(
             }
 
             R.string.add_to -> {
-                ActivityPlaylistSelect.start(activity, buildTargetMusicList(selectedSongs, false))
+                PlaylistSelectActivity.start(activity, buildTargetMusicList(selectedSongs, false))
             }
 
             R.string.operation_enqueue -> {
@@ -225,20 +226,23 @@ class EditBottomMenuController(
     }
 
     private fun confirmDeleteSelectedSongs(songs: List<Music>) {
-        AlertDialog.Builder(activity)
-            .setTitle(R.string.delete)
-            .setMessage(activity.resources.getQuantityString(R.plurals.plurals_select_music, songs.size, songs.size))
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                activity.lifecycleScope.launch {
-                    val deletedCount = deleteTracksUseCase(songs)
-                    ToastUtil.show(
-                        activity,
-                        if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
-                    )
+        activity.showMessageDialog(
+            activity.createMessageDialogConfig(
+                title = activity.getString(R.string.delete),
+                message = activity.resources.getQuantityString(R.plurals.plurals_select_music, songs.size, songs.size),
+                negativeText = activity.getString(android.R.string.cancel),
+                positiveText = activity.getString(R.string.delete),
+                positiveClickListener = { _, _ ->
+                    activity.lifecycleScope.launch {
+                        val deletedCount = deleteTracksUseCase(songs)
+                        ToastUtil.show(
+                            activity,
+                            if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
+                        )
+                    }
                 }
-            }
-            .show()
+            )
+        )
     }
 
     private fun hideSelectedSongs(songs: List<Music>) {

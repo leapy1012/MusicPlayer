@@ -4,17 +4,21 @@ import android.content.Context
 import android.graphics.Paint
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
-import android.widget.ArrayAdapter
+import android.widget.BaseAdapter
+import android.widget.ImageView
 import android.widget.ListView
 import android.widget.PopupWindow
+import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.graphics.drawable.DrawableCompat
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
+import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
 import kotlin.math.max
 import dagger.hilt.android.EntryPointAccessors
 import gd.app.musicplayer.di.ThemeEntryPoint
@@ -100,13 +104,37 @@ class CustomSpinner @JvmOverloads constructor(
     private fun showPopup(anchor: View, items: Array<String>) {
         popupWindow?.dismiss()
 
+        val popupTextColor = BasePopupBackgroundProvider.popupTextColor(context)
+        android.util.Log.e("Leapy", "popupTextColor" + popupTextColor)
+
         val listView = ListView(context).apply {
             divider = null
-            adapter = ArrayAdapter(
-                context,
-                android.R.layout.simple_list_item_1,
-                items
-            )
+            adapter = object : BaseAdapter() {
+                private val inflater = LayoutInflater.from(context)
+
+                override fun getCount(): Int = items.size
+
+                override fun getItem(position: Int): String = items[position]
+
+                override fun getItemId(position: Int): Long = position.toLong()
+
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val view = convertView ?: inflater.inflate(
+                        R.layout.b_popupwindow_list_item,
+                        parent,
+                        false
+                    )
+                    view.findViewById<ImageView>(R.id.b_popup_left_icon).visibility = View.GONE
+                    view.findViewById<ImageView>(R.id.b_popup_right_icon).visibility = View.GONE
+                    view.findViewById<ImageView>(R.id.b_popup_arrow).visibility = View.GONE
+                    view.findViewById<TextView>(R.id.b_popup_text).apply {
+                        text = getItem(position)
+                        setTextColor(popupTextColor)
+                        textSize = 14f
+                    }
+                    return view
+                }
+            }
             setOnItemClickListener { _, itemView, position, id ->
                 popupWindow?.dismiss()
                 if (selectedIndex != position) {
@@ -156,16 +184,17 @@ class CustomSpinner @JvmOverloads constructor(
     }
 
     private object BasePopupBackgroundProvider {
+        private fun palette(context: Context) = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            ThemeEntryPoint::class.java
+        ).themeRepo.getCorePalette()
 
         fun background(context: Context): Drawable {
-            val entryPoint = EntryPointAccessors.fromApplication(
-                context.applicationContext,
-                ThemeEntryPoint::class.java
-            )
+            return palette(context).getPopupBackgroundDrawable(context)
+        }
 
-            return entryPoint.themeRepo
-                .getCorePalette()
-                .getPopupBackgroundDrawable(context)
+        fun popupTextColor(context: Context): Int {
+            return palette(context).popupTitleColor
         }
     }
 }

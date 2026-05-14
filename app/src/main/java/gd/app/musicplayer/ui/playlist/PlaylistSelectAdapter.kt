@@ -25,6 +25,7 @@ class PlaylistSelectAdapter(
 ) : ListAdapter<PlaylistRow, RecyclerView.ViewHolder>(RowDiffCallback) {
 
     private val selectedPlaylistIds = linkedSetOf<Long>()
+    private val lockedPlaylistIds = linkedSetOf<Long>()
     private var selectionCountListener: OnSelectionCountChangedListener? = null
     private var createPlaylistClickListener: (() -> Unit)? = null
     private var selectionChangedListener: ((Set<MusicSet>) -> Unit)? = null
@@ -62,7 +63,11 @@ class PlaylistSelectAdapter(
         when (holder) {
             is PlaylistViewHolder -> {
                 val item = (getItem(position) as PlaylistRow.Item).playlist
-                holder.bind(item, item.id in selectedPlaylistIds)
+                holder.bind(
+                    item = item,
+                    selected = isChecked(item.id),
+                    locked = isLocked(item.id)
+                )
             }
         }
     }
@@ -79,7 +84,10 @@ class PlaylistSelectAdapter(
 
         if (holder is PlaylistViewHolder && payloads.contains(PAYLOAD_SELECTION)) {
             val item = (getItem(position) as PlaylistRow.Item).playlist
-            holder.bindSelection(item.id in selectedPlaylistIds)
+            holder.bindSelection(
+                selected = isChecked(item.id),
+                locked = isLocked(item.id)
+            )
             return
         }
 
@@ -100,15 +108,22 @@ class PlaylistSelectAdapter(
         val selectedIds = selectedItems.mapNotNullTo(linkedSetOf()) { set ->
             (set as? MusicSet.Playlist)?.id
         }
+        val lockedIds = rows.mapNotNullTo(linkedSetOf()) { row ->
+            val playlist = (row as? PlaylistRow.Item)?.playlist ?: return@mapNotNullTo null
+            playlist.id.takeIf { playlist.disabled }
+        }
 
-        selectedPlaylistIds.retainAll(rows.mapNotNullTo(hashSetOf()) {
+        val availableIds = rows.mapNotNullTo(hashSetOf()) {
             (it as? PlaylistRow.Item)?.playlist?.id
-        })
+        }
+
         selectedPlaylistIds.clear()
         selectedPlaylistIds.addAll(selectedIds)
-        selectedPlaylistIds.retainAll(rows.mapNotNullTo(hashSetOf()) {
-            (it as? PlaylistRow.Item)?.playlist?.id
-        })
+        selectedPlaylistIds.retainAll(availableIds)
+        selectedPlaylistIds.removeAll(lockedIds)
+
+        lockedPlaylistIds.clear()
+        lockedPlaylistIds.addAll(lockedIds)
 
         submitList(rows) {
             notifySelectionStateChanged(fullRefresh = true)
@@ -120,6 +135,7 @@ class PlaylistSelectAdapter(
         items.forEach { set ->
             (set as? MusicSet.Playlist)?.id?.let(selectedPlaylistIds::add)
         }
+        selectedPlaylistIds.removeAll(lockedPlaylistIds)
         currentList
             .mapNotNullTo(hashSetOf()) { (it as? PlaylistRow.Item)?.playlist?.id }
             .also(selectedPlaylistIds::retainAll)
@@ -128,6 +144,7 @@ class PlaylistSelectAdapter(
 
     fun selectPlaylist(playlist: MusicSet) {
         val id = (playlist as? MusicSet.Playlist)?.id ?: return
+        if (id in lockedPlaylistIds) return
         if (selectedPlaylistIds.add(id)) {
             notifySelectionStateChanged(changedIds = setOf(id))
         }
@@ -174,11 +191,11 @@ class PlaylistSelectAdapter(
     }
 
     private fun togglePlaylistSelection(playlist: MusicSet.Playlist) {
-        val isSelected = if (selectedPlaylistIds.remove(playlist.id)) {
-            false
-        } else {
+        if (playlist.id in lockedPlaylistIds) return
+        if (playlist.id !in selectedPlaylistIds) {
             selectedPlaylistIds.add(playlist.id)
-            true
+        } else {
+            selectedPlaylistIds.remove(playlist.id)
         }
         notifySelectionStateChanged(changedIds = setOf(playlist.id))
     }
@@ -193,35 +210,30 @@ class PlaylistSelectAdapter(
             itemView.setOnClickListener(this)
         }
 
-        fun bind(item: MusicSet.Playlist, selected: Boolean) {
+        fun bind(item: MusicSet.Playlist, selected: Boolean, locked: Boolean) {
             playlist = item
-            val context = binding.root.context
 
             val fallbackResId = item.resolvePlaceholderRes(false)
-            if (item.id == 1L) {
-                setImageResourceSafely(binding.musicItemAlbum, fallbackResId)
-            } else {
-                item.loadArtwork(binding.musicItemAlbum, fallbackResId)
-            }
+            item.loadArtwork(binding.musicItemAlbum, fallbackResId)
 
             binding.musicItemTitle.text = item.name
             binding.musicItemArtist.text = item.toDisplayInfo(binding.root.resources)?.subtitle
-            bindSelection(selected)
+            bindSelection(selected, locked)
 
-            val disabled = item.disabled
+            val disabled = item.disabled || locked
             binding.root.alpha = if (disabled) 0.4f else 1f
             binding.root.isEnabled = !disabled
             binding.musicItemMenu.isEnabled = !disabled
         }
 
-        fun bindSelection(selected: Boolean) {
+        fun bindSelection(selected: Boolean, locked: Boolean) {
             val context = binding.root.context
             binding.musicItemMenu.isSelected = selected
             binding.musicItemMenu.setImageResource(
                 if (selected) R.drawable.vector_multi_checked else R.drawable.vector_multi_unchecked
             )
             binding.musicItemMenu.setColorFilter(
-                if (selected) accentColor else ContextCompat.getColor(context, R.color.white)
+                if (selected && !locked) accentColor else ContextCompat.getColor(context, R.color.white)
             )
         }
 
@@ -258,6 +270,11 @@ class PlaylistSelectAdapter(
         const val VIEW_TYPE_PLAYLIST = 1
         const val PAYLOAD_SELECTION = "selection"
     }
+
+    private fun isChecked(playlistId: Long): Boolean =
+        playlistId in selectedPlaylistIds || playlistId in lockedPlaylistIds
+
+    private fun isLocked(playlistId: Long): Boolean = playlistId in lockedPlaylistIds
 }
 
 sealed class PlaylistRow {

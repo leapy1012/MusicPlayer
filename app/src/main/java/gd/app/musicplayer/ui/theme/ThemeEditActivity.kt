@@ -113,7 +113,7 @@ class ThemeEditActivity : BaseActivity() {
     }
 
     private fun setupInsets() {
-        binding.root.applySystemBarInsets(statusBarView = binding.statusBarSpace)
+        binding.root.applySystemBarInsets(statusBarView = binding.statusBarSpace, binding.root)
     }
 
     private fun setupViews() {

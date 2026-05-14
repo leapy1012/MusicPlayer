@@ -2,12 +2,14 @@ package gd.app.musicplayer.ui.library.tracks
 
 import android.os.Bundle
 import android.view.View
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.ConcatAdapter
+import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.ToastUtil
@@ -20,7 +22,7 @@ import gd.app.musicplayer.domain.usecase.preferences.GetReplaySongEnabledUseCase
 import gd.app.musicplayer.domain.usecase.preferences.IsTrackClickOperationEnabledUseCase
 import gd.app.musicplayer.ui.library.albums.ArtistAlbumHeaderAdapter
 import gd.app.musicplayer.ui.player.queue.PlayQueueActivity
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.selection.MusicEditActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
@@ -65,6 +67,7 @@ class TrackListFragment : BaseListFragment() {
 
         setupAdapters()
         setupRecyclerView(concatAdapter)
+        setupDragAndDrop(binding)
         setupEmptyStateController(binding)
 
         observeUiState()
@@ -81,7 +84,7 @@ class TrackListFragment : BaseListFragment() {
             theme = themeRepo.getCorePalette(),
             onItemClick = ::onTrackClicked,
             onMenuClick = ::showMusicOptionsDialog,
-            onItemLongClick = ::openMusicEditActivity
+            onItemLongClick = if (supportsTrackReorder()) null else ::openMusicEditActivity
         )
 
         concatAdapter = if (musicSet is MusicSet.Artist) {
@@ -105,6 +108,21 @@ class TrackListFragment : BaseListFragment() {
         ).apply {
             configureForMusicSet()
         }
+    }
+
+    private fun setupDragAndDrop(binding: LayoutRecyclerviewBinding) {
+        if (!supportsTrackReorder()) return
+
+        val callback = DragItemTouchHelperCallback.Builder(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+            0
+        )
+            .setDragEnabled(true)
+            .onItemDragListener(trackAdapter::onItemMove)
+            .onDragFinishedListener(::persistDraggedTrackOrder)
+            .build()
+
+        ItemTouchHelper(callback).attachToRecyclerView(binding.recyclerview)
     }
 
     private fun observeUiState() {
@@ -145,7 +163,7 @@ class TrackListFragment : BaseListFragment() {
         when (event) {
             TrackListEvent.OpenPlayQueue -> PlayQueueActivity.start(requireContext())
 
-            is TrackListEvent.OpenAddToPlaylist -> ActivityPlaylistSelect.start(requireContext(), event.tracks)
+            is TrackListEvent.OpenAddToPlaylist -> PlaylistSelectActivity.start(requireContext(), event.tracks)
 
             is TrackListEvent.ShowMessage -> ToastUtil.show(requireContext(), event.messageRes)
 
@@ -217,7 +235,7 @@ class TrackListFragment : BaseListFragment() {
     }
 
     private fun showMusicOptionsDialog(music: Music) {
-        MusicOptionsDialog.Companion
+        MusicOptionsDialog
             .newInstance(
                 music = music,
                 musicSet = musicSet
@@ -237,8 +255,14 @@ class TrackListFragment : BaseListFragment() {
         )
     }
 
+    private fun persistDraggedTrackOrder() {
+        val reorderedTracks = trackAdapter.consumePendingReorder() ?: return
+        currentTracks = reorderedTracks
+        viewModel.updateTrackOrder(musicSet, reorderedTracks)
+    }
+
     private fun openAlbumMusic(album: MusicSet.Album) {
-        AlbumMusicActivity.Companion.start(
+        AlbumMusicActivity.start(
             context = requireContext(),
             musicSet = album
         )
@@ -316,7 +340,7 @@ class TrackListFragment : BaseListFragment() {
     }
 
     private fun showManageArtworkDialog() {
-        ManageArtworkDialogFragment.Companion
+        ManageArtworkDialogFragment
             .newInstance(
                 ArtworkRequest.MusicSetTarget(musicSet)
             )
@@ -324,6 +348,10 @@ class TrackListFragment : BaseListFragment() {
                 parentFragmentManager,
                 ManageArtworkDialogFragment::class.java.simpleName
             )
+    }
+
+    private fun supportsTrackReorder(): Boolean {
+        return musicSet is MusicSet.Playlist || musicSet is MusicSet.Favorites
     }
 
     private fun <T> collectWhenStarted(flow: Flow<T>, collector: (T) -> Unit) {

@@ -146,7 +146,7 @@ class MusicSetAdapter(
             false
         )
 
-        binding.root.prepareItemRoot()
+        binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
         return FolderListMusicSetViewHolder(binding)
     }
@@ -161,7 +161,7 @@ class MusicSetAdapter(
             false
         )
 
-        binding.root.prepareItemRoot()
+        binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
         return MusicSetGridViewHolder(binding)
     }
@@ -176,13 +176,9 @@ class MusicSetAdapter(
             false
         )
 
-        binding.root.prepareItemRoot()
+        binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
         return MusicSetListViewHolder(binding)
-    }
-
-    private fun View.prepareItemRoot() {
-        applyRoundedOutline(R.dimen.item_image_corner_radius)
     }
 
     class DiffCallback : DiffUtil.ItemCallback<MusicSet>() {

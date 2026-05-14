@@ -68,7 +68,7 @@ class RecyclerEmptyStateController(
         val button = root.findViewById<TextView>(R.id.empty_button)
         val usesDarkForegroundPalette = theme.titleColor != Color.WHITE
         button.setTextColor(theme.accentColor)
-        button.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.outlinedRoundedRipple(
+        button.background = DrawableUtil.outlinedRoundedRipple(
             cornerRadius = button.context.dpToPx(100f),
             strokeWidth = button.context.dpToPx(1f),
             strokeColor = if (usesDarkForegroundPalette) 0x1A000000 else 0x33FFFFFF,

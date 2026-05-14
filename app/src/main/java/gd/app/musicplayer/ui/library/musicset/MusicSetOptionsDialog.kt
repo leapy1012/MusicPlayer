@@ -13,13 +13,14 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
-import gd.app.musicplayer.ui.playlist.ActivityPlaylistSelect
+import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import gd.app.musicplayer.ui.tags.EditTagsActivity
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.domain.model.isUserPlaylist
 import gd.app.musicplayer.ui.shortcut.AppShortcutManager
 import gd.app.musicplayer.ui.library.ARG_MUSIC_SET
 import gd.app.musicplayer.ui.library.options.DeleteConfirmDialogFragment
@@ -46,7 +47,7 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
         items += MenuItem.create(R.string.play_next_2, R.drawable.ic_menu_next_play)
         items += MenuItem.create(R.string.operation_enqueue, R.drawable.ic_menu_enqueue)
 
-        if (musicSet is MusicSet.Playlist) {
+        if (musicSet.isUserPlaylist) {
             items += MenuItem.create(R.string.list_rename, R.drawable.ic_menu_rename)
         }
 
@@ -56,7 +57,7 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
             items += MenuItem.create(R.string.add_to, R.drawable.ic_menu_add)
         }
 
-        if (musicSet is MusicSet.Artist || musicSet is MusicSet.Album || musicSet is MusicSet.Playlist || musicSet is MusicSet.Folder || musicSet is MusicSet.Genre) {
+        if (musicSet is MusicSet.Artist || musicSet is MusicSet.Album || musicSet.isUserPlaylist || musicSet is MusicSet.Folder || musicSet is MusicSet.Genre) {
             items += MenuItem.create(R.string.dlg_manage_artwork, R.drawable.ic_menu_artwork)
         }
 
@@ -86,7 +87,7 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
             items += MenuItem.create(R.string.share, R.drawable.ic_menu_share)
         }
 
-        if (musicSet is MusicSet.Playlist) {
+        if (musicSet.isUserPlaylist) {
             items += MenuItem.create(R.string.list_delete, R.drawable.ic_menu_delete)
         }
 
@@ -175,7 +176,7 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     private fun showManageArtworkDialog() {
-        ManageArtworkDialogFragment.Companion
+        ManageArtworkDialogFragment
             .newInstance(ArtworkRequest.MusicSetTarget(musicSet))
             .show(parentFragmentManager, ManageArtworkDialogFragment::class.java.simpleName)
     }
@@ -210,15 +211,15 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
             deleteConfirmResultKey,
             viewLifecycleOwner
         ) { _, bundle ->
-            if (bundle.getBoolean(DeleteConfirmDialogFragment.Companion.RESULT_CONFIRMED, false)) {
-                val deleteSourceFile = bundle.getBoolean(DeleteConfirmDialogFragment.Companion.RESULT_EXTRA_CHECKED, true)
+            if (bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
+                val deleteSourceFile = bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_EXTRA_CHECKED, true)
                 viewModel.deleteSet(musicSet, deleteSourceFile)
                 dismissAllowingStateLoss()
             }
         }
 
         val isPlaylist = musicSet is MusicSet.Playlist
-        DeleteConfirmDialogFragment.Companion.forSetDelete(
+        DeleteConfirmDialogFragment.forSetDelete(
             resultKey = deleteConfirmResultKey,
             setName = musicSet.name,
             isPlaylist = isPlaylist
@@ -228,7 +229,7 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
     private fun handleEvent(event: MusicSetOptionsEvent) {
         when (event) {
             MusicSetOptionsEvent.Dismiss -> dismissAllowingStateLoss()
-            is MusicSetOptionsEvent.OpenAddTo -> ActivityPlaylistSelect.start(requireContext(), event.tracks)
+            is MusicSetOptionsEvent.OpenAddTo -> PlaylistSelectActivity.start(requireContext(), event.tracks)
             is MusicSetOptionsEvent.ShareTracks -> MusicShareSupport.share(requireContext(), event.tracks)
             is MusicSetOptionsEvent.ShowToast -> {
                 if (event.args.isEmpty()) {

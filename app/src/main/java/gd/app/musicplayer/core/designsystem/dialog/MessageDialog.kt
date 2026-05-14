@@ -79,13 +79,13 @@ class MessageDialog(
 
                     messageTextColor = -10066330
 
-                    negativeButtonBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    negativeButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
                     negativeButtonTextColor = -15032591
 
-                    neutralButtonBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    neutralButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
                     neutralButtonTextColor = -15032591
 
-                    positiveButtonBackground = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    positiveButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
                     positiveButtonTextColor = -15032591
 
                     titleTextColor = -16777216

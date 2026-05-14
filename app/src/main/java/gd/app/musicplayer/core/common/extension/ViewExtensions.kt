@@ -1,8 +1,10 @@
 package gd.app.musicplayer.core.common.extension
 
+import android.content.Context
 import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import androidx.activity.ComponentActivity
 import androidx.appcompat.widget.Toolbar
@@ -43,8 +45,11 @@ fun View.applySystemBarInsets(
 
 fun View.applyRoundedOutline(radiusRes: Int) {
     val radius = resources.getDimension(radiusRes)
-    post { outlineProvider = RoundedOutlineProvider(radius) }
-    clipToOutline = true
+    post {
+        outlineProvider = RoundedOutlineProvider(radius)
+        clipToOutline = true
+        invalidateOutline()
+    }
 }
 
 fun Toolbar.navigateBack(fragment: Fragment) {
@@ -81,6 +86,7 @@ internal fun View.updateWidth(width: Int) {
         layoutParams = params
     }
 }
+
 
 
 

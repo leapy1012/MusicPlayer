@@ -18,6 +18,7 @@ import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ShuffleTracksUseCase
 import gd.app.musicplayer.domain.usecase.library.ClearMusicSetUseCase
+import gd.app.musicplayer.domain.usecase.playlist.UpdatePlaylistTrackOrderUseCase
 import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -74,7 +75,8 @@ class TrackListViewModel @Inject constructor(
     private val shuffleTracksUseCase: ShuffleTracksUseCase,
     private val playNextTracksUseCase: PlayNextTracksUseCase,
     private val enqueueTracksUseCase: EnqueueTracksUseCase,
-    private val clearMusicSetUseCase: ClearMusicSetUseCase
+    private val clearMusicSetUseCase: ClearMusicSetUseCase,
+    private val updatePlaylistTrackOrderUseCase: UpdatePlaylistTrackOrderUseCase
 ) : ViewModel() {
 
     private val currentMusicSet = MutableStateFlow<MusicSet?>(null)
@@ -164,10 +166,21 @@ class TrackListViewModel @Inject constructor(
 
     fun onSortChanged(sortKey: String, descending: Boolean) {
         val musicSet = currentMusicSet.value ?: return
-        Log.e("Leapy", "sortKey" + sortKey)
-        Log.e("Leapy", "descending" + descending)
         viewModelScope.launch {
             updateLibrarySortUseCase(musicSet, sortKey, descending)
+        }
+    }
+
+    fun updateTrackOrder(musicSet: MusicSet, tracks: List<Music>) {
+        if (tracks.isEmpty()) return
+        if (musicSet !is MusicSet.Playlist && musicSet !is MusicSet.Favorites) return
+
+        viewModelScope.launch {
+            updatePlaylistTrackOrderUseCase(
+                playlistId = musicSet.id,
+                trackIdsInDisplayOrder = tracks.map(Music::id)
+            )
+            updateLibrarySortUseCase(musicSet, SORT_DEFAULT, false)
         }
     }
 
@@ -259,5 +272,6 @@ class TrackListViewModel @Inject constructor(
 
     private companion object {
         private const val STOP_TIMEOUT_MILLIS = 5_000L
+        private const val SORT_DEFAULT = "default"
     }
 }

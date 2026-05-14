@@ -74,15 +74,15 @@ class MoreViewModel @Inject constructor(
         return when {
             !state.isActive -> ""
 
-            state.stopAfterCurrentTrack -> {
-                appContext.getString(R.string.sleep_end_stop)
+            state.isPendingTrackEnd -> {
+                if (state.action == SleepTimerState.ACTION_EXIT_PLAYER) {
+                    appContext.getString(R.string.sleep_end_exit)
+                } else {
+                    appContext.getString(R.string.sleep_end_stop)
+                }
             }
 
-            state.action == SleepTimerState.ACTION_EXIT_PLAYER -> {
-                appContext.getString(R.string.sleep_end_exit)
-            }
-
-            else -> {
+            state.remainingMs > 0L -> {
                 val totalSeconds = (state.remainingMs / 1000L).coerceAtLeast(0L)
                 val hours = totalSeconds / 3600L
                 val minutes = (totalSeconds % 3600L) / 60L
@@ -94,6 +94,12 @@ class MoreViewModel @Inject constructor(
                     "%02d:%02d".format(minutes, seconds)
                 }
             }
+
+            state.stopAfterCurrentTrack -> {
+                appContext.getString(R.string.sleep_end_stop)
+            }
+
+            else -> appContext.getString(R.string.sleep_end_stop)
         }
     }
 }

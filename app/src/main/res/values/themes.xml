@@ -1,31 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+
     <!-- Base application theme. -->
     <style name="AppTheme" parent="@style/Theme.AppCompat.Light.NoActionBar">
-        <item name="android:colorForeground">@android:color/white</item>
-        <item name="android:colorBackground">@android:color/white</item>
-        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+
         <item name="android:windowBackground">@color/white</item>
+        <item name="android:colorBackground">@android:color/white</item>
+        <item name="android:colorForeground">@android:color/white</item>
+        <item name="android:textColorPrimary">@android:color/white</item>
+
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        <item name="android:windowNoTitle">true</item>
+
         <item name="android:textViewStyle">@style/AppTextView</item>
+        <item name="editTextStyle">@style/AppEditText</item>
+
         <item name="android:windowAnimationStyle">@style/AppAnimationStyle</item>
         <item name="android:windowSoftInputMode">adjustPan</item>
-        <item name="android:actionBarSize">@dimen/common_title_height</item>
         <item name="android:splitMotionEvents">false</item>
         <item name="android:windowEnableSplitTouch">false</item>
+
+        <item name="android:actionBarSize">@dimen/common_title_height</item>
         <item name="actionBarSize">@dimen/common_title_height</item>
+
         <item name="colorAccent">@color/color_theme</item>
         <item name="colorControlNormal">@android:color/white</item>
-        <item name="colorPrimary">@color/android:transparent</item>
+        <item name="colorPrimary">@android:color/transparent</item>
         <item name="colorPrimaryDark">@android:color/white</item>
-        <item name="editTextStyle">@style/AppEditText</item>
-        <item name="windowActionBar">false</item>
-    </style>
-
-    <style name="Welcome.LaunchTheme" parent="@style/Welcome.Theme">
-        <item name="android:windowDisablePreview">true</item>
     </style>
 
     <style name="Welcome.Theme" parent="@style/Theme.AppCompat.Light.NoActionBar">
@@ -35,10 +39,14 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="28">shortEdges</item>
         <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
+    </style>
+
+    <style name="Welcome.LaunchTheme" parent="@style/Welcome.Theme">
+        <item name="android:windowDisablePreview">true</item>
     </style>
 
 </resources>

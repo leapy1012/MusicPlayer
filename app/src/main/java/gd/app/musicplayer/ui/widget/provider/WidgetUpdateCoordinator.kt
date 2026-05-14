@@ -16,7 +16,7 @@ import javax.inject.Singleton
 
 @Singleton
 class WidgetUpdateCoordinator @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
     private val snapshotLoader: WidgetPlaybackSnapshotLoader,
     private val widgetConfigStore: WidgetConfigStore,
     private val settingPreferencesDataStore: SettingPreferencesDataStore,

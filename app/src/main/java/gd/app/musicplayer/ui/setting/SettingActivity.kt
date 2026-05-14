@@ -16,7 +16,6 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -25,7 +24,9 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.dialog.DialogRegistry
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.designsystem.view.PreferenceItemView
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.common.util.ToastUtil
@@ -129,6 +130,17 @@ class SettingActivity : BaseActivity() {
                 themeRepo.updateAccentColor(bundle.getInt(SelectAccentColorDialog.RESULT_COLOR))
             }
         }
+
+        supportFragmentManager.setFragmentResultListener(
+            ReplayGainPreampDialogFragment.RESULT_KEY,
+            this
+        ) { _, bundle ->
+            viewModel.setReplayGainPreamp(
+                withTag = bundle.getFloat(ReplayGainPreampDialogFragment.KEY_WITH_TAG),
+                withoutTag = bundle.getFloat(ReplayGainPreampDialogFragment.KEY_WITHOUT_TAG)
+            )
+            playerViewModel.applyPlaybackTuning(this)
+        }
     }
 
     private fun observeUiState() {
@@ -156,7 +168,7 @@ class SettingActivity : BaseActivity() {
         binding.preferenceShakeLevelDivider.visibility = if (state.shakeEnabled) View.VISIBLE else View.GONE
         binding.preferenceShakeLevel.setSummaryOn(state.shakeLevelLabel)
 
-        binding.preferenceSwipeChangeSongs.isSelected = state.swipeChangeSongsEnabled
+//        binding.preferenceSwipeChangeSongs.isSelected = state.swipeChangeSongsEnabled
         binding.preferenceSimultaneousPlay.isSelected = state.simultaneousPlayEnabled
         binding.preferenceVolumeFade.isSelected = state.volumeFadeEnabled
         binding.preferenceGaplessPlayback.isSelected = state.gaplessPlaybackEnabled
@@ -247,9 +259,9 @@ class SettingActivity : BaseActivity() {
                 .newInstance(viewModel.uiState.value.shakeLevel)
                 .show(supportFragmentManager, ShakeLevelDialogFragment::class.java.simpleName)
         }
-        binding.preferenceSwipeChangeSongs.onPreferenceChanged {
-            viewModel.setSwipeChangeSongsEnabled(it)
-        }
+//        binding.preferenceSwipeChangeSongs.onPreferenceChanged {
+//            viewModel.setSwipeChangeSongsEnabled(it)
+//        }
         binding.preferenceSimultaneousPlay.onPreferenceChanged {
             viewModel.setSimultaneousPlayEnabled(it)
             playerViewModel.applyPlaybackTuning(this)
@@ -278,7 +290,13 @@ class SettingActivity : BaseActivity() {
             showReplayGainModeDialog()
         }
         binding.preferenceReplayGainPreamp.setOnClickListener {
-            showReplayGainPreampWithTagDialog()
+            ReplayGainPreampDialogFragment.newInstance(
+                withTag = viewModel.uiState.value.replayGainPreampWithTag,
+                withoutTag = viewModel.uiState.value.replayGainPreampWithoutTag
+            ).show(
+                supportFragmentManager,
+                ReplayGainPreampDialogFragment::class.java.simpleName
+            )
         }
 
         binding.preferenceClickAddQueue.onPreferenceChanged {
@@ -428,21 +446,6 @@ class SettingActivity : BaseActivity() {
         }
     }
 
-    private fun showReplayGainPreampWithTagDialog() {
-        showPreampDialog(
-            title = getString(R.string.replay_gain_with_tags),
-            current = viewModel.uiState.value.replayGainPreampWithTag
-        ) { withTag ->
-            showPreampDialog(
-                title = getString(R.string.replay_gain_without_tags),
-                current = viewModel.uiState.value.replayGainPreampWithoutTag
-            ) { withoutTag ->
-                viewModel.setReplayGainPreamp(withTag, withoutTag)
-                playerViewModel.applyPlaybackTuning(this)
-            }
-        }
-    }
-
     private fun showPlaylistAddPositionDialog() {
         showSingleChoiceDialog(
             title = getString(R.string.add_music_position),
@@ -488,19 +491,23 @@ class SettingActivity : BaseActivity() {
             setSelection(text?.length ?: 0)
         }
 
-        AlertDialog.Builder(this)
-            .setTitle(R.string.playlist_limit_custom)
-            .setView(input)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                val limit = input.text?.toString()?.toIntOrNull()
-                if (limit == null || limit <= 0) {
-                    ToastUtil.show(this, Toast.LENGTH_SHORT, getString(R.string.input_error))
-                } else {
-                    viewModel.setSmartPlaylistSelection(7, limit)
+        showMessageDialog(
+            createMessageDialogConfig(
+                title = getString(R.string.playlist_limit_custom),
+                customView = input,
+                negativeText = getString(android.R.string.cancel),
+                positiveText = getString(android.R.string.ok),
+                positiveClickListener = { dialog, _ ->
+                    val limit = input.text?.toString()?.toIntOrNull()
+                    if (limit == null || limit <= 0) {
+                        ToastUtil.show(this, Toast.LENGTH_SHORT, getString(R.string.input_error))
+                    } else {
+                        dialog.dismiss()
+                        viewModel.setSmartPlaylistSelection(7, limit)
+                    }
                 }
-            }
-            .show()
+            )
+        )
     }
 
     private fun showLockBackgroundDialog() {
@@ -513,28 +520,6 @@ class SettingActivity : BaseActivity() {
             checkedIndex = viewModel.uiState.value.lockBackgroundMode.coerceIn(0, 1)
         ) { which ->
             viewModel.setLockBackgroundMode(which)
-        }
-    }
-
-    private fun showPreampDialog(
-        title: String,
-        current: Float,
-        onSelected: (Float) -> Unit
-    ) {
-        val values = (-12..12).map(Int::toFloat)
-        val labels = values.map { value ->
-            val prefix = if (value > 0f) "+" else ""
-            "$prefix${value.toInt()}dB"
-        }
-        val checkedIndex = values.indexOfFirst { it == current.toInt().toFloat() }
-            .takeIf { it >= 0 } ?: 12
-
-        showSingleChoiceDialog(
-            title = title,
-            labels = labels,
-            checkedIndex = checkedIndex
-        ) { which ->
-            onSelected(values[which])
         }
     }
 
@@ -602,7 +587,7 @@ class SettingActivity : BaseActivity() {
     }
 
     private fun renderFadeControls(enabled: Boolean) {
-        binding.preferenceFadeSeekLayout.alpha = if (enabled) 1f else 0.45f
+        binding.preferenceFadeSeekLayout.visibility = if (enabled) View.VISIBLE else View.GONE
         binding.preferenceFadeSeekBar.isEnabled = enabled
     }
 

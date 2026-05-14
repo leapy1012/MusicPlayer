@@ -8,7 +8,6 @@ import android.widget.Toast
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
@@ -20,6 +19,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
@@ -205,27 +206,31 @@ class ActivityDuplicatedFinder : BaseActivity() {
         val selectedCount = viewModel.uiState.value.selectedIds.size
         if (selectedCount <= 0) return
 
-        AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(getString(R.string.delete_x_songs, selectedCount))
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                viewModel.deleteSelected()
-            }
-            .show()
+        showMessageDialog(
+            createMessageDialogConfig(
+                title = getString(R.string.delete),
+                message = getString(R.string.delete_x_songs, selectedCount),
+                negativeText = getString(R.string.cancel),
+                positiveText = getString(R.string.delete),
+                positiveClickListener = { _, _ -> viewModel.deleteSelected() }
+            )
+        )
     }
 
     private fun handleBackPressed() {
         if (viewModel.uiState.value.isScanning) {
-            AlertDialog.Builder(this)
-                .setTitle(R.string.exit)
-                .setMessage(R.string.scan_interrupt)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.exit) { _, _ ->
-                    viewModel.cancelScan()
-                    finish()
-                }
-                .show()
+            showMessageDialog(
+                createMessageDialogConfig(
+                    title = getString(R.string.exit),
+                    message = getString(R.string.scan_interrupt),
+                    negativeText = getString(R.string.cancel),
+                    positiveText = getString(R.string.exit),
+                    positiveClickListener = { _, _ ->
+                        viewModel.cancelScan()
+                        finish()
+                    }
+                )
+            )
         } else {
             finish()
         }

@@ -19,24 +19,57 @@ class LoadAudioEffectSettingsUseCase @Inject constructor(
         val fiveBandPresets = equalizerPresetRepo.list(tenBand = false)
         val tenBandPresets = equalizerPresetRepo.list(tenBand = true)
 
+        val customFiveBandLevels = fiveBandPresets.firstOrNull()?.bands ?: DEFAULT_CUSTOM_5
+        val customTenBandLevels = tenBandPresets.firstOrNull()?.bands ?: DEFAULT_CUSTOM_10
+
+        val selectedPresetIndexFiveBand = soundEffectPreferences.getLastEffectId(
+            SoundEffectPreferences.FIVE_BAND_MODE
+        )
+        val selectedPresetIndexTenBand = soundEffectPreferences.getLastEffectId(
+            SoundEffectPreferences.TEN_BAND_MODE
+        )
+
+        val selectedFiveBandLevels = fiveBandPresets
+            .getOrNull(selectedPresetIndexFiveBand)
+            ?.bands
+            ?: customFiveBandLevels
+
+        val selectedTenBandLevels = tenBandPresets
+            .getOrNull(selectedPresetIndexTenBand)
+            ?.bands
+            ?: customTenBandLevels
+
+        val resolvedBassStrength = resolveLegacyStrength(
+            progress = eq.bassProgress,
+            presetId = eq.bassPresetId
+        )
+
+        val resolvedVirtualizerStrength = resolveLegacyStrength(
+            progress = eq.virtualizerProgress,
+            presetId = eq.virtualizerPresetId
+        )
+
         return AudioEffectSettings(
             eqEnabled = eq.equalizerEnabled,
             useTenBand = useTenBand,
-            selectedPresetIndexFiveBand = soundEffectPreferences.getLastEffectId(
-                SoundEffectPreferences.FIVE_BAND_MODE
-            ),
-            selectedPresetIndexTenBand = soundEffectPreferences.getLastEffectId(
-                SoundEffectPreferences.TEN_BAND_MODE
-            ),
-            customFiveBandLevels = fiveBandPresets.firstOrNull()?.bands ?: DEFAULT_CUSTOM_5,
-            customTenBandLevels = tenBandPresets.firstOrNull()?.bands ?: DEFAULT_CUSTOM_10,
+            selectedPresetIndexFiveBand = selectedPresetIndexFiveBand,
+            selectedPresetIndexTenBand = selectedPresetIndexTenBand,
+            customFiveBandLevels = if (useTenBand) {
+                customFiveBandLevels
+            } else {
+                selectedFiveBandLevels
+            },
+            customTenBandLevels = if (useTenBand) {
+                selectedTenBandLevels
+            } else {
+                customTenBandLevels
+            },
             bassEnabled = eq.bassEnabled,
-            bassStrength = eq.bassProgress,
+            bassStrength = resolvedBassStrength,
             virtualizerEnabled = eq.virtualizerEnabled,
-            virtualizerStrength = eq.virtualizerProgress,
+            virtualizerStrength = resolvedVirtualizerStrength,
             loudnessEnabled = sfx.loudnessEnabled,
             loudnessStrength = sfx.loudnessStrength,
-            masterVolume = sfx.masterVolume,
             balanceEnabled = sfx.balanceEnabled,
             balanceLeft = sfx.balanceLeft,
             balanceRight = sfx.balanceRight,
@@ -50,5 +83,16 @@ class LoadAudioEffectSettingsUseCase @Inject constructor(
         val DEFAULT_CUSTOM_5: List<Int> = List(5) { 0 }
 
         val DEFAULT_CUSTOM_10: List<Int> = List(10) { 0 }
+    }
+
+    private fun resolveLegacyStrength(
+        progress: Float,
+        presetId: Int
+    ): Float {
+        return if (presetId >= 0) {
+            (presetId / 1000f).coerceIn(0f, 1f)
+        } else {
+            progress.coerceIn(0f, 1f)
+        }
     }
 }

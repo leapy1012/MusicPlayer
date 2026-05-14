@@ -13,7 +13,6 @@ data class AudioEffectSettings(
     val virtualizerStrength: Float,
     val loudnessEnabled: Boolean,
     val loudnessStrength: Float,
-    val masterVolume: Float,
     val balanceEnabled: Boolean,
     val balanceLeft: Float,
     val balanceRight: Float,
@@ -29,8 +28,3 @@ data class AudioEffectSettings(
 
     fun bandCount(): Int = if (useTenBand) 10 else 5
 }
-
-data class AudioEffectUserPreset(
-    val name: String,
-    val bands: List<Int>
-)

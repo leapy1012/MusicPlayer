@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.preferencesOf
 import gd.app.musicplayer.domain.model.MusicSet
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -36,9 +37,9 @@ class SortPreferencesDataStore @Inject constructor(
                     is MusicSet.Album -> MusicSet.ALBUMS
                     is MusicSet.Genre -> MusicSet.GENRES
                     is MusicSet.Folder -> MusicSet.FOLDERS
-                    else -> Unit
+                    else -> musicSet.id
                 }
-                stringPreferencesKey("sort_style_${type}")
+                stringPreferencesKey("pref_sort_style${type}")
             }
         }
     }
@@ -75,9 +76,9 @@ class SortPreferencesDataStore @Inject constructor(
                     is MusicSet.Album -> MusicSet.ALBUMS
                     is MusicSet.Genre -> MusicSet.GENRES
                     is MusicSet.Folder -> MusicSet.FOLDERS
-                    else -> Unit
+                    else -> musicSet.id
                 }
-                booleanPreferencesKey("sort_descending_${type}")
+                booleanPreferencesKey("pref_sort_reverse${type}")
             }
         }
     }
@@ -176,7 +177,6 @@ class SortPreferencesDataStore @Inject constructor(
 
     fun observePlaylistSortStyle(musicSet: MusicSet.Playlist) : Flow<String> {
         val key = stringPreferencesKey("pref_sort_style${musicSet.id}")
-
         return dataStore.data.map { preferences ->
             preferences[key] ?: "default"
         }
@@ -190,14 +190,6 @@ class SortPreferencesDataStore @Inject constructor(
         }
     }
 
-    fun observeShowHiddenFoldersEntry(): Flow<Boolean> {
-        val key = booleanPreferencesKey("show_hidden_folders")
-
-        return dataStore.data.map { preferences ->
-            preferences[key] ?: true
-        }
-    }
-
     suspend fun setSortStyle(musicSet: MusicSet, style: String) {
         val type = when(musicSet) {
             is MusicSet.Tracks -> MusicSet.ALL_TRACKS
@@ -205,10 +197,10 @@ class SortPreferencesDataStore @Inject constructor(
             is MusicSet.Album -> MusicSet.ALBUMS
             is MusicSet.Genre -> MusicSet.GENRES
             is MusicSet.Folder -> MusicSet.FOLDERS
-            else -> Unit
+            else -> musicSet.id
         }
 
-        val key = stringPreferencesKey("sort_style_${type}")
+        val key = stringPreferencesKey("pref_sort_style${type}")
         dataStore.edit { preferences ->
             preferences[key] = style
         }
@@ -221,9 +213,9 @@ class SortPreferencesDataStore @Inject constructor(
             is MusicSet.Album -> MusicSet.ALBUMS
             is MusicSet.Genre -> MusicSet.GENRES
             is MusicSet.Folder -> MusicSet.FOLDERS
-            else -> Unit
+            else -> musicSet.id
         }
-        val key = booleanPreferencesKey("sort_descending_${type}")
+        val key = booleanPreferencesKey("pref_sort_reverse${type}")
 
         dataStore.edit { preferences ->
             preferences[key] = descending
@@ -309,6 +301,34 @@ class SortPreferencesDataStore @Inject constructor(
 
     suspend fun setPlaylistSortReversed(musicSet: MusicSet.Playlist, reversed: Boolean) {
         val key = booleanPreferencesKey("pref_sort_reverse${musicSet.id}")
+        dataStore.edit { preferences ->
+            preferences[key] = reversed
+        }
+    }
+
+    suspend fun setSelectableFoldersSortStyle(sortStyle: String) {
+        val key = stringPreferencesKey("pref_select_folder_sort_style")
+        dataStore.edit { preferences ->
+            preferences[key] = sortStyle
+        }
+    }
+
+    suspend fun setSelectableFoldersSortReversed(reversed: Boolean) {
+        val key = booleanPreferencesKey("pref_select_folder_sort_reverse")
+        dataStore.edit { preferences ->
+            preferences[key] = reversed
+        }
+    }
+
+    suspend fun setSelectableTracksSortStyle(sortStyle: String) {
+        val key = stringPreferencesKey("pref_music_select_sort_style")
+        dataStore.edit { preferences ->
+            preferences[key] = sortStyle
+        }
+    }
+
+    suspend fun setSelectableTracksSortReverse(reversed: Boolean) {
+        val key = booleanPreferencesKey("pref_select_sort_reverse")
         dataStore.edit { preferences ->
             preferences[key] = reversed
         }

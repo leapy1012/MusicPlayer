@@ -23,7 +23,7 @@ import gd.app.musicplayer.databinding.ActivityPlaylistSelectBinding
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class ActivityPlaylistSelect : BaseActivity() {
+class PlaylistSelectActivity : BaseActivity() {
 
     private val viewModel: PlaylistSelectViewModel by viewModels()
 
@@ -90,11 +90,12 @@ class ActivityPlaylistSelect : BaseActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.uiState.collect { state ->
+                        val selectedPlaylists = state.playlists.filterTo(linkedSetOf()) {
+                            it.id in state.selectedPlaylistIds
+                        }
                         adapter.submitPlaylists(
                             items = state.playlists,
-                            selectedItems = state.playlists.filterTo(linkedSetOf()) {
-                                it.id in state.selectedPlaylistIds
-                            }
+                            selectedItems = selectedPlaylists
                         )
                         binding.addToList.visibility = if (state.canConfirm) View.VISIBLE else View.GONE
                     }
@@ -102,7 +103,7 @@ class ActivityPlaylistSelect : BaseActivity() {
                 launch {
                     viewModel.events.collect { event ->
                         when (event) {
-                            is PlaylistSelectEvent.ShowToast -> ToastUtil.show(this@ActivityPlaylistSelect, event.messageRes)
+                            is PlaylistSelectEvent.ShowToast -> ToastUtil.show(this@PlaylistSelectActivity, event.messageRes)
                             PlaylistSelectEvent.Finish -> finish()
                         }
                     }
@@ -135,7 +136,7 @@ class ActivityPlaylistSelect : BaseActivity() {
         private const val TAG_CREATE_PLAYLIST_DIALOG = "create_playlist_dialog"
 
         fun start(context: Context, songs: List<Music>) {
-            context.startActivityCompat(Intent(context, ActivityPlaylistSelect::class.java).apply {
+            context.startActivityCompat(Intent(context, PlaylistSelectActivity::class.java).apply {
                 putParcelableArrayListExtra(ARG_SONGS, ArrayList(songs))
             })
         }

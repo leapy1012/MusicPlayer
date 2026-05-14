@@ -1,20 +1,23 @@
 package gd.app.musicplayer.ui.equalizer
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import gd.app.musicplayer.core.common.extension.isRtl
+import gd.app.musicplayer.core.designsystem.view.EqualizerItemLayout
 import gd.app.musicplayer.databinding.ItemEqualizerSeekbarBinding
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 
 internal class EqualizerBandAdapter(
     private val layoutInflater: LayoutInflater,
     private val onBandChanged: (index: Int, levelMb: Int, fromUser: Boolean) -> Unit,
-    private val onTrackingChanged: (tracking: Boolean) -> Unit
+    private val onTrackingChanged: (tracking: Boolean) -> Unit,
+    private val applyTheme: (View) -> Unit
 ) : RecyclerView.Adapter<EqualizerBandAdapter.BandViewHolder>() {
     private companion object {
         const val PAYLOAD_LEVEL = "payload_level"
         const val PAYLOAD_ENABLED = "payload_enabled"
-        const val PAYLOAD_ANIMATION = "payload_animation"
     }
 
     private var labels: List<String> = emptyList()
@@ -24,7 +27,7 @@ internal class EqualizerBandAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BandViewHolder {
         val binding = ItemEqualizerSeekbarBinding.inflate(layoutInflater, parent, false)
-//        parent.context.appDependencies.themeEngine.apply(binding.root)
+        applyTheme(binding.root)
         return BandViewHolder(binding)
     }
 
@@ -45,16 +48,13 @@ internal class EqualizerBandAdapter(
         }
         var levelOnly = false
         var enabledOnly = false
-        var animationOnly = false
         payloads.forEach {
             if (it == PAYLOAD_LEVEL) levelOnly = true
             if (it == PAYLOAD_ENABLED) enabledOnly = true
-            if (it == PAYLOAD_ANIMATION) animationOnly = true
         }
         when {
             levelOnly && !enabledOnly -> holder.bindLevel(position)
             enabledOnly && !levelOnly -> holder.bindEnabled()
-            animationOnly && !levelOnly && !enabledOnly -> holder.bindLevel(position)
             else -> holder.bind(position)
         }
     }
@@ -86,9 +86,8 @@ internal class EqualizerBandAdapter(
         }
     }
 
-    fun refreshAnimations() {
+    fun markAnimationsPending() {
         animateOnNextBind.fill(true)
-        notifyItemRangeChanged(0, itemCount, PAYLOAD_ANIMATION)
     }
 
     inner class BandViewHolder(
@@ -100,6 +99,7 @@ internal class EqualizerBandAdapter(
         }
 
         fun bind(position: Int) {
+            (binding.root as? EqualizerItemLayout)?.bandCount = itemCount
             binding.equalizerItemText.text = labels[position]
             bindLevel(position)
             bindEnabled()
@@ -107,7 +107,7 @@ internal class EqualizerBandAdapter(
 
         fun bindLevel(position: Int) {
             val level = levels[position]
-            binding.equalizerItemSeekText.text = EqualizerPresets.formatBandValue(level)
+            binding.equalizerItemSeekText.text = formatBandValue(level)
             val progress = EqualizerPresets.levelMbToProgress(level)
             if (animateOnNextBind.getOrNull(position) == true) {
                 binding.equalizerItemSeek.j(progress, true)
@@ -127,7 +127,7 @@ internal class EqualizerBandAdapter(
             val position = bindingAdapterPosition
             if (position == RecyclerView.NO_POSITION) return
             val level = EqualizerPresets.progressToLevelMb(progress)
-            binding.equalizerItemSeekText.text = EqualizerPresets.formatBandValue(level)
+            binding.equalizerItemSeekText.text = formatBandValue(level)
             onBandChanged(position, level, fromUser)
         }
 
@@ -137,6 +137,26 @@ internal class EqualizerBandAdapter(
 
         override fun onStopTrackingTouch(seekBar: SeekBar) {
             onTrackingChanged(false)
+        }
+
+        private fun formatBandValue(levelMb: Int): String {
+            val db = levelMb / 100
+            if (db == 0) return "0"
+
+            return if (binding.root.context.isRtl()) {
+                val magnitude = kotlin.math.abs(db)
+                if (db > 0) {
+                    "$magnitude+"
+                } else {
+                    "$magnitude-"
+                }
+            } else {
+                if (db > 0) {
+                    "+$db"
+                } else {
+                    db.toString()
+                }
+            }
         }
     }
 }

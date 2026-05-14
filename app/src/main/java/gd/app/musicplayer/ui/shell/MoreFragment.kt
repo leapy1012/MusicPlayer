@@ -1,6 +1,11 @@
 package gd.app.musicplayer.ui.shell
 
+import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.Process
 import android.view.LayoutInflater
 import android.view.View
 import androidx.fragment.app.viewModels
@@ -11,7 +16,11 @@ import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
+import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
 import gd.app.musicplayer.databinding.FragmentMoreBinding
+import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.drivemode.DriveModeLauncher
 import gd.app.musicplayer.ui.equalizer.EqualizerActivity
@@ -28,6 +37,7 @@ import kotlinx.coroutines.launch
 class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.DrawerListener {
     private val viewModel: MoreViewModel by viewModels()
     @Inject lateinit var driveModeLauncher: DriveModeLauncher
+    @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
     private var drawerLayout: DrawerLayout? = null
 
@@ -77,7 +87,8 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
             closeDrawer()
         }
         binding.slidingmenuQuit.setOnClickListener {
-            requireActivity().finishAffinity()
+            closeDrawer()
+            showQuitDialog()
         }
         binding.slidingmenuModel.setOnClickListener {
             viewModel.onPlayModeClicked()
@@ -123,4 +134,38 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
         drawerLayout?.closeDrawer(GravityCompat.START)
     }
 
+    private fun showQuitDialog() {
+        val activity = requireActivity()
+        val config = materialDialogConfigFactory
+            .createMaterialMessageDialogConfig(activity)
+            .apply {
+                messageText = getString(R.string.adv_quit_message)
+                positiveButtonText = getString(R.string.adv_quit_confirm)
+                negativeButtonText = getString(R.string.adv_quit_cancel)
+                positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
+                    dialog.dismiss()
+                    quitApplication()
+                }
+            }
+
+        MessageDialog.show(activity, config)
+    }
+
+    private fun quitApplication() {
+        val activity = requireActivity()
+        val appContext = activity.applicationContext
+        val serviceIntent = Intent(appContext, MusicPlaybackService::class.java).apply {
+            action = MusicPlaybackService.ACTION_EXIT
+        }
+
+        appContext.startService(serviceIntent)
+        activity.finishAffinity()
+
+        Handler(Looper.getMainLooper()).postDelayed(
+            {
+                Process.killProcess(Process.myPid())
+            },
+            150L
+        )
+    }
 }

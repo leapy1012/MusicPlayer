@@ -10,7 +10,6 @@ import android.view.MenuItem
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
@@ -19,6 +18,8 @@ import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
+import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
@@ -31,6 +32,7 @@ import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.domain.repository.MusicSetMetadataRepo
 import gd.app.musicplayer.domain.repository.TrackMetadataRepo
 import gd.app.musicplayer.ui.library.artwork.ManageArtworkDialogFragment
@@ -118,18 +120,22 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             return
         }
 
-        AlertDialog.Builder(this)
-            .setTitle(R.string.edit_tags)
-            .setMessage(R.string.edit_tags_interrupt_msg)
-            .setPositiveButton(R.string.save) { dialog, _ ->
-                dialog.dismiss()
-                saveChanges()
-            }
-            .setNegativeButton(R.string.exit) { dialog, _ ->
-                dialog.dismiss()
-                finish()
-            }
-            .show()
+        showMessageDialog(
+            createMessageDialogConfig(
+                title = getString(R.string.edit_tags),
+                message = getString(R.string.edit_tags_interrupt_msg),
+                positiveText = getString(R.string.save),
+                negativeText = getString(R.string.exit),
+                positiveClickListener = { dialog, _ ->
+                    dialog.dismiss()
+                    saveChanges()
+                },
+                negativeClickListener = { dialog, _ ->
+                    dialog.dismiss()
+                    finish()
+                }
+            )
+        )
     }
 
     private fun buildFields(container: LinearLayout) {
@@ -144,7 +150,7 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
         coverView = container.findViewById<ImageView>(R.id.music_edit_cover).also { image ->
             currentTrackCoverPath = currentTrack.albumPicture
-            currentTrack.loadMusicArtwork(image, R.drawable.default_album_identify)
+            image.loadMusicArtwork(currentTrack.albumArtSource())
             image.setOnClickListener {
                 ManageArtworkDialogFragment
                     .newInstance(ArtworkRequest.Track(currentTrack), defaultApplyToAll = false)
@@ -388,7 +394,7 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
                     currentTrackCoverPath = artworkPath
                     coverView?.let {
                         if (artworkPath.isNullOrBlank()) {
-                            currentTrack.loadMusicArtwork(it, R.drawable.default_album_identify)
+                            it.loadMusicArtwork(currentTrack.albumArtSource())
                         } else {
                             Glide.with(this).load(artworkPath).error(R.drawable.default_album_identify).into(it)
                         }

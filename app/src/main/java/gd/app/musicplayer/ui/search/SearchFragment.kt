@@ -21,9 +21,13 @@ import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.domain.model.isConcreteCollection
 import gd.app.musicplayer.ui.player.queue.PlayQueueActivity
 import gd.app.musicplayer.core.common.extension.applyStatusBarInsetHeight
+import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
+import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
 import gd.app.musicplayer.core.designsystem.view.SearchView
+import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.library.albums.AlbumMusicActivity
+import gd.app.musicplayer.ui.library.musicset.MusicSetOptionsDialog
 import gd.app.musicplayer.ui.library.options.MusicOptionsDialog
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -42,6 +46,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         ).also { it.setListener(this) }
     }
     private val viewModel: SearchViewModel by viewModels()
+    private lateinit var emptyStateController: RecyclerEmptyStateController
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentSearchBinding =
         FragmentSearchBinding.inflate(inflater)
@@ -63,7 +68,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
 
     private fun setupToolbar() {
         val binding = requireBinding()
-        binding.statusBarSpace.applyStatusBarInsetHeight()
+        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
         binding.toolbar.navigateBack(this)
 
         val searchView = SearchView(requireContext()).apply {
@@ -71,7 +76,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
             postDelayed({
                 val editText: EditText = getEditText()
                 editText.requestFocus()
-//                o8.z.b(editText, f10611c)
+                editText.showKeyboardDelayed()
             }, 100L)
         }
         binding.toolbar.addView(
@@ -88,12 +93,21 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         val recyclerView: RecyclerView = binding.root.findViewById(R.id.recyclerview)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
+        emptyStateController = RecyclerEmptyStateController(
+            recyclerView = recyclerView,
+            emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
+        )
+        emptyStateController.applyTheme(themeRepo.getCorePalette())
+        emptyStateController.setEmptyMessage(getString(R.string.queue_search_result))
     }
 
     private fun observeSections() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.sections.collect(adapter::submitSections)
+                viewModel.sections.collect { sections ->
+                    adapter.submitSections(sections)
+                    emptyStateController.setVisible(sections.isEmpty())
+                }
             }
         }
     }
@@ -124,8 +138,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
 
     override fun onSongClicked(song: Music) {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.onSongClicked(song, null)
-            // viewModel.onSongClicked(song, viewModel.currentTrackId.value)
+            viewModel.onSongClicked(song)
         }
     }
 
@@ -138,6 +151,15 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         if (musicSet.isConcreteCollection) {
             AlbumMusicActivity.start(requireContext(), musicSet)
         }
+    }
+
+    override fun onMusicSetMenuClicked(musicSet: MusicSet) {
+        MusicSetOptionsDialog
+            .newInstance(musicSet)
+            .show(
+                parentFragmentManager,
+                MusicSetOptionsDialog::class.java.simpleName
+            )
     }
 }
 

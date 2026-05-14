@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,6 +23,7 @@ class PlaybackTuningController(
     private val playbackStatePreferenceStore: PlaybackStatePreferenceStore,
     private val settingPreferencesDataStore: SettingPreferencesDataStore,
     private val soundEffectPreferences: SoundEffectPreferences,
+    private val stereoBalanceAudioProcessor: StereoBalanceAudioProcessor,
     private val currentMusicProvider: () -> Music?,
     private val applicationScope: CoroutineScope
 ) {
@@ -38,13 +40,11 @@ class PlaybackTuningController(
     @Volatile
     private var latestReplayGainPreference = ReplayGainSettingPreference()
 
-    @Volatile
-    private var latestMasterVolume: Float = DEFAULT_MASTER_VOLUME
-
     init {
         observePlaybackSpeedAndPitch()
         observeVolumeFade()
         observeVolumePreferences()
+        observeSoundBalance()
     }
 
     fun applyPlaybackTuning() {
@@ -83,16 +83,11 @@ class PlaybackTuningController(
     }
 
     fun resolveTargetPlaybackVolume(): Float {
-        val masterVolume = latestMasterVolume.coerceIn(
-            minimumValue = MIN_VOLUME,
-            maximumValue = MAX_MASTER_VOLUME
-        )
-
         val replayGainMultiplier = resolveReplayGainMultiplier(
             info = ReplayGainParser.parse(currentMusicProvider()?.data)
         )
 
-        return (masterVolume * replayGainMultiplier).coerceIn(
+        return replayGainMultiplier.coerceIn(
             minimumValue = MIN_VOLUME,
             maximumValue = MAX_RESOLVED_VOLUME
         )
@@ -127,20 +122,31 @@ class PlaybackTuningController(
     }
 
     private fun observeVolumePreferences() {
-        combine(
-            settingPreferencesDataStore.replayGainPreference,
-            soundEffectPreferences.masterVolume
-        ) { replayGainPreference, masterVolume ->
-            VolumePreference(
-                replayGainPreference = replayGainPreference,
-                masterVolume = masterVolume
-            )
-        }
+        settingPreferencesDataStore.replayGainPreference
             .distinctUntilChanged()
-            .onEach { value ->
-                latestReplayGainPreference = value.replayGainPreference
-                latestMasterVolume = value.masterVolume
+            .onEach { replayGainPreference ->
+                latestReplayGainPreference = replayGainPreference
                 applyResolvedPlayerVolume()
+            }
+            .launchIn(applicationScope)
+    }
+
+    private fun observeSoundBalance() {
+        soundEffectPreferences.soundEffectSettings
+            .map { settings ->
+                SoundBalance(
+                    enabled = settings.balanceEnabled,
+                    left = settings.balanceLeft,
+                    right = settings.balanceRight
+                )
+            }
+            .distinctUntilChanged()
+            .onEach { balance ->
+                stereoBalanceAudioProcessor.setChannelBalance(
+                    enabled = balance.enabled,
+                    left = balance.left,
+                    right = balance.right
+                )
             }
             .launchIn(applicationScope)
     }
@@ -178,10 +184,12 @@ class PlaybackTuningController(
         val pitch: Float
     )
 
-    private data class VolumePreference(
-        val replayGainPreference: ReplayGainSettingPreference,
-        val masterVolume: Float
+    private data class SoundBalance(
+        val enabled: Boolean,
+        val left: Float,
+        val right: Float
     )
+
 
     private companion object {
         private const val MODE_TRACK = 1
@@ -189,7 +197,6 @@ class PlaybackTuningController(
 
         private const val DEFAULT_PLAY_SPEED = 1f
         private const val DEFAULT_PLAY_PITCH = 1f
-        private const val DEFAULT_MASTER_VOLUME = 1f
 
         private const val MIN_PLAY_SPEED = 0.5f
         private const val MAX_PLAY_SPEED = 2.0f
@@ -198,7 +205,6 @@ class PlaybackTuningController(
         private const val MAX_PLAY_PITCH = 2.0f
 
         private const val MIN_VOLUME = 0f
-        private const val MAX_MASTER_VOLUME = 1f
         private const val MAX_RESOLVED_VOLUME = 4f
 
         private const val DEFAULT_REPLAY_GAIN_MULTIPLIER = 1f

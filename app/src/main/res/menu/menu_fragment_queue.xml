@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
     <item
         android:id="@+id/menu_mode"
-        android:icon="@drawable/vector_mode_order"
-        android:title="@string/play_mode_list"
-        app:showAsAction="ifRoom" />
-
+        android:icon="@drawable/vector_mode_random"
+        android:title=""
+        app:showAsAction="always" />
     <item
         android:id="@+id/menu_add_to"
-        android:icon="@drawable/ic_menu_add"
-        android:title="@string/add_to"
-        app:showAsAction="ifRoom" />
+        android:icon="@drawable/vector_play_add"
+        android:title=""
+        app:showAsAction="always" />
 </menu>

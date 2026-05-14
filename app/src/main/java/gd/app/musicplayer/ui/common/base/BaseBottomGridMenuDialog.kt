@@ -176,7 +176,7 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
 
             else -> {
                 if (pressedColor != null) {
-                    themedView.background = _root_ide_package_.gd.app.musicplayer.core.designsystem.drawable.DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
+                    themedView.background = DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
                     true
                 } else {
                     false

@@ -1,8 +1,6 @@
 package gd.app.musicplayer.data.local.preference
 
 data class SoundEffectSettings(
-    val masterVolume: Float = 1.0f,
-
     val loudnessEnabled: Boolean = false,
     val loudnessStrength: Float = 0f,
 
