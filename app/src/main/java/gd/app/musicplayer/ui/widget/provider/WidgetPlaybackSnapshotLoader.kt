@@ -1,5 +1,6 @@
 package gd.app.musicplayer.ui.widget.provider
 
+import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
 import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.PlaybackMode
@@ -11,14 +12,33 @@ import javax.inject.Singleton
 class WidgetPlaybackSnapshotLoader @Inject constructor(
     private val playbackQueueRepo: PlaybackQueueRepo,
     private val playbackRuntimeStateStore: PlaybackRuntimeStateStore,
+    private val playbackStatePreferenceStore: PlaybackStatePreferenceStore,
     private val settingPreferencesDataStore: SettingPreferencesDataStore
 ) {
 
     suspend fun load(): WidgetPlaybackSnapshot {
-        val queue = playbackQueueRepo.getQueue()
         val runtimeState = playbackRuntimeStateStore.state.value
-        val currentTrack = runtimeState.currentTrack
+        val queue = runtimeState.queue.ifEmpty {
+            playbackQueueRepo.getQueue()
+        }
+        val restoredProgress = if (runtimeState.currentTrack == null) {
+            playbackStatePreferenceStore.getMusicProgress()
+        } else {
+            null
+        }
         val playMode = settingPreferencesDataStore.getPlayMode()
+
+        val runtimeTrack = runtimeState.currentTrack
+            ?.takeIf { track ->
+                queue.any { queued -> queued.id == track.id }
+            }
+
+        val restoredIndex = restoredProgress
+            ?.let { progress -> queue.indexOfFirst { queued -> queued.id == progress.trackId } }
+            ?.takeIf { index -> index in queue.indices }
+
+        val currentTrack = runtimeTrack
+            ?: restoredIndex?.let { index -> queue[index] }
 
         val currentIndex = currentTrack
             ?.let { track ->
@@ -32,7 +52,13 @@ class WidgetPlaybackSnapshotLoader @Inject constructor(
             queue = queue,
             currentTrack = currentTrack,
             currentIndex = currentIndex,
-            positionMs = runtimeState.positionMs,
+            positionMs = if (runtimeTrack != null) {
+                runtimeState.positionMs
+            } else if (restoredIndex != null) {
+                restoredProgress?.progressMs?.toLong()?.coerceAtLeast(0L) ?: 0L
+            } else {
+                0L
+            },
             isPlaying = runtimeState.isPlaying,
             playMode = playMode
         )

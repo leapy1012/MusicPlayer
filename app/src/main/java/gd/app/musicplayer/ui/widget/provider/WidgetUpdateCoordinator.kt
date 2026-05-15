@@ -75,19 +75,15 @@ class WidgetUpdateCoordinator @Inject constructor(
         val snapshot = snapshotLoader.load()
         val track = snapshot.currentTrack ?: return
 
-        val favorited = toggleFavoriteTrackUseCase(track.id)
-
-        // Keep the playback service/runtime state in sync if it is running.
-        MusicPlaybackService.startAction(
-            context = appContext,
-            action = if (favorited) {
-                MusicPlaybackService.ACTION_CUSTOM_FAVORITE
-            } else {
-                MusicPlaybackService.ACTION_CUSTOM_UNFAVORITE
-            }
-        )
-
-        updateAll()
+        if (MusicPlaybackService.isRunning) {
+            MusicPlaybackService.startAction(
+                context = appContext,
+                action = MusicPlaybackService.ACTION_TOGGLE_FAVORITE
+            )
+        } else {
+            toggleFavoriteTrackUseCase(track.id)
+            updateAll()
+        }
     }
 
     suspend fun playQueueIndex(index: Int) {

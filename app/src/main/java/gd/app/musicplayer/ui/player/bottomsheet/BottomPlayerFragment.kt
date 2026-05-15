@@ -12,6 +12,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
+import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.databinding.FragmentMainControl2Binding
@@ -75,11 +77,10 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
             getString(R.string.artist)
         }
         binding.mainControlLeft.isSelected = state.isFavorite
-        Glide.with(this)
-            .load(state.artworkSource)
-            .placeholder(R.drawable.default_album_identify)
-            .error(R.drawable.default_album_identify)
-            .into(binding.mainControlAlbum)
+        binding.mainControlAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
+        binding.mainControlAlbum.loadMusicArtwork(
+            state.artworkSource ?: R.drawable.default_album_identify
+        )
     }
 
     private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
@@ -116,7 +117,7 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
         mainControlNext.setOnClickListener { viewModel.playNext(requireContext()) }
         mainControlBack.setOnClickListener { collapsePlayerPanel() }
         mainControlRight.setOnClickListener { showPlaybackQueue() }
-        mainControlLeft.setOnClickListener { viewModel.toggleFavorite() }
+        mainControlLeft.setOnClickListener { viewModel.toggleFavorite(requireContext()) }
         mainControlAlbum.setOnClickListener { openPlayerScreen() }
         mainControlTitle.setOnClickListener { openPlayerScreen() }
         mainControlArtist.setOnClickListener { openPlayerScreen() }

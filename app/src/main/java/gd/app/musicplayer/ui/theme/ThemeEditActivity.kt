@@ -25,6 +25,8 @@ import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
 import gd.app.musicplayer.ui.library.artwork.ArtworkCropActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -155,12 +157,33 @@ class ThemeEditActivity : BaseActivity() {
     private fun observeViewModel() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    binding.imageEditAlpha.setProgressInner(Color.alpha(state.overlayColor))
-                    binding.imageEditBlur.setProgressInner(state.blur)
-                    binding.skinImageView.setMaskColor(state.overlayColor)
-                    binding.previewImageView.setMaskColor(state.overlayColor)
-                    renderPreview(state.imageName, state.blur)
+                launch {
+                    viewModel.uiState
+                        .map { it.overlayColor }
+                        .distinctUntilChanged()
+                        .collect { overlayColor ->
+                            binding.imageEditAlpha.setProgressInner(Color.alpha(overlayColor))
+                            binding.skinImageView.setMaskColor(overlayColor)
+                            binding.previewImageView.setMaskColor(overlayColor)
+                        }
+                }
+
+                launch {
+                    viewModel.uiState
+                        .map { it.blur }
+                        .distinctUntilChanged()
+                        .collect { blur ->
+                            binding.imageEditBlur.setProgressInner(blur)
+                        }
+                }
+
+                launch {
+                    viewModel.uiState
+                        .map { it.imageName to it.blur }
+                        .distinctUntilChanged()
+                        .collect { (imageName, blur) ->
+                            renderPreview(imageName, blur)
+                        }
                 }
             }
         }

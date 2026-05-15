@@ -74,6 +74,17 @@ class PlaybackServiceDispatcher @Inject constructor() {
                     )
                 }
 
+                is PlaybackCommand.RemoveQueueItem -> {
+                    action = MusicPlaybackService.ACTION_REMOVE_QUEUE_ITEM
+                    putExtra(MusicPlaybackService.EXTRA_INDEX, command.index)
+                }
+
+                is PlaybackCommand.MoveQueueItem -> {
+                    action = MusicPlaybackService.ACTION_MOVE_QUEUE_ITEM
+                    putExtra(MusicPlaybackService.EXTRA_FROM_INDEX, command.fromIndex)
+                    putExtra(MusicPlaybackService.EXTRA_TO_INDEX, command.toIndex)
+                }
+
                 PlaybackCommand.TogglePlayPause -> {
                     action = MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE
                 }
@@ -125,6 +136,10 @@ class PlaybackServiceDispatcher @Inject constructor() {
                 PlaybackCommand.SetShuffleAllMode -> {
                     action = MusicPlaybackService.ACTION_MODE_RANDOM
                 }
+
+                PlaybackCommand.ToggleFavorite -> {
+                    action = MusicPlaybackService.ACTION_TOGGLE_FAVORITE
+                }
             }
         }
     }
@@ -142,6 +157,8 @@ class PlaybackServiceDispatcher @Inject constructor() {
             is PlaybackCommand.Enqueue,
             is PlaybackCommand.SeekTo,
             is PlaybackCommand.SetStopAfterCurrentTrack,
+            is PlaybackCommand.RemoveQueueItem,
+            is PlaybackCommand.MoveQueueItem,
             PlaybackCommand.Pause,
             PlaybackCommand.ClearQueue,
             PlaybackCommand.Stop,
@@ -150,7 +167,8 @@ class PlaybackServiceDispatcher @Inject constructor() {
             PlaybackCommand.RefreshNotificationStyle,
             PlaybackCommand.RestartCurrentTrack,
             PlaybackCommand.ChangeMode,
-            PlaybackCommand.SetShuffleAllMode -> false
+            PlaybackCommand.SetShuffleAllMode,
+            PlaybackCommand.ToggleFavorite -> false
         }
     }
 }

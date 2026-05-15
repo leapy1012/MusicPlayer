@@ -517,7 +517,7 @@ class MusicPlayerFragment :
 
             R.id.music_lyric_setting -> openLyricSettings()
             R.id.music_play_tempo -> TempoDialogFragment.show(childFragmentManager)
-            R.id.music_play_favourite -> playerViewModel.toggleFavorite()
+            R.id.music_play_favourite -> playerViewModel.toggleFavorite(requireContext())
             R.id.music_play_artist -> openArtist()
         }
     }

@@ -33,6 +33,8 @@ class MediaStyleMusicNotificationBuilder(
             .setContentTitle(content.getTitle())
             .setContentText("${content.getArtistName()}-${content.getAlbumName()}")
             .setOngoing(content.isPlaying())
+            .setCustomContentView(createCollapsedRemoteViews(content))
+            .setCustomBigContentView(createExpandedRemoteViews(content))
             .setLargeIcon(
                 if (art.hasDisplayBitmap) art.displayBitmap
                 else getDefaultAlbumBitmap(content.getDefaultAlbumArtRes(1, false))
@@ -42,7 +44,7 @@ class MediaStyleMusicNotificationBuilder(
             ACTION_INDEX_FAVORITE,
             NotificationCompat.Action.Builder(
                 if (content.isFavorite()) R.drawable.notify_favorite_new else R.drawable.notify_unfavorite_new,
-                if (content.isFavorite()) "FAVORITE" else "UNFAVORITE",
+                if (content.isFavorite()) "UNFAVORITE" else "FAVORITE",
                 content.createFavoriteIntent(context),
             ).build(),
         )
@@ -56,7 +58,11 @@ class MediaStyleMusicNotificationBuilder(
         )
 
         val mediaStyle = MediaStyle()
-            .setShowActionsInCompactView(1, 2, 3)
+            .setShowActionsInCompactView(
+                ACTION_INDEX_FAVORITE,
+                ACTION_INDEX_PLAY_PAUSE,
+                ACTION_INDEX_STOP
+            )
         content.getMediaSessionToken()?.let { token ->
             mediaStyle.setMediaSession(MediaSessionCompat.Token.fromToken(token))
         }
@@ -92,7 +98,7 @@ class MediaStyleMusicNotificationBuilder(
         builder.addAction(
             NotificationCompat.Action.Builder(
                 if (content.isFavorite()) R.drawable.notify_favorite_new else R.drawable.notify_unfavorite_new,
-                "UNFAVORITE",
+                if (content.isFavorite()) "UNFAVORITE" else "FAVORITE",
                 content.createFavoriteIntent(context),
             ).build(),
         )
@@ -151,6 +157,7 @@ class MediaStyleMusicNotificationBuilder(
     private companion object {
         const val ACTION_INDEX_FAVORITE = 0
         const val ACTION_INDEX_PLAY_PAUSE = 2
+        const val ACTION_INDEX_STOP = 4
 
     }
 }

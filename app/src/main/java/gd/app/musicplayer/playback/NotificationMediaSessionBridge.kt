@@ -19,7 +19,7 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.shell.MainActivity
 
-class PlaybackMediaSessionController(
+class NotificationMediaSessionBridge(
     private val context: Context,
     private val player: ExoPlayer,
     private val queueProvider: () -> List<Music>,
@@ -35,6 +35,7 @@ class PlaybackMediaSessionController(
         fun previous()
         fun seekTo(positionMs: Int)
         fun toggleFavorite()
+        fun setFavorite(isFavorite: Boolean)
         fun quit()
         fun stop()
     }
@@ -166,11 +167,11 @@ class PlaybackMediaSessionController(
 
     private fun handleSessionAction(action: String) {
         when (action) {
-            MusicPlaybackService.ACTION_CUSTOM_FAVORITE,
-            MusicPlaybackService.ACTION_CUSTOM_UNFAVORITE,
+            MusicPlaybackService.ACTION_CUSTOM_FAVORITE -> callbacks.setFavorite(true)
+            MusicPlaybackService.ACTION_CUSTOM_UNFAVORITE -> callbacks.setFavorite(false)
             MusicPlaybackService.ACTION_TOGGLE_FAVORITE -> callbacks.toggleFavorite()
             MusicPlaybackService.ACTION_QUIT -> callbacks.quit()
-            MusicPlaybackService.ACTION_CUSTOM_STOP,
+            MusicPlaybackService.ACTION_CUSTOM_STOP -> callbacks.quit()
             MusicPlaybackService.ACTION_STOP -> callbacks.stop()
         }
     }

@@ -56,7 +56,6 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.glide)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.media3.session)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)

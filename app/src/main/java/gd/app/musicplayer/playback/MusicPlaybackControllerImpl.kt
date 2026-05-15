@@ -127,6 +127,25 @@ class MusicPlaybackControllerImpl @Inject constructor(
         dispatcher.dispatch(context, PlaybackCommand.ClearQueue)
     }
 
+    override fun removeQueueItem(context: Context, index: Int) {
+        dispatcher.dispatch(
+            context = context,
+            command = PlaybackCommand.RemoveQueueItem(index.coerceAtLeast(0))
+        )
+    }
+
+    override fun moveQueueItem(context: Context, fromIndex: Int, toIndex: Int) {
+        if (fromIndex == toIndex) return
+
+        dispatcher.dispatch(
+            context = context,
+            command = PlaybackCommand.MoveQueueItem(
+                fromIndex = fromIndex.coerceAtLeast(0),
+                toIndex = toIndex.coerceAtLeast(0)
+            )
+        )
+    }
+
     override fun stop(context: Context) {
         dispatcher.dispatch(context, PlaybackCommand.Stop)
     }
@@ -149,5 +168,9 @@ class MusicPlaybackControllerImpl @Inject constructor(
 
     override fun setShuffleAllMode(context: Context) {
         dispatcher.dispatch(context, PlaybackCommand.SetShuffleAllMode)
+    }
+
+    override fun toggleFavorite(context: Context) {
+        dispatcher.dispatch(context, PlaybackCommand.ToggleFavorite)
     }
 }

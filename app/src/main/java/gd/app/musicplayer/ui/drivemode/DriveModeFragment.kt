@@ -24,7 +24,7 @@ import gd.app.musicplayer.databinding.ActivityDriveModeItemBinding
 import gd.app.musicplayer.databinding.FragmentDriveModeBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackQueueUseCase
-import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
+import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
@@ -47,7 +47,7 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
 
     @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
     @Inject lateinit var observePlaybackQueueUseCase: ObservePlaybackQueueUseCase
-    @Inject lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
+    @Inject lateinit var playbackController: PlaybackController
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentDriveModeBinding =
         FragmentDriveModeBinding.inflate(inflater)
@@ -199,13 +199,11 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     }
 
     private fun toggleFavorite() {
-        val track = viewModel.playbackState.value.currentTrack ?: return
+        if (viewModel.playbackState.value.currentTrack == null) return
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            val favorited = toggleFavoriteTrackUseCase(track.id)
-            requireBinding().driveModeFavorite.isSelected = favorited
-            pagerAdapter.updateFavorite(track.id, favorited)
-        }
+        playbackController.toggleFavorite(
+            context = requireContext(),
+        )
     }
 
     private fun skipDurationMs(): Int {

@@ -23,13 +23,15 @@ class PlaybackServiceCommandHandler(
         fun clearQueueKeepingNotification()
         fun cyclePlaybackMode()
         fun setPlaybackMode(mode: Int)
-        fun toggleFavorite(music: Music)
-        fun setFavorite(music: Music, favorited: Boolean)
+        fun toggleCurrentFavorite()
+        fun setCurrentFavorite(isFavorite: Boolean)
         fun playIndex(index: Int)
         fun playFromQueue(queue: List<Music>, index: Int)
         fun enqueue(queue: List<Music>)
         fun playNextQueue(queue: List<Music>)
         fun replaceQueue(queue: List<Music>, index: Int)
+        fun removeQueueItem(index: Int)
+        fun moveQueueItem(fromIndex: Int, toIndex: Int)
         fun seekTo(positionMs: Int)
         fun setStopAfterCurrentTrack(enabled: Boolean)
         fun applyAudioEffects()
@@ -64,16 +66,19 @@ class PlaybackServiceCommandHandler(
 
             MusicPlaybackService.ACTION_RESTART_CURRENT -> callbacks.restartCurrentTrack()
             MusicPlaybackService.ACTION_CLEAR_QUEUE -> callbacks.clearQueueKeepingNotification()
+            MusicPlaybackService.ACTION_REMOVE_QUEUE_ITEM -> callbacks.removeQueueItem(
+                intent?.getIntExtra(MusicPlaybackService.EXTRA_INDEX, -1) ?: -1
+            )
+            MusicPlaybackService.ACTION_MOVE_QUEUE_ITEM -> callbacks.moveQueueItem(
+                fromIndex = intent?.getIntExtra(MusicPlaybackService.EXTRA_FROM_INDEX, -1) ?: -1,
+                toIndex = intent?.getIntExtra(MusicPlaybackService.EXTRA_TO_INDEX, -1) ?: -1
+            )
             MusicPlaybackService.ACTION_CHANGE_MODE -> callbacks.cyclePlaybackMode()
             MusicPlaybackService.ACTION_MODE_RANDOM -> callbacks.setPlaybackMode(PlaybackMode.SHUFFLE_ALL)
 
-            MusicPlaybackService.ACTION_TOGGLE_FAVORITE -> callbacks.currentMusic()?.let(callbacks::toggleFavorite)
-            MusicPlaybackService.ACTION_CUSTOM_FAVORITE -> callbacks.currentMusic()?.let { music ->
-                callbacks.setFavorite(music, true)
-            }
-            MusicPlaybackService.ACTION_CUSTOM_UNFAVORITE -> callbacks.currentMusic()?.let { music ->
-                callbacks.setFavorite(music, false)
-            }
+            MusicPlaybackService.ACTION_TOGGLE_FAVORITE -> callbacks.toggleCurrentFavorite()
+            MusicPlaybackService.ACTION_CUSTOM_FAVORITE -> callbacks.setCurrentFavorite(true)
+            MusicPlaybackService.ACTION_CUSTOM_UNFAVORITE -> callbacks.setCurrentFavorite(false)
 
             MusicPlaybackService.ACTION_CHANGE_MUSIC_BY_INDEX -> handlePlayByIndex(intent)
             MusicPlaybackService.ACTION_DESK_LRC_LOCK -> callbacks.setDesktopLyricsLocked(false)

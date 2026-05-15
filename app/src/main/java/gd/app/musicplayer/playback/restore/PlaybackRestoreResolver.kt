@@ -1,0 +1,33 @@
+package gd.app.musicplayer.playback.restore
+
+import gd.app.musicplayer.data.local.preference.PlaybackProgress
+import gd.app.musicplayer.domain.model.Music
+
+object PlaybackRestoreResolver {
+
+    fun resolve(
+        queue: List<Music>,
+        progress: PlaybackProgress
+    ): RestoredPlayback? {
+        if (queue.isEmpty()) return null
+
+        val index = queue
+            .indexOfFirst { music ->
+                music.id == progress.trackId
+            }
+            .takeIf { index -> index >= 0 }
+            ?: 0
+
+        val positionMs = if (queue[index].id == progress.trackId) {
+            progress.progressMs.toLong().coerceAtLeast(0L)
+        } else {
+            0L
+        }
+
+        return RestoredPlayback(
+            queue = queue,
+            index = index,
+            positionMs = positionMs
+        )
+    }
+}

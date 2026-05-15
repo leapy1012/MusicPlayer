@@ -1,13 +1,20 @@
 package gd.app.musicplayer.core.common.extension
 
 import android.content.Context
+import android.net.Uri
 import android.text.format.Formatter
+import androidx.core.net.toUri
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import gd.app.musicplayer.domain.model.Music
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
+
+const val URI_SCHEME_SEPARATOR = "://"
 
 fun Music.isFavorite(): Boolean {
     return playlistId == 1L
@@ -19,6 +26,35 @@ fun Music.albumArtSource(): Any {
             "content://media/external/audio/albumart/$it"
         } ?: data.orEmpty()
     return artworkSource
+}
+
+
+fun Music.resolveMediaUri(): Uri? {
+    val source = data.orEmpty()
+
+    if (source.isBlank()) return null
+
+    return if (source.contains(URI_SCHEME_SEPARATOR)) {
+        source.toUri()
+    } else {
+        Uri.fromFile(File(source))
+    }
+}
+
+fun Music.toMediaItemOrNull(): MediaItem? {
+    val mediaUri = resolveMediaUri() ?: return null
+
+    return MediaItem.Builder()
+        .setMediaId(id.toString())
+        .setUri(mediaUri)
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setTitle(title)
+                .setArtist(artist)
+                .setAlbumTitle(album)
+                .build()
+        )
+        .build()
 }
 
 fun Music.formatAddedDate(): String {

@@ -29,7 +29,7 @@ class PlaybackQueueRepo @Inject constructor(
 
     suspend fun clearQueue() {
         dao.clearQueue(MusicSet.PLAYING_QUEUE)
-        playbackStatePreferenceStore.setMusicProgress(-1, 0)
+        playbackStatePreferenceStore.clearMusicProgress()
     }
 
     // Compatibility API used by PlaybackStateStore.

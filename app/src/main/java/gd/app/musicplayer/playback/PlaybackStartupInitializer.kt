@@ -1,27 +1,26 @@
 package gd.app.musicplayer.playback
 
+import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
+import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
+
 @Singleton
 class PlaybackStartupInitializer @Inject constructor(
-    private val playbackSessionStore: PlaybackSessionStore,
     private val playbackQueueRepo: PlaybackQueueRepo,
+    private val playbackStatePreferenceStore: PlaybackStatePreferenceStore,
     private val stateStore: PlaybackRuntimeStateStore
 ) {
     private val mutex = Mutex()
-    private var initialized = false
 
     suspend fun initialize() {
         mutex.withLock {
-            if (initialized) return
-
             // If service already published live state, do nothing.
             if (stateStore.hasActiveState()) {
-                initialized = true
                 return
             }
 
@@ -32,32 +31,47 @@ class PlaybackStartupInitializer @Inject constructor(
             } else {
                 stateStore.setState(restoredState)
             }
-
-            initialized = true
         }
     }
 
     private suspend fun buildRestoredState(): MusicPlaybackState? {
-        val session = playbackSessionStore.getLastSession()
-            ?: return null
-
+        android.util.Log.e("Leapy", "buildRestoredState")
         val queue = playbackQueueRepo.getQueue()
         if (queue.isEmpty()) return null
 
-        val index = queue.indexOfFirst { it.id == session.musicId }
-            .takeIf { it >= 0 }
-            ?: session.currentIndex.coerceIn(0, queue.lastIndex)
+        val restoredStart = resolveRestoredPlaybackStart(queue) ?: return null
 
-        val music = queue.getOrNull(index) ?: return null
+        val music = queue.getOrNull(restoredStart.index) ?: return null
 
         return MusicPlaybackState(
             initialized = true,
-            currentIndex = index,
+            queue = queue,
+            currentIndex = restoredStart.index,
             currentTrack = music,
             isPlaying = false,
-            positionMs = session.positionMs.coerceAtLeast(0L),
+            positionMs = restoredStart.positionMs,
             durationMs = music.duration.toLong(),
             audioSessionId = -1
         )
     }
+
+    private suspend fun resolveRestoredPlaybackStart(
+        queue: List<Music>
+    ): RestoredPlaybackStart? {
+        val progress = playbackStatePreferenceStore.getMusicProgress()
+        val progressIndex = queue
+            .indexOfFirst { it.id == progress.trackId }
+            .takeIf { it >= 0 }
+            ?: return null
+
+        return RestoredPlaybackStart(
+            index = progressIndex,
+            positionMs = progress.progressMs.toLong().coerceAtLeast(0L)
+        )
+    }
+
+    private data class RestoredPlaybackStart(
+        val index: Int,
+        val positionMs: Long
+    )
 }

@@ -32,7 +32,7 @@ import gd.app.musicplayer.ui.player.full.PlayerViewModel
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.core.designsystem.view.SeekBar
-import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
+import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.TrackLyricsStore
 
@@ -66,8 +66,8 @@ class LockActivity : BaseActivity(),
     private lateinit var currentTimeView: TextView
     private lateinit var totalTimeView: TextView
 
-    @Inject lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
     @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
+    @Inject lateinit var playbackController: PlaybackController
     private val playModeViewModel: PlayModeViewModel by viewModels()
     private val playerViewModel: PlayerViewModel by viewModels()
 
@@ -303,10 +303,11 @@ class LockActivity : BaseActivity(),
     }
 
     private fun toggleFavorite() {
-        val track = currentTrack ?: return
-        lifecycleScope.launch {
-            favoriteView.isSelected = toggleFavoriteTrackUseCase(track.id)
-        }
+        if (currentTrack == null) return
+
+        playbackController.toggleFavorite(
+            context = this,
+        )
     }
 
     private fun showTrackOptions() {
@@ -329,6 +330,4 @@ class LockActivity : BaseActivity(),
         }
     }
 }
-
-
 

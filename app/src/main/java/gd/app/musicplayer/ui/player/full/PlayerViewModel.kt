@@ -152,12 +152,10 @@ class PlayerViewModel @Inject constructor(
                 initialValue = PlaybackHighlightState()
             )
 
-    fun toggleFavorite() {
-        val musicId = trackUiState.value.musicId ?: return
+    fun toggleFavorite(context: Context) {
+        if (trackUiState.value.musicId == null) return
 
-        viewModelScope.launch {
-            playlistRepo.toggleFavorite(musicId)
-        }
+        playbackController.toggleFavorite(context)
     }
 
     fun playQueue(
@@ -216,14 +214,19 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun onPrimaryPlayPauseClicked(context: Context) {
-        val currentTrackId = trackUiState.value.musicId
+        val playbackState = playbackState.value
 
-        if (currentTrackId == null) {
+        if (!playbackState.initialized) {
+            play(context)
+            return
+        }
+
+        if (playbackState.currentTrack == null) {
             playAllTracks(context)
             return
         }
 
-        if (progressUiState.value.isPlaying) {
+        if (playbackState.isPlaying) {
             pause(context)
         } else {
             play(context)

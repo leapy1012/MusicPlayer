@@ -22,7 +22,7 @@ import gd.app.musicplayer.ui.shell.MainActivity
 class PlaybackNotificationController(
     private val service: Service,
     private val notificationManager: NotificationManager,
-    private val mediaSessionTokenProvider: () -> android.media.session.MediaSession.Token,
+    private val mediaSessionTokenProvider: () -> android.media.session.MediaSession.Token?,
     private val currentMusicProvider: () -> Music?,
     private val currentArtworkProvider: () -> Bitmap?,
     private val artworkTrackIdProvider: () -> Long,

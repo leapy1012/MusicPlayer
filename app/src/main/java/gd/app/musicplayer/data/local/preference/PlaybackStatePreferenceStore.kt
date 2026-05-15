@@ -53,6 +53,13 @@ class PlaybackStatePreferenceStore @Inject constructor(
         }
     }
 
+    suspend fun clearMusicProgress() {
+        setMusicProgress(
+            trackId = NO_TRACK_ID,
+            progressMs = 0
+        )
+    }
+
     suspend fun getPlaySpeed(): Float {
         return dataStore.data.first()[KEY_PLAY_SPEED] ?: DEFAULT_PLAY_SPEED
     }
@@ -76,7 +83,11 @@ class PlaybackStatePreferenceStore @Inject constructor(
     private fun String.toPlaybackProgress(): PlaybackProgress {
         val parts = split(PROGRESS_SEPARATOR, limit = 2)
         val trackId = parts.getOrNull(0)?.toLongOrNull() ?: NO_TRACK_ID
-        val progressMs = parts.getOrNull(1)?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val progressMs = parts.getOrNull(1)
+            ?.substringBefore(INDEX_SEPARATOR)
+            ?.toIntOrNull()
+            ?.coerceAtLeast(0)
+            ?: 0
 
         return PlaybackProgress(
             trackId = trackId,
@@ -94,6 +105,7 @@ class PlaybackStatePreferenceStore @Inject constructor(
     private companion object {
         const val NO_TRACK_ID = -1L
         const val PROGRESS_SEPARATOR = "&"
+        const val INDEX_SEPARATOR = "|"
         const val DEFAULT_PLAY_SPEED = 1.0f
         const val DEFAULT_PLAY_PITCH = 1.0f
 

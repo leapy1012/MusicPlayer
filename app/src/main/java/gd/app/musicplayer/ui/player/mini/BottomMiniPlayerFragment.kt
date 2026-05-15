@@ -94,10 +94,16 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
     private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
         val binding = binding ?: return
 
-        val durationMs = state.durationMs.coerceAtLeast(1L)
+        binding.mainControlPlayPause.isSelected = state.isPlaying
+
+        if (state.durationMs <= 0L) {
+            binding.mainMusicProgress.setProgress(0)
+            return
+        }
+
+        val durationMs = state.durationMs.coerceAtMost(Int.MAX_VALUE.toLong())
         val progressMs = state.positionMs.coerceIn(0L, durationMs)
 
-        binding.mainControlPlayPause.isSelected = state.isPlaying
         binding.mainMusicProgress.setMax(durationMs.toInt())
         binding.mainMusicProgress.setProgress(progressMs.toInt())
     }
@@ -111,8 +117,6 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
         binding.itemMainControlArtist.text = state.artist.ifBlank {
             getString(R.string.artist)
         }
-
-        Log.e("Leapy", state.artworkSource.toString())
 
         binding.itemMainControlAlbum.loadCircularArtwork(state.artworkSource?:"", R.drawable.notify_default_album_circle)
     }

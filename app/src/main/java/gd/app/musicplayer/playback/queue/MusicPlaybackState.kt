@@ -4,6 +4,7 @@ import gd.app.musicplayer.domain.model.Music
 
 data class MusicPlaybackState(
     val initialized: Boolean = false,
+    val queue: List<Music> = emptyList(),
     val currentIndex: Int = -1,
     val currentTrack: Music? = null,
     val isPlaying: Boolean = false,

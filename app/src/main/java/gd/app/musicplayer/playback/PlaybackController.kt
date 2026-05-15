@@ -37,6 +37,10 @@ interface PlaybackController {
 
     fun clearQueue(context: Context)
 
+    fun removeQueueItem(context: Context, index: Int)
+
+    fun moveQueueItem(context: Context, fromIndex: Int, toIndex: Int)
+
     fun stop(context: Context)
 
     fun applyPlaybackTuning(context: Context)
@@ -48,4 +52,6 @@ interface PlaybackController {
     fun cyclePlayMode(context: Context)
 
     fun setShuffleAllMode(context: Context)
+
+    fun toggleFavorite(context: Context)
 }
