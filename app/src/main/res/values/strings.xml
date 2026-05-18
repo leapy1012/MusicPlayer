@@ -257,6 +257,8 @@
     <string name="dlg_ringtone_2">Ringtone</string>
     <string name="dlg_ringtone_failed">Failed to set ringtone</string>
     <string name="dlg_ringtone_success">Set ringtone successful.</string>
+    <string name="sim_1">SIM 1</string>
+    <string name="sim_2">SIM 2</string>
     <string name="dlg_sample_rate">Sampling rate:</string>
     <string name="dlg_share_music">Share</string>
     <string name="dlg_size">Size:</string>

@@ -16,6 +16,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
+import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.common.util.ToastUtil
@@ -30,6 +31,7 @@ import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.ui.library.albums.AlbumMusicActivity
 import gd.app.musicplayer.ui.library.artwork.ManageArtworkDialogFragment
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
@@ -42,6 +44,9 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
     private var volumeText: TextView? = null
     private var volumeIcon: ImageView? = null
     private var lastNonZeroVolume = 0
+
+    @Inject
+    lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
     private val deleteConfirmResultKey: String
         get() = "current_track_delete_confirm_${music.id}"
@@ -78,7 +83,11 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
                     .show(parentFragmentManager, ManageArtworkDialogFragment::class.java.simpleName)
             }
             R.string.sleep_timer_2 -> SleepActivity.start(requireContext())
-            R.string.dlg_ringtone_2 -> ToastUtil.show(requireContext(), R.string.feature_not_implemented)
+            R.string.dlg_ringtone_2 -> RingtoneActionHandler.handle(
+                requireActivity(),
+                music,
+                materialDialogConfigFactory
+            )
             R.string.hide_music -> viewModel.hideTrack()
         }
     }
@@ -204,19 +213,12 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     private fun confirmDeleteTrack() {
-        parentFragmentManager.setFragmentResultListener(
-            deleteConfirmResultKey,
-            viewLifecycleOwner
-        ) { _, bundle ->
-            if (bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
-                viewModel.deleteTrack()
-                dismissAllowingStateLoss()
-            }
-        }
         DeleteConfirmDialogFragment.forTrackDelete(
             resultKey = deleteConfirmResultKey,
-            trackTitle = music.title
+            trackTitle = music.title,
+            music = music
         ).show(parentFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
+        dismissAllowingStateLoss()
     }
 
     private fun handleEvent(event: CurrentTrackOptionsEvent) {
@@ -225,6 +227,7 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
             is CurrentTrackOptionsEvent.OpenAddTo -> PlaylistSelectActivity.start(requireContext(), event.tracks)
             is CurrentTrackOptionsEvent.OpenAlbum -> AlbumMusicActivity.start(requireContext(), event.album)
             is CurrentTrackOptionsEvent.OpenArtist -> AlbumMusicActivity.start(requireContext(), event.artist)
+            CurrentTrackOptionsEvent.Dismiss -> dismissAllowingStateLoss()
         }
     }
 

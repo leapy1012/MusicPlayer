@@ -15,6 +15,7 @@ import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
 import gd.app.musicplayer.domain.repository.ThemeRepo
+import gd.app.musicplayer.ui.library.options.RingtoneActionHandler
 import gd.app.musicplayer.ui.theme.ThemeEngine
 import javax.inject.Inject
 
@@ -73,6 +74,7 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     override fun onResume() {
         super.onResume()
         isStateSaved = false
+        RingtoneActionHandler.handlePendingPermissionResult(this)
         applyThemeTo(findViewById(android.R.id.content))
     }
 

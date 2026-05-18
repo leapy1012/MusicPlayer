@@ -6,20 +6,48 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.fragment.app.setFragmentResult
+import androidx.lifecycle.lifecycleScope
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.databinding.DialogCommonBinding
+import gd.app.musicplayer.core.common.extension.parcelable
+import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
+import gd.app.musicplayer.databinding.DialogCommonBinding
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
+import gd.app.musicplayer.domain.usecase.playlist.DeletePlaylistUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     private var _binding: DialogCommonBinding? = null
     private val binding: DialogCommonBinding
         get() = requireNotNull(_binding)
 
+    @Inject
+    lateinit var deleteTracksUseCase: DeleteTracksUseCase
+
+    @Inject
+    lateinit var deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase
+
+    @Inject
+    lateinit var deletePlaylistUseCase: DeletePlaylistUseCase
+
+    @Inject
+    lateinit var observeTracksUseCase: ObserveTracksUseCase
+
     private val dialogType: Int
         get() = requireArguments().getInt(ARG_DIALOG_TYPE)
     private val itemName: String
         get() = requireArguments().getString(ARG_ITEM_NAME).orEmpty()
+    private val executionMode: Int
+        get() = requireArguments().getInt(ARG_EXECUTION_MODE, EXECUTION_RESULT_ONLY)
 
     private val spec: Spec
         get() = when (dialogType) {
@@ -99,15 +127,73 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
             }
 
             R.id.dialog_button_ok -> {
-                setFragmentResult(
-                    requireArguments().getString(ARG_RESULT_KEY).orEmpty(),
-                    bundleOf(RESULT_CONFIRMED to true, RESULT_EXTRA_CHECKED to binding.dialogCommenDeleteSelect.isSelected)
-                )
-                dismiss()
+                val deleteSourceFile = binding.dialogCommenDeleteSelect.isSelected
+                if (executionMode == EXECUTION_INTERNAL) {
+                    executeConfirmedDelete(deleteSourceFile)
+                } else {
+                    setFragmentResult(
+                        requireArguments().getString(ARG_RESULT_KEY).orEmpty(),
+                        bundleOf(RESULT_CONFIRMED to true, RESULT_EXTRA_CHECKED to deleteSourceFile)
+                    )
+                    dismiss()
+                }
             }
 
             R.id.dialog_button_cancel -> dismiss()
         }
+    }
+
+    private fun executeConfirmedDelete(deleteSourceFile: Boolean) {
+        binding.dialogButtonOk.isEnabled = false
+        binding.dialogButtonCancel.isEnabled = false
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val success = when (dialogType) {
+                TYPE_TRACK_DELETE -> deleteTrack(deleteSourceFile)
+                TYPE_SET_DELETE_PLAYLIST,
+                TYPE_SET_DELETE_TRACKS -> deleteSet(deleteSourceFile)
+                else -> false
+            }
+
+            ToastUtil.show(
+                requireContext(),
+                if (success) R.string.succeed else R.string.feature_not_implemented
+            )
+            dismiss()
+        }
+    }
+
+    private suspend fun deleteTrack(deleteSourceFile: Boolean): Boolean {
+        val music = requireArguments().parcelable<Music>(ARG_MUSIC) ?: return false
+        val deletedCount = if (deleteSourceFile) {
+            deleteTracksUseCase(listOf(music))
+        } else {
+            deleteTracksFromLibraryUseCase(listOf(music.id))
+            1
+        }
+        return deletedCount > 0
+    }
+
+    private suspend fun deleteSet(deleteSourceFile: Boolean): Boolean {
+        val musicSet = requireArguments().parcelable<MusicSet>(ARG_MUSIC_SET) ?: return false
+        if (musicSet is MusicSet.Playlist) {
+            deletePlaylistUseCase(musicSet.id)
+            return true
+        }
+
+        val tracks = observeTracksUseCase(musicSet).first()
+        if (tracks.isEmpty()) {
+            ToastUtil.show(requireContext(), R.string.list_is_empty)
+            return false
+        }
+
+        val deletedCount = if (deleteSourceFile) {
+            deleteTracksUseCase(tracks)
+        } else {
+            deleteTracksFromLibraryUseCase(tracks.map { it.id })
+            tracks.size
+        }
+        return deletedCount > 0
     }
 
     companion object {
@@ -117,6 +203,12 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         private const val ARG_ITEM_NAME = "item_name"
         private const val ARG_DIALOG_TYPE = "dialog_type"
         private const val ARG_RESULT_KEY = "result_key"
+        private const val ARG_EXECUTION_MODE = "execution_mode"
+        private const val ARG_MUSIC = "music"
+        private const val ARG_MUSIC_SET = "music_set"
+
+        private const val EXECUTION_RESULT_ONLY = 0
+        private const val EXECUTION_INTERNAL = 1
 
         private const val TYPE_TRACK_DELETE = 1
         private const val TYPE_SET_DELETE_TRACKS = 2
@@ -134,19 +226,36 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         private fun create(
             resultKey: String,
             itemName: String,
-            type: Int
+            type: Int,
+            executionMode: Int = EXECUTION_RESULT_ONLY,
+            music: Music? = null,
+            musicSet: MusicSet? = null
         ): DeleteConfirmDialogFragment {
             return DeleteConfirmDialogFragment().apply {
                 arguments = bundleOf(
                     ARG_RESULT_KEY to resultKey,
                     ARG_ITEM_NAME to itemName,
-                    ARG_DIALOG_TYPE to type
-                )
+                    ARG_DIALOG_TYPE to type,
+                    ARG_EXECUTION_MODE to executionMode
+                ).apply {
+                    music?.let { putParcelable(ARG_MUSIC, it) }
+                    musicSet?.let { putParcelable(ARG_MUSIC_SET, it) }
+                }
             }
         }
 
-        fun forTrackDelete(resultKey: String, trackTitle: String): DeleteConfirmDialogFragment {
-            return create(resultKey = resultKey, itemName = trackTitle, type = TYPE_TRACK_DELETE)
+        fun forTrackDelete(
+            resultKey: String,
+            trackTitle: String,
+            music: Music? = null
+        ): DeleteConfirmDialogFragment {
+            return create(
+                resultKey = resultKey,
+                itemName = trackTitle,
+                type = TYPE_TRACK_DELETE,
+                executionMode = if (music == null) EXECUTION_RESULT_ONLY else EXECUTION_INTERNAL,
+                music = music
+            )
         }
 
         fun forTrackRemoveFromList(resultKey: String, trackTitle: String): DeleteConfirmDialogFragment {
@@ -156,12 +265,15 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         fun forSetDelete(
             resultKey: String,
             setName: String,
-            isPlaylist: Boolean
+            isPlaylist: Boolean,
+            musicSet: MusicSet? = null
         ): DeleteConfirmDialogFragment {
             return create(
                 resultKey = resultKey,
                 itemName = setName,
-                type = if (isPlaylist) TYPE_SET_DELETE_PLAYLIST else TYPE_SET_DELETE_TRACKS
+                type = if (isPlaylist) TYPE_SET_DELETE_PLAYLIST else TYPE_SET_DELETE_TRACKS,
+                executionMode = if (musicSet == null) EXECUTION_RESULT_ONLY else EXECUTION_INTERNAL,
+                musicSet = musicSet
             )
         }
     }

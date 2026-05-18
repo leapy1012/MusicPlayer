@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import gd.app.musicplayer.domain.model.SmartPlaylistConfig
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -18,14 +19,20 @@ class PlaylistPreferenceDataStore @Inject constructor(
 ) {
     fun observeSmartPlaylistConfig(): Flow<SmartPlaylistConfig> {
         return dataStore.data.map { preferences ->
-
             val timeLimit = preferences[KEY_PLAYLIST_TRACK_LIMIT_TIME] ?: MONTH_MS_6
             val trackLimit = preferences[KEY_PLAYLIST_TRACK_LIMIT] ?: DEFAULT_TRACK_LIMIT
-
+            SmartPlaylistPreference(timeLimit, trackLimit)
+        }
+            .distinctUntilChanged()
+            .map { preference ->
             SmartPlaylistConfig(
-                windowDurationMs = timeLimit,
-                windowStartMs = if (timeLimit > 0) System.currentTimeMillis() - timeLimit else 0,
-                trackLimit = if (timeLimit == 0L) trackLimit else -1
+                windowDurationMs = preference.timeLimitMs,
+                windowStartMs = if (preference.timeLimitMs > 0) {
+                    System.currentTimeMillis() - preference.timeLimitMs
+                } else {
+                    0
+                },
+                trackLimit = if (preference.timeLimitMs == 0L) preference.trackLimit else -1
             )
         }
     }
@@ -85,4 +92,9 @@ class PlaylistPreferenceDataStore @Inject constructor(
         const val YEAR_MS = 31_104_000_000L
         const val FOREVER = -1L
     }
+
+    private data class SmartPlaylistPreference(
+        val timeLimitMs: Long,
+        val trackLimit: Int
+    )
 }

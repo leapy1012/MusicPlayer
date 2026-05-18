@@ -12,6 +12,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.domain.model.Music
@@ -20,12 +21,16 @@ import gd.app.musicplayer.ui.selection.MusicShareSupport
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
 import gd.app.musicplayer.ui.library.albums.AlbumMusicActivity
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
     private lateinit var music: Music
     private val viewModel: QueueTrackOptionsViewModel by viewModels()
+
+    @Inject
+    lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
     override fun onReadArguments(arguments: Bundle) {
         music = arguments.parcelable(ARG_MUSIC) ?: error("Missing music")
@@ -50,8 +55,12 @@ class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
             R.string.dlg_more_view_artist -> viewModel.onOpenArtist(music)
             R.string.remove -> viewModel.onRemoveFromQueue(music)
             R.string.dlg_ringtone_2 -> {
-                ToastUtil.show(requireContext(), R.string.feature_not_implemented)
                 dismissAllowingStateLoss()
+                RingtoneActionHandler.handle(
+                    requireActivity(),
+                    music,
+                    materialDialogConfigFactory
+                )
             }
             R.string.dlg_share_music -> viewModel.onShare(music)
             R.string.delete -> confirmDeleteTrack()

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.preferencesOf
 import gd.app.musicplayer.domain.model.MusicSet
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -52,7 +53,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: "name"
-        }
+        }.distinctUntilChanged()
     }
 
 
@@ -92,7 +93,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: false
-        }
+        }.distinctUntilChanged()
     }
 
     fun observeAlbumsSortStyle() : Flow<String> {
@@ -100,7 +101,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: "name"
-        }
+        }.distinctUntilChanged()
     }
 
     fun observeAlbumsSortReversed(): Flow<Boolean> {
@@ -108,7 +109,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: false
-        }
+        }.distinctUntilChanged()
     }
 
     fun observeArtistsSortStyle() : Flow<String> {
@@ -116,7 +117,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: "name"
-        }
+        }.distinctUntilChanged()
     }
 
     fun observeArtistsSortReversed(): Flow<Boolean> {
@@ -124,7 +125,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: false
-        }
+        }.distinctUntilChanged()
     }
 
     fun observeGenresSortStyle() : Flow<String> {
@@ -132,7 +133,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: "name"
-        }
+        }.distinctUntilChanged()
     }
 
     fun observeGenresSortReversed(): Flow<Boolean> {
@@ -140,7 +141,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: false
-        }
+        }.distinctUntilChanged()
     }
 
     fun observeFoldersSortStyle() : Flow<String> {
@@ -148,7 +149,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: "name"
-        }
+        }.distinctUntilChanged()
     }
 
     fun observeFoldersSortReversed(): Flow<Boolean> {
@@ -156,7 +157,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: false
-        }
+        }.distinctUntilChanged()
     }
 
     fun observePlaylistsSortStyle() : Flow<String> {
@@ -164,7 +165,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: "default"
-        }
+        }.distinctUntilChanged()
     }
 
     fun observePlaylistsSortReversed(): Flow<Boolean> {
@@ -172,14 +173,14 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: false
-        }
+        }.distinctUntilChanged()
     }
 
     fun observePlaylistSortStyle(musicSet: MusicSet.Playlist) : Flow<String> {
         val key = stringPreferencesKey("pref_sort_style${musicSet.id}")
         return dataStore.data.map { preferences ->
             preferences[key] ?: "default"
-        }
+        }.distinctUntilChanged()
     }
 
     fun observePlaylistSortReversed(musicSet: MusicSet.Playlist): Flow<Boolean> {
@@ -187,7 +188,7 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: false
-        }
+        }.distinctUntilChanged()
     }
 
     suspend fun setSortStyle(musicSet: MusicSet, style: String) {

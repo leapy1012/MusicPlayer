@@ -36,6 +36,7 @@ data class MusicOptionsUiState(
 
 sealed interface MusicOptionsEvent {
     data class ShowToast(@StringRes val messageRes: Int, val args: List<Any> = emptyList()) : MusicOptionsEvent
+    data object Dismiss : MusicOptionsEvent
 }
 
 @HiltViewModel
@@ -167,6 +168,7 @@ class MusicOptionsViewModel @Inject constructor(
                     if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
                 )
             )
+            eventsChannel.send(MusicOptionsEvent.Dismiss)
         }
     }
 }

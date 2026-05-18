@@ -34,6 +34,7 @@ sealed interface CurrentTrackOptionsEvent {
     data class OpenAddTo(val tracks: List<Music>) : CurrentTrackOptionsEvent
     data class OpenArtist(val artist: MusicSet.Artist) : CurrentTrackOptionsEvent
     data class OpenAlbum(val album: MusicSet.Album) : CurrentTrackOptionsEvent
+    data object Dismiss : CurrentTrackOptionsEvent
 }
 
 @HiltViewModel
@@ -125,6 +126,7 @@ class CurrentTrackOptionsViewModel @Inject constructor(
                     if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
                 )
             )
+            eventsChannel.send(CurrentTrackOptionsEvent.Dismiss)
         }
     }
 

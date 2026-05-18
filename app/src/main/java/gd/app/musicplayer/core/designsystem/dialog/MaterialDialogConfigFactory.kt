@@ -2,6 +2,9 @@ package gd.app.musicplayer.core.designsystem.dialog
 
 import android.content.Context
 import android.graphics.Color
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import androidx.annotation.ColorInt
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.theme.accentColor
@@ -70,6 +73,23 @@ class MaterialDialogConfigFactory @Inject constructor(
             dimAmount = DEFAULT_DIM_AMOUNT
 
             applyMaterialActionButtons(colors)
+        }
+    }
+
+    fun createAccentMessage(
+        text: String,
+        accentSegment: String
+    ): CharSequence {
+        val start = text.indexOf(accentSegment)
+        if (start < 0 || accentSegment.isEmpty()) return text
+
+        return SpannableString(text).apply {
+            setSpan(
+                ForegroundColorSpan(themeEngine.currentTheme().accentColor),
+                start,
+                start + accentSegment.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
         }
     }
 

@@ -1,6 +1,5 @@
 package gd.app.musicplayer.domain.repository
 
-import android.util.Log
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteQuery
 import gd.app.musicplayer.domain.model.MusicSet
@@ -158,7 +157,6 @@ internal object LibraryQueryBuilder {
 
             else -> emptyTrackQuery()
         }
-        Log.e("Leapy", sql)
         return SimpleSQLiteQuery(
             sql,
             args.toTypedArray()

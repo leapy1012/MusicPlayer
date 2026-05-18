@@ -16,6 +16,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
+import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.ArtworkRequest
@@ -28,6 +29,7 @@ import gd.app.musicplayer.ui.tags.EditTagsActivity
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
 import gd.app.musicplayer.ui.library.artwork.ManageArtworkDialogFragment
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MusicOptionsDialog : BaseBottomGridMenuDialog() {
@@ -36,6 +38,9 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
     private lateinit var music: Music
     private val viewModel: MusicOptionsViewModel by viewModels()
     private var favoriteButton: ImageView? = null
+
+    @Inject
+    lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
     companion object {
         private const val ARG_MUSIC = "music"
@@ -102,7 +107,11 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
 
             R.string.dlg_ringtone_2 -> {
                 dismiss()
-                ToastUtil.show(requireContext(), R.string.feature_not_implemented)
+                RingtoneActionHandler.handle(
+                    requireActivity(),
+                    music,
+                    materialDialogConfigFactory
+                )
             }
 
             R.string.dlg_share_music -> {
@@ -200,22 +209,10 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     private fun confirmDeleteTrack() {
-        val activity = requireActivity()
-        val targetMusic = music
-        parentFragmentManager.setFragmentResultListener(
-            DELETE_CONFIRM_RESULT_KEY,
-            activity
-        ) { _, bundle ->
-            if (bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
-                val deleteSourceFile = bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_EXTRA_CHECKED, true)
-                viewModel.onMusicChanged(targetMusic)
-                viewModel.deleteCurrentTrack(deleteSourceFile)
-            }
-        }
-
         DeleteConfirmDialogFragment.forTrackDelete(
             resultKey = DELETE_CONFIRM_RESULT_KEY,
-            trackTitle = music.title
+            trackTitle = music.title,
+            music = music
         ).show(parentFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
         dismissAllowingStateLoss()
     }
@@ -239,6 +236,8 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
                     ToastUtil.show(requireContext(), getString(event.messageRes, *event.args.toTypedArray()))
                 }
             }
+
+            MusicOptionsEvent.Dismiss -> dismissAllowingStateLoss()
         }
     }
 

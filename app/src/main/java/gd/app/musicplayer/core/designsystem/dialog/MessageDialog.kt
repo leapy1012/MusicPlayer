@@ -33,7 +33,7 @@ class MessageDialog(
         var buttonTextSizePx: Float = 0f
 
         var titleText: String? = null
-        var messageText: String? = null
+        var messageText: CharSequence? = null
         var customView: View? = null
 
         var customViewLeftMarginPx: Int = 0

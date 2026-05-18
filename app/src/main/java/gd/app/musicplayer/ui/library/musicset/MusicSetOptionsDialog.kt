@@ -207,23 +207,14 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     private fun confirmDeleteSet() {
-        parentFragmentManager.setFragmentResultListener(
-            deleteConfirmResultKey,
-            viewLifecycleOwner
-        ) { _, bundle ->
-            if (bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
-                val deleteSourceFile = bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_EXTRA_CHECKED, true)
-                viewModel.deleteSet(musicSet, deleteSourceFile)
-                dismissAllowingStateLoss()
-            }
-        }
-
         val isPlaylist = musicSet is MusicSet.Playlist
         DeleteConfirmDialogFragment.forSetDelete(
             resultKey = deleteConfirmResultKey,
             setName = musicSet.name,
-            isPlaylist = isPlaylist
+            isPlaylist = isPlaylist,
+            musicSet = musicSet
         ).show(parentFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
+        dismissAllowingStateLoss()
     }
 
     private fun handleEvent(event: MusicSetOptionsEvent) {
