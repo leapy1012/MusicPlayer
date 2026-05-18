@@ -35,8 +35,8 @@ data class WidgetStyleOption(
 )
 
 enum class WidgetArtworkStyle(
-    @DrawableRes val previewRes: Int,
-    @DrawableRes val placeholderRes: Int
+    @param:DrawableRes val previewRes: Int,
+    @param:DrawableRes val placeholderRes: Int
 ) {
     DEFAULT(
         previewRes = R.drawable.widget_preview_album,
@@ -241,7 +241,67 @@ object WidgetCatalog {
     }
 
     fun defaultStyle(classify: String): WidgetStyleOption {
-        return specForClassify(classify).styles.first()
+        val spec = specForClassify(classify)
+        val defaultStyleKey = when (spec.classify) {
+            "2*1" -> "2x1_1"
+            "3*2" -> "3x2_1"
+            "4*1" -> "4x1_1"
+            "4*2" -> "4x2_2"
+            "4*3" -> "4x3_1"
+            "4*4" -> "4x4_1"
+            "List" -> "LIST"
+            else -> spec.styles.first().styleKey
+        }
+
+        return resolveStyleOption(spec, defaultStyleKey)
+    }
+
+    fun resolveStyleOption(
+        spec: WidgetProviderSpec,
+        styleKey: String
+    ): WidgetStyleOption {
+        val normalized = normalizeStyleKey(styleKey)
+        return spec.styles.firstOrNull { option ->
+            normalizeStyleKey(option.styleKey) == normalized
+        } ?: spec.styles.first()
+    }
+
+    fun defaultThemeOption(styleKey: String): WidgetThemeOption {
+        val normalized = styleKey.lowercase()
+        val default = when (normalized) {
+            "2x1_1" -> WidgetThemeDefault(1, 2, 0.7f)
+            "2x1_2" -> WidgetThemeDefault(1, 14, 0.7f)
+            "3x2_1" -> WidgetThemeDefault(1, 7, 0.7f)
+            "3x2_2" -> WidgetThemeDefault(1, 12, 0.7f)
+            "4x1_1" -> WidgetThemeDefault(1, 12, 0.7f)
+            "4x1_2" -> WidgetThemeDefault(1, 3, 0.7f)
+            "4x1_3" -> WidgetThemeDefault(1, 0, 0.7f)
+            "4x1_4" -> WidgetThemeDefault(0, 3, 0.6f)
+            "4x2_1" -> WidgetThemeDefault(1, 9, 0.7f)
+            "4x2_2" -> WidgetThemeDefault(0, 5, 0.6f)
+            "4x2_3" -> WidgetThemeDefault(1, 12, 0.7f)
+            "4x2_4" -> WidgetThemeDefault(1, 4, 0.7f)
+            "4x3_1" -> WidgetThemeDefault(0, 8, 0.6f)
+            "4x3_2" -> WidgetThemeDefault(1, 8, 0.7f)
+            "4x3_3" -> WidgetThemeDefault(1, 5, 0.7f)
+            "4x3_4" -> WidgetThemeDefault(1, 3, 0.7f)
+            "4x3_5" -> WidgetThemeDefault(1, 9, 0.7f)
+            "4x3_6" -> WidgetThemeDefault(1, 13, 0.7f)
+            "4x4_1" -> WidgetThemeDefault(1, 10, 0.7f)
+            "4x4_2" -> WidgetThemeDefault(0, 9, 0.6f)
+            "4x4_3" -> WidgetThemeDefault(1, 9, 0.7f)
+            "list" -> WidgetThemeDefault(0, 6, 0.3f)
+            else -> WidgetThemeDefault(DEFAULT_THEME_TYPE, DEFAULT_THEME_INDEX, DEFAULT_THEME_ALPHA)
+        }
+
+        return themeOption(default.themeType, default.themeIndex).copy(alpha = default.alpha)
+    }
+
+    fun themeOptionIndex(theme: WidgetThemeOption?): Int {
+        if (theme == null) return -1
+        return themeOptions.indexOfFirst { option ->
+            option.themeType == theme.themeType && option.index == theme.index
+        }
     }
 
     fun artworkStyle(styleKey: String): WidgetArtworkStyle {
@@ -279,7 +339,20 @@ object WidgetCatalog {
         }
     }
 
+    private fun normalizeStyleKey(styleKey: String): String {
+        return styleKey.trim()
+            .replace("3X2_", "3x2_", ignoreCase = true)
+            .uppercase()
+    }
+
     private const val DEFAULT_CLASSIFY = "4*1"
     private const val DEFAULT_THEME_TYPE = 0
     private const val DEFAULT_THEME_INDEX = 5
+    private const val DEFAULT_THEME_ALPHA = 0.7f
+
+    private data class WidgetThemeDefault(
+        val themeType: Int,
+        val themeIndex: Int,
+        val alpha: Float
+    )
 }

@@ -127,38 +127,3 @@ fun Context.getDisplayMetrics(
         }
     }
 }
-fun Context.highlightText(
-    text: String,
-    query: String?,
-    highlightColor: Int,
-    suffix: String
-): CharSequence {
-    if (query.isNullOrEmpty()) {
-        return text + suffix
-    }
-
-    val fullText = text + suffix
-    val lowerText = text.lowercase()
-    val lowerQuery = query.lowercase()
-
-    var startIndex = lowerText.indexOf(lowerQuery)
-    if (startIndex < 0) {
-        return fullText
-    }
-
-    val spannable = SpannableStringBuilder(fullText)
-    val queryLength = query.length
-
-    while (startIndex >= 0) {
-        val endIndex = startIndex + queryLength
-        spannable.setSpan(
-            ForegroundColorSpan(highlightColor),
-            startIndex,
-            endIndex,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        startIndex = lowerText.indexOf(lowerQuery, endIndex)
-    }
-
-    return spannable
-}

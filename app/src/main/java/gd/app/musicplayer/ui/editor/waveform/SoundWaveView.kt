@@ -7,12 +7,15 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.StateListDrawable
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Scroller
+import androidx.appcompat.content.res.AppCompatResources
 import gd.app.musicplayer.R
+import gd.app.musicplayer.ui.editor.model.WaveformData
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -49,10 +52,7 @@ class SoundWaveView @JvmOverloads constructor(
     private val selectedRect = Rect()
     private val leftHandleRect = Rect()
     private val rightHandleRect = Rect()
-    private var leftClipDrawable: Drawable? =
-        context.getDrawable(R.drawable.sound_clip_minus) ?: context.getDrawable(android.R.drawable.arrow_up_float)
-    private var rightClipDrawable: Drawable? =
-        context.getDrawable(R.drawable.sound_clip_plus) ?: context.getDrawable(android.R.drawable.arrow_up_float)
+    private var clipDrawable: Drawable? = createDefaultClipDrawable(context)
 
     private var dragMode = DragMode.LEFT
     private var scrollTapMode = false
@@ -69,6 +69,7 @@ class SoundWaveView @JvmOverloads constructor(
     private var progressLineColor = -65536
     private var overlayColor = 0x2A000000
     private var overlaySelectedColor = 0
+    private var fallbackWaveColor = -1
 
     private var listener: OnClipChangedListener? = null
 
@@ -81,10 +82,10 @@ class SoundWaveView @JvmOverloads constructor(
     fun getEndFrame(): Int = model.frameAt(clipRightX - paddingLeft)
     fun getMinRangeTime(): Float = 0f
     fun getProgressMilliseconds(): Int = (((progressX - paddingLeft) / model.pxPerMs())).toInt().coerceAtLeast(0)
-    fun getSoundFile(): SoundWaveData? = soundFile
+    fun getSoundFile(): WaveformData? = soundFile
     fun getStartFrame(): Int = model.frameAt(clipLeftX - paddingLeft)
 
-    private var soundFile: SoundWaveData? = null
+    private var soundFile: WaveformData? = null
 
     override fun computeScroll() {
         if (scroller.computeScrollOffset()) {
@@ -104,10 +105,10 @@ class SoundWaveView @JvmOverloads constructor(
         }
         canvas.drawLines(lines, wavePaint)
 
-        val rulerTop = baselinePaint.textSize + 4f
-        val rulerBottom = rulerTop + 16f * resources.displayMetrics.density
+        val rulerTop = getRulerTextHeight()
+        val rulerBottom = rulerTop + getRulerGraduationHeight()
         model.rulerPoints().forEach { (label, x) ->
-            canvas.drawText(label, x, baselinePaint.textSize, baselinePaint)
+            canvas.drawText(label, x, rulerTextBaseline(rulerTop / 2f), baselinePaint)
             canvas.drawLine(x, rulerTop, x, rulerBottom, baselinePaint)
         }
         canvas.drawLine(paddingLeft.toFloat(), rulerBottom, (paddingLeft + model.contentWidth()).toFloat(), rulerBottom, baselinePaint)
@@ -142,7 +143,7 @@ class SoundWaveView @JvmOverloads constructor(
         val widthChanged = model.setViewport(
             width = w,
             height = h,
-            topInset = baselinePaint.textSize + 4f + 16f * resources.displayMetrics.density,
+            topInset = getRulerTextHeight() + getRulerGraduationHeight(),
             leftInset = paddingLeft.toFloat(),
             rightInset = paddingRight.toFloat()
         )
@@ -228,34 +229,18 @@ class SoundWaveView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun setSoundFile(data: SoundWaveData?) {
-        soundFile = data
-        model.setData(data)
-        if (width > 0) {
-            if (initialized) {
-                setClipRight(getClipRightMilliseconds())
-                setClipLeft(getClipLeftMilliseconds(), false)
-            } else {
-                initialized = true
-                setClipRight((width / 2f / model.pxPerMs().coerceAtLeast(1f)).toInt())
-                setClipLeft(0, false)
-            }
-            listener?.onClipStartChanged(getClipLeftMilliseconds())
-            listener?.onClipEndChanged(getClipRightMilliseconds())
-        }
-        buildWaveShader()
-        invalidate()
-    }
+    fun setSoundFile(data: WaveformData?) = setWaveformData(data)
 
     fun setWaveColor(color: Int) {
-        wavePaint.shader = null
-        wavePaint.color = color
+        fallbackWaveColor = color
+        if (wavePaint.shader == null) {
+            wavePaint.color = color
+        }
         invalidate()
     }
 
     fun setClipIcon(drawable: Drawable?) {
-        leftClipDrawable = drawable ?: leftClipDrawable
-        rightClipDrawable = drawable ?: rightClipDrawable
+        clipDrawable = drawable ?: clipDrawable
         invalidate()
     }
 
@@ -297,8 +282,12 @@ class SoundWaveView @JvmOverloads constructor(
     private fun buildWaveShader() {
         oscillator.reset()
         val total = model.contentWidth().toFloat()
-        if (total <= 0f || width <= 0) return
-        val segment = ceil(total / ((width / oscillator.size()) / max(1, (1 shl model.level())).toFloat())).toInt()
+        if (total <= 0f || width <= 0) {
+            wavePaint.shader = null
+            wavePaint.color = fallbackWaveColor
+            return
+        }
+        val segment = ceil(total / (width.toFloat() / oscillator.size())).toInt()
         val c = IntArray(segment + 1) { oscillator.next() }
         val p = FloatArray(segment + 1) { it * (1f / segment.coerceAtLeast(1)) }
         wavePaint.shader = LinearGradient(
@@ -313,28 +302,27 @@ class SoundWaveView @JvmOverloads constructor(
     }
 
     private fun drawHandles(canvas: Canvas) {
-        val leftIcon = leftClipDrawable ?: return
-        val rightIcon = rightClipDrawable ?: leftIcon
-        val halfW = leftIcon.intrinsicWidth / 2
-        val leftY = (baselinePaint.textSize + 4f + 16f * resources.displayMetrics.density).roundToInt()
+        val icon = clipDrawable ?: return
+        val halfW = icon.intrinsicWidth / 2
+        val leftY = (getRulerTextHeight() + getRulerGraduationHeight()).roundToInt()
         leftHandleRect.set(
             (clipLeftX - halfW).toInt(),
             leftY,
             (clipLeftX + halfW).toInt(),
-            leftY + leftIcon.intrinsicHeight
+            leftY + icon.intrinsicHeight
         )
         rightHandleRect.set(
             (clipRightX - halfW).toInt(),
-            (height - rightIcon.intrinsicHeight - leftY).coerceAtLeast(0),
+            (height - icon.intrinsicHeight - leftY).coerceAtLeast(0),
             (clipRightX + halfW).toInt(),
             (height - leftY).coerceAtMost(height)
         )
-        leftIcon.bounds = leftHandleRect
-        leftIcon.state = if (dragMode == DragMode.LEFT) intArrayOf(android.R.attr.state_selected) else intArrayOf()
-        leftIcon.draw(canvas)
-        rightIcon.bounds = rightHandleRect
-        rightIcon.state = if (dragMode == DragMode.RIGHT) intArrayOf(android.R.attr.state_selected) else intArrayOf()
-        rightIcon.draw(canvas)
+        icon.bounds = leftHandleRect
+        icon.state = if (dragMode == DragMode.LEFT) STATE_SELECTED_ENABLED else STATE_NORMAL
+        icon.draw(canvas)
+        icon.bounds = rightHandleRect
+        icon.state = if (dragMode == DragMode.RIGHT) STATE_SELECTED_ENABLED else STATE_NORMAL
+        icon.draw(canvas)
     }
 
     private fun layoutRects() {
@@ -377,7 +365,7 @@ class SoundWaveView @JvmOverloads constructor(
     private fun preserveViewport(ratio: Float) {
         clipLeftX = ((clipLeftX - paddingLeft) * ratio) + paddingLeft
         clipRightX = ((clipRightX - paddingLeft) * ratio) + paddingLeft
-        moveLeft(clipLeftX, false, false)
+        moveLeft(clipLeftX, scrollIfNeeded = false, keepRange = false)
         moveRight(clipRightX, false)
         val center = width / 2f
         animateTo(((ratio * (scroller.finalX + center)) - center).toInt(), false)
@@ -397,7 +385,7 @@ class SoundWaveView @JvmOverloads constructor(
     override fun onDown(e: MotionEvent): Boolean {
         val x = (scroller.finalX + e.x).toInt()
         val y = e.y.toInt()
-        val hitSlop = (8 * resources.displayMetrics.density).toInt()
+        val hitSlop = 8
         scrollTapMode = false
         when {
             hitRect(leftHandleRect, x, y, hitSlop) -> dragMode = DragMode.LEFT
@@ -426,7 +414,7 @@ class SoundWaveView @JvmOverloads constructor(
             DragMode.LEFT -> {
                 val oldLeft = clipLeftX
                 val oldRight = clipRightX
-                moveLeft(oldLeft - distanceX, true, true)
+                moveLeft(oldLeft - distanceX, scrollIfNeeded = true, keepRange = true)
                 if (oldLeft != clipLeftX) listener?.onClipStartChanged(getClipLeftMilliseconds())
                 if (oldRight != clipRightX) listener?.onClipEndChanged(getClipRightMilliseconds())
             }
@@ -451,4 +439,50 @@ class SoundWaveView @JvmOverloads constructor(
 
     private fun hitRect(rect: Rect, x: Int, y: Int, extra: Int): Boolean =
         x >= rect.left - extra && x < rect.right + extra && y >= rect.top - extra && y < rect.bottom + extra
+
+    private fun rulerTextBaseline(centerY: Float): Float {
+        val metrics = baselinePaint.fontMetrics
+        return (centerY - metrics.descent) + ((metrics.bottom - metrics.top) / 2f)
+    }
+
+    private fun getRulerGraduationHeight(): Float = 16f
+
+    private fun getRulerTextHeight(): Float = baselinePaint.textSize + 4f
+
+    fun setWaveformData(data: WaveformData?) {
+        soundFile = data
+        model.setData(data)
+
+        if (width > 0) {
+            if (initialized) {
+                setClipRight(getClipRightMilliseconds())
+                setClipLeft(getClipLeftMilliseconds(), false)
+            } else {
+                initialized = true
+                setClipRight((width / 2f / model.pxPerMs().coerceAtLeast(1f)).toInt())
+                setClipLeft(0, false)
+            }
+
+            listener?.onClipStartChanged(getClipLeftMilliseconds())
+            listener?.onClipEndChanged(getClipRightMilliseconds())
+        }
+
+        buildWaveShader()
+        invalidate()
+    }
+
+    private companion object {
+        val STATE_NORMAL = intArrayOf()
+        val STATE_SELECTED_ENABLED = intArrayOf(android.R.attr.state_selected, android.R.attr.state_enabled)
+
+        fun createDefaultClipDrawable(context: Context): Drawable {
+            val normal = AppCompatResources.getDrawable(context, R.drawable.sound_clip_left)
+            val selected = AppCompatResources.getDrawable(context, R.drawable.sound_clip_right)
+            return StateListDrawable().apply {
+                addState(STATE_SELECTED_ENABLED, selected)
+                addState(STATE_NORMAL, normal)
+                state = STATE_NORMAL
+            }
+        }
+    }
 }

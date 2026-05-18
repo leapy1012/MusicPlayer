@@ -2,7 +2,9 @@ package gd.app.musicplayer.ui.common.viewholder
 
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
+import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersMusicItemBinding
@@ -17,6 +19,7 @@ class HiddenMusicViewHolder(
 
     init {
         binding.musicItemMenu.setOnClickListener(this)
+        binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
     }
 
     fun bind(item: Music) {

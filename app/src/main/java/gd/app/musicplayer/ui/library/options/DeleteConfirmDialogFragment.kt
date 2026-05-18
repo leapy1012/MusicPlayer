@@ -39,6 +39,14 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
                 extraCheckedDefault = true
             )
 
+            TYPE_TRACK_REMOVE_FROM_LIST -> Spec(
+                titleRes = R.string.remove,
+                message = getString(R.string.remove_song_from_list_msg, itemName),
+                confirmTextRes = R.string.remove,
+                showExtra = false,
+                extraCheckedDefault = false
+            )
+
             else -> Spec(
                 titleRes = R.string.delete,
                 message = getString(R.string.dlg_delete_album_tip, itemName),
@@ -113,6 +121,7 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         private const val TYPE_TRACK_DELETE = 1
         private const val TYPE_SET_DELETE_TRACKS = 2
         private const val TYPE_SET_DELETE_PLAYLIST = 3
+        private const val TYPE_TRACK_REMOVE_FROM_LIST = 4
 
         private data class Spec(
             val titleRes: Int,
@@ -138,6 +147,10 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
         fun forTrackDelete(resultKey: String, trackTitle: String): DeleteConfirmDialogFragment {
             return create(resultKey = resultKey, itemName = trackTitle, type = TYPE_TRACK_DELETE)
+        }
+
+        fun forTrackRemoveFromList(resultKey: String, trackTitle: String): DeleteConfirmDialogFragment {
+            return create(resultKey = resultKey, itemName = trackTitle, type = TYPE_TRACK_REMOVE_FROM_LIST)
         }
 
         fun forSetDelete(

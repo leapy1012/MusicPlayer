@@ -1,10 +1,11 @@
 package gd.app.musicplayer.ui.editor.waveform
 
+import gd.app.musicplayer.ui.editor.model.WaveformData
 import kotlin.math.max
 import kotlin.math.min
 
 internal class SoundWaveViewportModel(
-    private var data: SoundWaveData? = null
+    private var data: WaveformData? = null
 ) {
     private var normalized = FloatArray(0)
     private var zoomLevel = 0
@@ -15,6 +16,7 @@ internal class SoundWaveViewportModel(
     private var rightInset = 0f
     private var renderLines = FloatArray(0)
     private var scratchLines = FloatArray(0)
+    private var scratchLineFloatCount = 0
     private var mimeAac = false
 
     fun canZoomIn(): Boolean = zoomLevel > 0
@@ -22,20 +24,25 @@ internal class SoundWaveViewportModel(
     fun canZoomOut(): Boolean =
         zoomLevel < 4 && (contentWidth() + leftInset + rightInset) >= viewWidth * 2f
 
-    fun clipDurationMs(clipWidthPx: Float): Int = (durationMs() * (clipWidthPx / contentWidth())).toInt()
+    fun clipDurationMs(clipWidthPx: Float): Int {
+        val width = contentWidth().coerceAtLeast(1)
+        return (durationMs() * (clipWidthPx / width)).toInt()
+    }
 
     fun contentWidth(): Int = renderLines.size / 4
 
     fun durationMs(): Float {
         val d = data ?: return 1f
-        if (d.sampleTimesMs.isEmpty()) return d.durationMs.toFloat().coerceAtLeast(1f)
+        if (d.sampleRateHz > 0 && d.samplesPerFrame > 0 && d.frameGains.isNotEmpty()) {
+            return ((d.samplesPerFrame * 1000f) / d.sampleRateHz) * d.frameGains.size
+        }
         return d.durationMs.toFloat().coerceAtLeast(1f)
     }
 
     fun frameAt(x: Float): Int {
         val d = data ?: return 0
         if (contentWidth() <= 0) return 0
-        return (d.sampleTimesMs.size * (x / contentWidth())).toInt().coerceIn(0, d.sampleTimesMs.lastIndex)
+        return (d.frameTimesMs.size * (x / contentWidth())).toInt().coerceIn(0, d.frameTimesMs.lastIndex)
     }
 
     fun level(): Int = zoomLevel
@@ -45,9 +52,9 @@ internal class SoundWaveViewportModel(
     fun rulerPoints(): List<Pair<String, Float>> {
         val d = data ?: return emptyList()
         val intervalSec = if (mimeAac) {
-            if (zoomLevel == 0) 4 else max(5, step() * 5)
+            if (zoomLevel == 0) 4 else step() * 5
         } else {
-            if (zoomLevel == 0) 2 else max(2, (step() * 5) / 2)
+            if (zoomLevel == 0) 2 else (step() * 5) / 2
         }
         val totalSec = (d.durationMs / 1000f).toInt()
         val count = if (intervalSec <= 0) 0 else totalSec / intervalSec
@@ -59,11 +66,12 @@ internal class SoundWaveViewportModel(
         }
     }
 
-    fun setData(data: SoundWaveData?) {
+    fun setData(data: WaveformData?) {
         this.data = data
-        mimeAac = data?.mimeType?.endsWith("aac", ignoreCase = true) == true
+        mimeAac = data?.sourcePath?.substringAfterLast('.', missingDelimiterValue = "")
+            ?.equals("aac", ignoreCase = true) == true
         zoomLevel = 0
-        normalized = normalize(data?.sampleGains ?: IntArray(0))
+        normalized = normalize(data?.frameGains ?: IntArray(0))
         rebuild()
     }
 
@@ -92,24 +100,29 @@ internal class SoundWaveViewportModel(
         val outSize = max(0, endPx - startPx) * 4
         if (scratchLines.size != outSize) scratchLines = FloatArray(outSize)
         val srcStart = startPx.coerceAtLeast(0) * 4
-        val len = min(renderLines.size - srcStart, outSize).coerceAtLeast(0)
-        if (len > 0) {
-            System.arraycopy(renderLines, srcStart, scratchLines, 0, len)
+        scratchLineFloatCount = min(renderLines.size - srcStart, outSize).coerceAtLeast(0)
+        if (scratchLineFloatCount > 0) {
+            System.arraycopy(renderLines, srcStart, scratchLines, 0, scratchLineFloatCount)
         }
         return scratchLines
     }
+
+    fun visibleLineFloatCount(): Int = scratchLineFloatCount
 
     private fun normalize(input: IntArray): FloatArray {
         if (input.isEmpty()) return FloatArray(0)
         val smooth = FloatArray(input.size)
         if (input.size == 1) {
             smooth[0] = input[0].toFloat()
+        } else if (input.size == 2) {
+            smooth[0] = input[0].toFloat()
+            smooth[1] = input[1].toFloat()
         } else {
-            smooth[0] = (input[0] + input[1]) / 2f
+            smooth[0] = (input[0] / 2f) + (input[1] / 2f)
             for (i in 1 until input.lastIndex) {
-                smooth[i] = (input[i - 1] + input[i] + input[i + 1]) / 3f
+                smooth[i] = (input[i - 1] / 3f) + (input[i] / 3f) + (input[i + 1] / 3f)
             }
-            smooth[input.lastIndex] = (input[input.lastIndex - 1] + input[input.lastIndex]) / 2f
+            smooth[input.lastIndex] = (input[input.lastIndex - 1] / 2f) + (input[input.lastIndex] / 2f)
         }
 
         val peak = smooth.maxOrNull()?.coerceAtLeast(1f) ?: 1f

@@ -73,6 +73,13 @@
             android:launchMode="singleTop" />
 
         <activity
+            android:name=".ui.shortcut.MusicSetShortcutActivity"
+            android:theme="@style/AppTheme.Empty"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true" />
+
+        <activity
             android:name=".ui.selection.MusicEditActivity"
             android:exported="false"
             android:launchMode="singleTop" />
@@ -127,7 +134,7 @@
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.editor.ActivityAudioEditor"
+            android:name=".ui.editor.AudioEditorActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -171,13 +178,12 @@
 
         <activity
             android:name=".ui.lock.LockActivity"
-            android:theme="@style/AppTheme.Transparent"
+            android:theme="@style/AppTheme.Lock"
             android:taskAffinity="${applicationId}.LOCK"
             android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
             android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:excludeFromRecents="true"
-            android:exported="false" />
+            tools:targetApi="27" />
 
         <activity
             android:name=".ui.player.full.MusicPlayActivity"

@@ -2,15 +2,28 @@ package com.fueled.draggablerecyclerview
 
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import gd.app.musicplayer.ui.selection.ItemTouchStateListener
 
 class DragItemTouchHelperCallback private constructor(
     dragDirs: Int,
     swipeDirs: Int
-) : ItemTouchHelper.SimpleCallback(dragDirs, swipeDirs) {
+) : ItemTouchHelper.SimpleCallback(
+    dragDirs,
+    swipeDirs
+) {
 
     fun interface DragEligibilityChecker {
         fun canDrag(position: Int): Boolean
+    }
+
+    fun interface OnItemDragListener {
+        fun onItemDragged(
+            indexFrom: Int,
+            indexTo: Int
+        )
+    }
+
+    fun interface OnDragFinishedListener {
+        fun onDragFinished()
     }
 
     private var dragEnabled: Boolean = false
@@ -18,29 +31,62 @@ class DragItemTouchHelperCallback private constructor(
     private var dragEligibilityChecker: DragEligibilityChecker? = null
     private var onDragFinishedListener: OnDragFinishedListener? = null
 
-    private constructor(builder: Builder) : this(builder.dragDirs, builder.swipeDirs) {
+    private var hasActiveDrag = false
+
+    private constructor(builder: Builder) : this(
+        dragDirs = builder.dragDirs,
+        swipeDirs = builder.swipeDirs
+    ) {
         dragEnabled = builder.dragEnabled
         onItemDragListener = builder.onItemDragListener
         dragEligibilityChecker = builder.dragEligibilityChecker
         onDragFinishedListener = builder.onDragFinishedListener
     }
 
-    override fun isLongPressDragEnabled(): Boolean = dragEnabled
+    override fun isLongPressDragEnabled(): Boolean {
+        return dragEnabled
+    }
+
+    override fun isItemViewSwipeEnabled(): Boolean {
+        return false
+    }
 
     override fun getMovementFlags(
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder
     ): Int {
         val position = viewHolder.bindingAdapterPosition
+
         if (position == RecyclerView.NO_POSITION) {
-            return 0
+            return makeMovementFlags(0, 0)
         }
 
         if (dragEligibilityChecker?.canDrag(position) == false) {
             return makeMovementFlags(0, 0)
         }
 
-        return super.getMovementFlags(recyclerView, viewHolder)
+        return super.getMovementFlags(
+            recyclerView,
+            viewHolder
+        )
+    }
+
+    override fun canDropOver(
+        recyclerView: RecyclerView,
+        current: RecyclerView.ViewHolder,
+        target: RecyclerView.ViewHolder
+    ): Boolean {
+        val currentPosition = current.bindingAdapterPosition
+        val targetPosition = target.bindingAdapterPosition
+
+        if (currentPosition == RecyclerView.NO_POSITION) return false
+        if (targetPosition == RecyclerView.NO_POSITION) return false
+        if (current.itemViewType != target.itemViewType) return false
+
+        if (dragEligibilityChecker?.canDrag(currentPosition) == false) return false
+        if (dragEligibilityChecker?.canDrag(targetPosition) == false) return false
+
+        return true
     }
 
     override fun onMove(
@@ -48,40 +94,62 @@ class DragItemTouchHelperCallback private constructor(
         source: RecyclerView.ViewHolder,
         target: RecyclerView.ViewHolder
     ): Boolean {
-        if (source.itemViewType != target.itemViewType) {
-            return false
-        }
+        val fromPosition = source.bindingAdapterPosition
+        val toPosition = target.bindingAdapterPosition
+
+        if (fromPosition == RecyclerView.NO_POSITION) return false
+        if (toPosition == RecyclerView.NO_POSITION) return false
+        if (fromPosition == toPosition) return false
+        if (source.itemViewType != target.itemViewType) return false
+
+        if (dragEligibilityChecker?.canDrag(fromPosition) == false) return false
+        if (dragEligibilityChecker?.canDrag(toPosition) == false) return false
 
         onItemDragListener?.onItemDragged(
-            source.bindingAdapterPosition,
-            target.bindingAdapterPosition
+            fromPosition,
+            toPosition
         )
+
         return true
     }
 
-    override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
+    override fun onSwiped(
+        viewHolder: RecyclerView.ViewHolder,
+        direction: Int
+    ) = Unit
 
-    override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
-        if (actionState != ItemTouchHelper.ACTION_STATE_IDLE) {
-            val stateListener = viewHolder as? ItemTouchStateListener
-            if (stateListener != null) {
-                stateListener.onItemSelected()
-            } else {
-                viewHolder?.itemView?.alpha = DRAG_ALPHA
-            }
+    override fun onSelectedChanged(
+        viewHolder: RecyclerView.ViewHolder?,
+        actionState: Int
+    ) {
+        if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+            hasActiveDrag = true
+            viewHolder?.itemView?.alpha = DRAG_ALPHA
         }
-        super.onSelectedChanged(viewHolder, actionState)
+
+        super.onSelectedChanged(
+            viewHolder,
+            actionState
+        )
     }
 
-    override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-        val stateListener = viewHolder as? ItemTouchStateListener
-        if (stateListener != null) {
-            stateListener.onItemCleared()
-        } else {
-            viewHolder.itemView.alpha = ALPHA_FULL
+    override fun clearView(
+        recyclerView: RecyclerView,
+        viewHolder: RecyclerView.ViewHolder
+    ) {
+        val wasDragging = hasActiveDrag
+
+        viewHolder.itemView.alpha = ALPHA_FULL
+
+        super.clearView(
+            recyclerView,
+            viewHolder
+        )
+
+        if (wasDragging) {
+            hasActiveDrag = false
+            onDragFinishedListener?.onDragFinished()
         }
-        super.clearView(recyclerView, viewHolder)
-        onDragFinishedListener?.onDragFinished()
     }
 
     override fun getAnimationDuration(
@@ -102,30 +170,22 @@ class DragItemTouchHelperCallback private constructor(
         )
     }
 
-    fun interface OnItemDragListener {
-        fun onItemDragged(indexFrom: Int, indexTo: Int)
-    }
-
-    fun interface OnDragFinishedListener {
-        fun onDragFinished()
-    }
-
     class Builder(
         internal val dragDirs: Int,
         internal val swipeDirs: Int
     ) {
-        internal var onItemDragListener: OnItemDragListener? = null
         internal var dragEnabled: Boolean = false
+        internal var onItemDragListener: OnItemDragListener? = null
         internal var dragEligibilityChecker: DragEligibilityChecker? = null
         internal var onDragFinishedListener: OnDragFinishedListener? = null
 
-        fun onItemDragListener(value: OnItemDragListener): Builder {
-            onItemDragListener = value
+        fun setDragEnabled(value: Boolean): Builder {
+            dragEnabled = value
             return this
         }
 
-        fun setDragEnabled(value: Boolean): Builder {
-            dragEnabled = value
+        fun onItemDragListener(value: OnItemDragListener): Builder {
+            onItemDragListener = value
             return this
         }
 
@@ -139,12 +199,15 @@ class DragItemTouchHelperCallback private constructor(
             return this
         }
 
-        fun build(): DragItemTouchHelperCallback = DragItemTouchHelperCallback(this)
+        fun build(): DragItemTouchHelperCallback {
+            return DragItemTouchHelperCallback(this)
+        }
     }
 
     companion object {
         const val ALPHA_FULL = 1.0f
-        private const val DRAG_ALPHA = 0.8f
-        private const val DRAG_ANIMATION_DURATION_MS = 300L
+
+        private const val DRAG_ALPHA = 0.82f
+        private const val DRAG_ANIMATION_DURATION_MS = 250L
     }
 }

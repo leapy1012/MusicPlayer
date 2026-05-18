@@ -16,6 +16,7 @@ import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
+import gd.app.musicplayer.domain.usecase.library.RemoveTrackFromGeneratedMusicSetUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
@@ -46,6 +47,7 @@ class MusicOptionsViewModel @Inject constructor(
     private val deleteTracksUseCase: DeleteTracksUseCase,
     private val deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase,
     private val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase,
+    private val removeTrackFromGeneratedMusicSetUseCase: RemoveTrackFromGeneratedMusicSetUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase,
     private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
     private val observePlaybackStateUseCase: ObservePlaybackStateUseCase
@@ -113,9 +115,7 @@ class MusicOptionsViewModel @Inject constructor(
                 }
 
                 is MusicSet.Favorites -> {
-                    if (music.playlistId == MusicSet.FAVORITES) {
-                        toggleFavoriteTrackUseCase(music.id)
-                    }
+                    removeTracksFromPlaylistUseCase(MusicSet.FAVORITES, listOf(music.id))
                     _uiState.value = _uiState.value.copy(
                         music = music.copy(playlistId = 0L),
                         isFavorite = false
@@ -140,7 +140,14 @@ class MusicOptionsViewModel @Inject constructor(
                     }
                 }
 
-                else -> Unit
+                null -> Unit
+
+                else -> {
+                    val removed = removeTrackFromGeneratedMusicSetUseCase(set, music.id)
+                    if (removed) {
+                        eventsChannel.send(MusicOptionsEvent.ShowToast(R.string.succeed))
+                    }
+                }
             }
         }
     }

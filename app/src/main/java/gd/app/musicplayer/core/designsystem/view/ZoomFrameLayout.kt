@@ -2,10 +2,13 @@ package gd.app.musicplayer.core.designsystem.view
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Path
+import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import androidx.core.graphics.withClip
 import kotlin.math.min
 import androidx.core.graphics.withScale
 import androidx.core.view.isEmpty
@@ -16,6 +19,10 @@ class ZoomFrameLayout @JvmOverloads constructor(
 ) : FrameLayout(context, attrs) {
 
     private var zoomScale: Float = 1f
+    private val previewClipPath = Path()
+    private val previewClipRect = RectF()
+    private val previewCornerRadius: Float =
+        resources.getDimension(gd.app.musicplayer.R.dimen.widget_image_corner_size)
 
     override fun dispatchDraw(canvas: Canvas) {
         canvas.withScale(
@@ -24,9 +31,14 @@ class ZoomFrameLayout @JvmOverloads constructor(
             width / 2f,
             height / 2f
         ) {
-
-            super.dispatchDraw(canvas)
-
+            rebuildPreviewClipPath()
+            if (previewClipPath.isEmpty) {
+                super.dispatchDraw(this)
+            } else {
+                withClip(previewClipPath) {
+                    super.dispatchDraw(this)
+                }
+            }
         }
     }
 
@@ -47,6 +59,27 @@ class ZoomFrameLayout @JvmOverloads constructor(
         super.onMeasure(
             widthMeasureSpec,
             heightMeasureSpec
+        )
+    }
+
+    private fun rebuildPreviewClipPath() {
+        previewClipPath.reset()
+        if (isEmpty()) return
+
+        val child = getChildAt(0)
+        if (child.width <= 0 || child.height <= 0) return
+
+        previewClipRect.set(
+            child.left.toFloat(),
+            child.top.toFloat(),
+            child.right.toFloat(),
+            child.bottom.toFloat()
+        )
+        previewClipPath.addRoundRect(
+            previewClipRect,
+            previewCornerRadius,
+            previewCornerRadius,
+            Path.Direction.CW
         )
     }
 

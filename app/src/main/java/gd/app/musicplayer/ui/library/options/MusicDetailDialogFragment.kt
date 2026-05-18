@@ -9,7 +9,6 @@ import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.formatAddedDate
 import gd.app.musicplayer.core.common.extension.formatDuration
 import gd.app.musicplayer.core.common.extension.formatFileSize
 import gd.app.musicplayer.domain.model.Music
@@ -48,7 +47,7 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        applyDialogWidth(0.94f)
+        applyDialogWidth(0.9f)
         applyDialogBackground(binding.root)
 
         binding.dialogTitle.text = requireArguments().getString(ARG_TITLE) ?: getString(R.string.details)
@@ -58,13 +57,13 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
         binding.musicEditName.text = track.title
         binding.musicEditAlbum.text = track.album.ifBlank { getString(android.R.string.unknownName) }
         binding.musicEditArtist.text = track.artist.ifBlank { getString(android.R.string.unknownName) }
-        binding.musicEditGenre.text = getString(android.R.string.unknownName)
+        binding.musicEditGenre.text = track.genres.ifBlank { unknown() }
         binding.tvMusicDetailPath.text = track.data.orEmpty().ifBlank { getString(android.R.string.unknownName) }
         binding.tvMusicDetailDuration.text = track.formatDuration()
         binding.tvMusicDetailSize.text = track.formatFileSize(requireContext())
-        binding.tvMusicDetailDate.text = track.formatAddedDate()
-        binding.tvMusicDetailBit.text = getString(android.R.string.unknownName)
-        binding.tvMusicDetailSample.text = getString(android.R.string.unknownName)
+        binding.tvMusicDetailDate.text = formatDetailDate(track.date)
+        binding.tvMusicDetailBit.text = formatBitRateOrUnknown(track.bitRate)
+        binding.tvMusicDetailSample.text = formatSampleRateOrUnknown(track.sampleRate)
 
         loadAudioInfo()
     }
@@ -72,8 +71,8 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
     override fun onClick(v: View) {
         when (v.id) {
             R.id.dialog_button_edit -> {
-                EditTagsActivity.start(requireContext(), track)
                 dismiss()
+                EditTagsActivity.start(requireContext(), track)
             }
 
             R.id.dialog_button_cancel -> dismiss()
@@ -81,10 +80,10 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
     }
 
     private fun loadAudioInfo() {
+        if (track.bitRate != -1 && track.sampleRate != -1) return
         val dataSource = track.data ?: return
         viewLifecycleOwner.lifecycleScope.launch {
             val info = withContext(Dispatchers.IO) { extractAudioInfo(dataSource) }
-            binding.musicEditGenre.text = info.genre
             binding.tvMusicDetailBit.text = info.bitRate
             binding.tvMusicDetailSample.text = info.sampleRate
         }
@@ -100,9 +99,9 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
                     .firstOrNull { it.getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
                     ?: return AudioInfo()
                 AudioInfo(
-                    bitRate = format.getIntegerOrNull(MediaFormat.KEY_BIT_RATE)?.let(::formatBitRate)
+                    bitRate = format.getIntegerOrNull(MediaFormat.KEY_BIT_RATE)?.let(::formatBitRateOrUnknown)
                         ?: unknown(),
-                    sampleRate = format.getIntegerOrNull(MediaFormat.KEY_SAMPLE_RATE)?.let { "$it Hz" }
+                    sampleRate = format.getIntegerOrNull(MediaFormat.KEY_SAMPLE_RATE)?.let(::formatSampleRateOrUnknown)
                         ?: unknown()
                 )
             } finally {
@@ -111,20 +110,19 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
         }.getOrElse { AudioInfo() }
     }
 
-    private fun formatBitRate(bitRate: Int): String {
+    private fun formatBitRateOrUnknown(bitRate: Int): String {
+        if (bitRate <= 0) return unknown()
         return if (bitRate < 1000) "$bitRate bps" else "${bitRate / 1000} kbps"
     }
 
-    private fun formatDuration(durationMs: Int): String {
-        val totalSeconds = durationMs / 1000
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        return "%d:%02d".format(minutes, seconds)
+    private fun formatSampleRateOrUnknown(sampleRate: Int): String {
+        return if (sampleRate <= 0) unknown() else "$sampleRate Hz"
     }
 
-    private fun formatDate(epochMillis: Long?): String {
+    private fun formatDetailDate(epochMillis: Long?): String {
         if (epochMillis == null || epochMillis <= 0L) return unknown()
-        return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(epochMillis))
+        val normalizedMillis = if (epochMillis < 1_000_000_000_000L) epochMillis * 1000L else epochMillis
+        return SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(normalizedMillis))
     }
 
     private fun unknown(): String = getString(android.R.string.unknownName)
@@ -136,8 +134,7 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     private data class AudioInfo(
         val bitRate: String = "unknown",
-        val sampleRate: String = "unknown",
-        val genre: String = "unknown"
+        val sampleRate: String = "unknown"
     )
 
     private fun MediaFormat.getIntegerOrNull(key: String): Int? {

@@ -129,8 +129,16 @@ class LibraryRepo @Inject constructor(
         libraryDao.clearRecentlyPlayedStats()
     }
 
+    suspend fun removeFromRecentlyPlayed(trackId: Long) {
+        libraryDao.clearTrackRecentlyPlayedStats(trackId)
+    }
+
     suspend fun clearMostPlayed() {
         libraryDao.clearMostPlayedStats()
+    }
+
+    suspend fun removeFromMostPlayed(trackId: Long) {
+        libraryDao.clearTrackMostPlayedStats(trackId)
     }
 
     suspend fun clearRecentlyAdded() {

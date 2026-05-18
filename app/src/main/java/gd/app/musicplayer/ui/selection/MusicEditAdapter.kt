@@ -5,21 +5,21 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import gd.app.musicplayer.R
-import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.core.common.extension.albumArtSource
-import gd.app.musicplayer.core.common.extension.loadMusicArtwork
-import gd.app.musicplayer.databinding.ActivityMusicEditListItemBinding
-import gd.app.musicplayer.core.common.extension.highlightText
+import gd.app.musicplayer.core.common.extension.highlight
 import gd.app.musicplayer.core.common.extension.isRtl
 import gd.app.musicplayer.core.common.extension.isRtlLayoutSupported
+import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
+import gd.app.musicplayer.databinding.ActivityMusicEditListItemBinding
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
 import java.util.Collections
 
 class MusicEditAdapter(
@@ -28,136 +28,168 @@ class MusicEditAdapter(
     private val musicSet: MusicSet,
     private val dragEnabled: Boolean,
     private val onOrderChanged: (MusicSet, List<Music>) -> Unit
-) : ScrollAwareAdapter<MusicEditAdapter.MusicEditViewHolder>(), ItemMoveListener {
-    private companion object {
-        private const val PAYLOAD_SELECTION = "payload_selection"
-
-        private fun musicKey(music: Music): String = "${music.id}|${music.data.orEmpty()}"
-    }
+) : ScrollAwareAdapter<MusicEditAdapter.MusicEditViewHolder>(),
+    ItemMoveListener {
 
     data class RowEntry(
-        val token: Long,
+        val key: String,
         val music: Music
     )
 
     interface SelectionCountChangedListener {
         fun onSelectionCountChanged(count: Int)
     }
-    private var searchKeyword: String? = null
+
+    private var rawSearchQuery: String = ""
+    private var normalizedSearchQuery: String = ""
+
     private var allRows: MutableList<RowEntry> = mutableListOf()
     private val filteredRows = mutableListOf<RowEntry>()
-    private val selectedRowTokens = LinkedHashSet<Long>()
+    private val selectedKeys = LinkedHashSet<String>()
+
     private var selectionCountListener: SelectionCountChangedListener? = null
     private var itemTouchHelper: ItemTouchHelper? = null
-    private var nextRowToken = 1L
 
     init {
         setHasStableIds(true)
+
         if (dragEnabled) {
             val callback = DragItemTouchHelperCallback.Builder(
-                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-                0
+                dragDirs = ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                swipeDirs = 0
             )
                 .setDragEnabled(false)
+                .dragEligibilityChecker { position ->
+                    normalizedSearchQuery.isEmpty() && position in filteredRows.indices
+                }
                 .onItemDragListener(::onItemMove)
                 .onDragFinishedListener(::persistSortedMusic)
                 .build()
+
             itemTouchHelper = ItemTouchHelper(callback)
             itemTouchHelper?.attachToRecyclerView(recyclerView)
         }
     }
 
     inner class MusicEditViewHolder(
-        val binding: ActivityMusicEditListItemBinding,
+        private val binding: ActivityMusicEditListItemBinding
     ) : RecyclerView.ViewHolder(binding.root),
         View.OnClickListener,
         View.OnTouchListener {
 
-        private var currentMusic: Music? = null
-        private var currentToken: Long? = null
+        private var currentRow: RowEntry? = null
 
         init {
-            val context = binding.root.context
-            if (context.isRtl() && context.isRtlLayoutSupported()) {
-                binding.musicItemTitle.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
-                binding.musicItemTitle.textDirection = View.TEXT_DIRECTION_LOCALE
-                binding.musicItemTitle.gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            setupTextDirection()
+            setupInteractions()
+        }
 
-                binding.musicItemArtist.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
-                binding.musicItemArtist.textDirection = View.TEXT_DIRECTION_LOCALE
-                binding.musicItemArtist.gravity = Gravity.START or Gravity.CENTER_VERTICAL
-            }
+        private fun setupTextDirection() {
+            val context = binding.root.context
+
+            if (!context.isRtl() || !context.isRtlLayoutSupported()) return
+
+            binding.musicItemTitle.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+            binding.musicItemTitle.textDirection = View.TEXT_DIRECTION_LOCALE
+            binding.musicItemTitle.gravity = Gravity.START or Gravity.CENTER_VERTICAL
+
+            binding.musicItemArtist.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+            binding.musicItemArtist.textDirection = View.TEXT_DIRECTION_LOCALE
+            binding.musicItemArtist.gravity = Gravity.START or Gravity.CENTER_VERTICAL
+        }
+
+        private fun setupInteractions() {
             binding.root.setOnClickListener(this)
+
             if (dragEnabled) {
                 binding.musicItemDrag.visibility = View.VISIBLE
-                binding.musicItemDrag.setOnTouchListener (this)
+                binding.musicItemDrag.setOnTouchListener(this)
             } else {
                 binding.musicItemDrag.visibility = View.GONE
+                binding.musicItemDrag.setOnTouchListener(null)
             }
         }
+
         override fun onClick(v: View?) {
-            val token = currentToken ?: return
-            toggleRowSelection(token)
+            val row = currentRow ?: return
+            toggleRowSelection(row.key)
         }
 
-        override fun onTouch(v: View, event: MotionEvent): Boolean {
-            if (event.action != MotionEvent.ACTION_DOWN || !searchKeyword.isNullOrEmpty()) {
-                return false
-            }
-
-            val animator = recyclerView.itemAnimator
-            if (animator != null && animator.isRunning) {
-                return true
-            }
+        override fun onTouch(
+            v: View,
+            event: MotionEvent
+        ): Boolean {
+            if (event.actionMasked != MotionEvent.ACTION_DOWN) return false
+            if (!dragEnabled) return false
+            if (normalizedSearchQuery.isNotEmpty()) return false
+            if (bindingAdapterPosition == RecyclerView.NO_POSITION) return false
 
             itemTouchHelper?.startDrag(this)
             return true
         }
+
         fun bind(row: RowEntry) {
-            currentToken = row.token
-            bindMusic(row.music)
+            currentRow = row
+
+            val context = binding.root.context
+            val music = row.music
+
+            binding.musicItemAlbum.loadMusicArtwork(music.albumArtSource())
+
+            binding.musicItemTitle.text = music.title.highlight(rawSearchQuery, accentColor)
+            binding.musicItemArtist.text = music.artist.highlight(rawSearchQuery, accentColor)
+
+            binding.root.alpha = DragItemTouchHelperCallback.ALPHA_FULL
+
+            if (dragEnabled) {
+                binding.musicItemDrag.isEnabled = normalizedSearchQuery.isEmpty()
+            }
+
+            renderSelectionState(isRowSelected(row.key))
         }
 
         fun bindSelection(row: RowEntry) {
-            currentToken = row.token
-            currentMusic = row.music
-            renderSelectionState(isRowSelected(row.token))
-        }
-
-        private fun bindMusic(music: Music) {
-            currentMusic = music
-            val context = binding.root.context
-
-            binding.musicItemAlbum.loadMusicArtwork(music.albumArtSource())
-            binding.musicItemTitle.text = context.highlightText(music.title, searchKeyword, accentColor, "")
-            binding.musicItemArtist.text = context.highlightText(music.artist, searchKeyword, accentColor, "")
-            renderSelectionState(currentToken?.let(::isRowSelected) == true)
-            binding.root.alpha = 1.0f
-
-            if (dragEnabled) {
-                binding.musicItemDrag.isEnabled = searchKeyword.isNullOrEmpty()
-            }
+            currentRow = row
+            renderSelectionState(isRowSelected(row.key))
         }
 
         private fun renderSelectionState(selected: Boolean) {
             val context = binding.root.context
+
             binding.musicItemMenu.isSelected = selected
+
             val tint = if (selected) {
                 accentColor
             } else {
-                ContextCompat.getColor(context, R.color.item_artist_color)
+                ContextCompat.getColor(
+                    context,
+                    R.color.item_artist_color
+                )
             }
+
             binding.musicItemMenu.setColorFilter(tint)
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MusicEditViewHolder {
-        val binding = ActivityMusicEditListItemBinding.inflate(LayoutInflater.from(parent.context), parent,false)
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): MusicEditViewHolder {
+        val binding = ActivityMusicEditListItemBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+
         return MusicEditViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: MusicEditViewHolder, position: Int) =
+    override fun onBindViewHolder(
+        holder: MusicEditViewHolder,
+        position: Int
+    ) {
         holder.bind(filteredRows[position])
+    }
 
     override fun onBindViewHolder(
         holder: MusicEditViewHolder,
@@ -168,192 +200,347 @@ class MusicEditAdapter(
             holder.bindSelection(filteredRows[position])
             return
         }
-        super.onBindViewHolder(holder, position, payloads)
+
+        super.onBindViewHolder(
+            holder,
+            position,
+            payloads
+        )
     }
 
-    override fun getItemCount(): Int = filteredRows.size
+    override fun getItemCount(): Int {
+        return filteredRows.size
+    }
 
     override fun getItemId(position: Int): Long {
-        return filteredRows.getOrNull(position)?.token ?: RecyclerView.NO_ID
+        return filteredRows.getOrNull(position)
+            ?.key
+            ?.let(::stableLongId)
+            ?: RecyclerView.NO_ID
     }
 
-    override fun getItemExtent(viewType: Int): Int = recyclerView.resources.getDimensionPixelOffset(R.dimen.item_recycler_height)
+    override fun getItemExtent(viewType: Int): Int {
+        return recyclerView.resources.getDimensionPixelOffset(
+            R.dimen.item_recycler_height
+        )
+    }
 
-    override fun onItemMove(fromPosition: Int, toPosition: Int) {
-        if (
-            fromPosition !in filteredRows.indices ||
-            toPosition !in filteredRows.indices ||
-            !searchKeyword.isNullOrEmpty()
-        ) {
-            return
+    override fun onItemMove(
+        fromPosition: Int,
+        toPosition: Int
+    ) {
+        if (fromPosition !in filteredRows.indices) return
+        if (toPosition !in filteredRows.indices) return
+        if (normalizedSearchQuery.isNotEmpty()) return
+        if (fromPosition == toPosition) return
+
+        val movedRow = filteredRows[fromPosition]
+        val targetRow = filteredRows[toPosition]
+
+        Collections.swap(
+            filteredRows,
+            fromPosition,
+            toPosition
+        )
+
+        val movedAllIndex = allRows.indexOfFirst { row ->
+            row.key == movedRow.key
         }
 
-        Collections.swap(filteredRows, fromPosition, toPosition)
-        Collections.swap(allRows, fromPosition, toPosition)
+        val targetAllIndex = allRows.indexOfFirst { row ->
+            row.key == targetRow.key
+        }
+
+        if (movedAllIndex >= 0 && targetAllIndex >= 0) {
+            Collections.swap(
+                allRows,
+                movedAllIndex,
+                targetAllIndex
+            )
+        }
+
+        notifyItemMoved(
+            fromPosition,
+            toPosition
+        )
     }
 
-
     fun submitList(items: List<Music>) {
-        val previouslySelectedRows = allRows.filter { it.token in selectedRowTokens }
-        allRows = items.map { music ->
+        val nextRows = items.map { music ->
             RowEntry(
-                token = nextRowToken++,
+                key = musicKey(music),
                 music = music
             )
-        }.toMutableList()
-        restoreSelection(previouslySelectedRows)
-        applyFilter(searchKeyword, dispatchDiff = true)
-        selectionCountListener?.onSelectionCountChanged(selectedRowTokens.size)
+        }
+
+        val validKeys = nextRows.mapTo(HashSet()) { row ->
+            row.key
+        }
+
+        selectedKeys.retainAll(validKeys)
+        allRows = nextRows.toMutableList()
+
+        applyFilter(
+            keyword = normalizedSearchQuery,
+            dispatchDiff = true
+        )
+
+        selectionCountListener?.onSelectionCountChanged(selectedKeys.size)
     }
 
     fun setSearchKeyword(keyword: String?) {
-        searchKeyword = keyword
-        applyFilter(keyword, dispatchDiff = true)
+        rawSearchQuery = keyword.orEmpty().trim()
+        normalizedSearchQuery = rawSearchQuery.lowercase()
+
+        applyFilter(
+            keyword = normalizedSearchQuery,
+            dispatchDiff = true
+        )
     }
 
     fun setSelectionCountListener(listener: SelectionCountChangedListener?) {
         selectionCountListener = listener
     }
 
-    fun getSelectedItems(): List<Music> = allRows
-        .filter { it.token in selectedRowTokens }
-        .map { it.music }
+    fun getSelectedItems(): List<Music> {
+        return allRows
+            .filter { row -> row.key in selectedKeys }
+            .map { row -> row.music }
+    }
 
-    fun getFilteredItems(): List<Music> = filteredRows.map { it.music }
+    fun getFilteredItems(): List<Music> {
+        return filteredRows.map { row ->
+            row.music
+        }
+    }
 
     fun clearSelection() {
-        if (selectedRowTokens.isEmpty()) return
+        if (selectedKeys.isEmpty()) return
+
         val changedPositions = filteredRows.mapIndexedNotNull { index, row ->
-            index.takeIf { row.token in selectedRowTokens }
+            index.takeIf { row.key in selectedKeys }
         }
-        selectedRowTokens.clear()
+
+        selectedKeys.clear()
+
         notifySelectionPayload(changedPositions)
-        selectionCountListener?.onSelectionCountChanged(selectedRowTokens.size)
+        selectionCountListener?.onSelectionCountChanged(selectedKeys.size)
     }
 
     fun selectItem(music: Music) {
-        val row = allRows.firstOrNull { it.music.id == music.id && it.music.data == music.data } ?: return
-        if (!setRowSelection(row.token, selected = true)) return
-        findFilteredIndex(row.token)?.let { notifyItemChanged(it, PAYLOAD_SELECTION) }
-        selectionCountListener?.onSelectionCountChanged(selectedRowTokens.size)
+        val key = musicKey(music)
+
+        val row = allRows.firstOrNull { candidate ->
+            candidate.key == key
+        } ?: return
+
+        if (!setRowSelection(row.key, selected = true)) return
+
+        findFilteredIndex(row.key)?.let { index ->
+            notifyItemChanged(
+                index,
+                PAYLOAD_SELECTION
+            )
+        }
+
+        selectionCountListener?.onSelectionCountChanged(selectedKeys.size)
     }
 
     fun areAllFilteredItemsSelected(): Boolean {
         if (filteredRows.isEmpty()) return false
-        return filteredRows.all { it.token in selectedRowTokens }
+
+        return filteredRows.all { row ->
+            row.key in selectedKeys
+        }
     }
 
     fun setAllSelected(selected: Boolean) {
         if (filteredRows.isEmpty()) return
 
         val changedPositions = mutableListOf<Int>()
-        if (selected) {
-            filteredRows.forEachIndexed { index, row ->
-                if (selectedRowTokens.add(row.token)) {
-                    changedPositions.add(index)
-                }
+
+        filteredRows.forEachIndexed { index, row ->
+            val changed = if (selected) {
+                selectedKeys.add(row.key)
+            } else {
+                selectedKeys.remove(row.key)
             }
-        } else {
-            filteredRows.forEachIndexed { index, row ->
-                if (selectedRowTokens.remove(row.token)) {
-                    changedPositions.add(index)
-                }
+
+            if (changed) {
+                changedPositions.add(index)
             }
         }
 
         notifySelectionPayload(changedPositions)
-        selectionCountListener?.onSelectionCountChanged(selectedRowTokens.size)
+        selectionCountListener?.onSelectionCountChanged(selectedKeys.size)
     }
 
-    private fun applyFilter(keyword: String?, dispatchDiff: Boolean) {
-        val nextFiltered = buildFilteredList(keyword)
+    private fun applyFilter(
+        keyword: String?,
+        dispatchDiff: Boolean
+    ) {
+        val nextFiltered = buildFilteredRows(keyword)
+
         if (dispatchDiff) {
             dispatchFilteredDiff(nextFiltered)
-        } else {
-            filteredRows.clear()
-            filteredRows.addAll(nextFiltered)
+            return
         }
+
+        filteredRows.clear()
+        filteredRows.addAll(nextFiltered)
     }
 
-    private fun buildFilteredList(keyword: String?): List<RowEntry> {
+    private fun buildFilteredRows(keyword: String?): List<RowEntry> {
         if (keyword.isNullOrEmpty()) {
             return allRows.toList()
         }
-        val query = keyword.lowercase()
-        return allRows.filter { it.music.title.lowercase().contains(query) }
+
+        return allRows.filter { row ->
+            row.music.title.contains(keyword, ignoreCase = true) ||
+                    row.music.artist.contains(keyword, ignoreCase = true)
+        }
     }
 
     private fun dispatchFilteredDiff(nextFiltered: List<RowEntry>) {
         val oldFiltered = filteredRows.toList()
-        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
-            override fun getOldListSize(): Int = oldFiltered.size
-            override fun getNewListSize(): Int = nextFiltered.size
 
-            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val oldItem = oldFiltered[oldItemPosition]
-                val newItem = nextFiltered[newItemPosition]
-                return oldItem.token == newItem.token
-            }
+        val diff = DiffUtil.calculateDiff(
+            object : DiffUtil.Callback() {
+                override fun getOldListSize(): Int {
+                    return oldFiltered.size
+                }
 
-            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val oldItem = oldFiltered[oldItemPosition]
-                val newItem = nextFiltered[newItemPosition]
-                return oldItem.music == newItem.music &&
-                    isRowSelected(oldItem.token) == isRowSelected(newItem.token)
+                override fun getNewListSize(): Int {
+                    return nextFiltered.size
+                }
+
+                override fun areItemsTheSame(
+                    oldItemPosition: Int,
+                    newItemPosition: Int
+                ): Boolean {
+                    return oldFiltered[oldItemPosition].key ==
+                            nextFiltered[newItemPosition].key
+                }
+
+                override fun areContentsTheSame(
+                    oldItemPosition: Int,
+                    newItemPosition: Int
+                ): Boolean {
+                    val oldItem = oldFiltered[oldItemPosition]
+                    val newItem = nextFiltered[newItemPosition]
+
+                    return oldItem.music == newItem.music &&
+                            isRowSelected(oldItem.key) == isRowSelected(newItem.key)
+                }
+
+                override fun getChangePayload(
+                    oldItemPosition: Int,
+                    newItemPosition: Int
+                ): Any? {
+                    val oldItem = oldFiltered[oldItemPosition]
+                    val newItem = nextFiltered[newItemPosition]
+
+                    val sameMusic = oldItem.music == newItem.music
+                    val selectionChanged =
+                        isRowSelected(oldItem.key) != isRowSelected(newItem.key)
+
+                    return if (sameMusic && selectionChanged) {
+                        PAYLOAD_SELECTION
+                    } else {
+                        null
+                    }
+                }
             }
-        })
+        )
+
         filteredRows.clear()
         filteredRows.addAll(nextFiltered)
+
         diff.dispatchUpdatesTo(this)
     }
 
-    private fun findFilteredIndex(token: Long): Int? {
-        val index = filteredRows.indexOfFirst { it.token == token }
-        return if (index >= 0) index else null
+    private fun findFilteredIndex(key: String): Int? {
+        val index = filteredRows.indexOfFirst { row ->
+            row.key == key
+        }
+
+        return index.takeIf { it >= 0 }
     }
 
     private fun notifySelectionPayload(changedPositions: List<Int>) {
         changedPositions.distinct().forEach { position ->
             if (position in 0 until itemCount) {
-                notifyItemChanged(position, PAYLOAD_SELECTION)
+                notifyItemChanged(
+                    position,
+                    PAYLOAD_SELECTION
+                )
             }
         }
     }
 
-    private fun isRowSelected(token: Long): Boolean = token in selectedRowTokens
+    private fun isRowSelected(key: String): Boolean {
+        return key in selectedKeys
+    }
 
-    private fun toggleRowSelection(token: Long) {
-        val changed = setRowSelection(token, selected = !isRowSelected(token))
+    private fun toggleRowSelection(key: String) {
+        val changed = setRowSelection(
+            key = key,
+            selected = !isRowSelected(key)
+        )
+
         if (!changed) return
-        findFilteredIndex(token)?.let { notifyItemChanged(it, PAYLOAD_SELECTION) }
-        selectionCountListener?.onSelectionCountChanged(selectedRowTokens.size)
-    }
 
-    private fun setRowSelection(token: Long, selected: Boolean): Boolean {
-        return if (selected) {
-            selectedRowTokens.add(token)
-        } else {
-            selectedRowTokens.remove(token)
+        findFilteredIndex(key)?.let { index ->
+            notifyItemChanged(
+                index,
+                PAYLOAD_SELECTION
+            )
         }
+
+        selectionCountListener?.onSelectionCountChanged(selectedKeys.size)
     }
 
-    private fun restoreSelection(previouslySelectedRows: List<RowEntry>) {
-        selectedRowTokens.clear()
-        if (previouslySelectedRows.isEmpty()) return
-        val matched = BooleanArray(allRows.size)
-        previouslySelectedRows.forEach { selectedRow ->
-            val key = musicKey(selectedRow.music)
-            val matchedIndex = allRows.indices.firstOrNull { index ->
-                !matched[index] && musicKey(allRows[index].music) == key
-            } ?: -1
-            if (matchedIndex >= 0) {
-                matched[matchedIndex] = true
-                selectedRowTokens.add(allRows[matchedIndex].token)
-            }
+    private fun setRowSelection(
+        key: String,
+        selected: Boolean
+    ): Boolean {
+        return if (selected) {
+            selectedKeys.add(key)
+        } else {
+            selectedKeys.remove(key)
         }
     }
 
     private fun persistSortedMusic() {
-        onOrderChanged(musicSet, allRows.map { it.music })
+        if (!dragEnabled || normalizedSearchQuery.isNotEmpty()) return
+
+        onOrderChanged(
+            musicSet,
+            allRows.map { row ->
+                row.music
+            }
+        )
+    }
+
+    private companion object {
+        private const val PAYLOAD_SELECTION = "payload_selection"
+
+        private fun musicKey(music: Music): String {
+            return "${music.id}|${music.data.orEmpty()}"
+        }
+
+        private fun stableLongId(key: String): Long {
+            var result = 1125899906842597L
+
+            key.forEach { char ->
+                result = 31 * result + char.code
+            }
+
+            return if (result == RecyclerView.NO_ID) {
+                result + 1L
+            } else {
+                result
+            }
+        }
     }
 }

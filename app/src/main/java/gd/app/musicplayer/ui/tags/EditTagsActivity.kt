@@ -26,7 +26,6 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.repository.EditableAlbumMetadata
 import gd.app.musicplayer.domain.repository.EditableTrackMetadata
 import gd.app.musicplayer.databinding.ActivityEditTagsBinding
-import gd.app.musicplayer.databinding.ItemEditTagFieldBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import kotlinx.coroutines.Dispatchers
@@ -167,8 +166,8 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         titleField.setText(currentTrack.title)
         albumField?.setText(currentTrack.album)
         artistField?.setText(currentTrack.artist)
-        genreField?.setText("")
-        trackNumberField?.setText("")
+        genreField?.setText(currentTrack.genres)
+        trackNumberField?.setText(currentTrack.track.takeIf { it > 0 }?.toString().orEmpty())
 
         bindDirtyWatcher(titleField)
         bindDirtyWatcher(albumField)
@@ -178,14 +177,22 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun buildSetFields(container: LinearLayout) {
-        layoutInflater.inflate(R.layout.layout_tag_edit_image, container, true)
-        coverView = container.findViewById<ImageView>(R.id.music_edit_cover)
-
         val set = musicSet ?: run {
             finish()
             return
         }
 
+        when (set) {
+            is MusicSet.Album -> layoutInflater.inflate(R.layout.layout_tag_edit_album, container, true)
+            is MusicSet.Artist -> layoutInflater.inflate(R.layout.layout_tag_edit_artist, container, true)
+            is MusicSet.Genre -> layoutInflater.inflate(R.layout.layout_tag_edit_genre, container, true)
+            else -> {
+                finish()
+                return
+            }
+        }
+
+        coverView = container.findViewById<ImageView>(R.id.music_edit_cover)
         currentSetCoverPath = set.albumArt
         loadSetCover(set, set.albumArt)
 
@@ -197,11 +204,15 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
         when (set) {
             is MusicSet.Album -> {
-                titleField = addField(container, R.string.dlg_album, set.name)
-                artistField = addField(container, R.string.dlg_artist, set.artist)
-                genreField = addField(container, R.string.dlg_genre, set.genres)
-                yearField = addField(container, R.string.dlg_year, if (set.year > 0) set.year.toString() else "")
-                yearField?.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                titleField = container.findViewById(R.id.music_edit_album)
+                artistField = container.findViewById(R.id.music_edit_artist)
+                genreField = container.findViewById(R.id.music_edit_genre)
+                yearField = container.findViewById(R.id.music_edit_year)
+
+                titleField.setText(set.name)
+                artistField?.setText(set.artist)
+                genreField?.setText(set.genres)
+                yearField?.setText(set.year.takeIf { it > 0 }?.toString().orEmpty())
 
                 bindDirtyWatcher(titleField)
                 bindDirtyWatcher(artistField)
@@ -210,25 +221,17 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             }
 
             is MusicSet.Artist -> {
-                titleField = addField(container, R.string.dlg_artist, set.name)
+                titleField = container.findViewById(R.id.music_edit_artist)
+                titleField.setText(set.name)
                 bindDirtyWatcher(titleField)
             }
 
             is MusicSet.Genre -> {
-                titleField = addField(container, R.string.dlg_genre, set.name)
+                titleField = container.findViewById(R.id.music_edit_genre)
+                titleField.setText(set.name)
                 bindDirtyWatcher(titleField)
             }
-
-            else -> finish()
         }
-    }
-
-    private fun addField(container: LinearLayout, labelRes: Int, value: String): EditText {
-        val itemBinding = ItemEditTagFieldBinding.inflate(layoutInflater, container, true)
-        itemBinding.editTagLabel.setText(labelRes)
-        itemBinding.editTagValue.setText(value)
-        itemBinding.editTagValue.setSelection(itemBinding.editTagValue.text.length)
-        return itemBinding.editTagValue
     }
 
     private fun bindDirtyWatcher(editText: EditText?) {
@@ -281,8 +284,8 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             title = track.title,
             album = track.album,
             artist = track.artist,
-            genre = "",
-            track = 0
+            genre = track.genres,
+            track = track.track.takeIf { it > 0 } ?: 0
         )
     }
 

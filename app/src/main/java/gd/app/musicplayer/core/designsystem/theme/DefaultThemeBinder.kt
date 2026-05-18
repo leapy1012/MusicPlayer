@@ -419,6 +419,19 @@ class DefaultThemeBinder : ThemeViewBinder {
             return true
         }
 
+        if (tag == "dialogContentMessage") {
+            if (view is TextView) {
+                view.setTextColor(
+                    if (palette.isDialogSurfaceLight()) {
+                        0xFF303030.toInt()
+                    } else {
+                        Color.WHITE
+                    }
+                )
+            }
+            return true
+        }
+
         if (tag == "dialogSelectBox" && view is ImageView) {
             val normalColor = if (palette.dialogTitleColor == Color.WHITE) -2171170 else -3355444
             view.imageTintList = ColorStateList(

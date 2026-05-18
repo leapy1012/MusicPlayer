@@ -10,8 +10,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.databinding.ActivityWidgetConfigThemeItemBinding
@@ -51,16 +49,16 @@ internal class WidgetThemeAdapter(
         position: Int
     ) {
         val item = items[position]
-        holder.bind(item, item == selected)
+        holder.bind(item, item.matches(selected))
     }
 
     override fun getItemCount(): Int = items.size
 
     fun submitSelection(value: WidgetThemeOption?) {
-        if (selected == value) return
+        if (selected.matches(value)) return
 
-        val oldIndex = items.indexOf(selected)
-        val newIndex = items.indexOf(value)
+        val oldIndex = items.indexOfFirst { item -> item.matches(selected) }
+        val newIndex = items.indexOfFirst { item -> item.matches(value) }
         selected = value
 
         if (oldIndex >= 0) notifyItemChanged(oldIndex)
@@ -81,26 +79,21 @@ internal class WidgetThemeAdapter(
             if ((context as? Activity)?.isDestroyed == true) return
 
             val cornerRadiusPx = context.dpToPx(6f)
-            if (item.themeType == 0) {
-                val drawable = ContextCompat.getDrawable(
-                    binding.root.context,
-                    item.drawableRes
-                )?.mutate()
+            val drawable = ContextCompat.getDrawable(
+                binding.root.context,
+                item.drawableRes
+            )?.mutate()
 
-                val roundedDrawable =
-                    if (drawable is GradientDrawable) {
-                        drawable.apply {
-                            cornerRadius = cornerRadiusPx.toFloat()
-                        }
-                    } else {
-                        drawable
+            val roundedDrawable =
+                if (drawable is GradientDrawable) {
+                    drawable.apply {
+                        cornerRadius = cornerRadiusPx.toFloat()
                     }
+                } else {
+                    drawable
+                }
 
-                binding.itemImage.setImageDrawable(roundedDrawable)
-            } else {
-                Glide.with(context).load(item.drawableRes).transform(RoundedCorners(cornerRadiusPx))
-                    .into(binding.itemImage)
-            }
+            binding.itemImage.setImageDrawable(roundedDrawable)
             binding.itemImage.imageAlpha = (item.alpha * 255f).toInt().coerceIn(0, 255)
 
             binding.itemSelect.imageTintList = ColorStateList.valueOf(
@@ -113,5 +106,12 @@ internal class WidgetThemeAdapter(
             binding.itemSelect.visibility = if (isSelected) View.VISIBLE else View.GONE
             binding.root.setOnClickListener { onSelected(item) }
         }
+    }
+
+    private fun WidgetThemeOption?.matches(other: WidgetThemeOption?): Boolean {
+        return this != null &&
+                other != null &&
+                themeType == other.themeType &&
+                index == other.index
     }
 }

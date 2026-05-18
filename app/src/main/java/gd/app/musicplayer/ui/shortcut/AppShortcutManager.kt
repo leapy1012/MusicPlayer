@@ -76,4 +76,28 @@ object AppShortcutManager {
             }
             .build()
     }
+
+    fun buildShortcut(
+        context: Context,
+        id: String,
+        shortLabel: String,
+        intent: Intent,
+        icon: IconCompat,
+        longLabel: String? = null,
+        disabledMessage: String? = null
+    ): ShortcutInfoCompat {
+        return ShortcutInfoCompat.Builder(context, id)
+            .setShortLabel(shortLabel)
+            .setIntent(intent)
+            .setIcon(icon)
+            .apply {
+                if (!longLabel.isNullOrBlank()) {
+                    setLongLabel(longLabel)
+                }
+                if (!disabledMessage.isNullOrBlank()) {
+                    setDisabledMessage(disabledMessage)
+                }
+            }
+            .build()
+    }
 }

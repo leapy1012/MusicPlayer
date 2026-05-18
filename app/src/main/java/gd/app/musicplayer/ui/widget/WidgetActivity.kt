@@ -44,7 +44,7 @@ class WidgetActivity : BaseActivity() {
 
         binding.root.applySystemBarInsets(
             statusBarView = binding.statusBarSpace,
-            bottomPaddingView = binding.root
+            bottomPaddingView = binding.recyclerView
         )
 
         setupToolbar()

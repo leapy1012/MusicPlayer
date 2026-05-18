@@ -22,13 +22,14 @@ class WidgetConfigStore @Inject constructor(
         classify: String
     ): WidgetConfig {
         val defaultStyle = WidgetCatalog.defaultStyle(classify)
-        val defaultTheme = WidgetCatalog.defaultThemeOption()
         val preferences = dataStore.data.first()
+        val styleKey = preferences[stringPreferencesKey(key(KEY_STYLE, appWidgetId))]
+            ?: defaultStyle.styleKey
+        val defaultTheme = WidgetCatalog.defaultThemeOption(styleKey)
 
         return WidgetConfig(
             classify = classify,
-            styleKey = preferences[stringPreferencesKey(key(KEY_STYLE, appWidgetId))]
-                ?: defaultStyle.styleKey,
+            styleKey = styleKey,
             themeType = preferences[intPreferencesKey(key(KEY_THEME_TYPE, appWidgetId))]
                 ?: defaultTheme.themeType,
             themeIndex = preferences[intPreferencesKey(key(KEY_THEME_INDEX, appWidgetId))]

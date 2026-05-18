@@ -1,35 +1,43 @@
 package gd.app.musicplayer.ui.editor.waveform
 
-internal class GradientOscillator(
+class GradientOscillator(
     private val colors: IntArray
 ) {
     private var index = 0
     private var reverse = false
 
     fun next(): Int {
+        require(colors.isNotEmpty()) {
+            "GradientOscillator requires at least one color"
+        }
+
         val color = colors[index]
+
         if (reverse) {
-            if (index == 0) {
+            if (index != 0) {
+                index--
+            } else {
                 index = 1.coerceAtMost(colors.lastIndex)
                 reverse = false
-            } else {
-                index -= 1
             }
         } else {
-            if (index == colors.lastIndex) {
+            if (index != colors.lastIndex) {
+                index++
+            } else {
                 index = (colors.lastIndex - 1).coerceAtLeast(0)
                 reverse = true
-            } else {
-                index += 1
             }
         }
+
         return color
+    }
+
+    fun size(): Int {
+        return colors.size
     }
 
     fun reset() {
         index = 0
         reverse = false
     }
-
-    fun size(): Int = colors.size
 }

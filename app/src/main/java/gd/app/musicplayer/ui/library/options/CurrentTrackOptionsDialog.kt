@@ -3,24 +3,21 @@ package gd.app.musicplayer.ui.library.options
 import android.content.Context
 import android.media.AudioManager
 import android.os.Bundle
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.view.setPadding
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
-import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
@@ -46,6 +43,9 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
     private var volumeIcon: ImageView? = null
     private var lastNonZeroVolume = 0
 
+    private val deleteConfirmResultKey: String
+        get() = "current_track_delete_confirm_${music.id}"
+
     override fun onReadArguments(arguments: Bundle) {
         music = arguments.parcelable(ARG_MUSIC) ?: error("Missing music")
         viewModel.initialize(music)
@@ -58,11 +58,16 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         add(MenuItem.create(R.string.dlg_manage_artwork, R.drawable.ic_menu_artwork))
         add(MenuItem.create(R.string.sleep_timer_2, R.drawable.ic_menu_sleep).withLabel(viewModel.uiState.value.sleepMenuLabel.ifBlank { getString(R.string.sleep_timer_2) }))
         add(MenuItem.create(R.string.dlg_ringtone_2, R.drawable.ic_menu_ringtone))
-        add(MenuItem.create(R.string.hide_music, R.drawable.ic_menu_hide_folder))
+        add(MenuItem.create(R.string.hide_music, R.drawable.ic_menu_hide_music))
         add(MenuItem.create(R.string.delete, R.drawable.ic_menu_delete))
     }
 
     override fun onMenuItemClicked(item: MenuItem) {
+        if (item.id == R.string.delete) {
+            confirmDeleteTrack()
+            return
+        }
+
         dismiss()
         when (item.id) {
             R.string.add_to -> viewModel.onAddToClicked()
@@ -75,7 +80,6 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
             R.string.sleep_timer_2 -> SleepActivity.start(requireContext())
             R.string.dlg_ringtone_2 -> ToastUtil.show(requireContext(), R.string.feature_not_implemented)
             R.string.hide_music -> viewModel.hideTrack()
-            R.string.delete -> confirmDeleteTrack()
         }
     }
 
@@ -98,7 +102,9 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
         container.findViewById<ImageView>(R.id.bottom_menu_title_icon).apply {
             tag = "dialogTitleIcon"
-            setImageResource(R.drawable.ic_menu_share)
+            setImageResource(R.drawable.ic_menu_song_share)
+            val inset = context.dp(10f)
+            setPadding(inset, inset, inset, inset)
             setOnClickListener {
                 dismiss()
                 MusicShareSupport.share(requireContext(), listOf(music))
@@ -108,6 +114,8 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         container.findViewById<ImageView>(R.id.bottom_menu_title_icon_2).apply {
             tag = "dialogTitleIcon"
             setImageResource(R.drawable.ic_menu_song_detail)
+            val inset = context.dp(10f)
+            setPadding(inset, inset, inset, inset)
             setOnClickListener {
                 dismiss()
                 MusicDetailDialogFragment.newInstance(music)
@@ -118,8 +126,41 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
     override fun onCreateBottomArea(inflater: LayoutInflater, container: LinearLayout) {
         audioManager = requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        container.addView(createVolumeDivider(container.context))
-        container.addView(createVolumeRow(container.context))
+        inflater.inflate(R.layout.layout_bottom_menu_volume, container, true)
+        volumeText = container.findViewById(R.id.dialog_volume_text)
+        volumeIcon = container.findViewById<ImageView>(R.id.dialog_volume_icon).apply {
+            setImageResource(R.drawable.vector_bottom_menu_volume_selector)
+            setOnClickListener { toggleMute() }
+        }
+        volumeSeekBar = container.findViewById<SeekBar>(R.id.dialog_seek_bar).apply {
+            setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC))
+            val accentColor = themeEngine.currentTheme().accentColor
+            setProgressDrawable(
+                DrawableUtil.roundedProgress(
+                    backgroundColor = 0x33FFFFFF,
+                    progressColor = accentColor,
+                    cornerRadius = context.dp(8f)
+                )
+            )
+            setThumbColor(accentColor)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0)
+                    }
+                    if (progress > 0) lastNonZeroVolume = progress
+                    renderVolume(progress)
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    setRecyclerViewScrollBlocked(false)
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                    setRecyclerViewScrollBlocked(true)
+                }
+            })
+        }
         syncVolumeViews()
     }
 
@@ -138,70 +179,6 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
                 }
             }
         }
-    }
-
-    private fun createVolumeDivider(context: Context): View {
-        return View(context).apply {
-            tag = "dialogDivider"
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                context.dp(1f)
-            )
-        }
-    }
-
-    private fun createVolumeRow(context: Context): View {
-        val row = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(context.dp(16f), context.dp(8f), context.dp(16f), context.dp(12f))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                context.dp(56f)
-            )
-        }
-
-        volumeIcon = ImageView(context).apply {
-            tag = "dialogVolumeIcon"
-            setImageResource(android.R.drawable.ic_lock_silent_mode_off)
-            setPadding(context.dp(10f))
-            layoutParams = LinearLayout.LayoutParams(context.dp(40f), context.dp(40f))
-            setOnClickListener { toggleMute() }
-        }
-
-        volumeSeekBar = SeekBar(context).apply {
-            tag = "dialogSeekBar"
-            setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC))
-            setThumb(DrawableUtil.gradientDrawable(context.dp(100f).toFloat(), 0xFFFFFFFF.toInt()))
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) {
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0)
-                    }
-                    if (progress > 0) lastNonZeroVolume = progress
-                    renderVolume(progress)
-                }
-
-                override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
-                override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
-            })
-            layoutParams = LinearLayout.LayoutParams(0, context.dp(28f), 1f).apply {
-                marginStart = context.dp(8f)
-                marginEnd = context.dp(12f)
-            }
-        }
-
-        volumeText = TextView(context).apply {
-            tag = "dialogVolumeText"
-            textSize = 14f
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(context.dp(48f), LinearLayout.LayoutParams.WRAP_CONTENT)
-        }
-
-        row.addView(volumeIcon)
-        row.addView(volumeSeekBar)
-        row.addView(volumeText)
-        return row
     }
 
     private fun toggleMute() {
@@ -224,23 +201,22 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         val percent = ((volume / max.toFloat()) * 100f).roundToInt()
         volumeText?.text = "$percent%"
         volumeIcon?.isSelected = volume == 0
-        volumeIcon?.setImageResource(
-            if (volume == 0) android.R.drawable.ic_lock_silent_mode else android.R.drawable.ic_lock_silent_mode_off
-        )
     }
 
     private fun confirmDeleteTrack() {
-        requireActivity().showMessageDialog(
-            requireContext().createMessageDialogConfig(
-                title = getString(R.string.delete),
-                message = music.title,
-                negativeText = getString(android.R.string.cancel),
-                positiveText = getString(R.string.delete),
-                positiveClickListener = { _, _ ->
-                    viewModel.deleteTrack()
-                }
-            )
-        )
+        parentFragmentManager.setFragmentResultListener(
+            deleteConfirmResultKey,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            if (bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
+                viewModel.deleteTrack()
+                dismissAllowingStateLoss()
+            }
+        }
+        DeleteConfirmDialogFragment.forTrackDelete(
+            resultKey = deleteConfirmResultKey,
+            trackTitle = music.title
+        ).show(parentFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
     }
 
     private fun handleEvent(event: CurrentTrackOptionsEvent) {

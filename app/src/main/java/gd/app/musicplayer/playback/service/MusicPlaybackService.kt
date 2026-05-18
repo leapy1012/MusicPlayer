@@ -170,6 +170,7 @@ class MusicPlaybackService : MediaSessionService() {
     lateinit var playbackStatsTracker: PlaybackStatsTracker
 
     private lateinit var player: ExoPlayer
+    private lateinit var crossfadePlayer: ExoPlayer
     private lateinit var serviceScope: CoroutineScope
     private lateinit var defaultArtwork: Bitmap
 
@@ -183,7 +184,9 @@ class MusicPlaybackService : MediaSessionService() {
     private lateinit var screenOffLockReceiver: ScreenOffLockReceiver
     private lateinit var statePublisher: PlaybackStatePublisher
     private lateinit var stereoBalanceAudioProcessor: StereoBalanceAudioProcessor
+    private lateinit var crossfadeStereoBalanceAudioProcessor: StereoBalanceAudioProcessor
     private lateinit var volumeFader: VolumeFader
+    private lateinit var crossfadeVolumeFader: VolumeFader
 
     private var media3Session: MediaSession? = null
 
@@ -327,6 +330,9 @@ class MusicPlaybackService : MediaSessionService() {
         if (::volumeFader.isInitialized) {
             volumeFader.cancel()
         }
+        if (::crossfadeVolumeFader.isInitialized) {
+            crossfadeVolumeFader.cancel()
+        }
 
         if (::artworkController.isInitialized) {
             artworkController.clear()
@@ -345,12 +351,19 @@ class MusicPlaybackService : MediaSessionService() {
             audioEffectsManager.release()
         }
 
+        if (::timedTransitionController.isInitialized) {
+            timedTransitionController.release()
+        }
+
         if (::player.isInitialized) {
             if (::playerEventHandler.isInitialized) {
                 player.removeListener(playerEventHandler)
             }
 
             player.release()
+        }
+        if (::crossfadePlayer.isInitialized) {
+            crossfadePlayer.release()
         }
 
         if (::audioFocusController.isInitialized) {
@@ -449,11 +462,17 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun configurePlayer() {
         stereoBalanceAudioProcessor = StereoBalanceAudioProcessor()
+        crossfadeStereoBalanceAudioProcessor = StereoBalanceAudioProcessor()
 
         player = musicPlayerFactory.create(
             context = this,
             stereoBalanceAudioProcessor = stereoBalanceAudioProcessor
         )
+        crossfadePlayer = musicPlayerFactory.create(
+            context = this,
+            stereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor
+        )
+        crossfadePlayer.volume = 0f
 
         playerEventHandler = PlayerEventHandler(
             callbacks = object : PlayerEventHandler.Callbacks {
@@ -564,7 +583,7 @@ class MusicPlaybackService : MediaSessionService() {
         clearPendingMedia3TransportCommand()
 
         if (expectedIndex == null) {
-            stopAndClearQueue()
+            stopAtQueueStart()
             return true
         }
 
@@ -647,6 +666,7 @@ class MusicPlaybackService : MediaSessionService() {
             settingPreferencesDataStore = settingPreferencesDataStore,
             soundEffectPreferences = soundEffectPreferences,
             stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
+            extraStereoBalanceAudioProcessors = listOf(crossfadeStereoBalanceAudioProcessor),
             currentMusicProvider = {
                 queue.getOrNull(currentIndex)
             },
@@ -879,7 +899,7 @@ class MusicPlaybackService : MediaSessionService() {
                 }
 
                 override fun onAutoTransitionReachedQueueEnd() {
-                    stopAndClearQueue()
+                    stopAtQueueStart()
                 }
 
                 override fun currentPlayerPositionIsAfterPreviousRestartWindow(): Boolean {
@@ -1119,11 +1139,23 @@ class MusicPlaybackService : MediaSessionService() {
             scope = serviceScope,
             targetVolumeProvider = playbackTuningController::resolveTargetPlaybackVolume
         )
+        crossfadeVolumeFader = VolumeFader(
+            player = crossfadePlayer,
+            scope = serviceScope,
+            targetVolumeProvider = {
+                playbackTuningController.resolveTargetPlaybackVolume(
+                    timedTransitionController.currentIncomingTrack()
+                )
+            }
+        )
 
         timedTransitionController = TimedTransitionController(
             player = player,
+            incomingPlayer = crossfadePlayer,
             playbackModeResolver = playbackModeResolver,
             volumeFader = volumeFader,
+            incomingVolumeFader = crossfadeVolumeFader,
+            mediaItemMapper = mediaItemMapper,
             queueProvider = {
                 queue
             },
@@ -1136,6 +1168,16 @@ class MusicPlaybackService : MediaSessionService() {
             callbacks = object : TimedTransitionController.Callbacks {
                 override fun onPlayNext(fromAutoTransition: Boolean) {
                     playNextInternal(fromAutoTransition = fromAutoTransition)
+                }
+
+                override fun onCrossfadeCommit(
+                    nextIndex: Int,
+                    positionMs: Long
+                ) {
+                    commitCrossfadeTransition(
+                        nextIndex = nextIndex,
+                        positionMs = positionMs
+                    )
                 }
             }
         )
@@ -1876,6 +1918,8 @@ class MusicPlaybackService : MediaSessionService() {
     ) {
         if (!isEffectivelyPlaying()) return
 
+        cancelTimedTransitionAndRestoreVolume()
+
         if (withFade && player.isPlaying) {
             volumeFader.fadeOut(
                 durationMs = PLAY_PAUSE_FADE_DURATION_MS
@@ -1971,6 +2015,44 @@ class MusicPlaybackService : MediaSessionService() {
         )
     }
 
+    private fun commitCrossfadeTransition(
+        nextIndex: Int,
+        positionMs: Long
+    ) {
+        if (
+            !::playerQueueController.isInitialized ||
+            nextIndex !in queue.indices
+        ) {
+            return
+        }
+
+        if (!isPlayerPlaylistSynced()) {
+            setPlayerQueue(
+                queue = queue,
+                startIndex = nextIndex,
+                startPositionMs = positionMs,
+                playWhenReady = true
+            )
+        } else {
+            playerQueueController.seekTo(
+                index = nextIndex,
+                positionMs = positionMs
+            )
+            playerQueueController.setPlayWhenReady(true)
+            playerQueueController.play()
+        }
+
+        queueManager.updateCurrentIndex(nextIndex)
+        playbackStatsTracker.reset()
+        playbackTuningController.applyPlaybackTuning()
+        applyAudioEffectsFromPreferences()
+
+        refreshArtworkAndSession(force = true)
+        persistSessionFromCurrentStateAsync()
+        updateMedia3CommandButtons()
+        publishAllRuntimeState(forceNotification = true)
+    }
+
     private fun playPrevious() {
         serviceScope.launch {
             ensurePlaybackRestored()
@@ -2047,6 +2129,49 @@ class MusicPlaybackService : MediaSessionService() {
     private fun stopPlaybackWithoutClearingQueue() {
         notificationDismissedByUser = false
         shutdownPlayback(ShutdownOptions.StopWithoutClearingQueue)
+    }
+
+    private fun stopAtQueueStart() {
+        notificationDismissedByUser = false
+        stopAfterCurrentTrack = false
+
+        if (queue.isEmpty()) {
+            stopAndClearQueue()
+            return
+        }
+
+        playbackStatsTracker.reset()
+        resetTimedTransitionState()
+
+        if (::volumeFader.isInitialized) {
+            volumeFader.cancel()
+        }
+
+        queueManager.updateCurrentIndex(0)
+
+        if (::playerQueueController.isInitialized) {
+            playerQueueController.setPlayerQueue(
+                queue = queue,
+                startIndex = 0,
+                startPositionMs = 0L,
+                playWhenReady = false
+            )
+        } else if (::player.isInitialized) {
+            player.pause()
+            player.seekTo(0L)
+        }
+
+        if (::audioFocusController.isInitialized) {
+            audioFocusController.abandon()
+        }
+
+        persistPlaybackSnapshotBlocking(
+            snapshot = capturePlaybackSnapshot(),
+            persistQueue = true
+        )
+
+        refreshArtworkAndSession(force = true)
+        publishAllRuntimeState(forceNotification = true)
     }
 
     private fun pauseAndPersistForNotificationClose() {

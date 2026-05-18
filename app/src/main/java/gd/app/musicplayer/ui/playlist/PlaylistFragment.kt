@@ -289,7 +289,7 @@ class PlaylistFragment :
                 false
             )
 
-            binding.root.applyRoundedOutline(R.dimen.item_image_corner_radius)
+            binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
             return ViewHolder(
                 binding = binding,

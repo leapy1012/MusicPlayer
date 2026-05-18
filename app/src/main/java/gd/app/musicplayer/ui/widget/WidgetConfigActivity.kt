@@ -298,17 +298,23 @@ class WidgetConfigActivity : BaseActivity() {
 
     private fun onStyleSelected(style: WidgetStyleOption) {
         selectedStyle = style
-        styleAdapter.submitSelection(style)
+        selectedThemeOption = WidgetCatalog.defaultThemeOption(style.styleKey)
+        selectedThemeAlpha = selectedThemeOption?.alpha?.coerceIn(0f, 1f) ?: DEFAULT_THEME_ALPHA
 
-        /*
-         * Reference behavior may reset background to the style's recommended background.
-         * Your model currently does not expose a style default theme, so we preserve current theme.
-         */
+        styleAdapter.submitSelection(style)
+        themeAdapter.submitSelection(selectedThemeOption)
+
+        syncOpacityLabel()
         renderPreview()
 
         val selectedIndex = spec.styles.indexOf(style)
         if (selectedIndex >= 0) {
             binding.widgetStyleRecycler.smoothScrollToPosition(selectedIndex)
+        }
+
+        val selectedThemeIndex = WidgetCatalog.themeOptionIndex(selectedThemeOption)
+        if (selectedThemeIndex >= 0) {
+            binding.widgetThemeRecycler.smoothScrollToPosition(selectedThemeIndex)
         }
     }
 
@@ -551,7 +557,7 @@ class WidgetConfigActivity : BaseActivity() {
     }
 
     private fun scrollSelectedItemsIntoView() {
-        val themeIndex = WidgetCatalog.themeOptions.indexOf(selectedThemeOption)
+        val themeIndex = WidgetCatalog.themeOptionIndex(selectedThemeOption)
 
         if (themeIndex >= 0) {
             binding.widgetThemeRecycler.scrollToPosition(themeIndex)
@@ -568,33 +574,7 @@ class WidgetConfigActivity : BaseActivity() {
         spec: WidgetProviderSpec,
         rawStyleKey: String
     ): WidgetStyleOption {
-        val normalized = normalizeStyleKey(rawStyleKey)
-
-        return spec.styles.firstOrNull { option ->
-            normalizeStyleKey(option.styleKey) == normalized
-        } ?: spec.styles.first()
-    }
-
-    private fun normalizeStyleKey(styleKey: String): String {
-        val key = styleKey.trim()
-
-        return when {
-            key.equals("list", ignoreCase = true) -> {
-                "LIST"
-            }
-
-            key.startsWith("3x2_", ignoreCase = true) -> {
-                key.replace(
-                    oldValue = "3x2_",
-                    newValue = "3X2_",
-                    ignoreCase = true
-                )
-            }
-
-            else -> {
-                key.uppercase()
-            }
-        }
+        return WidgetCatalog.resolveStyleOption(spec, rawStyleKey)
     }
 
     private fun currentThemeSelection(): WidgetThemeOption? {

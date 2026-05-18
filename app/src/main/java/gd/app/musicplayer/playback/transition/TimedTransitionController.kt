@@ -1,17 +1,23 @@
 package gd.app.musicplayer.playback.transition
 
 import androidx.media3.common.C
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.data.local.preference.SettingPreferences
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.VolumeFader
+import gd.app.musicplayer.playback.player.MediaItemMapper
 import kotlin.math.min
 
 class TimedTransitionController(
     private val player: ExoPlayer,
+    private val incomingPlayer: ExoPlayer,
     private val playbackModeResolver: PlaybackModeResolver,
     private val volumeFader: VolumeFader,
+    private val incomingVolumeFader: VolumeFader,
+    private val mediaItemMapper: MediaItemMapper,
     private val queueProvider: () -> List<Music>,
     private val currentIndexProvider: () -> Int,
     private val preferencesProvider: () -> SettingPreferences,
@@ -19,6 +25,22 @@ class TimedTransitionController(
 ) {
 
     private var activeTransition: ActiveTransition? = null
+    private var incomingTrack: Music? = null
+
+    private val incomingPlayerListener = object : Player.Listener {
+        override fun onPlayerError(error: PlaybackException) {
+            val transition = activeTransition
+            cancelIncomingPlayer()
+
+            if (transition is ActiveTransition.Crossfade) {
+                activeTransition = null
+            }
+        }
+    }
+
+    init {
+        incomingPlayer.addListener(incomingPlayerListener)
+    }
 
     fun maybeHandleTimedTransition() {
         val queue = queueProvider()
@@ -49,8 +71,9 @@ class TimedTransitionController(
 
         when {
             preferences.audio.crossFadeEnabled -> {
-                maybeStartFadeOutAdvance(
+                maybeStartCrossfade(
                     currentTrackId = currentTrack.id,
+                    nextIndex = nextIndex,
                     remainingMs = remainingMs,
                     preferences = preferences
                 )
@@ -67,15 +90,27 @@ class TimedTransitionController(
 
     fun reset() {
         activeTransition = null
+        cancelIncomingPlayer()
     }
 
     fun cancelAndRestoreVolume() {
         activeTransition = null
+        cancelIncomingPlayer()
         volumeFader.resetToFullVolume()
     }
 
-    private fun maybeStartFadeOutAdvance(
+    fun release() {
+        incomingPlayer.removeListener(incomingPlayerListener)
+        cancelIncomingPlayer()
+    }
+
+    fun currentIncomingTrack(): Music? {
+        return incomingTrack
+    }
+
+    private fun maybeStartCrossfade(
         currentTrackId: Long,
+        nextIndex: Int,
         remainingMs: Long,
         preferences: SettingPreferences
     ) {
@@ -89,19 +124,41 @@ class TimedTransitionController(
 
         if (remainingMs > fadeDurationMs) return
 
-        activeTransition = ActiveTransition.FadeOutAdvance(
-            trackId = currentTrackId
+        val queue = queueProvider()
+        val nextTrack = queue.getOrNull(nextIndex) ?: return
+        val mediaItem = mediaItemMapper.toMediaItemOrNull(nextTrack) ?: return
+
+        activeTransition = ActiveTransition.Crossfade(
+            trackId = currentTrackId,
+            nextIndex = nextIndex
         )
 
+        val actualFadeDurationMs = min(
+            fadeDurationMs,
+            remainingMs
+        )
+            .minus(HANDOFF_BEFORE_END_MS)
+            .coerceAtLeast(MIN_FADE_DURATION_MS_FOR_HANDOFF)
+
+        incomingTrack = nextTrack
+        incomingVolumeFader.muteImmediately()
+
+        incomingPlayer.stop()
+        incomingPlayer.clearMediaItems()
+        incomingPlayer.playbackParameters = player.playbackParameters
+        incomingPlayer.setMediaItem(mediaItem, 0L)
+        incomingPlayer.prepare()
+        incomingPlayer.playWhenReady = true
+        incomingPlayer.play()
+
+        incomingVolumeFader.fadeIn(durationMs = actualFadeDurationMs)
+
         volumeFader.fadeOut(
-            durationMs = min(
-                fadeDurationMs,
-                remainingMs
-            )
+            durationMs = actualFadeDurationMs
         ) {
-            advanceIfStillOnTrack(
+            commitCrossfadeIfStillOnTrack(
                 expectedTrackId = currentTrackId,
-                restoreVolumeBeforeAdvance = true
+                expectedNextIndex = nextIndex
             )
         }
     }
@@ -152,19 +209,67 @@ class TimedTransitionController(
         callbacks.onPlayNext(fromAutoTransition = true)
     }
 
+    private fun commitCrossfadeIfStillOnTrack(
+        expectedTrackId: Long,
+        expectedNextIndex: Int
+    ) {
+        val latestQueue = queueProvider()
+        val latestIndex = currentIndexProvider()
+        val latestTrackId = latestQueue.getOrNull(latestIndex)?.id
+        val latestNextTrackId = latestQueue.getOrNull(expectedNextIndex)?.id
+        val incomingTrackId = incomingTrack?.id
+
+        if (
+            latestTrackId != expectedTrackId ||
+            latestNextTrackId == null ||
+            latestNextTrackId != incomingTrackId
+        ) {
+            activeTransition = null
+            cancelIncomingPlayer()
+            volumeFader.resetToFullVolume()
+            return
+        }
+
+        val incomingPositionMs = incomingPlayer.currentPosition.coerceAtLeast(0L)
+
+        activeTransition = null
+        volumeFader.resetToFullVolume()
+
+        callbacks.onCrossfadeCommit(
+            nextIndex = expectedNextIndex,
+            positionMs = incomingPositionMs
+        )
+
+        cancelIncomingPlayer()
+    }
+
+    private fun cancelIncomingPlayer() {
+        incomingVolumeFader.cancel()
+        incomingPlayer.playWhenReady = false
+        incomingPlayer.stop()
+        incomingPlayer.clearMediaItems()
+        incomingTrack = null
+    }
+
     private fun isAlreadyHandling(trackId: Long): Boolean {
         return activeTransition?.trackId == trackId
     }
 
     interface Callbacks {
         fun onPlayNext(fromAutoTransition: Boolean)
+
+        fun onCrossfadeCommit(
+            nextIndex: Int,
+            positionMs: Long
+        )
     }
 
     private sealed class ActiveTransition(
         open val trackId: Long
     ) {
-        data class FadeOutAdvance(
-            override val trackId: Long
+        data class Crossfade(
+            override val trackId: Long,
+            val nextIndex: Int
         ) : ActiveTransition(trackId)
 
         data class GaplessAdvance(
@@ -177,5 +282,7 @@ class TimedTransitionController(
         private const val GAPLESS_ADVANCE_WINDOW_MS = 150L
         private const val MIN_FADE_DURATION_MS = 1_000
         private const val MAX_FADE_DURATION_MS = 12_000
+        private const val HANDOFF_BEFORE_END_MS = 150L
+        private const val MIN_FADE_DURATION_MS_FOR_HANDOFF = 1L
     }
 }

@@ -27,5 +27,13 @@ data class Music(
     val playTime: Long? = null,
     @ColumnInfo(name = "count")
     val playCount: Int = 0,
-    val year: Int? = null
+    val year: Int? = null,
+    @ColumnInfo(defaultValue = "'Unknown'")
+    val genres: String = "Unknown",
+    @ColumnInfo(defaultValue = "-1")
+    val track: Int = -1,
+    @ColumnInfo(name = "bit_rate", defaultValue = "-1")
+    val bitRate: Int = -1,
+    @ColumnInfo(name = "sample_rate", defaultValue = "-1")
+    val sampleRate: Int = -1
 ) : Parcelable

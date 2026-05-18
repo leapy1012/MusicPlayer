@@ -21,7 +21,7 @@ import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.ui.editor.ActivityAudioEditor
+import gd.app.musicplayer.ui.editor.AudioEditorActivity
 import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import gd.app.musicplayer.ui.tags.EditTagsActivity
@@ -68,7 +68,12 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
             add(MenuItem.create(R.string.dlg_manage_artwork, R.drawable.ic_menu_artwork))
             add(MenuItem.create(R.string.dlg_share_music, R.drawable.ic_menu_share))
 
-            if (musicSet.id.toInt() == -11 || musicSet.id.toInt() == -2 || musicSet.id > 0) {
+            if (
+                musicSet is MusicSet.MostPlayed ||
+                musicSet is MusicSet.RecentlyPlayed ||
+                musicSet is MusicSet.Favorites ||
+                musicSet.id > 0
+            ) {
                 add(MenuItem.create(R.string.remove, R.drawable.ic_menu_remove))
             } else {
                 add(MenuItem.create(R.string.delete, R.drawable.ic_menu_delete))
@@ -106,8 +111,7 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
             }
 
             R.string.remove -> {
-                dismiss()
-                viewModel.removeFromCurrentSet()
+                confirmRemoveTrack()
             }
 
             R.string.delete -> {
@@ -121,7 +125,7 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
 
             R.string.audio_editor_title -> {
                 dismiss()
-                ActivityAudioEditor.start(requireContext(), music)
+                AudioEditorActivity.start(requireContext(), music)
             }
         }
     }
@@ -213,6 +217,16 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
             resultKey = DELETE_CONFIRM_RESULT_KEY,
             trackTitle = music.title
         ).show(parentFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
+        dismissAllowingStateLoss()
+    }
+
+    private fun confirmRemoveTrack() {
+        RemoveTrackFromSetConfirmDialogFragment
+            .newInstance(music, musicSet)
+            .show(
+                parentFragmentManager,
+                RemoveTrackFromSetConfirmDialogFragment::class.java.simpleName
+            )
         dismissAllowingStateLoss()
     }
 

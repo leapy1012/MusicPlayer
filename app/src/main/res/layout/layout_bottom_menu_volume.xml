@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:tag="dialogDivider" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="16dp">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/dialog_volume_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:tag="dialogVolumeIcon"
+            app:srcCompat="@drawable/vector_bottom_menu_volume" />
+
+        <gd.app.musicplayer.core.designsystem.view.SeekBar
+            android:id="@+id/dialog_seek_bar"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:tag="dialogSeekBar"
+            app:seekCalculateMethod="fingerPosition"
+            app:seekMax="100"
+            app:seekProgressHeight="2dp"
+            app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/dialog_volume_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:gravity="center_horizontal"
+            android:minWidth="40dp"
+            android:singleLine="true"
+            android:tag="dialogVolumeText"
+            android:text="0%"
+            android:textSize="14sp" />
+    </LinearLayout>
+</LinearLayout>

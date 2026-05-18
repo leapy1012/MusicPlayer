@@ -24,6 +24,7 @@ class PlaybackTuningController(
     private val settingPreferencesDataStore: SettingPreferencesDataStore,
     private val soundEffectPreferences: SoundEffectPreferences,
     private val stereoBalanceAudioProcessor: StereoBalanceAudioProcessor,
+    private val extraStereoBalanceAudioProcessors: List<StereoBalanceAudioProcessor> = emptyList(),
     private val currentMusicProvider: () -> Music?,
     private val applicationScope: CoroutineScope
 ) {
@@ -83,8 +84,12 @@ class PlaybackTuningController(
     }
 
     fun resolveTargetPlaybackVolume(): Float {
+        return resolveTargetPlaybackVolume(currentMusicProvider())
+    }
+
+    fun resolveTargetPlaybackVolume(music: Music?): Float {
         val replayGainMultiplier = resolveReplayGainMultiplier(
-            info = ReplayGainParser.parse(currentMusicProvider()?.data)
+            info = ReplayGainParser.parse(music?.data)
         )
 
         return replayGainMultiplier.coerceIn(
@@ -142,13 +147,23 @@ class PlaybackTuningController(
             }
             .distinctUntilChanged()
             .onEach { balance ->
-                stereoBalanceAudioProcessor.setChannelBalance(
-                    enabled = balance.enabled,
-                    left = balance.left,
-                    right = balance.right
-                )
+                applySoundBalance(stereoBalanceAudioProcessor, balance)
+                extraStereoBalanceAudioProcessors.forEach { processor ->
+                    applySoundBalance(processor, balance)
+                }
             }
             .launchIn(applicationScope)
+    }
+
+    private fun applySoundBalance(
+        processor: StereoBalanceAudioProcessor,
+        balance: SoundBalance
+    ) {
+        processor.setChannelBalance(
+            enabled = balance.enabled,
+            left = balance.left,
+            right = balance.right
+        )
     }
 
     private fun resolveReplayGainMultiplier(

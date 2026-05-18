@@ -93,9 +93,10 @@ internal object WidgetRenderer {
     ): RemoteViews {
         val spec = WidgetCatalog.specForClassify(classify)
 
-        val style = spec.styles.firstOrNull { style ->
-            style.styleKey == config.styleKey
-        } ?: spec.styles.first()
+        val style = WidgetCatalog.resolveStyleOption(
+            spec = spec,
+            styleKey = config.styleKey
+        )
 
         val theme = WidgetCatalog.themeOption(
             themeType = config.themeType,
@@ -810,7 +811,7 @@ internal object WidgetRenderer {
 
     private fun defaultConfig(classify: String): WidgetConfig {
         val defaultStyle = WidgetCatalog.defaultStyle(classify)
-        val defaultTheme = WidgetCatalog.defaultThemeOption()
+        val defaultTheme = WidgetCatalog.defaultThemeOption(defaultStyle.styleKey)
 
         return WidgetConfig(
             classify = classify,

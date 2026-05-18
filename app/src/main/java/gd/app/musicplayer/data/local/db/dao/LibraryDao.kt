@@ -210,10 +210,28 @@ interface LibraryDao {
     @Query(
         """
         UPDATE musictbl
+        SET count = 0
+        WHERE _id = :trackId
+        """
+    )
+    suspend fun clearTrackMostPlayedStats(trackId: Long)
+
+    @Query(
+        """
+        UPDATE musictbl
         SET play_time = 0
         """
     )
     suspend fun clearRecentlyPlayedStats()
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET play_time = 0
+        WHERE _id = :trackId
+        """
+    )
+    suspend fun clearTrackRecentlyPlayedStats(trackId: Long)
 
     @Query(
         """

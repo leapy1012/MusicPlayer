@@ -1,38 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical">
-
+    android:layout_height="wrap_content">
     <FrameLayout
+        android:layout_gravity="center_horizontal"
         android:layout_width="220dp"
         android:layout_height="220dp"
-        android:layout_gravity="center_horizontal"
         android:layout_marginTop="48dp">
-
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/music_edit_cover"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="centerCrop" />
-
+            android:scaleType="centerCrop"/>
         <androidx.appcompat.widget.AppCompatImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
             android:layout_gravity="end|bottom"
             android:padding="8dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:scaleType="fitCenter"
-            app:srcCompat="@drawable/vector_select_picture" />
+            app:srcCompat="@drawable/vector_select_picture"/>
     </FrameLayout>
-
     <TextView
+        android:textSize="16sp"
+        android:layout_gravity="center_horizontal"
+        android:tag="itemTextExtraColor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="36dp"
-        android:tag="itemTextExtraColor"
-        android:text="@string/change_cover"
-        android:textSize="16sp" />
+        android:text="@string/change_cover"/>
 </LinearLayout>

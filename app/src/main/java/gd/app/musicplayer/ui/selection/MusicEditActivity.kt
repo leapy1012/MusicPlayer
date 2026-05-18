@@ -12,20 +12,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.SimpleItemAnimator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.databinding.ActivityMusicEditBinding
-import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
-import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.ui.common.menu.EditBottomMenuController
-import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
-import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
-import gd.app.musicplayer.ui.library.ARG_MUSIC
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
+import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
+import gd.app.musicplayer.databinding.ActivityMusicEditBinding
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
@@ -36,6 +32,11 @@ import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
 import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.ui.common.menu.EditBottomMenuController
+import gd.app.musicplayer.ui.library.ARG_MUSIC
 import gd.app.musicplayer.ui.library.ARG_MUSIC_SET
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -91,7 +92,6 @@ class MusicEditActivity : BaseActivity(),
         ) = Unit
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -113,7 +113,10 @@ class MusicEditActivity : BaseActivity(),
     private fun readIntentData(): Boolean {
         musicSet = intent.parcelable(ARG_MUSIC_SET) ?: return false
         selectedMusic = intent.parcelable(ARG_MUSIC)
-        initialTopOffset = intent.getIntExtra(ARG_TOP_OFFSET, intent.getIntExtra(ARG_OFFSET, 0))
+        initialTopOffset = intent.getIntExtra(
+            ARG_TOP_OFFSET,
+            intent.getIntExtra(ARG_OFFSET, 0)
+        )
         return true
     }
 
@@ -125,16 +128,16 @@ class MusicEditActivity : BaseActivity(),
             toolbar = binding.toolbar
         )
 
-        selectAllImage = binding.toolbar.installSelectAllAction(layoutInflater) { view ->
-            toggleSelectAll(view)
+        selectAllImage = binding.toolbar.installSelectAllAction(layoutInflater) {
+            toggleSelectAll()
         }
     }
 
-    private fun toggleSelectAll(view: View) {
+    private fun toggleSelectAll() {
         if (adapter.itemCount == 0) return
 
-        view.isSelected = !view.isSelected
-        adapter.setAllSelected(view.isSelected)
+        val shouldSelectAll = !adapter.areAllFilteredItemsSelected()
+        adapter.setAllSelected(shouldSelectAll)
 
         updateSelectionTitle(adapter.getSelectedItems().size)
     }
@@ -146,15 +149,23 @@ class MusicEditActivity : BaseActivity(),
                 LinearLayoutManager.VERTICAL,
                 false
             )
+
+            /*
+             * Selection changes should be instant.
+             * Default change animations can look like blinking.
+             */
+            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         }
 
         adapter = buildAdapter()
-
         musicRecyclerView.adapter = adapter
 
         indexBar = binding.root.findViewById<RecyclerIndexBar>(R.id.recyclerview_index).apply {
-            onLabelSelected = { label -> scrollToLabel(label) }
+            onLabelSelected = { label ->
+                scrollToLabel(label)
+            }
         }
+
         emptyStateController = RecyclerEmptyStateController(
             recyclerView = musicRecyclerView,
             emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
@@ -163,8 +174,8 @@ class MusicEditActivity : BaseActivity(),
         }
     }
 
-    private fun buildAdapter(): MusicEditAdapter =
-        MusicEditAdapter(
+    private fun buildAdapter(): MusicEditAdapter {
+        return MusicEditAdapter(
             recyclerView = musicRecyclerView,
             accentColor = themeRepo.getAccentColor(),
             musicSet = musicSet,
@@ -173,6 +184,7 @@ class MusicEditActivity : BaseActivity(),
         ).apply {
             setSelectionCountListener(this@MusicEditActivity)
         }
+    }
 
     private fun setupSearch() {
         binding.searchEditClear.setOnClickListener {
@@ -212,15 +224,17 @@ class MusicEditActivity : BaseActivity(),
 
     private fun renderMusicList(musicList: List<Music>) {
         adapter.submitList(musicList)
+
         applyInitialSelectionIfNeeded()
+        scrollToInitialMusicIfNeeded(musicList)
 
         updateSelectionTitle(adapter.getSelectedItems().size)
-        scrollToInitialMusicIfNeeded(musicList)
         updateFilteredListChrome()
     }
 
     private fun applyInitialSelectionIfNeeded() {
         if (!shouldApplyInitialSelection) return
+
         shouldApplyInitialSelection = false
         selectedMusic?.let(adapter::selectItem)
     }
@@ -228,19 +242,29 @@ class MusicEditActivity : BaseActivity(),
     private fun scrollToInitialMusicIfNeeded(musicList: List<Music>) {
         if (!shouldScrollToInitialMusic) return
 
-        shouldScrollToInitialMusic = false
+        val music = selectedMusic ?: run {
+            shouldScrollToInitialMusic = false
+            return
+        }
 
-        val music = selectedMusic ?: return
-        val index = musicList.indexOfFirst { it.id == music.id && it.data == music.data }
+        val index = musicList.indexOfFirst { item ->
+            item.id == music.id && item.data == music.data
+        }
 
-        if (index < 0) return
+        if (index < 0) {
+            shouldScrollToInitialMusic = false
+            return
+        }
 
         val layoutManager = musicRecyclerView.layoutManager as? LinearLayoutManager ?: return
 
-        layoutManager.scrollToPositionWithOffset(index, initialTopOffset)
+        shouldScrollToInitialMusic = false
 
         musicRecyclerView.post {
-            layoutManager.scrollToPosition(index)
+            layoutManager.scrollToPositionWithOffset(
+                index,
+                initialTopOffset
+            )
         }
     }
 
@@ -261,7 +285,7 @@ class MusicEditActivity : BaseActivity(),
     }
 
     private fun handleSearchTextChanged(text: String) {
-        val keyword = text.trim().lowercase()
+        val keyword = text.trim()
 
         adapter.setSearchKeyword(keyword)
 
@@ -274,20 +298,24 @@ class MusicEditActivity : BaseActivity(),
 
     private fun updateFilteredListChrome() {
         val filteredItems = adapter.getFilteredItems()
+
         emptyStateController.setVisible(filteredItems.isEmpty())
         indexBar.submitLabels(buildIndexLabels(filteredItems))
     }
 
     private fun buildIndexLabels(items: List<Music>): List<String> {
-        return items.mapNotNull { music ->
-            music.title.trim().firstOrNull()?.uppercaseChar()?.toString()
-        }.distinct()
+        return items
+            .mapNotNull { music ->
+                music.title.trim().firstOrNull()?.uppercaseChar()?.toString()
+            }
+            .distinct()
     }
 
     private fun scrollToLabel(label: String) {
         val index = adapter.getFilteredItems().indexOfFirst { music ->
             music.title.trim().startsWith(label, ignoreCase = true)
         }
+
         if (index >= 0) {
             musicRecyclerView.scrollToPosition(index)
         }
@@ -314,7 +342,11 @@ class MusicEditActivity : BaseActivity(),
         ) {
             val intent = Intent(context, MusicEditActivity::class.java).apply {
                 putExtra(ARG_MUSIC_SET, musicSet)
-                selectedMusic?.let { putExtra(ARG_MUSIC, it) }
+
+                selectedMusic?.let { music ->
+                    putExtra(ARG_MUSIC, music)
+                }
+
                 putExtra(ARG_TOP_OFFSET, offset)
             }
 

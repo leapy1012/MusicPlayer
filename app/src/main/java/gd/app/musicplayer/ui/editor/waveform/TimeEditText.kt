@@ -1,147 +1,151 @@
 package gd.app.musicplayer.ui.editor.waveform
 
 import android.content.Context
-import android.text.TextUtils
+import android.text.InputFilter
 import android.util.AttributeSet
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatEditText
-import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.hideKeyboard
-import gd.app.musicplayer.core.common.util.ToastUtil
-import java.util.regex.Pattern
+import kotlin.math.max
 
 class TimeEditText @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : AppCompatEditText(context, attrs), View.OnFocusChangeListener, TextView.OnEditorActionListener {
+) : AppCompatEditText(context, attrs),
+    View.OnFocusChangeListener,
+    TextView.OnEditorActionListener {
 
     interface OnInputTimeChangedListener {
-        fun onInputTimeChanged(timeEditText: TimeEditText, rawText: String, timeMs: Int)
+        fun onInputTimeChanged(
+            timeEditText: TimeEditText,
+            rawText: String,
+            timeMs: Int
+        )
+
+        fun onInvalidTimeInput(
+            timeEditText: TimeEditText,
+            rawText: String
+        )
     }
 
-    private val timePattern = Pattern.compile("^(?:([0-9]+):)?([0-9]+)(?:\\.[0-9]{1,2})?$")
-    private var minTimeMs = 0
-    private var maxTimeMs = Int.MAX_VALUE
-    private var lastCommittedText: CharSequence = ""
-    private var hadFocus = false
     private var listener: OnInputTimeChangedListener? = null
+    private var minTimeMs: Int = 0
+    private var maxTimeMs: Int = Int.MAX_VALUE
+    private var lastCommittedText: CharSequence = ""
 
     init {
+        filters = arrayOf(InputFilter.LengthFilter(MAX_LENGTH))
         imeOptions = EditorInfo.IME_ACTION_DONE
         onFocusChangeListener = this
         setOnEditorActionListener(this)
     }
 
-    fun commitInput() {
+    fun commitInput(): Boolean {
         val rawText = text?.toString()?.trim().orEmpty()
-        val parsedTimeMs = when {
-            rawText.isEmpty() -> minTimeMs
-            rawText.all(Char::isDigit) -> rawText.toIntOrNull()?.times(1000)
-            timePattern.matcher(rawText).matches() -> parseTime(rawText)
-            else -> null
-        }
+        val parsedTime = parseTime(rawText)
 
-        if (parsedTimeMs == null) {
-            setText(lastCommittedText)
-            ToastUtil.show(context, R.string.input_error)
-            return
-        }
-
-        val clampedTimeMs = parsedTimeMs.coerceIn(minTimeMs, maxTimeMs)
-        val normalizedText = formatTime(clampedTimeMs)
-        setText(normalizedText)
-        setSelection(normalizedText.length)
-        if (isFocused) {
-            hideKeyboard()
-            clearFocus()
-        }
-        listener?.onInputTimeChanged(this, rawText, clampedTimeMs)
-    }
-
-    fun getMaxTime(): Int = maxTimeMs
-
-    fun getMinTime(): Int = minTimeMs
-
-    override fun onEditorAction(v: TextView?, actionId: Int, event: KeyEvent?): Boolean {
-        if (actionId != EditorInfo.IME_ACTION_DONE &&
-            (event == null || event.keyCode != KeyEvent.KEYCODE_ENTER)
-        ) {
+        if (parsedTime == null) {
+            restoreLastCommittedText()
+            listener?.onInvalidTimeInput(this, rawText)
             return false
         }
-        commitInput()
-        return false
-    }
 
-    override fun onFocusChange(v: View?, hasFocus: Boolean) {
-        if (hadFocus && !hasFocus) {
-            commitInput()
-        }
-        hadFocus = hasFocus
-    }
-
-    fun setMaxTime(timeMs: Int) {
-        maxTimeMs = timeMs.coerceAtLeast(minTimeMs)
-    }
-
-    fun setMinTime(timeMs: Int) {
-        minTimeMs = timeMs.coerceAtLeast(0)
-        if (maxTimeMs < minTimeMs) {
-            maxTimeMs = minTimeMs
-        }
+        val safeTime = parsedTime.coerceIn(minTimeMs, maxTimeMs)
+        setTime(safeTime)
+        clearFocus()
+        listener?.onInputTimeChanged(this, rawText, safeTime)
+        return true
     }
 
     fun setOnInputTimeChangedListener(listener: OnInputTimeChangedListener?) {
         this.listener = listener
     }
 
-    override fun setText(text: CharSequence?, type: BufferType?) {
-        lastCommittedText = text ?: ""
-        super.setText(text, type)
+    fun setMinTime(timeMs: Int) {
+        minTimeMs = max(0, timeMs)
+    }
+
+    fun setMaxTime(timeMs: Int) {
+        maxTimeMs = max(0, timeMs)
+    }
+
+    fun setTime(timeMs: Int) {
+        val formatted = formatTime(timeMs.coerceIn(minTimeMs, maxTimeMs))
+        if (text?.toString() != formatted) {
+            setText(formatted)
+            setSelection(formatted.length)
+        }
+        lastCommittedText = formatted
+    }
+
+    override fun onEditorAction(
+        view: TextView?,
+        actionId: Int,
+        event: KeyEvent?
+    ): Boolean {
+        if (actionId == EditorInfo.IME_ACTION_DONE || event?.keyCode == KeyEvent.KEYCODE_ENTER) {
+            commitInput()
+            return true
+        }
+        return false
+    }
+
+    override fun onFocusChange(view: View?, hasFocus: Boolean) {
+        if (!hasFocus && text?.toString() != lastCommittedText.toString()) {
+            commitInput()
+        }
+    }
+
+    private fun restoreLastCommittedText() {
+        val fallback = lastCommittedText.toString()
+        setText(fallback)
+        setSelection(fallback.length)
     }
 
     companion object {
+        private const val MAX_LENGTH = 8
+        private val TIME_PATTERN = Regex("^(?:([0-9]+):)?([0-9]+)(?:\\.([0-9]{1,2}))?$")
+
         fun formatTime(timeMs: Int): String {
-            val totalSeconds = timeMs / 1000
-            val hundredths = (timeMs % 1000) / 10
-            val builder = StringBuilder()
-            if (timeMs >= 60_000) {
-                val minutes = totalSeconds / 60
-                val seconds = totalSeconds % 60
-                builder.append(minutes)
-                builder.append(':')
-                if (seconds < 10) builder.append('0')
-                builder.append(seconds)
-            } else {
-                builder.append(totalSeconds)
+            val safeTime = timeMs.coerceAtLeast(0)
+            var seconds = safeTime / 1000
+            val centiseconds = (safeTime % 1000) / 10
+            return buildString {
+                if (safeTime >= 60_000) {
+                    val minutes = seconds / 60
+                    seconds %= 60
+                    append(minutes)
+                    append(':')
+                    if (seconds < 10) append('0')
+                }
+                append(seconds)
+                append('.')
+                if (centiseconds < 10) append('0')
+                append(centiseconds)
             }
-            builder.append('.')
-            if (hundredths < 10) builder.append('0')
-            builder.append(hundredths)
-            return builder.toString()
         }
 
-        fun parseTime(value: String): Int {
-            if (TextUtils.isEmpty(value)) return 0
-            return try {
-                val minutePart = value.substringBefore(':', "")
-                val secondAndFraction = value.substringAfter(':', value)
-                val secondPart = secondAndFraction.substringBefore('.', secondAndFraction)
-                val fractionPart = secondAndFraction.substringAfter('.', "")
-
-                val minutes = minutePart.toIntOrNull() ?: 0
-                val seconds = secondPart.toIntOrNull() ?: 0
-                val fractionMs = when (fractionPart.length) {
-                    1 -> (fractionPart.toIntOrNull() ?: 0) * 100
-                    2 -> (fractionPart.toIntOrNull() ?: 0) * 10
-                    else -> 0
-                }
-                minutes * 60_000 + seconds * 1000 + fractionMs
-            } catch (_: Exception) {
-                0
+        fun parseTime(rawText: String): Int? {
+            if (rawText.isBlank()) return 0
+            rawText.toIntOrNull()?.let { return it * 1000 }
+            val match = TIME_PATTERN.matchEntire(rawText.trim()) ?: return null
+            val minutes = match.groupValues.getOrNull(1)
+                ?.takeIf { it.isNotBlank() }
+                ?.toIntOrNull()
+                ?: 0
+            val seconds = match.groupValues.getOrNull(2)
+                ?.takeIf { it.isNotBlank() }
+                ?.toIntOrNull()
+                ?: return null
+            val fraction = match.groupValues.getOrNull(3).orEmpty()
+            val millis = when (fraction.length) {
+                1 -> fraction.toInt() * 100
+                2 -> fraction.toInt() * 10
+                else -> 0
             }
+            return (minutes * 60_000) + (seconds * 1000) + millis
         }
     }
 }

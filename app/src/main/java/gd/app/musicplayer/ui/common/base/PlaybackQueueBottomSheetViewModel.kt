@@ -94,12 +94,14 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
             )
         )
 
-    fun playQueueAt(position: Int) {
+    fun playQueueAt(position: Int, dismissAfterPlay: Boolean = true) {
         val state = uiState.value
         val queue = state.queue
         if (position !in queue.indices) return
         playTracksUseCase(appContext, queue, position)
-        emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
+        if (dismissAfterPlay) {
+            emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
+        }
     }
 
     fun saveQueueToPlaylist(state: PlaybackQueueBottomSheetUiState): List<Music>? {
@@ -189,4 +191,3 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         }
     }
 }
-

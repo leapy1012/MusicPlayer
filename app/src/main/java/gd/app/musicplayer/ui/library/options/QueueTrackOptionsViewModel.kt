@@ -31,7 +31,7 @@ sealed interface QueueTrackOptionsEvent {
 
 @HiltViewModel
 class QueueTrackOptionsViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
     private val playTracksUseCase: PlayTracksUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
     private val clearQueueUseCase: ClearQueueUseCase,

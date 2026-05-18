@@ -216,6 +216,7 @@ class QueueActionController(
 
         val currentState = queueManager.state
         val wasEmpty = currentState.queue.isEmpty()
+        val wasPlayerQueueSynced = playerQueueController.isPlayerPlaylistSynced()
 
         val nextQueue = currentState.queue + playableIncomingQueue
         val nextIndex = if (wasEmpty) {
@@ -234,7 +235,7 @@ class QueueActionController(
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
-        if (wasEmpty || !playerQueueController.isPlayerPlaylistSynced()) {
+        if (wasEmpty || !wasPlayerQueueSynced) {
             playerQueueController.setPlayerQueue(
                 queue = queueManager.queue,
                 startIndex = queueManager.currentIndex.coerceAtLeast(0),
@@ -288,6 +289,7 @@ class QueueActionController(
 
     private fun insertAfterCurrentTrack(incomingQueue: List<Music>) {
         val currentState = queueManager.state
+        val wasPlayerQueueSynced = playerQueueController.isPlayerPlaylistSynced()
 
         val insertIndex = if (currentState.currentIndex == currentState.queue.lastIndex) {
             currentState.queue.size
@@ -313,7 +315,7 @@ class QueueActionController(
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
-        if (playerQueueController.isPlayerPlaylistSynced()) {
+        if (wasPlayerQueueSynced) {
             playerQueueController.addMediaItems(
                 index = insertIndex,
                 queue = incomingQueue

@@ -1,5 +1,6 @@
 package gd.app.musicplayer.core.designsystem.dialog
 
+import android.content.DialogInterface
 import android.app.Dialog
 import android.graphics.Color
 import android.os.Build
@@ -14,6 +15,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentTransaction
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
@@ -173,6 +176,23 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
         super.onDestroyView()
     }
 
+    override fun onDismiss(dialog: DialogInterface) {
+        clearPendingShow(tag)
+        super.onDismiss(dialog)
+    }
+
+    override fun show(manager: FragmentManager, tag: String?) {
+        val key = tag ?: javaClass.name
+        if (!markPendingShow(manager, key)) return
+        super.show(manager, tag)
+    }
+
+    override fun show(transaction: FragmentTransaction, tag: String?): Int {
+        val key = tag ?: javaClass.name
+        if (!markPendingShow(key)) return -1
+        return super.show(transaction, tag)
+    }
+
     override fun onStop() {
         themeRegistry.unregisterObserver(this)
         super.onStop()
@@ -196,4 +216,39 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View
+
+    private companion object {
+        private const val PENDING_SHOW_TIMEOUT_MS = 1000L
+        private val pendingShows = mutableMapOf<String, Long>()
+
+        @Synchronized
+        private fun markPendingShow(manager: FragmentManager, key: String): Boolean {
+            val now = System.currentTimeMillis()
+            pendingShows.entries.removeAll { now - it.value > PENDING_SHOW_TIMEOUT_MS }
+
+            if (manager.isStateSaved || manager.findFragmentByTag(key) != null) return false
+            if (pendingShows.containsKey(key)) return false
+
+            pendingShows[key] = now
+            return true
+        }
+
+        @Synchronized
+        private fun markPendingShow(key: String): Boolean {
+            val now = System.currentTimeMillis()
+            pendingShows.entries.removeAll { now - it.value > PENDING_SHOW_TIMEOUT_MS }
+
+            if (pendingShows.containsKey(key)) return false
+
+            pendingShows[key] = now
+            return true
+        }
+
+        @Synchronized
+        private fun clearPendingShow(key: String?) {
+            if (key != null) {
+                pendingShows.remove(key)
+            }
+        }
+    }
 }

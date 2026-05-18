@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -149,6 +150,8 @@ class MessageDialog(
             val button = buttonContainer.findViewById<TextView>(R.id.common_dialog_negative)
             button.setTextColor(config.negativeButtonTextColor)
             button.setTextSize(0, config.buttonTextSizePx)
+            button.gravity = Gravity.CENTER
+            button.textAlignment = View.TEXT_ALIGNMENT_CENTER
             button.text = if (config.forceUppercaseButtons) text.uppercase() else text
             config.buttonTypeface?.let(button::setTypeface)
             button.background = config.negativeButtonBackground
@@ -166,6 +169,8 @@ class MessageDialog(
             val button = buttonContainer.findViewById<TextView>(R.id.common_dialog_neutral)
             button.setTextColor(config.neutralButtonTextColor)
             button.setTextSize(0, config.buttonTextSizePx)
+            button.gravity = Gravity.CENTER
+            button.textAlignment = View.TEXT_ALIGNMENT_CENTER
             button.text = if (config.forceUppercaseButtons) text.uppercase() else text
             config.buttonTypeface?.let(button::setTypeface)
             button.background = config.neutralButtonBackground
@@ -183,6 +188,8 @@ class MessageDialog(
             val button = buttonContainer.findViewById<TextView>(R.id.common_dialog_positive)
             button.setTextColor(config.positiveButtonTextColor)
             button.setTextSize(0, config.buttonTextSizePx)
+            button.gravity = Gravity.CENTER
+            button.textAlignment = View.TEXT_ALIGNMENT_CENTER
             button.text = if (config.forceUppercaseButtons) text.uppercase() else text
             config.buttonTypeface?.let(button::setTypeface)
             button.background = config.positiveButtonBackground

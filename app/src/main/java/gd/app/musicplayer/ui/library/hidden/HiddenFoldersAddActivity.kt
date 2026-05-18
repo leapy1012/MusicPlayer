@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.core.common.extension.highlight
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.startActivityCompat
@@ -386,6 +387,7 @@ private class HiddenFoldersAddAdapter(
         )
 
         applyTheme(binding.root)
+        binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
         return ItemViewHolder(binding)
     }

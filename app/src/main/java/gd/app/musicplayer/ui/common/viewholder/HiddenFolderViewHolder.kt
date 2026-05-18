@@ -3,6 +3,7 @@ package gd.app.musicplayer.ui.common.viewholder
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersItemBinding
 import gd.app.musicplayer.ui.common.model.loadArtwork
@@ -17,6 +18,7 @@ class HiddenFolderViewHolder(
 
     init {
         binding.musicItemMenu.setOnClickListener(this)
+        binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
     }
 
     fun bind(item: MusicSet.Folder) {
