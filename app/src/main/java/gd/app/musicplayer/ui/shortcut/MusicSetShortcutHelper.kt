@@ -56,12 +56,13 @@ object MusicSetShortcutHelper {
         @DrawableRes iconResId: Int = musicSet.resolvePlaceholderRes(useTextVariant = false)
     ): ShortcutInfoCompat {
         val launchIntent = buildLaunchIntent(context, musicSet)
+        val shortcutTitle = title.ifBlank { context.resolveShortcutTitle(musicSet) }
 
         return AppShortcutManager.buildShortcut(
             context = context,
             id = shortcutId(musicSet),
-            shortLabel = title,
-            longLabel = title,
+            shortLabel = shortcutTitle,
+            longLabel = shortcutTitle,
             intent = launchIntent,
             icon = buildShortcutIcon(context, musicSet, iconResId)
         )
@@ -202,6 +203,17 @@ object MusicSetShortcutHelper {
 
     private fun shortcutId(musicSet: MusicSet): String {
         return "music_set_${musicSet::class.java.simpleName}_${musicSet.id}_${musicSet.name.hashCode()}"
+    }
+
+    private fun Context.resolveShortcutTitle(musicSet: MusicSet): String {
+        return when (musicSet) {
+            is MusicSet.Favorites -> getString(R.string.favorite)
+            is MusicSet.RecentlyPlayed -> getString(R.string.recent_play)
+            is MusicSet.RecentlyAdded -> getString(R.string.recent_add)
+            is MusicSet.MostPlayed -> getString(R.string.most_play)
+            is MusicSet.Tracks -> getString(R.string.all_songs)
+            else -> musicSet.name.ifBlank { getString(R.string.music_player) }
+        }
     }
 
     private fun buildShortcutIcon(

@@ -68,6 +68,7 @@ class RecyclerEmptyStateController(
         val button = root.findViewById<TextView>(R.id.empty_button)
         val usesDarkForegroundPalette = theme.titleColor != Color.WHITE
         button.setTextColor(theme.accentColor)
+        tintCompoundDrawables(button, theme.accentColor)
         button.background = DrawableUtil.outlinedRoundedRipple(
             cornerRadius = button.context.dpToPx(100f),
             strokeWidth = button.context.dpToPx(1f),
@@ -206,6 +207,15 @@ class RecyclerEmptyStateController(
 
         view.post {
             repositionEmptyContent()
+        }
+    }
+
+    private fun tintCompoundDrawables(textView: TextView, color: Int) {
+        textView.compoundDrawables.filterNotNull().forEach { drawable ->
+            DrawableCompat.setTint(drawable.mutate(), color)
+        }
+        textView.compoundDrawablesRelative.filterNotNull().forEach { drawable ->
+            DrawableCompat.setTint(drawable.mutate(), color)
         }
     }
 }

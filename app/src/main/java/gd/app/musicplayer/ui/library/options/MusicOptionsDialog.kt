@@ -77,7 +77,7 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
                 musicSet is MusicSet.MostPlayed ||
                 musicSet is MusicSet.RecentlyPlayed ||
                 musicSet is MusicSet.Favorites ||
-                musicSet.id > 0
+                musicSet is MusicSet.Playlist
             ) {
                 add(MenuItem.create(R.string.remove, R.drawable.ic_menu_remove))
             } else {

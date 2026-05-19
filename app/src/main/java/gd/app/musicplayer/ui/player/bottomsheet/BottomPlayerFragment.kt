@@ -84,9 +84,12 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
     }
 
     private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
-        val binding = requireBinding()
+        val binding = binding ?: return
 
-        val durationMs = state.durationMs.coerceAtLeast(1L)
+        val durationMs = state.durationMs
+            .coerceAtLeast(1L)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+
         val positionMs = state.positionMs.coerceIn(0L, durationMs)
 
         binding.mainControlPlayPause.isSelected = state.isPlaying
@@ -98,6 +101,7 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
             binding.mainControlProgress.setProgress(positionMs.toInt())
         }
     }
+
 
     private fun setupInsets(binding: FragmentMainControl2Binding) {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
@@ -147,13 +151,14 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
         fromUser: Boolean
     ) {
         if (!fromUser) return
-        val binding = requireBinding()
+
+        val binding = binding ?: return
         binding.mainControlCurrTime.text = progress.toLong().toDurationString()
-        viewModel.seekTo(requireContext(), progress)
     }
 
     override fun onStopTrackingTouch(seekBar: SeekBar) {
         userSeeking = false
+        viewModel.seekTo(requireContext(), seekBar.getProgress())
     }
 
     override fun onStartTrackingTouch(seekBar: SeekBar) {

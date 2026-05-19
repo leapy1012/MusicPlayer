@@ -10,9 +10,10 @@ class ViewAsContextMenu(
     context: Context,
     private val selectedMode: Int,
     private val accentColor: Int,
+    private val popupTextColor: Int,
     private val popupBackgroundProvider: (Context) -> Drawable,
     private val onModeSelected: (Int) -> Unit
-) : BaseContextMenu(context, accentColor, popupBackgroundProvider) {
+) : BaseContextMenu(context, accentColor, popupTextColor, popupBackgroundProvider) {
 
     companion object {
         private const val ID_LIST_ITEM = "list_item"

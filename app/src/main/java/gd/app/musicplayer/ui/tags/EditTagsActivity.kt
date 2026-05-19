@@ -231,6 +231,7 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
                 titleField.setText(set.name)
                 bindDirtyWatcher(titleField)
             }
+            else -> TODO()
         }
     }
 

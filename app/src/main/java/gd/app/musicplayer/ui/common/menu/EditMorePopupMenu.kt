@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.View
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
 import gd.app.musicplayer.domain.model.ContextMenuItem
 import gd.app.musicplayer.domain.model.MenuItemModel
 
@@ -15,6 +16,7 @@ class EditMorePopupMenu(
 ) : BaseContextMenu(
     context = context,
     accentColor = theme.accentColor,
+    popupTextColor = theme.popupTitleColor,
     popupBackgroundProvider = { menuContext ->
         theme.getPopupBackgroundDrawable(menuContext)
     }

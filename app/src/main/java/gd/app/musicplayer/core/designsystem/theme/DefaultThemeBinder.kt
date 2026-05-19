@@ -75,10 +75,10 @@ class DefaultThemeBinder : ThemeViewBinder {
                 return true
             }
 
-            ThemeTags.BOTTOM_ROOT_LAYOUT -> {
-                view.setBackgroundColor(strongerOverlay)
-                return true
-            }
+//            ThemeTags.BOTTOM_ROOT_LAYOUT -> {
+//                view.setBackgroundColor(strongerOverlay)
+//                return true
+//            }
 
             ThemeTags.SETTING_CONTENT -> {
                 view.setBackgroundColor(
@@ -571,10 +571,11 @@ class DefaultThemeBinder : ThemeViewBinder {
         if (tag == ThemeTags.EMPTY_BUTTON || tag == ThemeTags.THEME_STROKE_BUTTON) {
             if (view is TextView) {
                 view.setTextColor(accentColor)
+                tintCompoundDrawables(view, accentColor)
                 view.background = DrawableUtil.outlinedRoundedRipple(
                     (view.context.resources.displayMetrics.density * 100f).toInt(),
                     (view.context.resources.displayMetrics.density * 1f).toInt(),
-                    ColorUtils.setAlphaComponent(itemTextColor, 51),
+                    if (usesDarkForegroundPalette(palette)) 0x1A000000 else 0x33FFFFFF,
                     0,
                     rippleColor
                 )
@@ -955,6 +956,15 @@ class DefaultThemeBinder : ThemeViewBinder {
                 view.setTextColor(color)
                 view.setHintTextColor(ColorUtils.setAlphaComponent(color, 128))
             }
+        }
+    }
+
+    private fun tintCompoundDrawables(textView: TextView, color: Int) {
+        textView.compoundDrawables.filterNotNull().forEach { drawable ->
+            DrawableCompat.setTint(drawable.mutate(), color)
+        }
+        textView.compoundDrawablesRelative.filterNotNull().forEach { drawable ->
+            DrawableCompat.setTint(drawable.mutate(), color)
         }
     }
 

@@ -18,6 +18,7 @@ import kotlin.math.max
 abstract class BaseContextMenu(
     protected val context: Context,
     private val accentColor: Int,
+    private val popupTextColor: Int,
     private val popupBackgroundProvider: (Context) -> Drawable
 ) {
 
@@ -72,7 +73,8 @@ abstract class BaseContextMenu(
         listView.adapter = ContextMenuAdapter(
             context = context,
             items = items,
-            accentColor = accentColor
+            accentColor = accentColor,
+            popupTextColor = popupTextColor
         )
 
         listView.setOnItemClickListener { _, _, position, _ ->

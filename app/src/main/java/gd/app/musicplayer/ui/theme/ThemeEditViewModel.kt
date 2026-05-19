@@ -83,8 +83,8 @@ class ThemeEditViewModel @Inject constructor(
 
         _uiState.value = _uiState.value.copy(
             imageName = source.imageName,
-            overlayColor = source.overlayColor,
-            blur = source.blur
+            overlayColor = DEFAULT_OVERLAY_COLOR,
+            blur = 0
         )
     }
 

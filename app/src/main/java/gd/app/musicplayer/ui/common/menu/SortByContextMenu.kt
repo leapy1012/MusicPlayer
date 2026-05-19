@@ -16,8 +16,9 @@ class SortByContextMenu(
     private val currentSortDescending: Boolean = false,
     private val onSortChanged: ((String, Boolean) -> Unit)? = null,
     private val accentColor: Int,
+    private val popupTextColor: Int,
     private val popupBackgroundProvider : (Context) -> Drawable
-) : BaseContextMenu(context, accentColor, popupBackgroundProvider) {
+) : BaseContextMenu(context, accentColor, popupTextColor, popupBackgroundProvider) {
 
     override fun buildItems(): List<ContextMenuItem> {
         val options = musicSet.sortOptions()

@@ -18,8 +18,8 @@ import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.theme.ThemeBitmapLoader
 import gd.app.musicplayer.databinding.ActivityThemeEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.home.MainFragment
 import gd.app.musicplayer.ui.player.mini.BottomMiniPlayerFragment
-import gd.app.musicplayer.ui.player.bottomsheet.BottomPlayerFragment
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
 import gd.app.musicplayer.ui.library.artwork.ArtworkCropActivity
@@ -104,7 +104,7 @@ class ThemeEditActivity : BaseActivity() {
         setupInsets()
         setupViews()
         setupActions()
-        attachPreviewFragments(savedInstanceState)
+        attachPreviewFragments()
         observeViewModel()
     }
 
@@ -115,7 +115,7 @@ class ThemeEditActivity : BaseActivity() {
     }
 
     private fun setupInsets() {
-        binding.root.applySystemBarInsets(statusBarView = binding.statusBarSpace, binding.root)
+        binding.root.applySystemBarInsets(statusBarView = binding.statusBarSpace, binding.background)
     }
 
     private fun setupViews() {
@@ -137,18 +137,17 @@ class ThemeEditActivity : BaseActivity() {
         binding.imageEditChangePicture.setOnClickListener { pickImageLauncher.launch("image/*") }
     }
 
-    private fun attachPreviewFragments(savedInstanceState: Bundle?) {
-        if (savedInstanceState != null) return
-
+    private fun attachPreviewFragments() {
         supportFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
             .replace(
                 R.id.main_fragment_container,
-                BottomPlayerFragment(),
-                BottomPlayerFragment::class.java.simpleName
+                MainFragment(),
+                MainFragment::class.java.simpleName
             )
             .replace(
                 R.id.main_bottom_control_container,
-                BottomMiniPlayerFragment(),
+                BottomMiniPlayerFragment.newInstance(applyInsets = false),
                 BottomMiniPlayerFragment::class.java.simpleName
             )
             .commitNowAllowingStateLoss()

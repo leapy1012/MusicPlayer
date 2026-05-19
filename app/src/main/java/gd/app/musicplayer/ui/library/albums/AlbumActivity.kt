@@ -31,6 +31,9 @@ class AlbumActivity : BasePlayerSheetActivity() {
     override val fullPlayer: View
         get() = binding.bottomPlayer
 
+    override val playerSheetInsetTarget: View
+        get() = binding.mainFragmentContainer
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

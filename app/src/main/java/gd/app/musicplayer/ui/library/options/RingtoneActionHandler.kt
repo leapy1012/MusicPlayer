@@ -255,17 +255,10 @@ object RingtoneActionHandler {
     )
 
     private val SIM1_RINGTONE_KEYS = listOf(
-        "ringtone",
-        "ringtone_1",
-        "ringtone1",
-        "ringtone_sim1",
-        "ringtone_slot_1"
+        "ringtone"
     )
 
     private val SIM2_RINGTONE_KEYS = listOf(
-        "ringtone_2",
-        "ringtone2",
-        "ringtone_sim2",
-        "ringtone_slot_2"
+        "ringtone1"
     )
 }

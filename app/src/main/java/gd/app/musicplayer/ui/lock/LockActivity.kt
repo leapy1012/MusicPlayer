@@ -37,6 +37,7 @@ import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.domain.model.ContextMenuItem
@@ -506,6 +507,7 @@ class LockActivity : BaseActivity(),
         lockMorePopupMenu = LockMorePopupMenu(
             context = this,
             accentColor = palette.accentColor,
+            popupTextColor = palette.popupTitleColor,
             popupBackgroundProvider = palette::getPopupBackgroundDrawable,
             onTurnOffLockScreen = ::showTurnOffLockScreenDialog,
             onQuit = ::quitApplication
@@ -581,12 +583,14 @@ class LockActivity : BaseActivity(),
 private class LockMorePopupMenu(
     context: Context,
     accentColor: Int,
+    popupTextColor: Int,
     popupBackgroundProvider: (Context) -> android.graphics.drawable.Drawable,
     private val onTurnOffLockScreen: () -> Unit,
     private val onQuit: () -> Unit
 ) : BaseContextMenu(
     context = context,
     accentColor = accentColor,
+    popupTextColor = popupTextColor,
     popupBackgroundProvider = popupBackgroundProvider
 ) {
 

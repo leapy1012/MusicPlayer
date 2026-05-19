@@ -24,6 +24,8 @@ import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
 import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
+import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
 import gd.app.musicplayer.databinding.ActivityMusicSelectBinding
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -296,6 +298,8 @@ class MusicSelectActivity :
 
                 val state = viewModel.uiState.value
 
+                val palette = themeRepo.getCorePalette()
+
                 SortByContextMenu(
                     context = this,
                     musicSet = if (state.header.isBrowsingFolders) {
@@ -307,9 +311,10 @@ class MusicSelectActivity :
                     currentSortStyle = state.header.currentSortStyle,
                     currentSortDescending = state.header.currentSortDescending,
                     onSortChanged = viewModel::onSortChanged,
-                    accentColor = themeRepo.getAccentColor(),
+                    accentColor = palette.accentColor,
+                    popupTextColor = palette.popupTitleColor,
                     popupBackgroundProvider = { menuContext ->
-                        themeRepo.getCorePalette().getPopupBackgroundDrawable(menuContext)
+                        palette.getPopupBackgroundDrawable(menuContext)
                     }
                 ).show(binding.toolbar.findViewById(item.itemId) ?: binding.toolbar)
 
@@ -392,6 +397,8 @@ class MusicSelectActivity :
             is MusicSet.Tracks -> getString(R.string.all_songs)
             is MusicSet.Favorites -> getString(R.string.favorite)
             is MusicSet.RecentlyAdded -> getString(R.string.recently_added)
+            is MusicSet.MostPlayed -> getString(R.string.mostly_played)
+            is MusicSet.RecentlyPlayed -> getString(R.string.recently_played)
             else -> set.name
         }
     }

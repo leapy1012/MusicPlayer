@@ -11,6 +11,7 @@ import gd.app.musicplayer.core.common.extension.supportsSortMenu
 import gd.app.musicplayer.core.common.extension.supportsViewModeMenu
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
 import gd.app.musicplayer.domain.model.ContextMenuItem
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.isTrackCollection
@@ -27,6 +28,7 @@ class ContextMenu(
 ) : BaseContextMenu(
     context = context,
     accentColor = theme.accentColor,
+    popupTextColor = theme.popupTitleColor,
     popupBackgroundProvider = { menuContext ->
         theme.getPopupBackgroundDrawable(menuContext)
     }
@@ -163,6 +165,7 @@ class ContextMenu(
             context = context,
             selectedMode = selectedViewMode,
             accentColor = theme.accentColor,
+            popupTextColor = theme.popupTitleColor,
             popupBackgroundProvider = { menuContext ->
                 theme.getPopupBackgroundDrawable(menuContext)
             }
@@ -189,6 +192,7 @@ class ContextMenu(
                 currentSortStyle = currentSortStyle,
                 currentSortDescending = currentSortDescending,
                 accentColor = theme.accentColor,
+                popupTextColor = theme.popupTitleColor,
                 popupBackgroundProvider = { menuContext ->
                     theme.getPopupBackgroundDrawable(menuContext)
                 },

@@ -1,9 +1,15 @@
 package gd.app.musicplayer.ui.library.options
 
+import android.app.Activity
+import android.content.ContentUris
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
 import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.lifecycleScope
@@ -41,6 +47,27 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     @Inject
     lateinit var observeTracksUseCase: ObserveTracksUseCase
+
+    private var pendingSourceDeleteTracks: List<Music> = emptyList()
+    private var waitingForSystemDeleteResult = false
+
+    private val mediaDeleteLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        val tracks = pendingSourceDeleteTracks
+        pendingSourceDeleteTracks = emptyList()
+        waitingForSystemDeleteResult = false
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (result.resultCode == Activity.RESULT_OK && tracks.isNotEmpty()) {
+                deleteTracksFromLibraryUseCase(tracks.map(Music::id))
+                ToastUtil.show(requireContext(), R.string.succeed)
+            } else {
+                ToastUtil.show(requireContext(), R.string.feature_not_implemented)
+            }
+            dismiss()
+        }
+    }
 
     private val dialogType: Int
         get() = requireArguments().getInt(ARG_DIALOG_TYPE)
@@ -155,6 +182,10 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
                 else -> false
             }
 
+            if (waitingForSystemDeleteResult) {
+                return@launch
+            }
+
             ToastUtil.show(
                 requireContext(),
                 if (success) R.string.succeed else R.string.feature_not_implemented
@@ -170,6 +201,9 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         } else {
             deleteTracksFromLibraryUseCase(listOf(music.id))
             1
+        }
+        if (deleteSourceFile && deletedCount == 0 && requestSystemMediaDelete(listOf(music))) {
+            return true
         }
         return deletedCount > 0
     }
@@ -193,7 +227,39 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
             deleteTracksFromLibraryUseCase(tracks.map { it.id })
             tracks.size
         }
+        if (deleteSourceFile && deletedCount < tracks.size && requestSystemMediaDelete(tracks)) {
+            return true
+        }
         return deletedCount > 0
+    }
+
+    private fun requestSystemMediaDelete(tracks: List<Music>): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || tracks.isEmpty()) {
+            return false
+        }
+
+        val uris = tracks
+            .distinctBy(Music::id)
+            .filter { it.id > 0L }
+            .map { track ->
+                ContentUris.withAppendedId(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    track.id
+                )
+            }
+
+        if (uris.isEmpty()) return false
+
+        val pendingIntent = runCatching {
+            MediaStore.createDeleteRequest(requireContext().contentResolver, uris)
+        }.getOrNull() ?: return false
+
+        pendingSourceDeleteTracks = tracks
+        waitingForSystemDeleteResult = true
+        mediaDeleteLauncher.launch(
+            IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+        )
+        return true
     }
 
     companion object {

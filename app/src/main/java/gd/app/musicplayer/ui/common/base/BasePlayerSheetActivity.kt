@@ -3,11 +3,13 @@ package gd.app.musicplayer.ui.common.base
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.view.PlayerSheetDragInsetReceiver
@@ -27,6 +29,9 @@ abstract class BasePlayerSheetActivity : BaseActivity(),
     protected abstract val miniPlayer: View
     protected abstract val fullPlayer: View
 
+    protected open val playerSheetInsetTarget: View?
+        get() = null
+
     protected open fun setupPlayerSheet() {
         setupPlayerSheetInsets()
 
@@ -35,11 +40,16 @@ abstract class BasePlayerSheetActivity : BaseActivity(),
         }
 
         renderPlayerSheetForState(playerSheetBehavior.state)
+        updatePlayerSheetInsetTarget(0f)
 
         playerSheetBehavior.addBottomSheetCallback(
             object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onStateChanged(bottomSheet: View, newState: Int) {
                     renderPlayerSheetForState(newState)
+                    when (newState) {
+                        BottomSheetBehavior.STATE_COLLAPSED -> updatePlayerSheetInsetTarget(0f)
+                        BottomSheetBehavior.STATE_EXPANDED -> updatePlayerSheetInsetTarget(1f)
+                    }
                     if (
                         newState == BottomSheetBehavior.STATE_DRAGGING ||
                         newState == BottomSheetBehavior.STATE_SETTLING
@@ -53,6 +63,7 @@ abstract class BasePlayerSheetActivity : BaseActivity(),
 
                     miniPlayer.alpha = 1f - progress
                     fullPlayer.alpha = progress
+                    updatePlayerSheetInsetTarget(progress)
                     notifyMainFragmentDraggingInsets()
                 }
             }
@@ -100,7 +111,16 @@ abstract class BasePlayerSheetActivity : BaseActivity(),
                 height = normalMiniHeight + navBottom
             }
 
+//            miniPlayer.rootView.updatePadding(
+//                bottom = navBottom
+//            )
+//
+//            fullPlayer.rootView.updatePadding(
+//                bottom = navBottom
+//            )
+
             playerSheetBehavior.peekHeight = normalMiniHeight + navBottom
+            updatePlayerSheetInsetTarget(0f)
 
             insets
         }
@@ -141,6 +161,20 @@ abstract class BasePlayerSheetActivity : BaseActivity(),
         if (!::playerSheetBehavior.isInitialized) return 0
         val parent = playerSheet.parent as? View ?: return 0
         return (parent.height - playerSheet.top).coerceAtLeast(0)
+    }
+
+    private fun updatePlayerSheetInsetTarget(progress: Float) {
+        val target = playerSheetInsetTarget ?: return
+        val miniHeight = resources.getDimensionPixelSize(R.dimen.main_control_banner_height)
+        val expandedHeight = resources.getDimensionPixelSize(R.dimen.player_sheet_height)
+        val extraOffset = ((expandedHeight - miniHeight) * progress.coerceIn(0f, 1f)).toInt()
+        val bottomMargin = miniHeight + extraOffset
+
+        target.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            if (bottomMargin != this.bottomMargin) {
+                this.bottomMargin = bottomMargin
+            }
+        }
     }
 
     private fun notifyMainFragmentDraggingInsets() {

@@ -100,7 +100,7 @@ open class PictureThemePalette : BaseThemePalette() {
         return blurredBitmap?.toDrawable(context.resources) ?: 0xFFF9F9F9.toInt().toDrawable()
     }
 
-    fun getBottomDialogSurfaceDrawable(context: Context): Drawable =
+    open fun getBottomDialogSurfaceDrawable(context: Context): Drawable =
         DialogBackgroundFactory.pictureDialogBackgroundBase(context, blurredBitmap)
 
     fun setImageName(imageName: String?) {

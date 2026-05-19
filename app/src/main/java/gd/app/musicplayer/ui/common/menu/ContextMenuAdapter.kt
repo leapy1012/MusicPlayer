@@ -14,7 +14,8 @@ import gd.app.musicplayer.domain.model.ContextMenuItem
 class ContextMenuAdapter(
     context: Context,
     private val items: List<ContextMenuItem>,
-    private val accentColor: Int
+    private val accentColor: Int,
+    private val popupTextColor: Int
 ) : BaseAdapter() {
 
     private val inflater = LayoutInflater.from(context)
@@ -40,6 +41,7 @@ class ContextMenuAdapter(
         val item = getItem(position)
 
         text.setText(item.titleRes)
+        text.setTextColor(popupTextColor)
         text.alpha = if (item.enabled) 1f else 0.5f
 
         if (item.leftIconRes != null) {
