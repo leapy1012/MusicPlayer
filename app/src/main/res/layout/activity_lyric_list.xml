@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
+
+    <View
+        android:id="@+id/status_bar_space"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:tag="titleBackgroundColor" />
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/status_bar_space">
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appbar_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:tag="titleBackgroundColor"
+            app:elevation="0dp">
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/common_title_height"
+                android:minHeight="@dimen/common_title_height"
+                android:tag="toolbar"
+                app:layout_scrollFlags="snap|enterAlways|scroll"
+                app:theme="@style/AppToolbar"
+                app:titleTextAppearance="@style/AppToolbarTitle" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingEnd="8dp"
+                app:layout_scrollFlags="snap">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/shape_search_bg"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:tag="editTextBackground">
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="8dp"
+                        android:alpha="0.5"
+                        android:scaleType="fitCenter"
+                        android:tag="titleColor"
+                        app:srcCompat="@drawable/vector_menu_search" />
+
+                    <EditText
+                        android:id="@+id/search_edit_text"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:background="@android:color/transparent"
+                        android:gravity="center_vertical"
+                        android:hint="@string/search_lyric"
+                        android:selectAllOnFocus="true"
+                        android:singleLine="true"
+                        android:tag="editText"
+                        android:textColor="#ffffff"
+                        android:textColorHint="#80ffffff"
+                        android:textSize="14sp" />
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/search_close_btn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:alpha="0.5"
+                        android:background="@drawable/b_selector_image_bg_aw"
+                        android:focusable="true"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        android:tag="titleColor"
+                        android:visibility="gone"
+                        app:srcCompat="@drawable/vector_search_clear" />
+                </LinearLayout>
+
+                <gd.app.musicplayer.core.designsystem.view.CustomSpinner
+                    android:id="@+id/main_info_spinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:drawablePadding="4dp"
+                    android:gravity="center_vertical"
+                    android:maxWidth="160dp"
+                    android:paddingStart="12dp"
+                    android:tag="titleColor"
+                    android:textColor="@color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <include
+            layout="@layout/layout_recyclerview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

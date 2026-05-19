@@ -24,7 +24,6 @@ import gd.app.musicplayer.data.local.preference.LyricsSettingPreference
 import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.lib.model.visualizer.AudioVisualizerManager
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.isLandscape
 import gd.app.musicplayer.core.common.extension.navigateBack
@@ -427,7 +426,7 @@ class MusicPlayerFragment :
         if (!isAdded) return
 
         lyricView.setCurrentTextColor(lyricPreferences.lyricColor)
-        lyricView.setTextSize(requireContext().dpToPx(lyricPreferences.lyricTextSize))
+        lyricView.setTextSize(lyricPreferences.lyricTextSize.toInt())
         lyricView.setTextAlign(lyricPreferences.lyricAlign)
         lyricView.setTextTypeface(lyricPreferences.lyricStyle)
     }

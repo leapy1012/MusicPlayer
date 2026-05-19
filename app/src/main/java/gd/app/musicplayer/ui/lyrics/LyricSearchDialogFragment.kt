@@ -1,9 +1,7 @@
 package gd.app.musicplayer.ui.lyrics
 
 import android.app.Activity
-import android.net.Uri
 import android.os.Bundle
-import android.provider.OpenableColumns
 import android.text.Selection
 import android.view.LayoutInflater
 import android.view.View
@@ -13,12 +11,11 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.databinding.DialogMusicPlaySearchLrcBinding
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
+import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.TrackLyricsStore
-import java.io.File
 import kotlinx.coroutines.launch
 
 class LyricSearchDialogFragment : BaseDialogFragment(), View.OnClickListener {
@@ -38,13 +35,14 @@ class LyricSearchDialogFragment : BaseDialogFragment(), View.OnClickListener {
     private val audioPath: String?
         get() = requireArguments().getString(ARG_AUDIO_PATH)
 
-    private val localPicker =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-            if (uri == null) return@registerForActivityResult
-            importLocalLyrics(uri)
+    private val lyricEditLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+            setFragmentResult(RESULT_KEY, Bundle.EMPTY)
+            dismissAllowingStateLoss()
         }
 
-    private val lyricEditLauncher =
+    private val lyricListLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
             setFragmentResult(RESULT_KEY, Bundle.EMPTY)
@@ -99,7 +97,20 @@ class LyricSearchDialogFragment : BaseDialogFragment(), View.OnClickListener {
     override fun onClick(view: View) {
         when (view.id) {
             R.id.dialog_button_ok -> {
-                localPicker.launch("*/*")
+                lyricListLauncher.launch(
+                    LyricListActivity.intent(
+                        context = requireContext(),
+                        track = Music(
+                            id = trackId,
+                            title = titleText,
+                            artist = artistText,
+                            album = "",
+                            albumId = "",
+                            playlistId = -1,
+                            data = audioPath
+                        )
+                    )
+                )
             }
 
             R.id.lrc_search_reset -> {
@@ -118,54 +129,6 @@ class LyricSearchDialogFragment : BaseDialogFragment(), View.OnClickListener {
                     )
                 )
             }
-        }
-    }
-
-    private fun importLocalLyrics(uri: Uri) {
-        val context = context ?: return
-        viewLifecycleOwner.lifecycleScope.launch {
-            val importedPath = runCatching {
-                val extension = resolveExtension(uri)
-                val target = File(context.filesDir, "lyrics/imported/track_${trackId}.$extension")
-                target.parentFile?.mkdirs()
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
-                } ?: error("Unable to open source")
-                target.absolutePath
-            }.getOrNull()
-
-            if (importedPath == null) {
-                ToastUtil.show(context, R.string.permission_open_failed)
-                return@launch
-            }
-
-            TrackLyricsStore.from(context).setTrackLyricPath(trackId, importedPath)
-            setFragmentResult(RESULT_KEY, Bundle.EMPTY)
-            dismissAllowingStateLoss()
-        }
-    }
-
-    private fun resolveExtension(uri: Uri): String {
-        val name = runCatching {
-            requireContext().contentResolver.query(
-                uri,
-                arrayOf(OpenableColumns.DISPLAY_NAME),
-                null,
-                null,
-                null
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    cursor.getString(0)
-                } else {
-                    null
-                }
-            }
-        }.getOrNull()
-        val candidate = name ?: uri.lastPathSegment.orEmpty()
-        val ext = candidate.substringAfterLast('.', "")
-        return when (ext.lowercase()) {
-            "lrc", "txt" -> ext.lowercase()
-            else -> "lrc"
         }
     }
 

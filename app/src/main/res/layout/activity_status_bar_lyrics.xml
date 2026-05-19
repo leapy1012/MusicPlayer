@@ -1,343 +1,376 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:tag="activityBackgroundColor"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
+
     <LinearLayout
-        android:orientation="vertical"
-        android:tag="titleBackgroundColor"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:tag="titleBackgroundColor">
+
         <View
             android:id="@+id/status_bar_space"
             android:layout_width="match_parent"
-            android:layout_height="0dp"/>
+            android:layout_height="0dp" />
+
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
-            android:tag="toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:minHeight="?attr/actionBarSize"
+            android:tag="toolbar"
             app:menu="@menu/menu_activity_sbar_lyric"
             app:navigationIcon="@drawable/vector_menu_back"
             app:theme="@style/AppToolbar"
             app:title="@string/sbar_lyric"
-            app:titleTextAppearance="@style/AppToolbarTitle"/>
+            app:titleTextAppearance="@style/AppToolbarTitle" />
     </LinearLayout>
+
     <ScrollView
-        android:scrollbarSize="3dp"
-        android:scrollbarThumbHorizontal="@drawable/shape_scrollbar"
-        android:scrollbarThumbVertical="@drawable/shape_scrollbar"
-        android:scrollbarStyle="outsideOverlay"
         android:id="@+id/setting_scroll_view"
-        android:tag="settingContent"
-        android:paddingTop="8dp"
-        android:scrollbars="vertical"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fastScrollEnabled="false">
+        android:fastScrollEnabled="false"
+        android:paddingTop="8dp"
+        android:scrollbarSize="3dp"
+        android:scrollbarStyle="outsideOverlay"
+        android:scrollbarThumbHorizontal="@drawable/shape_scrollbar"
+        android:scrollbarThumbVertical="@drawable/shape_scrollbar"
+        android:scrollbars="vertical"
+        android:tag="settingContent">
+
         <LinearLayout
-            android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
             <LinearLayout
-                android:orientation="vertical"
                 android:id="@+id/preference_sbar_lyric_container_1"
-                android:tag="settingGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp">
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical"
+                android:tag="settingGroup">
+
                 <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_enable"
-                    android:tag="itemBackground"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
                     app:preference_item_check_drawable="@drawable/vector_toggle_selector"
-                    app:preference_item_title="@string/sbar_lyric_enable"/>
+                    app:preference_item_title="@string/sbar_lyric_enable" />
+
                 <View
-                    android:tag="recyclerDividerColor"
                     android:layout_width="match_parent"
                     android:layout_height="1px"
                     android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"/>
+                    android:layout_marginEnd="8dp"
+                    android:tag="recyclerDividerColor" />
+
                 <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_show_paused"
-                    android:tag="itemBackground"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
                     app:preference_item_check_drawable="@drawable/vector_toggle_selector"
-                    app:preference_item_title="@string/sbar_lyric_show_paused"/>
+                    app:preference_item_title="@string/sbar_lyric_show_paused" />
+
                 <View
-                    android:tag="recyclerDividerColor"
                     android:layout_width="match_parent"
                     android:layout_height="1px"
                     android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"/>
+                    android:layout_marginEnd="8dp"
+                    android:tag="recyclerDividerColor" />
+
                 <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_clickable"
-                    android:tag="itemBackground"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
                     app:preference_item_check_drawable="@drawable/vector_toggle_selector"
-                    app:preference_item_title="@string/sbar_lyric_clickable"/>
+                    app:preference_item_title="@string/sbar_lyric_clickable" />
+
                 <View
-                    android:tag="recyclerDividerColor"
                     android:layout_width="match_parent"
                     android:layout_height="1px"
                     android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"/>
+                    android:layout_marginEnd="8dp"
+                    android:tag="recyclerDividerColor" />
+
                 <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_content"
-                    android:tag="itemBackground"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
                     app:preference_item_check_drawable="@drawable/vector_arrow_right"
-                    app:preference_item_title="@string/sbar_lyric_content"/>
+                    app:preference_item_title="@string/sbar_lyric_content" />
+
                 <View
-                    android:tag="recyclerDividerColor"
                     android:layout_width="match_parent"
                     android:layout_height="1px"
                     android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"/>
+                    android:layout_marginEnd="8dp"
+                    android:tag="recyclerDividerColor" />
+
                 <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
                     android:id="@+id/preference_sbar_lyric_gravity"
-                    android:tag="itemBackground"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="?android:attr/listPreferredItemHeight"
+                    android:tag="itemBackground"
                     app:preference_item_check_drawable="@drawable/vector_arrow_right"
-                    app:preference_item_title="@string/sbar_lyric_gravity"/>
+                    app:preference_item_title="@string/sbar_lyric_gravity" />
             </LinearLayout>
+
             <LinearLayout
-                android:orientation="vertical"
                 android:id="@+id/preference_sbar_lyric_container_2"
-                android:tag="settingGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
                 android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp">
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical"
+                android:tag="settingGroup">
+
                 <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingTop="24dp"
-                    android:paddingBottom="24dp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingEnd="16dp">
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="24dp">
+
                     <TextView
-                        android:textSize="16sp"
-                        android:textColor="@android:color/white"
-                        android:gravity="center_vertical"
                         android:id="@+id/sbar_lyric_x"
-                        android:tag="itemTextColor"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
                         android:maxWidth="120dp"
+                        android:maxLines="2"
+                        android:paddingHorizontal="16dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="itemTextColor"
                         android:text="@string/sbar_lyric_x"
-                        android:maxLines="2"
-                        android:paddingHorizontal="16dp"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"/>
-                    <TextView
-                        android:textSize="16sp"
                         android:textColor="@android:color/white"
-                        android:gravity="center_vertical"
+                        android:textSize="16sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
                         android:id="@+id/sbar_lyric_y"
-                        android:tag="itemTextColor"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="32dp"
+                        android:gravity="center_vertical"
                         android:maxWidth="120dp"
+                        android:maxLines="2"
                         android:minHeight="26dp"
+                        android:paddingHorizontal="16dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="itemTextColor"
                         android:text="@string/sbar_lyric_y"
-                        android:maxLines="2"
-                        android:paddingHorizontal="16dp"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_x"/>
-                    <TextView
-                        android:textSize="16sp"
                         android:textColor="@android:color/white"
-                        android:gravity="center_vertical"
+                        android:textSize="16sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_x" />
+
+                    <TextView
                         android:id="@+id/sbar_lyric_width"
-                        android:tag="itemTextColor"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="32dp"
+                        android:gravity="center_vertical"
                         android:maxWidth="120dp"
+                        android:maxLines="2"
                         android:minHeight="26dp"
+                        android:paddingHorizontal="16dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="itemTextColor"
                         android:text="@string/sbar_lyric_width"
-                        android:maxLines="2"
-                        android:paddingHorizontal="16dp"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_y"/>
-                    <TextView
-                        android:textSize="16sp"
                         android:textColor="@android:color/white"
-                        android:gravity="center_vertical"
+                        android:textSize="16sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_y" />
+
+                    <TextView
                         android:id="@+id/sbar_lyric_alpha"
-                        android:tag="itemTextColor"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="32dp"
-                        android:maxWidth="120dp"
-                        android:minHeight="26dp"
-                        android:text="@string/sbar_lyric_alpha"
-                        android:maxLines="2"
-                        android:paddingHorizontal="16dp"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_width"/>
-                    <TextView
-                        android:textSize="16sp"
-                        android:textColor="@android:color/white"
                         android:gravity="center_vertical"
-                        android:id="@+id/sbar_lyric_font_size"
-                        android:tag="itemTextColor"
+                        android:maxWidth="120dp"
+                        android:maxLines="2"
+                        android:minHeight="26dp"
+                        android:paddingHorizontal="16dp"
                         android:paddingLeft="16dp"
                         android:paddingRight="16dp"
+                        android:tag="itemTextColor"
+                        android:text="@string/sbar_lyric_alpha"
+                        android:textColor="@android:color/white"
+                        android:textSize="16sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_width" />
+
+                    <TextView
+                        android:id="@+id/sbar_lyric_font_size"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="32dp"
+                        android:gravity="center_vertical"
                         android:maxWidth="120dp"
-                        android:minHeight="26dp"
-                        android:text="@string/sbar_lyric_font_size"
                         android:maxLines="2"
+                        android:minHeight="26dp"
                         android:paddingHorizontal="16dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:tag="itemTextColor"
+                        android:text="@string/sbar_lyric_font_size"
+                        android:textColor="@android:color/white"
+                        android:textSize="16sp"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_alpha"/>
+                        app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_alpha" />
+
                     <androidx.constraintlayout.widget.Barrier
                         android:id="@+id/barrier"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         app:barrierDirection="end"
-                        app:constraint_referenced_ids="sbar_lyric_x,sbar_lyric_y,sbar_lyric_width,sbar_lyric_alpha,sbar_lyric_font_size"/>
+                        app:constraint_referenced_ids="sbar_lyric_x,sbar_lyric_y,sbar_lyric_width,sbar_lyric_alpha,sbar_lyric_font_size" />
+
                     <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_x_seek"
-                        android:tag="seekBar"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
                         android:layout_width="0dp"
                         android:layout_height="32dp"
                         android:paddingVertical="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:tag="seekBar"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_x"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
                         app:layout_constraintTop_toTopOf="@+id/sbar_lyric_x"
                         app:seekMax="10000"
                         app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
+                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
                     <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_y_seek"
-                        android:tag="seekBar"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
                         android:layout_width="0dp"
                         android:layout_height="32dp"
                         android:paddingVertical="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:tag="seekBar"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_y"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
                         app:layout_constraintTop_toTopOf="@+id/sbar_lyric_y"
                         app:seekMax="10000"
                         app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
+                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
                     <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_width_seek"
-                        android:tag="seekBar"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
                         android:layout_width="0dp"
                         android:layout_height="32dp"
                         android:paddingVertical="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:tag="seekBar"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_width"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
                         app:layout_constraintTop_toTopOf="@+id/sbar_lyric_width"
                         app:seekMax="10000"
                         app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
+                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
                     <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_alpha_seek"
-                        android:tag="seekBar"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
                         android:layout_width="0dp"
                         android:layout_height="32dp"
                         android:paddingVertical="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:tag="seekBar"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_alpha"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
                         app:layout_constraintTop_toTopOf="@+id/sbar_lyric_alpha"
                         app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
+                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+
                     <gd.app.musicplayer.core.designsystem.view.SeekBar
                         android:id="@+id/sbar_lyric_font_size_seek"
-                        android:tag="seekBar"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
                         android:layout_width="0dp"
                         android:layout_height="32dp"
                         android:paddingVertical="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:tag="seekBar"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_font_size"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
                         app:layout_constraintTop_toTopOf="@+id/sbar_lyric_font_size"
                         app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint"/>
+                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </LinearLayout>
+
             <LinearLayout
-                android:orientation="vertical"
                 android:id="@+id/preference_sbar_lyric_container_3"
-                android:tag="settingGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
                 android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp">
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical"
+                android:tag="settingGroup">
+
                 <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingTop="24dp"
-                    android:paddingBottom="24dp"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingEnd="16dp">
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="24dp">
+
                     <TextView
-                        android:textSize="16sp"
-                        android:textColor="@android:color/white"
-                        android:gravity="center_vertical"
-                        android:tag="itemTextColor"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
                         android:minHeight="26dp"
-                        android:text="@string/sbar_lyric_color"
+                        android:paddingHorizontal="16dp"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
                         android:singleLine="true"
-                        android:paddingHorizontal="16dp"/>
+                        android:tag="itemTextColor"
+                        android:text="@string/sbar_lyric_color"
+                        android:textColor="@android:color/white"
+                        android:textSize="16sp" />
+
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/sbar_lyric_color_list"
                         android:layout_width="0dp"
                         android:layout_height="40dp"
-                        android:layout_weight="1"/>
+                        android:layout_weight="1" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

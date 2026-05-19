@@ -130,6 +130,10 @@
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
+            android:name=".ui.lyrics.LyricListActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
             android:name=".ui.library.artwork.ArtworkCropActivity"
             android:exported="false"
             android:launchMode="singleTop" />
@@ -172,7 +176,7 @@
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.lyrics.ActivityStatusBarLyrics"
+            android:name=".ui.lyrics.StatusBarLyricsActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 

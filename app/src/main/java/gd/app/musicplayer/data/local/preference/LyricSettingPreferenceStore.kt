@@ -123,10 +123,10 @@ class LyricSettingPreferenceStore @Inject constructor(
 
     private companion object {
         const val DEFAULT_BLUETOOTH_LYRIC_ENABLED = true
-        const val DEFAULT_LYRIC_COLOR = -1
-        const val DEFAULT_LYRIC_TEXT_SIZE = 18f
+        const val DEFAULT_LYRIC_COLOR = -9371
+        const val DEFAULT_LYRIC_TEXT_SIZE = 16f
         const val DEFAULT_LYRIC_ALIGN = 1
         const val DEFAULT_LYRIC_STYLE = 0
-        const val DEFAULT_LYRIC_AUTO_SCROLL_ENABLED = true
+        const val DEFAULT_LYRIC_AUTO_SCROLL_ENABLED = false
     }
 }

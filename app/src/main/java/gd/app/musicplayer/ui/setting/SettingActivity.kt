@@ -34,7 +34,7 @@ import gd.app.musicplayer.databinding.ActivitySettingBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.duplicate.ActivityDuplicatedFinder
-import gd.app.musicplayer.ui.lyrics.ActivityStatusBarLyrics
+import gd.app.musicplayer.ui.lyrics.StatusBarLyricsActivity
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
 import gd.app.musicplayer.ui.theme.SelectAccentColorDialog
 import javax.inject.Inject
@@ -192,6 +192,14 @@ class SettingActivity : BaseActivity() {
         binding.preferenceUseNotification.isSelected = state.notificationBarEnabled
         binding.preferenceUseOldNotification.isSelected = state.oldNotificationEnabled
         binding.preferenceUseColorNotification.isSelected = state.colorNotificationEnabled
+        binding.preferenceShowDeskLrc.render(state.desktopLyricPreference)
+        binding.preferenceStatusBarLyrics.setTips(
+            if (state.statusBarLyricPreference.enabled) {
+                R.string.sbar_lyric_opened
+            } else {
+                R.string.sbar_lyric_closed
+            }
+        )
         setEnabledState(
             binding.preferenceUseColorNotification,
             state.colorNotificationEnabledAvailable
@@ -248,7 +256,7 @@ class SettingActivity : BaseActivity() {
             viewModel.setBluetoothLyricEnabled(it)
         }
         binding.preferenceStatusBarLyrics.setOnClickListener {
-            ActivityStatusBarLyrics.start(this)
+            StatusBarLyricsActivity.start(this)
         }
 
         binding.preferenceShakeChangeMusic.onPreferenceChanged {
@@ -314,6 +322,17 @@ class SettingActivity : BaseActivity() {
         binding.preferenceUseColorNotification.onPreferenceChanged {
             viewModel.setColorNotificationEnabled(it)
             playerViewModel.refreshNotificationStyle(this)
+        }
+        binding.preferenceShowDeskLrc.onVisibleChanged = { visible ->
+            viewModel.setDesktopLyricsVisible(visible)
+            playerViewModel.refreshNotificationStyle(this)
+        }
+        binding.preferenceShowDeskLrc.onLockedChanged = { locked ->
+            viewModel.setDesktopLyricsLocked(locked)
+            playerViewModel.refreshNotificationStyle(this)
+        }
+        binding.preferenceShowDeskLrc.onPendingEnableAfterPermissionChanged = { pending ->
+            viewModel.setDesktopLyricsPendingEnableAfterPermission(pending)
         }
 
         binding.preferenceLockScreen.onPreferenceChanged {

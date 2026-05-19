@@ -11,7 +11,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.spToPx
 import gd.app.musicplayer.databinding.FragmentPlayFullLyricBinding
 import gd.app.musicplayer.ui.player.full.MusicPlayActivity
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
@@ -115,7 +114,7 @@ class FullLyricFragment : Fragment() {
         fullLyricView.setLyricText(state.lyricText)
 
         fullLyricView.setCurrentTextColor(state.lyricPreferences.lyricColor)
-        fullLyricView.setTextSize(requireContext().spToPx(state.lyricPreferences.lyricTextSize).toInt())
+        fullLyricView.setTextSize(state.lyricPreferences.lyricTextSize.toInt())
         fullLyricView.setTextAlign(state.lyricPreferences.lyricAlign)
         fullLyricView.setTextTypeface(state.lyricPreferences.lyricStyle)
 

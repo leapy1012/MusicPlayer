@@ -65,4 +65,22 @@ object SettingsKeys {
 
     val KEY_DESKTOP_LYRIC_PENDING_ENABLE_AFTER_PERMISSION =
         booleanPreferencesKey("desktop_lyric_pending_enable_after_permission")
+
+    val KEY_DESKTOP_LYRIC_PRESET_COLOR_INDEX =
+        intPreferencesKey("desk_lrc_preset_color_index")
+
+    val KEY_DESKTOP_LYRIC_CURRENT_COLOR_PROGRESS =
+        intPreferencesKey("desk_lrc_current_color_progress")
+
+    val KEY_DESKTOP_LYRIC_NORMAL_COLOR_PROGRESS =
+        intPreferencesKey("desk_lrc_normal_color_progress")
+
+    val KEY_DESKTOP_LYRIC_ALPHA =
+        floatPreferencesKey("desk_lrc_alpha")
+
+    val KEY_DESKTOP_LYRIC_TEXT_SIZE =
+        intPreferencesKey("desk_lrc_text_size")
+
+    val KEY_DESKTOP_LYRIC_Y =
+        intPreferencesKey("desk_lrc_y")
 }

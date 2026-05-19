@@ -33,6 +33,7 @@ import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
 import gd.app.musicplayer.data.local.preference.SettingPreferences
 import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
+import gd.app.musicplayer.data.local.preference.StatusBarLyricPreferenceStore
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
@@ -97,6 +98,8 @@ import gd.app.musicplayer.playback.shutdown.ShutdownOptions
 import gd.app.musicplayer.playback.state.PlaybackStateOrchestrator
 import gd.app.musicplayer.playback.state.PublishReason
 import gd.app.musicplayer.playback.transition.TimedTransitionController
+import gd.app.musicplayer.playback.desktop.DesktopLyricsOverlayController
+import gd.app.musicplayer.playback.statusbar.StatusBarLyricsOverlayController
 import kotlinx.coroutines.NonCancellable
 
 
@@ -123,6 +126,8 @@ class MusicPlaybackService : MediaSessionService() {
     private lateinit var queueActionController: QueueActionController
     private lateinit var shutdownController: ShutdownController
     private lateinit var notificationCloseController: NotificationCloseController
+    private lateinit var desktopLyricsController: DesktopLyricsOverlayController
+    private lateinit var statusBarLyricsController: StatusBarLyricsOverlayController
 
     @Inject
     lateinit var playbackRuntimeStateStore: PlaybackRuntimeStateStore
@@ -135,6 +140,9 @@ class MusicPlaybackService : MediaSessionService() {
 
     @Inject
     lateinit var desktopLyricPreferenceStore: DesktopLyricPreferenceStore
+
+    @Inject
+    lateinit var statusBarLyricPreferenceStore: StatusBarLyricPreferenceStore
 
     @Inject
     lateinit var playbackStatePreferenceStore: PlaybackStatePreferenceStore
@@ -311,6 +319,13 @@ class MusicPlaybackService : MediaSessionService() {
             isNightMode = newNightMode
             updateNotification(force = true)
         }
+
+        if (::desktopLyricsController.isInitialized) {
+            desktopLyricsController.onConfigurationChanged()
+        }
+        if (::statusBarLyricsController.isInitialized) {
+            statusBarLyricsController.onConfigurationChanged()
+        }
     }
 
     override fun onDestroy() {
@@ -345,6 +360,13 @@ class MusicPlaybackService : MediaSessionService() {
 
         if (::notificationSessionBridge.isInitialized) {
             notificationSessionBridge.release()
+        }
+
+        if (::desktopLyricsController.isInitialized) {
+            desktopLyricsController.destroy()
+        }
+        if (::statusBarLyricsController.isInitialized) {
+            statusBarLyricsController.destroy()
         }
 
         if (::audioEffectsManager.isInitialized) {
@@ -413,6 +435,7 @@ class MusicPlaybackService : MediaSessionService() {
     private fun observePreferences() {
         observeSettingPreferences()
         observeDesktopLyricPreference()
+        observeStatusBarLyricPreference()
         observeAudioEffectPreferences()
     }
 
@@ -440,6 +463,36 @@ class MusicPlaybackService : MediaSessionService() {
         desktopLyricPreferenceStore.desktopLyricPreference
             .onEach { preference ->
                 latestDesktopLyricPreference = preference
+                if (::desktopLyricsController.isInitialized) {
+                    desktopLyricsController.renderPreference(preference)
+                }
+                updateNotification(force = true)
+            }
+            .launchIn(serviceScope)
+
+        playbackRuntimeStateStore.state
+            .onEach { state ->
+                if (::desktopLyricsController.isInitialized) {
+                    desktopLyricsController.renderPlaybackState(state)
+                }
+            }
+            .launchIn(serviceScope)
+    }
+
+    private fun observeStatusBarLyricPreference() {
+        statusBarLyricPreferenceStore.preference
+            .onEach { preference ->
+                if (::statusBarLyricsController.isInitialized) {
+                    statusBarLyricsController.renderPreference(preference)
+                }
+            }
+            .launchIn(serviceScope)
+
+        playbackRuntimeStateStore.state
+            .onEach { state ->
+                if (::statusBarLyricsController.isInitialized) {
+                    statusBarLyricsController.renderPlaybackState(state)
+                }
             }
             .launchIn(serviceScope)
     }
@@ -658,6 +711,79 @@ class MusicPlaybackService : MediaSessionService() {
         playbackModeResolver = PlaybackModeResolver(
             settingsPreferenceOps = settingPreferencesDataStore,
             applicationScope = serviceScope
+        )
+
+        desktopLyricsController = DesktopLyricsOverlayController(
+            context = applicationContext,
+            scope = serviceScope,
+            callbacks = object : DesktopLyricsOverlayController.Callbacks {
+                override fun previous() {
+                    playPrevious()
+                }
+
+                override fun next() {
+                    playNext()
+                }
+
+                override fun togglePlayPause() {
+                    this@MusicPlaybackService.togglePlayPause()
+                }
+
+                override fun cyclePlaybackMode() {
+                    playbackModeResolver.cyclePlaybackMode()
+                    desktopLyricsController.renderPlaybackState(playbackRuntimeStateStore.state.value)
+                }
+
+                override fun toggleFavorite() {
+                    toggleCurrentFavorite()
+                }
+
+                override fun closeDesktopLyrics() {
+                    serviceScope.launch {
+                        desktopLyricPreferenceStore.setVisible(false)
+                    }
+                }
+
+                override fun lockDesktopLyrics() {
+                    serviceScope.launch {
+                        desktopLyricPreferenceStore.setLocked(true)
+                    }
+                }
+
+                override fun updatePreference(
+                    presetColorIndex: Int?,
+                    currentColorProgress: Int?,
+                    normalColorProgress: Int?,
+                    alpha: Float?,
+                    textSize: Int?,
+                    y: Int?
+                ) {
+                    serviceScope.launch {
+                        desktopLyricPreferenceStore.updatePreference(
+                            presetColorIndex = presetColorIndex,
+                            currentColorProgress = currentColorProgress,
+                            normalColorProgress = normalColorProgress,
+                            alpha = alpha,
+                            textSize = textSize,
+                            y = y
+                        )
+                    }
+                }
+
+                override fun currentPlaybackMode(): Int {
+                    return playbackModeResolver.getPlaybackMode()
+                }
+            }
+        )
+
+        statusBarLyricsController = StatusBarLyricsOverlayController(
+            context = applicationContext,
+            scope = serviceScope,
+            callbacks = object : StatusBarLyricsOverlayController.Callbacks {
+                override fun togglePlayPause() {
+                    this@MusicPlaybackService.togglePlayPause()
+                }
+            }
         )
 
         playbackTuningController = PlaybackTuningController(

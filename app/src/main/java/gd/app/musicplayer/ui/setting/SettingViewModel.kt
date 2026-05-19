@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
+import gd.app.musicplayer.data.local.preference.DesktopLyricPreferenceStore
 import gd.app.musicplayer.data.local.preference.SettingPreferences
 import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
+import gd.app.musicplayer.data.local.preference.StatusBarLyricPreference
+import gd.app.musicplayer.data.local.preference.StatusBarLyricPreferenceStore
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +25,8 @@ import kotlin.math.round
 class SettingsViewModel @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val settingPreferences: SettingPreferencesDataStore,
+    private val desktopLyricPreferenceStore: DesktopLyricPreferenceStore,
+    private val statusBarLyricPreferenceStore: StatusBarLyricPreferenceStore,
     private val soundEffectPreferences: SoundEffectPreferences,
     private val themeRepo: ThemeRepo
 ) : ViewModel() {
@@ -29,9 +34,15 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> =
         combine(
             settingPreferences.observeSettingPreferences(),
-            soundEffectPreferences.equalizerPreference
-        ) { preferences, equalizer ->
-            preferences.toUiState(useTenBand = equalizer.bandMode == SoundEffectPreferences.TEN_BAND_MODE)
+            soundEffectPreferences.equalizerPreference,
+            desktopLyricPreferenceStore.desktopLyricPreference,
+            statusBarLyricPreferenceStore.preference
+        ) { preferences, equalizer, desktopLyricPreference, statusBarLyricPreference ->
+            preferences.toUiState(
+                useTenBand = equalizer.bandMode == SoundEffectPreferences.TEN_BAND_MODE,
+                desktopLyricPreference = desktopLyricPreference,
+                statusBarLyricPreference = statusBarLyricPreference
+            )
         }
             .stateIn(
                 scope = viewModelScope,
@@ -68,6 +79,18 @@ class SettingsViewModel @Inject constructor(
 
     fun setBluetoothLyricEnabled(enabled: Boolean) = update {
         settingPreferences.updateBluetoothLyricEnabled(enabled)
+    }
+
+    fun setDesktopLyricsVisible(visible: Boolean) = update {
+        desktopLyricPreferenceStore.setVisible(visible)
+    }
+
+    fun setDesktopLyricsLocked(locked: Boolean) = update {
+        desktopLyricPreferenceStore.setLocked(locked)
+    }
+
+    fun setDesktopLyricsPendingEnableAfterPermission(pending: Boolean) = update {
+        desktopLyricPreferenceStore.setPendingEnableAfterPermission(pending)
     }
 
     fun setShakeEnabled(enabled: Boolean) = update {
@@ -183,7 +206,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun SettingPreferences.toUiState(
-        useTenBand: Boolean = false
+        useTenBand: Boolean = false,
+        desktopLyricPreference: gd.app.musicplayer.data.local.preference.DesktopLyricPreference =
+            gd.app.musicplayer.data.local.preference.DesktopLyricPreference(),
+        statusBarLyricPreference: StatusBarLyricPreference = StatusBarLyricPreference()
     ): SettingsUiState {
         return SettingsUiState(
             useTenBand = useTenBand,
@@ -223,6 +249,8 @@ class SettingsViewModel @Inject constructor(
             colorNotificationEnabled =
                 notification.colorNotificationEnabled && !notification.oldNotificationEnabled,
             colorNotificationEnabledAvailable = !notification.oldNotificationEnabled,
+            desktopLyricPreference = desktopLyricPreference,
+            statusBarLyricPreference = statusBarLyricPreference,
             lockScreenEnabled = lockscreen.lockScreenEnabled,
             lockBackgroundMode = lockscreen.backgroundMode,
             lockBackgroundLabel = lockBackgroundLabel(lockscreen.backgroundMode),

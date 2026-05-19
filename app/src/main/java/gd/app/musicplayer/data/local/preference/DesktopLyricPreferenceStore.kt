@@ -60,7 +60,13 @@ class DesktopLyricPreferenceStore @Inject constructor(
     suspend fun updatePreference(
         visible: Boolean? = null,
         locked: Boolean? = null,
-        pendingEnableAfterPermission: Boolean? = null
+        pendingEnableAfterPermission: Boolean? = null,
+        presetColorIndex: Int? = null,
+        currentColorProgress: Int? = null,
+        normalColorProgress: Int? = null,
+        alpha: Float? = null,
+        textSize: Int? = null,
+        y: Int? = null
     ) {
         dataStore.edit { preferences ->
             visible?.let {
@@ -73,6 +79,30 @@ class DesktopLyricPreferenceStore @Inject constructor(
 
             pendingEnableAfterPermission?.let {
                 preferences[SettingsKeys.KEY_DESKTOP_LYRIC_PENDING_ENABLE_AFTER_PERMISSION] = it
+            }
+
+            presetColorIndex?.let {
+                preferences[SettingsKeys.KEY_DESKTOP_LYRIC_PRESET_COLOR_INDEX] = it
+            }
+
+            currentColorProgress?.let {
+                preferences[SettingsKeys.KEY_DESKTOP_LYRIC_CURRENT_COLOR_PROGRESS] = it
+            }
+
+            normalColorProgress?.let {
+                preferences[SettingsKeys.KEY_DESKTOP_LYRIC_NORMAL_COLOR_PROGRESS] = it
+            }
+
+            alpha?.let {
+                preferences[SettingsKeys.KEY_DESKTOP_LYRIC_ALPHA] = it
+            }
+
+            textSize?.let {
+                preferences[SettingsKeys.KEY_DESKTOP_LYRIC_TEXT_SIZE] = it
+            }
+
+            y?.let {
+                preferences[SettingsKeys.KEY_DESKTOP_LYRIC_Y] = it
             }
         }
     }
@@ -105,7 +135,25 @@ class DesktopLyricPreferenceStore @Inject constructor(
             locked = this[SettingsKeys.KEY_DESKTOP_LYRIC_LOCKED] ?: DEFAULT_LOCKED,
             pendingEnableAfterPermission =
                 this[SettingsKeys.KEY_DESKTOP_LYRIC_PENDING_ENABLE_AFTER_PERMISSION]
-                    ?: DEFAULT_PENDING_ENABLE_AFTER_PERMISSION
+                    ?: DEFAULT_PENDING_ENABLE_AFTER_PERMISSION,
+            presetColorIndex =
+                this[SettingsKeys.KEY_DESKTOP_LYRIC_PRESET_COLOR_INDEX]
+                    ?: DEFAULT_PRESET_COLOR_INDEX,
+            currentColorProgress =
+                this[SettingsKeys.KEY_DESKTOP_LYRIC_CURRENT_COLOR_PROGRESS]
+                    ?: DEFAULT_CURRENT_COLOR_PROGRESS,
+            normalColorProgress =
+                this[SettingsKeys.KEY_DESKTOP_LYRIC_NORMAL_COLOR_PROGRESS]
+                    ?: DEFAULT_NORMAL_COLOR_PROGRESS,
+            alpha =
+                this[SettingsKeys.KEY_DESKTOP_LYRIC_ALPHA]
+                    ?: DEFAULT_ALPHA,
+            textSize =
+                this[SettingsKeys.KEY_DESKTOP_LYRIC_TEXT_SIZE]
+                    ?: DEFAULT_TEXT_SIZE,
+            y =
+                this[SettingsKeys.KEY_DESKTOP_LYRIC_Y]
+                    ?: DEFAULT_Y
         )
     }
 
@@ -113,5 +161,11 @@ class DesktopLyricPreferenceStore @Inject constructor(
         const val DEFAULT_VISIBLE = false
         const val DEFAULT_LOCKED = false
         const val DEFAULT_PENDING_ENABLE_AFTER_PERMISSION = false
+        const val DEFAULT_PRESET_COLOR_INDEX = 0
+        const val DEFAULT_CURRENT_COLOR_PROGRESS = 28
+        const val DEFAULT_NORMAL_COLOR_PROGRESS = 19
+        const val DEFAULT_ALPHA = 1f
+        const val DEFAULT_TEXT_SIZE = 18
+        const val DEFAULT_Y = -1
     }
 }

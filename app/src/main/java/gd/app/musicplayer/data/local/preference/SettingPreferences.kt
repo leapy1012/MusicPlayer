@@ -1,6 +1,5 @@
 package gd.app.musicplayer.data.local.preference
 
-import android.graphics.Color
 import gd.app.musicplayer.ui.library.model.LibraryTabConfig
 import gd.app.musicplayer.ui.library.model.LibraryTabConfigStore
 
@@ -26,11 +25,11 @@ data class NormalSettingPreference(
 
 data class LyricsSettingPreference(
     val bluetoothLyricEnabled: Boolean = true,
-    val lyricColor: Int = Color.TRANSPARENT,
-    val lyricTextSize: Float = 18f,
+    val lyricColor: Int = -9371,
+    val lyricTextSize: Float = 16f,
     val lyricAlign: Int = 1,
     val lyricStyle: Int = 0,
-    val lyricAutoScrollEnabled: Boolean = true
+    val lyricAutoScrollEnabled: Boolean = false
 )
 
 data class AudioSettingPreference(

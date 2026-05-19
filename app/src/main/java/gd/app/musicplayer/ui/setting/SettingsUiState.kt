@@ -1,5 +1,8 @@
 package gd.app.musicplayer.ui.setting
 
+import gd.app.musicplayer.data.local.preference.DesktopLyricPreference
+import gd.app.musicplayer.data.local.preference.StatusBarLyricPreference
+
 data class SettingsUiState(
     val useTenBand: Boolean = false,
     val useTenBandAvailable: Boolean = true,
@@ -37,6 +40,8 @@ data class SettingsUiState(
     val oldNotificationEnabled: Boolean = false,
     val colorNotificationEnabled: Boolean = true,
     val colorNotificationEnabledAvailable: Boolean = true,
+    val desktopLyricPreference: DesktopLyricPreference = DesktopLyricPreference(),
+    val statusBarLyricPreference: StatusBarLyricPreference = StatusBarLyricPreference(),
     val lockScreenEnabled: Boolean = true,
     val lockBackgroundMode: Int = 1,
     val lockBackgroundLabel: String = "",
@@ -47,4 +52,3 @@ data class SettingsUiState(
     val bluetoothPermissionGranted: Boolean = true,
     val headsetControlAllowed: Boolean = true
 )
-

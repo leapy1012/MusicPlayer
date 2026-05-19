@@ -1,5 +1,6 @@
 package gd.app.musicplayer.ui.lyrics
 
+import gd.app.lib.model.lrc.renderer.FocusedLyricRenderer
 import gd.app.lib.model.lrc.renderer.ScrollingLyricRenderer
 import gd.app.lib.model.lrc.renderer.StaticMessageLyricRenderer
 import gd.app.lib.model.lrc.resource.LyricLine
@@ -31,7 +32,13 @@ fun LyricView.setLyricText(text: String?) {
         setLines(parseResult.mode, parseResult.lines)
     }
 
-    setLyricRenderer(ScrollingLyricRenderer(lyricText))
+    setLyricRenderer(
+        if (getMaxLines() > 0) {
+            FocusedLyricRenderer(lyricText)
+        } else {
+            ScrollingLyricRenderer(lyricText.copy())
+        }
+    )
     lyricCompatState[this] = LyricCompatState(hasTimedLyrics = parseResult.hasTimedLyrics)
 }
 
