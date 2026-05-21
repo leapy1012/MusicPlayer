@@ -12,6 +12,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.model.displayName
 import gd.app.musicplayer.ui.common.base.BaseBottomGridMenuDialog
 import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.playlist.PlaylistInputDialog
@@ -139,7 +140,7 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
     }
 
     override fun onBindTitleArea(container: View, titleView: TextView, titleIconView: ImageView) {
-        titleView.text = musicSet.name
+        titleView.text = musicSet.displayName(requireContext())
         when (musicSet) {
             is MusicSet.Artist, is MusicSet.Album, is MusicSet.Genre -> {
                 titleIconView.setImageResource(R.drawable.ic_menu_edit_tags)
@@ -189,7 +190,7 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
         val success = MusicSetShortcutHelper.requestPinnedShortcut(
             context = requireContext(),
             musicSet = musicSet,
-            title = musicSet.name
+            title = musicSet.displayName(requireContext())
         )
         ToastUtil.show(requireContext(), if (success) R.string.succeed else R.string.feature_not_implemented)
     }
@@ -210,7 +211,7 @@ class MusicSetOptionsDialog : BaseBottomGridMenuDialog() {
         val isPlaylist = musicSet is MusicSet.Playlist
         DeleteConfirmDialogFragment.forSetDelete(
             resultKey = deleteConfirmResultKey,
-            setName = musicSet.name,
+            setName = musicSet.displayName(requireContext()),
             isPlaylist = isPlaylist,
             musicSet = musicSet
         ).show(parentFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)

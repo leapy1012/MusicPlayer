@@ -18,6 +18,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -72,7 +73,7 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
 
         adapter = LockQueueAdapter(
             onTrackClicked = { position ->
-                viewModel.playQueueAt(position, dismissAfterPlay = false)
+                viewModel.playQueueAt(position, false)
             },
             onTrackRemoved = { position ->
                 viewModel.removeQueueItem(position, latestState)
@@ -82,6 +83,7 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
 
         binding.dialogRecycler.layoutManager = LinearLayoutManager(requireContext())
         binding.dialogRecycler.adapter = adapter
+        (binding.dialogRecycler.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         emptyStateController = RecyclerEmptyStateController(
             recyclerView = binding.dialogRecycler,
             emptyViewStub = binding.layoutListEmpty
@@ -133,7 +135,7 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
 
         adapter.submitQueue(
             items = state.queue,
-            currentIndex = state.currentIndex
+            currentTrackId = state.currentTrackId
         )
 
         if (previousTrackId != state.currentMusic?.id) {
@@ -337,18 +339,20 @@ private class LockQueueAdapter(
 
     private companion object {
         const val PAYLOAD_FAVORITE = "payload_favorite"
+        const val PAYLOAD_CURRENT = "payload_current"
         const val FAVORITES_PLAYLIST_ID = 1L
     }
 
     private val queue = mutableListOf<Music>()
     private val favoriteOverrides = mutableMapOf<Long, Boolean>()
-    private var currentIndex = -1
+    private var currentTrackId: Long? = null
 
     init {
         setHasStableIds(true)
     }
 
-    fun submitQueue(items: List<Music>, currentIndex: Int) {
+    fun submitQueue(items: List<Music>, currentTrackId: Long?) {
+        val oldCurrentIndex = currentIndex()
         queue.clear()
         queue.addAll(
             items.map { music ->
@@ -357,8 +361,16 @@ private class LockQueueAdapter(
             }
         )
         favoriteOverrides.keys.retainAll(queue.mapTo(hashSetOf()) { it.id })
-        this.currentIndex = currentIndex
+
+        val currentChanged = this.currentTrackId != currentTrackId
+        this.currentTrackId = currentTrackId
+
         notifyDataSetChanged()
+
+        if (currentChanged) {
+            notifyCurrentChanged(oldCurrentIndex)
+            notifyCurrentChanged(currentIndex())
+        }
     }
 
     fun updateFavorite(trackId: Long, favorited: Boolean) {
@@ -390,10 +402,19 @@ private class LockQueueAdapter(
         holder.bind(
             music = queue[position],
             position = position,
-            isCurrent = position == currentIndex,
-            onClick = { onTrackClicked(position) },
-            onRemove = { onTrackRemoved(position) },
-            onFavoriteClick = { onToggleFavorite(queue[position]) }
+            isCurrent = queue[position].id == currentTrackId,
+            onClick = {
+                holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
+                    ?.let(onTrackClicked)
+            },
+            onRemove = {
+                holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
+                    ?.let(onTrackRemoved)
+            },
+            onFavoriteClick = {
+                holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
+                    ?.let { onToggleFavorite(queue[it]) }
+            }
         )
     }
 
@@ -402,11 +423,21 @@ private class LockQueueAdapter(
         position: Int,
         payloads: MutableList<Any>
     ) {
-        if (payloads.contains(PAYLOAD_FAVORITE)) {
-            holder.bindFavorite(queue[position])
-            return
+        when {
+            payloads.contains(PAYLOAD_FAVORITE) -> holder.bindFavorite(queue[position])
+            payloads.contains(PAYLOAD_CURRENT) -> {
+                holder.bindCurrentState(isCurrent = queue[position].id == currentTrackId)
+            }
+            else -> super.onBindViewHolder(holder, position, payloads)
         }
-        super.onBindViewHolder(holder, position, payloads)
+    }
+
+    private fun currentIndex(): Int = queue.indexOfFirst { it.id == currentTrackId }
+
+    private fun notifyCurrentChanged(position: Int) {
+        if (position in queue.indices) {
+            notifyItemChanged(position, PAYLOAD_CURRENT)
+        }
     }
 
     class LockQueueViewHolder(
@@ -439,6 +470,15 @@ private class LockQueueAdapter(
                 binding.musicItemArtist.text = " - ${music.artist}"
             }
 
+            bindCurrentState(isCurrent)
+            bindFavorite(music)
+
+            binding.root.setOnClickListener { onClick() }
+            binding.musicItemRemove.setOnClickListener { onRemove() }
+            binding.musicItemFavorite.setOnClickListener { onFavoriteClick() }
+        }
+
+        fun bindCurrentState(isCurrent: Boolean) {
             val titleColor = if (isCurrent) {
                 Color.rgb(255, 90, 90)
             } else {
@@ -450,11 +490,6 @@ private class LockQueueAdapter(
             binding.musicItemArtist.setTextColor(artistColor)
             binding.musicItemTitle.isSelected = isCurrent
             binding.musicItemArtist.isSelected = isCurrent
-            bindFavorite(music)
-
-            binding.root.setOnClickListener { onClick() }
-            binding.musicItemRemove.setOnClickListener { onRemove() }
-            binding.musicItemFavorite.setOnClickListener { onFavoriteClick() }
         }
 
         fun bindFavorite(music: Music) {

@@ -25,37 +25,61 @@ class SoundEffectViewModel @Inject constructor(
 
     fun setLoudnessEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            soundEffectPreferences.setLoudnessEnabled(enabled)
+            persistLoudnessEnabled(enabled)
         }
     }
 
     fun setLoudnessStrength(value: Float) {
         viewModelScope.launch {
-            soundEffectPreferences.setLoudnessStrength(value)
+            persistLoudnessStrength(value)
         }
     }
 
     fun setReverbIndex(index: Int) {
         viewModelScope.launch {
-            soundEffectPreferences.setReverbIndex(index)
+            persistReverbIndex(index)
         }
     }
 
     fun setBalanceEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            soundEffectPreferences.setBalanceEnabled(enabled)
+            persistBalanceEnabled(enabled)
         }
     }
 
     fun setBalanceLeft(value: Float) {
         viewModelScope.launch {
-            soundEffectPreferences.setBalanceLeft(value)
+            persistBalanceLeft(value)
         }
     }
 
     fun setBalanceRight(value: Float) {
         viewModelScope.launch {
-            soundEffectPreferences.setBalanceRight(value)
+            persistBalanceRight(value)
         }
+    }
+
+    suspend fun persistLoudnessEnabled(enabled: Boolean) {
+        soundEffectPreferences.setLoudnessEnabled(enabled)
+    }
+
+    suspend fun persistLoudnessStrength(value: Float) {
+        soundEffectPreferences.setLoudnessStrength(value)
+    }
+
+    suspend fun persistReverbIndex(index: Int) {
+        soundEffectPreferences.setReverbIndex(index)
+    }
+
+    suspend fun persistBalanceEnabled(enabled: Boolean) {
+        soundEffectPreferences.setBalanceEnabled(enabled)
+    }
+
+    suspend fun persistBalanceLeft(value: Float) {
+        soundEffectPreferences.setBalanceLeft(value)
+    }
+
+    suspend fun persistBalanceRight(value: Float) {
+        soundEffectPreferences.setBalanceRight(value)
     }
 }

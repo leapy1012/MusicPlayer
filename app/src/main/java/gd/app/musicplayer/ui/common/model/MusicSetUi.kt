@@ -25,14 +25,9 @@ fun MusicSet.loadArtwork(imageView: ImageView, fallbackResId: Int) {
     val context = imageView.context
     if (context is BaseActivity && context.isDestroyed) return
 
-    val artworkSource = when {
-        !albumArt.isNullOrEmpty() -> albumArt
-        this is MusicSet.Albums || this is MusicSet.Artists || this is MusicSet.Genres ->
-            "content://media/external/audio/albumart/$id"
-        else -> ""
-    }
+    val artworkSource = albumArt.orEmpty()
 
-    if (artworkSource.isNullOrEmpty() || !artworkSource.endsWith("gif")) {
+    if (artworkSource.isEmpty() || !artworkSource.endsWith("gif")) {
         Glide.with(context)
             .load(artworkSource)
             .placeholder(fallbackResId)

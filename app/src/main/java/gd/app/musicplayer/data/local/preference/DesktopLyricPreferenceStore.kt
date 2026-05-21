@@ -162,10 +162,10 @@ class DesktopLyricPreferenceStore @Inject constructor(
         const val DEFAULT_LOCKED = false
         const val DEFAULT_PENDING_ENABLE_AFTER_PERMISSION = false
         const val DEFAULT_PRESET_COLOR_INDEX = 0
-        const val DEFAULT_CURRENT_COLOR_PROGRESS = 28
-        const val DEFAULT_NORMAL_COLOR_PROGRESS = 19
+        const val DEFAULT_CURRENT_COLOR_PROGRESS = 0
+        const val DEFAULT_NORMAL_COLOR_PROGRESS = 0
         const val DEFAULT_ALPHA = 1f
-        const val DEFAULT_TEXT_SIZE = 18
+        const val DEFAULT_TEXT_SIZE = 16
         const val DEFAULT_Y = -1
     }
 }

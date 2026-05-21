@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.AdapterView
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -28,21 +29,21 @@ import gd.app.musicplayer.domain.repository.EqualizerPresetRecord
 import gd.app.musicplayer.databinding.FragmentEqualizerBinding
 import gd.app.musicplayer.domain.usecase.equalizer.CreateEqualizerPresetUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.DeleteEqualizerPresetUseCase
-import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.LoadEqualizerPresetsUseCase
-import gd.app.musicplayer.domain.usecase.equalizer.SaveAudioEffectSettingsUseCase
+import gd.app.musicplayer.domain.usecase.equalizer.SaveEqualizerCustomLevelsUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.UpdateEqualizerPresetUseCase
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
 import javax.inject.Inject
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
 
-    @Inject lateinit var loadAudioEffectSettingsUseCase: LoadAudioEffectSettingsUseCase
-    @Inject lateinit var saveAudioEffectSettingsUseCase: SaveAudioEffectSettingsUseCase
+    @Inject lateinit var saveEqualizerCustomLevelsUseCase: SaveEqualizerCustomLevelsUseCase
     @Inject lateinit var loadEqualizerPresetsUseCase: LoadEqualizerPresetsUseCase
     @Inject lateinit var createEqualizerPresetUseCase: CreateEqualizerPresetUseCase
     @Inject lateinit var updateEqualizerPresetUseCase: UpdateEqualizerPresetUseCase
@@ -50,7 +51,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
     private val equalizerViewModel: EqualizerViewModel by viewModels()
-    private val playerViewModel: PlayerViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by activityViewModels()
 
     private lateinit var equalizerBandAdapter: EqualizerBandAdapter
     private var presetRecords: List<EqualizerPresetRecord> = emptyList()
@@ -61,6 +62,9 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     private var lastAnimatedPresetId: Int? = null
     private var lastAnimatedBandMode: Int? = null
     private var loadedBandMode: Int? = null
+    private var bandApplyJob: Job? = null
+    private var bassApplyJob: Job? = null
+    private var virtualizerApplyJob: Job? = null
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentEqualizerBinding {
         return FragmentEqualizerBinding.inflate(inflater)
@@ -116,8 +120,9 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     if (!fromUser || isRendering) return
 
                     latestSettings = latestSettings.copy(equalizerEnabled = isSelected)
-                    equalizerViewModel.setEqualizerEnabled(isSelected)
-                    applyAudioEffects()
+                    persistAndApply {
+                        equalizerViewModel.persistEqualizerEnabled(isSelected)
+                    }
                 }
             }
         )
@@ -157,10 +162,17 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     if (bandIndex !in currentBandLevels.indices) return@EqualizerBandAdapter
 
                     currentBandLevels[bandIndex] = levelMb
-                    viewLifecycleOwner.lifecycleScope.launch {
+                    syncCustomPresetFromCurrentLevels()
+                    bandApplyJob?.cancel()
+                    bandApplyJob = viewLifecycleOwner.lifecycleScope.launch {
+                        delay(BAND_APPLY_DELAY_MS)
                         saveCurrentCustomLevels()
                         if (latestSettings.selectedEffectId != USER_PRESET_ID) {
-                            equalizerViewModel.setSelectedEffectId(USER_PRESET_ID)
+                            equalizerViewModel.persistSelectedEffectId(USER_PRESET_ID)
+                            latestSettings = latestSettings.copy(
+                                selectedEffectId = USER_PRESET_ID
+                            )
+                            renderAll(requireBinding(), latestSettings)
                         }
                         applyAudioEffects()
                     }
@@ -185,9 +197,10 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     if (!fromUser || isRendering) return
 
                     latestSettings = latestSettings.copy(bassEnabled = isSelected)
-                    equalizerViewModel.setBassEnabled(isSelected)
                     renderBassAndVirtualizerEnabledState(requireBinding(), latestSettings)
-                    applyAudioEffects()
+                    persistAndApply {
+                        equalizerViewModel.persistBassEnabled(isSelected)
+                    }
                 }
             }
         )
@@ -202,9 +215,10 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     if (!fromUser || isRendering) return
 
                     latestSettings = latestSettings.copy(virtualizerEnabled = isSelected)
-                    equalizerViewModel.setVirtualizerEnabled(isSelected)
                     renderBassAndVirtualizerEnabledState(requireBinding(), latestSettings)
-                    applyAudioEffects()
+                    persistAndApply {
+                        equalizerViewModel.persistVirtualizerEnabled(isSelected)
+                    }
                 }
             }
         )
@@ -226,9 +240,10 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
 
                     val value = progress / view.getMax().toFloat()
                     latestSettings = latestSettings.copy(bassProgress = value)
-
-                    equalizerViewModel.setBassProgress(value)
-                    applyAudioEffects()
+                    bassApplyJob?.cancel()
+                    bassApplyJob = persistAndApplyDelayed(BASS_VIRTUALIZER_APPLY_DELAY_MS) {
+                        equalizerViewModel.persistBassProgress(value)
+                    }
                 }
             }
         )
@@ -250,9 +265,10 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
 
                     val value = progress / view.getMax().toFloat()
                     latestSettings = latestSettings.copy(virtualizerProgress = value)
-
-                    equalizerViewModel.setVirtualizerProgress(value)
-                    applyAudioEffects()
+                    virtualizerApplyJob?.cancel()
+                    virtualizerApplyJob = persistAndApplyDelayed(BASS_VIRTUALIZER_APPLY_DELAY_MS) {
+                        equalizerViewModel.persistVirtualizerProgress(value)
+                    }
                 }
             }
         )
@@ -360,8 +376,10 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     selectedItemIndex = selected
                     onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
                         if (which == selected) return@OnItemClickListener
-                        equalizerViewModel.setSelectedEffectId(which)
-                        applyAudioEffects()
+                        persistAndApply {
+                            equalizerViewModel.persistSelectedEffectId(which)
+                            latestSettings = latestSettings.copy(selectedEffectId = which)
+                        }
                         BaseDialog.dismissAll(requireActivity())
                     }
                 }
@@ -371,13 +389,10 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     }
 
     private suspend fun saveCurrentCustomLevels() {
-        val stored = loadAudioEffectSettingsUseCase()
-        val updated = if (latestSettings.bandMode == TEN_BAND_MODE) {
-            stored.copy(customTenBandLevels = currentBandLevels)
-        } else {
-            stored.copy(customFiveBandLevels = currentBandLevels)
-        }
-        saveAudioEffectSettingsUseCase(updated)
+        saveEqualizerCustomLevelsUseCase(
+            tenBand = latestSettings.bandMode == TEN_BAND_MODE,
+            bands = currentBandLevels.toList()
+        )
     }
 
     private fun showEditPresetDialog() {
@@ -487,7 +502,8 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                     preset = EqualizerPresetRecord.USER_CREATED_PRESET
                 )
                 ensurePresetRecords(latestSettings, force = true)
-                equalizerViewModel.setSelectedEffectId(presetRecords.lastIndex)
+                equalizerViewModel.persistSelectedEffectId(presetRecords.lastIndex)
+                latestSettings = latestSettings.copy(selectedEffectId = presetRecords.lastIndex)
                 applyAudioEffects()
                 ToastUtil.show(requireContext(), R.string.save_success)
             }
@@ -516,7 +532,8 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                 else -> currentIndex
             }.coerceIn(0, presetRecords.lastIndex.coerceAtLeast(0))
 
-            equalizerViewModel.setSelectedEffectId(nextIndex)
+            equalizerViewModel.persistSelectedEffectId(nextIndex)
+            latestSettings = latestSettings.copy(selectedEffectId = nextIndex)
             applyAudioEffects()
             ToastUtil.show(requireContext(), R.string.delete_success)
         }
@@ -585,12 +602,30 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         playerViewModel.applyAudioEffects(requireContext())
     }
 
+    private fun persistAndApply(
+        work: suspend () -> Unit
+    ): Job {
+        return viewLifecycleOwner.lifecycleScope.launch {
+            work()
+            applyAudioEffects()
+        }
+    }
+
+    private fun persistAndApplyDelayed(
+        delayMs: Long,
+        work: suspend () -> Unit
+    ): Job {
+        return viewLifecycleOwner.lifecycleScope.launch {
+            delay(delayMs)
+            work()
+            applyAudioEffects()
+        }
+    }
+
     private suspend fun loadPresetRecords(settings: EqualizerPreference): List<EqualizerPresetRecord> {
         val tenBand = settings.bandMode == TEN_BAND_MODE
         val presets = loadEqualizerPresetsUseCase(tenBand)
-        return if (presets.isNotEmpty()) {
-            presets
-        } else {
+        return presets.ifEmpty {
             EqualizerPresets.defaultPresetNames(requireContext()).mapIndexed { index, name ->
                 EqualizerPresetRecord(
                     id = index.toLong(),
@@ -621,6 +656,21 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         binding.root.requestDisallowInterceptTouchEvent(intercept)
     }
 
+    private fun syncCustomPresetFromCurrentLevels() {
+        if (presetRecords.isEmpty()) {
+            return
+        }
+
+        val customRecord = presetRecords.firstOrNull() ?: return
+        val updatedCustom = customRecord.copy(
+            bands = currentBandLevels.toList()
+        )
+        presetRecords = buildList(presetRecords.size) {
+            add(updatedCustom)
+            addAll(presetRecords.drop(1))
+        }
+    }
+
     private fun updateContentHeight() {
         val binding = requireBinding()
 
@@ -639,5 +689,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     companion object {
         private const val USER_PRESET_ID = 0
         private const val TEN_BAND_MODE = 1
+        private const val BAND_APPLY_DELAY_MS = 32L
+        private const val BASS_VIRTUALIZER_APPLY_DELAY_MS = 150L
     }
 }

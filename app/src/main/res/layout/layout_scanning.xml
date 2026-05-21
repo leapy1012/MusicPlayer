@@ -1,28 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:gravity="center"
-    android:orientation="vertical"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/scanning_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
     android:paddingStart="16dp"
     android:paddingEnd="16dp">
+
     <TextView
-        android:textSize="15sp"
-        android:textColor="@color/white"
-        android:gravity="center_horizontal"
         android:id="@+id/scan_path"
-        android:tag="itemTextColor"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
         android:lineSpacingExtra="4dp"
-        android:textAlignment="center"/>
+        android:tag="itemTextColor"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="15sp" />
+
     <gd.app.musicplayer.core.designsystem.view.SeekBar
         android:id="@+id/scan_progress"
-        android:tag="progressBar"
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:layout_marginTop="8dp"
+        android:tag="progressBar"
         app:seekMax="100"
         app:seekProgress="0"
-        app:seekProgressHeight="2dp"/>
+        app:seekProgressHeight="2dp" />
 </LinearLayout>

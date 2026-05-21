@@ -1,5 +1,8 @@
 package gd.app.musicplayer.domain.model
 
+/**
+ * Immutable snapshot of all audio-effect settings needed by playback and equalizer screens.
+ */
 data class AudioEffectSettings(
     val eqEnabled: Boolean,
     val useTenBand: Boolean,
@@ -20,11 +23,48 @@ data class AudioEffectSettings(
     val effectGroupEnabled: Boolean,
     val effectGroupPresetId: Int
 ) {
-    fun selectedPresetIndex(): Int =
-        if (useTenBand) selectedPresetIndexTenBand else selectedPresetIndexFiveBand
 
-    fun customLevels(): List<Int> =
-        if (useTenBand) customTenBandLevels else customFiveBandLevels
+    val selectedPresetIndex: Int
+        get() = if (useTenBand) {
+            selectedPresetIndexTenBand
+        } else {
+            selectedPresetIndexFiveBand
+        }
 
-    fun bandCount(): Int = if (useTenBand) 10 else 5
+    val activeCustomLevels: List<Int>
+        get() = if (useTenBand) {
+            customTenBandLevels
+        } else {
+            customFiveBandLevels
+        }
+
+    val activeBandCount: Int
+        get() = if (useTenBand) {
+            TEN_BAND_COUNT
+        } else {
+            FIVE_BAND_COUNT
+        }
+
+    /**
+     * Kept for compatibility with existing call sites.
+     * New code can use [selectedPresetIndex].
+     */
+    fun selectedPresetIndex(): Int = selectedPresetIndex
+
+    /**
+     * Kept for compatibility with existing call sites.
+     * New code can use [activeCustomLevels].
+     */
+    fun customLevels(): List<Int> = activeCustomLevels
+
+    /**
+     * Kept for compatibility with existing call sites.
+     * New code can use [activeBandCount].
+     */
+    fun bandCount(): Int = activeBandCount
+
+    companion object {
+        const val FIVE_BAND_COUNT = 5
+        const val TEN_BAND_COUNT = 10
+    }
 }

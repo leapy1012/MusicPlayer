@@ -47,8 +47,9 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
         }
 
         fun notifyItemUpdated(item: MenuItem) {
-            val index = items.indexOf(item)
+            val index = items.indexOfFirst { it.id == item.id }
             if (index >= 0) {
+                items[index] = item
                 notifyItemChanged(index, PAYLOAD_UPDATE_ITEM)
             }
         }

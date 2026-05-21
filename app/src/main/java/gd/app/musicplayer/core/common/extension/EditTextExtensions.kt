@@ -4,7 +4,9 @@ import android.content.Context
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.MaxLengthInputFilter
+import gd.app.musicplayer.core.common.util.ToastUtil
 import java.io.File
 
 fun EditText.extractValidatedText(keepPathSeparators: Boolean): String? {
@@ -52,4 +54,33 @@ fun EditText.showKeyboardDelayed(
         },
         delayMs
     )
+}
+
+
+fun EditText.setTextIfDifferent(value: String) {
+    if (text?.toString() == value) return
+
+    setText(value)
+    setSelection(text?.length ?: 0)
+}
+
+fun EditText.readLongOrNull(
+    required: Boolean,
+    defaultValue: Long,
+    minValue: Long,
+    maxValue: Long
+): Long? {
+    val rawValue = text?.toString()?.trim().orEmpty()
+
+    if (rawValue.isEmpty()) {
+        if (required) {
+            ToastUtil.show(context, R.string.equalizer_edit_input_error)
+            return null
+        }
+
+        return defaultValue
+    }
+
+    return rawValue.toLongOrNull()?.coerceIn(minValue, maxValue)
+        ?: defaultValue
 }

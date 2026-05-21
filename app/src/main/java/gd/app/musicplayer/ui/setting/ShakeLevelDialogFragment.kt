@@ -18,8 +18,7 @@ class ShakeLevelDialogFragment : BaseDialogFragment() {
 
     private val onShakeLevelChange = object : SeekBar.OnSeekBarChangeListener {
         override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-            if (!fromUser) return
-            binding.shakeLevelNumber.text = (progress + 1).toString()
+            updateShakeLevelNumber(progress)
         }
 
         override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
@@ -79,6 +78,10 @@ class ShakeLevelDialogFragment : BaseDialogFragment() {
             binding.shakeLevelSeek.getProgress() - 1
         )
         binding.shakeLevelSeek.setProgress(newProgress)
+    }
+
+    private fun updateShakeLevelNumber(progress: Int) {
+        binding.shakeLevelNumber.text = (progress + 1).toString()
     }
 
     companion object {

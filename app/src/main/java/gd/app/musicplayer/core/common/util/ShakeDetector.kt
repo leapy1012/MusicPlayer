@@ -11,6 +11,8 @@ import gd.app.musicplayer.di.ApplicationScope
 import gd.app.musicplayer.playback.PlaybackController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,6 +50,8 @@ class ShakeDetector @Inject constructor(
         observeShakeEnabled()
         observeShakeSensitivity()
     }
+
+    fun initialize() = Unit
 
     fun start() {
         if (isRegistered) {
@@ -147,7 +151,10 @@ class ShakeDetector @Inject constructor(
         enabledJob?.cancel()
 
         enabledJob = applicationScope.launch {
-            setEnabled(settingPreferences.getShakeEnabled())
+            settingPreferences.observeSettingPreferences()
+                .map { it.audio.shakeEnabled }
+                .distinctUntilChanged()
+                .collect(::setEnabled)
         }
     }
 
@@ -155,7 +162,10 @@ class ShakeDetector @Inject constructor(
         sensitivityJob?.cancel()
 
         sensitivityJob = applicationScope.launch {
-            updateSensitivity(settingPreferences.getShakeLevel())
+            settingPreferences.observeSettingPreferences()
+                .map { it.audio.shakeLevel }
+                .distinctUntilChanged()
+                .collect(::updateSensitivity)
         }
     }
 

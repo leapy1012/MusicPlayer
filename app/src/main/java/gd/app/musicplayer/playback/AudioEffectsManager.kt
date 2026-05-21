@@ -3,7 +3,6 @@ package gd.app.musicplayer.playback
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
-import android.media.audiofx.PresetReverb
 import android.media.audiofx.Virtualizer
 import android.os.Build
 import androidx.annotation.OptIn
@@ -35,7 +34,6 @@ class AudioEffectsManager @Inject constructor(
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
-    private var presetReverb: PresetReverb? = null
 
     private suspend fun loadSettings(): AudioEffectSettings {
         return withContext(Dispatchers.IO) {
@@ -55,9 +53,6 @@ class AudioEffectsManager @Inject constructor(
         }
 
         if (sessionId <= 0) {
-            withContext(Dispatchers.Main.immediate) {
-                clearAuxEffectOnMain(player)
-            }
             return
         }
 
@@ -81,10 +76,6 @@ class AudioEffectsManager @Inject constructor(
             loudnessEnhancer = runCatching {
                 LoudnessEnhancer(sessionId)
             }.getOrNull()
-
-            presetReverb = runCatching {
-                PresetReverb(0, 0)
-            }.getOrNull()
         }
 
         val settings = loadSettings()
@@ -96,10 +87,7 @@ class AudioEffectsManager @Inject constructor(
         applyLoudness(effectiveSettings)
 
         withContext(Dispatchers.Main.immediate) {
-            applyReverbOnMain(
-                player = player,
-                settings = effectiveSettings
-            )
+            clearLegacyAuxReverbOnMain(player)
         }
     }
 
@@ -201,51 +189,15 @@ class AudioEffectsManager @Inject constructor(
     }
 
     @OptIn(UnstableApi::class)
-    private fun applyReverbOnMain(
-        player: ExoPlayer,
-        settings: AudioEffectSettings
-    ) {
-        val effect = presetReverb
-
-        if (effect == null || settings.reverbIndex <= 0) {
-            runCatching {
-                effect?.enabled = false
-                clearAuxEffectOnMain(player)
-            }
-            return
-        }
-
-        val preset = when (settings.reverbIndex.coerceIn(0, 6)) {
-            1 -> PresetReverb.PRESET_SMALLROOM
-            2 -> PresetReverb.PRESET_MEDIUMROOM
-            3 -> PresetReverb.PRESET_LARGEROOM
-            4 -> PresetReverb.PRESET_MEDIUMHALL
-            5 -> PresetReverb.PRESET_LARGEHALL
-            6 -> PresetReverb.PRESET_PLATE
-            else -> PresetReverb.PRESET_NONE
-        }
-
+    private fun clearLegacyAuxReverbOnMain(player: ExoPlayer) {
         runCatching {
-            effect.preset = preset
-            effect.enabled = true
-
             player.setAuxEffectInfo(
                 AuxEffectInfo(
-                    effect.id,
-                    DEFAULT_REVERB_SEND_LEVEL
+                    AuxEffectInfo.NO_AUX_EFFECT_ID,
+                    0f
                 )
             )
         }
-    }
-
-    @OptIn(UnstableApi::class)
-    private fun clearAuxEffectOnMain(player: ExoPlayer) {
-        player.setAuxEffectInfo(
-            AuxEffectInfo(
-                AuxEffectInfo.NO_AUX_EFFECT_ID,
-                0f
-            )
-        )
     }
 
     private fun releaseInternal() {
@@ -254,14 +206,12 @@ class AudioEffectsManager @Inject constructor(
             bassBoost?.release()
             virtualizer?.release()
             loudnessEnhancer?.release()
-            presetReverb?.release()
         }
 
         equalizer = null
         bassBoost = null
         virtualizer = null
         loudnessEnhancer = null
-        presetReverb = null
     }
 
     companion object {
@@ -272,8 +222,6 @@ class AudioEffectsManager @Inject constructor(
         // The reference app maps loudness_enhancer_progress to 0..15 input gain.
         // LoudnessEnhancer expects millibels, so use 0..15000 mB for parity.
         private const val MAX_LOUDNESS_GAIN = 15_000f
-
-        private const val DEFAULT_REVERB_SEND_LEVEL = 1.0f
 
         fun supportsLoudnessEnhancer(): Boolean {
             return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT

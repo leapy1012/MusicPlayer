@@ -19,7 +19,6 @@ import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.databinding.FragmentSearchBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.domain.model.isConcreteCollection
-import gd.app.musicplayer.ui.player.queue.PlayQueueActivity
 import gd.app.musicplayer.core.common.extension.applyStatusBarInsetHeight
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
@@ -29,6 +28,7 @@ import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.library.albums.AlbumMusicActivity
 import gd.app.musicplayer.ui.library.musicset.MusicSetOptionsDialog
 import gd.app.musicplayer.ui.library.options.MusicOptionsDialog
+import gd.app.musicplayer.ui.player.full.MusicPlayActivity
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -117,7 +117,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.events.collect { event ->
                     when (event) {
-                        SearchEvent.OpenQueueScreen -> PlayQueueActivity.start(requireContext())
+                        SearchEvent.OpenNowPlaying -> MusicPlayActivity.start(requireContext())
                     }
                 }
             }

@@ -325,9 +325,9 @@ class PlaylistRepo @Inject constructor(
                 musicCount = 0,
                 disabled = false,
                 sort = 0L,
-                setup_time = 0L,
-                album_id = 0L,
-                s_pic = ""
+                setupTime = 0L,
+                albumId = 0L,
+                sourcePicture = ""
             )
         }
 

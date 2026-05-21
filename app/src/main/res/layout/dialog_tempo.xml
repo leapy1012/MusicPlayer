@@ -38,13 +38,12 @@
         android:paddingTop="6dp"
         android:paddingEnd="5dp"
         android:paddingBottom="6dp"
-        android:tag="seekBar"
+        android:tag="dialogSeekBar"
         app:layout_constraintBottom_toBottomOf="@id/popup_refresh_pitch"
         app:layout_constraintEnd_toStartOf="@id/popup_refresh_pitch"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/popup_refresh_pitch"
         app:seekMax="24"
-        app:seekProgressDrawable="@drawable/shape_tempo_progress"
         app:seekProgressHeight="3dp"
         app:seekThumb="@drawable/seekbar_thumb_white" />
 
@@ -80,13 +79,12 @@
         android:paddingTop="6dp"
         android:paddingEnd="5dp"
         android:paddingBottom="6dp"
-        android:tag="seekBar"
+        android:tag="dialogSeekBar"
         app:layout_constraintBottom_toBottomOf="@id/popup_refresh_tempo"
         app:layout_constraintEnd_toStartOf="@id/popup_refresh_tempo"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/popup_refresh_tempo"
         app:seekMax="100"
-        app:seekProgressDrawable="@drawable/shape_tempo_progress"
         app:seekProgressHeight="3dp"
         app:seekThumb="@drawable/seekbar_thumb_white" />
 

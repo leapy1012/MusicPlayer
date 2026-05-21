@@ -138,9 +138,9 @@ object MusicSetShortcutHelper {
             is MusicSet.Playlist -> {
                 putExtra(EXTRA_MUSIC_SET_MUSIC_COUNT, musicSet.musicCount)
                 putExtra(EXTRA_MUSIC_SET_SORT, musicSet.sort)
-                putExtra(EXTRA_MUSIC_SET_SETUP_TIME, musicSet.setup_time)
-                putExtra(EXTRA_MUSIC_SET_ALBUM_ID, musicSet.album_id)
-                putExtra(EXTRA_MUSIC_SET_S_PIC, musicSet.s_pic)
+                putExtra(EXTRA_MUSIC_SET_SETUP_TIME, musicSet.setupTime)
+                putExtra(EXTRA_MUSIC_SET_ALBUM_ID, musicSet.albumId)
+                putExtra(EXTRA_MUSIC_SET_S_PIC, musicSet.sourcePicture)
             }
             else -> Unit
         }
@@ -189,9 +189,9 @@ object MusicSetShortcutHelper {
                 albumArt = albumArt,
                 musicCount = intent.getIntExtra(EXTRA_MUSIC_SET_MUSIC_COUNT, 0),
                 sort = intent.getLongExtra(EXTRA_MUSIC_SET_SORT, 0L),
-                setup_time = intent.getLongExtra(EXTRA_MUSIC_SET_SETUP_TIME, 0L),
-                album_id = intent.getLongExtra(EXTRA_MUSIC_SET_ALBUM_ID, 0L),
-                s_pic = intent.getStringExtra(EXTRA_MUSIC_SET_S_PIC).orEmpty()
+                setupTime = intent.getLongExtra(EXTRA_MUSIC_SET_SETUP_TIME, 0L),
+                albumId = intent.getLongExtra(EXTRA_MUSIC_SET_ALBUM_ID, 0L),
+                sourcePicture = intent.getStringExtra(EXTRA_MUSIC_SET_S_PIC).orEmpty()
             )
             MusicSet.RecentlyAdded::class.java.simpleName -> MusicSet.RecentlyAdded
             MusicSet.RecentlyPlayed::class.java.simpleName -> MusicSet.RecentlyPlayed

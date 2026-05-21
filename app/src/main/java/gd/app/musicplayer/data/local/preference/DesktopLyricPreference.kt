@@ -5,9 +5,9 @@ data class DesktopLyricPreference(
     val locked: Boolean = false,
     val pendingEnableAfterPermission: Boolean = false,
     val presetColorIndex: Int = 0,
-    val currentColorProgress: Int = 28,
-    val normalColorProgress: Int = 19,
+    val currentColorProgress: Int = 0,
+    val normalColorProgress: Int = 0,
     val alpha: Float = 1f,
-    val textSize: Int = 18,
+    val textSize: Int = 16,
     val y: Int = -1
 )

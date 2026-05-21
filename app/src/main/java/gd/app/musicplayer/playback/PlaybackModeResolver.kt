@@ -23,7 +23,8 @@ class PlaybackModeResolver @Inject constructor(
 
     fun resolveNextIndex(
         queueSize: Int,
-        currentIndex: Int
+        currentIndex: Int,
+        fromAutoTransition: Boolean
     ): Int? {
         if (queueSize <= 0) return null
 
@@ -31,7 +32,11 @@ class PlaybackModeResolver @Inject constructor(
 
         return when (currentPlayMode) {
             PlaybackMode.SINGLE -> {
-                activeIndex
+                if (fromAutoTransition) {
+                    activeIndex
+                } else {
+                    if (activeIndex == queueSize - 1) activeIndex else activeIndex + 1
+                }
             }
 
             PlaybackMode.SHUFFLE_ALL -> {

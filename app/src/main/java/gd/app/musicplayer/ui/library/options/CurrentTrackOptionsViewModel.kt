@@ -26,7 +26,7 @@ import javax.inject.Inject
 
 data class CurrentTrackOptionsUiState(
     val music: Music? = null,
-    val sleepMenuLabel: String = ""
+    val sleepMenuLabelOverride: String? = null
 )
 
 sealed interface CurrentTrackOptionsEvent {
@@ -54,7 +54,7 @@ class CurrentTrackOptionsViewModel @Inject constructor(
     ) { music, sleepState ->
         CurrentTrackOptionsUiState(
             music = music,
-            sleepMenuLabel = buildSleepTimerLabel(sleepState)
+            sleepMenuLabelOverride = buildSleepTimerLabelOverride(sleepState)
         )
     }.stateIn(
         scope = viewModelScope,
@@ -130,10 +130,10 @@ class CurrentTrackOptionsViewModel @Inject constructor(
         }
     }
 
-    private fun buildSleepTimerLabel(state: SleepTimerState): String {
-        if (!state.isActive) return appContext.getString(R.string.sleep_timer_2)
+    private fun buildSleepTimerLabelOverride(state: SleepTimerState): String? {
+        if (!state.isActive) return null
 
-        val detail = when {
+        return when {
             state.isPendingTrackEnd -> {
                 if (state.action == SleepTimerState.ACTION_EXIT_PLAYER) {
                     appContext.getString(R.string.sleep_end_exit)
@@ -155,6 +155,5 @@ class CurrentTrackOptionsViewModel @Inject constructor(
                 }
             }
         }
-        return appContext.getString(R.string.sleep_timer_2) + "\n" + detail
     }
 }

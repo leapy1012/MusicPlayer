@@ -7,6 +7,7 @@ data class SettingsUiState(
     val useTenBand: Boolean = false,
     val useTenBandAvailable: Boolean = true,
     val showHiddenFolders: Boolean = true,
+    val showKeepAliveDot: Boolean = true,
     val darkModeEnabled: Boolean = false,
     val showForwardBackward: Boolean = false,
     val forwardBackwardSeconds: Int = 15,

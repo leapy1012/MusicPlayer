@@ -161,4 +161,24 @@ class LibraryRepo @Inject constructor(
         )
         libraryDao.deleteMusicPlaylistRefsByTrackIds(ids)
     }
+
+    fun observeDeletedSongs(): Flow<List<Music>> = libraryDao.observeDeletedSongs()
+
+    suspend fun restoreDeletedSongs(trackIds: Collection<Long>) {
+        val ids = trackIds.distinct()
+        if (ids.isEmpty()) return
+        libraryDao.restoreDeletedSongs(ids)
+    }
+
+    suspend fun markSourceDeletedSongs(trackIds: Collection<Long>) {
+        val ids = trackIds.distinct()
+        if (ids.isEmpty()) return
+        libraryDao.markSourceDeletedSongs(ids, System.currentTimeMillis())
+    }
+
+    suspend fun markDeletedSourceFilesRemoved(trackIds: Collection<Long>) {
+        val ids = trackIds.distinct()
+        if (ids.isEmpty()) return
+        libraryDao.markDeletedSourceFilesRemoved(ids, System.currentTimeMillis())
+    }
 }

@@ -1,13 +1,5 @@
 package gd.app.musicplayer.domain.repository
 
-import android.content.ContentUris
-import android.content.ContentValues
-import android.content.Context
-import android.os.Build
-import android.provider.MediaStore
-import androidx.annotation.RequiresApi
-import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.local.mediastore.MediaStoreMusicImporter
 import gd.app.musicplayer.data.local.db.dao.LibraryDao
 import gd.app.musicplayer.domain.model.Music
 import javax.inject.Inject
@@ -23,44 +15,34 @@ data class EditableTrackMetadata(
 
 @Singleton
 class TrackMetadataRepo @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val libraryDao: LibraryDao
 ) {
-    private val importer = MediaStoreMusicImporter()
-
-    @RequiresApi(Build.VERSION_CODES.R)
     suspend fun updateTrackMetadata(
         track: Music,
-        metadata: EditableTrackMetadata
-    ): Boolean {
-        val uri = ContentUris.withAppendedId(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            track.id
-        )
-
-        val values = ContentValues().apply {
-            put(MediaStore.Audio.Media.TITLE, metadata.title)
-            put(MediaStore.Audio.Media.ALBUM, metadata.album)
-            put(MediaStore.Audio.Media.ARTIST, metadata.artist)
-            put(MediaStore.Audio.Media.GENRE, metadata.genre)
-            put(MediaStore.Audio.Media.TRACK, metadata.track)
-        }
-
-        val updatedRows = context.contentResolver.update(
-            uri,
-            values,
-            null,
-            null
+        metadata: EditableTrackMetadata,
+        artworkPath: String?
+    ): Music? {
+        val updatedRows = libraryDao.updateTrackMetadata(
+            trackId = track.id,
+            title = metadata.title,
+            album = metadata.album,
+            artist = metadata.artist,
+            genre = metadata.genre,
+            trackNumber = metadata.track,
+            artworkPath = artworkPath
         )
 
         if (updatedRows <= 0) {
-            return false
+            return null
         }
 
-        importer.queryMusicById(context, track.id)?.let { refreshedTrack ->
-            libraryDao.upsertAll(listOf(refreshedTrack))
-        }
-
-        return true
+        return track.copy(
+            title = metadata.title,
+            album = metadata.album,
+            artist = metadata.artist,
+            genres = metadata.genre,
+            track = metadata.track,
+            albumPicture = artworkPath
+        )
     }
 }

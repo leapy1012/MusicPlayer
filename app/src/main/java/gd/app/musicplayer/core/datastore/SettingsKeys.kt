@@ -10,6 +10,7 @@ object SettingsKeys {
     val FORWARD_BACKWARD_SECONDS = intPreferencesKey("time_forward_backward")
     val SHOW_FORWARD_BACKWARD = booleanPreferencesKey("show_forward_backward")
     val SHOW_HIDDEN_FOLDERS = booleanPreferencesKey("show_hidden_folders")
+    val SHOW_KEEP_ALIVE_DOT = booleanPreferencesKey("show_keep_alive_dot")
     val FADE_DURATION_MS = intPreferencesKey("fade_duration")
     val SWIPE_CHANGE_SONGS = booleanPreferencesKey("swipe_change_songs")
     val SIMULTANEOUS_PLAY = booleanPreferencesKey("simultaneous_play")

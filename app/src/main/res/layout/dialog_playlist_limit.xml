@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/new_playlist_title"
+        style="@style/DialogTitle"
+        android:text="@string/playlist_track_limit" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="20dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/playlist_limit_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:orientation="vertical">
+
+            <LinearLayout
+                style="@style/PlaylistLimitRow">
+                <androidx.appcompat.widget.AppCompatImageView style="@style/PlaylistLimitCheck" />
+                <TextView
+                    style="@style/PlaylistLimitText"
+                    android:text="@string/playlist_limit_day" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/PlaylistLimitRow">
+                <androidx.appcompat.widget.AppCompatImageView style="@style/PlaylistLimitCheck" />
+                <TextView
+                    style="@style/PlaylistLimitText"
+                    android:text="@string/playlist_limit_week" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/PlaylistLimitRow">
+                <androidx.appcompat.widget.AppCompatImageView style="@style/PlaylistLimitCheck" />
+                <TextView
+                    style="@style/PlaylistLimitText"
+                    android:text="@string/playlist_limit_month" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/PlaylistLimitRow">
+                <androidx.appcompat.widget.AppCompatImageView style="@style/PlaylistLimitCheck" />
+                <TextView
+                    style="@style/PlaylistLimitText"
+                    android:text="@string/playlist_limit_month_3" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/PlaylistLimitRow">
+                <androidx.appcompat.widget.AppCompatImageView style="@style/PlaylistLimitCheck" />
+                <TextView
+                    style="@style/PlaylistLimitText"
+                    android:text="@string/playlist_limit_month_6" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/PlaylistLimitRow">
+                <androidx.appcompat.widget.AppCompatImageView style="@style/PlaylistLimitCheck" />
+                <TextView
+                    style="@style/PlaylistLimitText"
+                    android:text="@string/playlist_limit_year" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/PlaylistLimitRow">
+                <androidx.appcompat.widget.AppCompatImageView style="@style/PlaylistLimitCheck" />
+                <TextView
+                    style="@style/PlaylistLimitText"
+                    android:text="@string/playlist_limit_forever" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/PlaylistLimitRow">
+                <androidx.appcompat.widget.AppCompatImageView style="@style/PlaylistLimitCheck" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:singleLine="true"
+                    android:tag="dialogTitle"
+                    android:text="@string/playlist_limit_custom"
+                    android:textSize="16sp" />
+
+                <EditText
+                    android:id="@+id/playlist_limit_edittext"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/dialog_edit_selector"
+                    android:cursorVisible="true"
+                    android:gravity="center_horizontal"
+                    android:hint="@string/playlist_track_limit_hint"
+                    android:inputType="number"
+                    android:maxLength="5"
+                    android:minWidth="80dp"
+                    android:selectAllOnFocus="true"
+                    android:tag="dialogEditText"
+                    android:textColorHint="#61000000"
+                    android:textCursorDrawable="@null"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout style="@style/DialogButtonLayout">
+        <TextView
+            android:id="@+id/dialog_button_cancel"
+            style="@style/DialogButton.Cancel"
+            android:text="@string/cancel" />
+
+        <TextView
+            android:id="@+id/dialog_button_ok"
+            style="@style/DialogButton.Confirm"
+            android:text="@string/ok" />
+    </LinearLayout>
+</LinearLayout>

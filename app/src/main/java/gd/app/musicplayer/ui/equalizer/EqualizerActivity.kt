@@ -21,7 +21,6 @@ import gd.app.musicplayer.core.designsystem.theme.messageColor
 import gd.app.musicplayer.core.designsystem.theme.titleColor
 import gd.app.musicplayer.databinding.ActivityEqualizerBinding
 import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
-import gd.app.musicplayer.domain.usecase.equalizer.SaveAudioEffectSettingsUseCase
 import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
@@ -35,7 +34,6 @@ import kotlinx.coroutines.launch
 class EqualizerActivity : BaseActivity() {
 
     @Inject lateinit var loadAudioEffectSettingsUseCase: LoadAudioEffectSettingsUseCase
-    @Inject lateinit var saveAudioEffectSettingsUseCase: SaveAudioEffectSettingsUseCase
     @Inject lateinit var soundEffectPreferences: SoundEffectPreferences
 
     private val playerViewModel: PlayerViewModel by viewModels()
@@ -133,8 +131,13 @@ class EqualizerActivity : BaseActivity() {
                     if (which == selected) return@OnItemClickListener
                     BaseDialog.dismissAll(this@EqualizerActivity)
                     lifecycleScope.launch {
-                        val updated = settings.copy(useTenBand = which == 1)
-                        saveAudioEffectSettingsUseCase(updated)
+                        soundEffectPreferences.setEqualizerBandMode(
+                            if (which == 1) {
+                                SoundEffectPreferences.TEN_BAND_MODE
+                            } else {
+                                SoundEffectPreferences.FIVE_BAND_MODE
+                            }
+                        )
                         playerViewModel.applyAudioEffects(this@EqualizerActivity)
                         equalizerFragment.reloadFromSettings()
                     }

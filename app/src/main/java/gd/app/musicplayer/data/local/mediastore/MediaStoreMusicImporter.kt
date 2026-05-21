@@ -3,24 +3,24 @@ package gd.app.musicplayer.data.local.mediastore
 import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
-import android.os.Build
 import android.provider.MediaStore
-import androidx.annotation.RequiresApi
 import gd.app.musicplayer.data.local.db.getIntOrNull
 import gd.app.musicplayer.data.local.db.getLongOrNull
 import gd.app.musicplayer.data.local.db.entity.MusicEntity
 
 class MediaStoreMusicImporter {
 
-    @RequiresApi(Build.VERSION_CODES.R)
-    fun queryMusic(context: Context): List<MusicEntity> {
+    fun queryMusic(
+        context: Context,
+        modifiedSinceMs: Long? = null
+    ): List<MusicEntity> {
         val items = mutableListOf<MusicEntity>()
 
         context.contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             PROJECTION,
-            "${MediaStore.Audio.Media.IS_MUSIC} != 0",
-            null,
+            buildSelection(modifiedSinceMs),
+            buildSelectionArgs(modifiedSinceMs),
             "${MediaStore.Audio.Media.DATE_MODIFIED} DESC"
         )?.use { cursor ->
             while (cursor.moveToNext()) {
@@ -31,7 +31,6 @@ class MediaStoreMusicImporter {
         return items
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     fun queryMusicById(context: Context, id: Long): MusicEntity? {
         return context.contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -42,6 +41,25 @@ class MediaStoreMusicImporter {
         )?.use { cursor ->
             if (cursor.moveToFirst()) mapCursorRow(cursor) else null
         }
+    }
+
+    fun queryMusicIds(context: Context): Set<Long> {
+        val ids = LinkedHashSet<Long>()
+
+        context.contentResolver.query(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            ID_PROJECTION,
+            "${MediaStore.Audio.Media.IS_MUSIC} != 0",
+            null,
+            null
+        )?.use { cursor ->
+            val idIndex = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            while (cursor.moveToNext()) {
+                ids += cursor.getLong(idIndex)
+            }
+        }
+
+        return ids
     }
 
     private fun albumArtworkUriString(albumId: Long): String {
@@ -98,6 +116,10 @@ class MediaStoreMusicImporter {
     }
 
     private companion object {
+        val ID_PROJECTION = arrayOf(
+            MediaStore.Audio.Media._ID
+        )
+
         val PROJECTION = arrayOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
@@ -114,5 +136,19 @@ class MediaStoreMusicImporter {
             MediaStore.Audio.Media.TRACK,
             MediaStore.Audio.Media.GENRE
         )
+    }
+
+    private fun buildSelection(modifiedSinceMs: Long?): String {
+        return if (modifiedSinceMs == null) {
+            "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+        } else {
+            "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND " +
+                "${MediaStore.Audio.Media.DATE_MODIFIED} >= ?"
+        }
+    }
+
+    private fun buildSelectionArgs(modifiedSinceMs: Long?): Array<String>? {
+        if (modifiedSinceMs == null) return null
+        return arrayOf((modifiedSinceMs / 1000L).coerceAtLeast(0L).toString())
     }
 }

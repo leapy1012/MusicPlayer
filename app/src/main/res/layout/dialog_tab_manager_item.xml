@@ -1,38 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    android:layout_height="48dp"
+    android:background="@drawable/selector_item_bg_t_ab"
     android:gravity="center_vertical"
-    android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="12dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="8dp"
+    android:paddingEnd="16dp">
 
-    <ImageView
+    <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/tab_manager_item_drag"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_marginEnd="12dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/vector_item_drag"
-        android:tag="dialogTitleIcon" />
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:padding="8dp"
+        android:tag="dialogTitle"
+        app:srcCompat="@drawable/vector_item_drag_black" />
 
     <TextView
         android:id="@+id/tab_manager_item_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
         android:layout_weight="1"
-        android:tag="dialogMessage"
+        android:singleLine="true"
+        android:tag="dialogTitle"
+        android:textColor="#de000000"
         android:textSize="16sp" />
 
-    <ImageView
+    <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/tab_manager_item_select"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:scaleType="fitCenter"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:scaleType="centerInside"
         android:tag="dialogSelectBox"
-        android:src="@drawable/vector_multi_check_w_selector" />
+        app:srcCompat="@drawable/vector_toggle_selector" />
 </LinearLayout>

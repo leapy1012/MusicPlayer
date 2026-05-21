@@ -80,6 +80,7 @@
         android:gravity="center"
         android:tag="dialogItem"
         android:text="@string/close"
+        android:textAlignment="center"
         android:textColor="#ffffff"
         android:textSize="16sp" />
 </LinearLayout>

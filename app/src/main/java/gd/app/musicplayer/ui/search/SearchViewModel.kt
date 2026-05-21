@@ -109,14 +109,32 @@ class SearchViewModel @Inject constructor(
     }
 
     suspend fun onSongClicked(song: Music) {
+        val playbackState = playbackController.state.value
         val currentTrackId = playbackController.state.value.currentTrack?.id
+        val isCurrentTrack = currentTrackId == song.id
         val shouldReplayCurrent =
-            getReplaySongEnabledUseCase() && currentTrackId == song.id
+            getReplaySongEnabledUseCase() && isCurrentTrack && playbackState.isPlaying
 
         if (shouldReplayCurrent) {
             restartCurrentTrackUseCase(appContext)
             if (isTrackClickOperationEnabledUseCase()) {
-                _events.emit(SearchEvent.OpenQueueScreen)
+                _events.emit(SearchEvent.OpenNowPlaying)
+            }
+            return
+        }
+
+        if (isCurrentTrack && playbackState.isPlaying) {
+            playbackController.pause(appContext)
+            if (isTrackClickOperationEnabledUseCase()) {
+                _events.emit(SearchEvent.OpenNowPlaying)
+            }
+            return
+        }
+
+        if (isCurrentTrack) {
+            playbackController.play(appContext)
+            if (isTrackClickOperationEnabledUseCase()) {
+                _events.emit(SearchEvent.OpenNowPlaying)
             }
             return
         }
@@ -124,7 +142,7 @@ class SearchViewModel @Inject constructor(
         val (queue, startIndex) = resolvePlaybackQueue(song)
         playTracksUseCase(appContext, queue, startIndex)
         if (isTrackClickOperationEnabledUseCase()) {
-            _events.emit(SearchEvent.OpenQueueScreen)
+            _events.emit(SearchEvent.OpenNowPlaying)
         }
     }
 
@@ -229,5 +247,5 @@ class SearchViewModel @Inject constructor(
 }
 
 sealed interface SearchEvent {
-    data object OpenQueueScreen : SearchEvent
+    data object OpenNowPlaying : SearchEvent
 }

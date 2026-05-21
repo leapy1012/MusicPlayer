@@ -1,109 +1,124 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:gravity="center_horizontal"
-    android:layout_gravity="center_vertical"
-    android:orientation="vertical"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/after_scanning_content"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_gravity="center_vertical"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
     android:paddingStart="@dimen/scan_result_padding"
     android:paddingEnd="@dimen/scan_result_padding">
+
     <TextView
-        android:textSize="15sp"
-        android:textColor="@color/white"
         android:id="@+id/scan_report_songs"
-        android:tag="itemTextExtraColor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:tag="itemTextExtraColor"
         android:text="@string/scan"
-        android:singleLine="true"/>
-    <TextView
-        android:textSize="15sp"
         android:textColor="@color/white"
+        android:textSize="15sp" />
+
+    <TextView
         android:id="@+id/scan_report_added"
-        android:tag="itemTextExtraColor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/scan_result_margin"
+        android:singleLine="true"
+        android:tag="itemTextExtraColor"
         android:text="@string/scan"
-        android:singleLine="true"/>
-    <TextView
-        android:textSize="15sp"
         android:textColor="@color/white"
+        android:textSize="15sp" />
+
+    <TextView
         android:id="@+id/scan_report_filtered"
-        android:tag="itemTextExtraColor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/scan_result_margin"
+        android:singleLine="true"
+        android:tag="itemTextExtraColor"
         android:text="@string/scan"
-        android:singleLine="true"/>
+        android:textColor="@color/white"
+        android:textSize="15sp" />
+
     <LinearLayout
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:id="@+id/scan_hide_parent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/scan_result_margin">
+        android:layout_marginTop="@dimen/scan_result_margin"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
         <TextView
-            android:textSize="15sp"
-            android:textColor="@color/white"
-            android:gravity="center_horizontal"
-            android:tag="itemTextExtraColor"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:singleLine="true"
+            android:tag="itemTextExtraColor"
             android:text="@string/scan_ignore"
-            android:singleLine="true"/>
+            android:textColor="@color/white"
+            android:textSize="15sp" />
+
         <LinearLayout
+            android:id="@+id/scan_hide_click_parent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/dialog_edit_normal"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:id="@+id/scan_hide_click_parent"
-            android:tag="lineBackground"
-            android:background="@drawable/dialog_edit_normal"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp">
+            android:tag="lineBackground">
+
             <TextView
-                android:textSize="15sp"
-                android:textColor="@color/white"
-                android:gravity="center_horizontal"
-                android:tag="themeColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/hidden_folders"
-                android:singleLine="true"/>
-            <androidx.appcompat.widget.AppCompatImageView
+                android:gravity="center_horizontal"
+                android:singleLine="true"
                 android:tag="themeColor"
+                android:text="@string/hidden_folders"
+                android:textColor="@color/white"
+                android:textSize="15sp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
                 android:layout_width="10dp"
                 android:layout_height="10dp"
-                android:scaleType="fitCenter"
                 android:layout_marginStart="2dp"
-                app:srcCompat="@drawable/vector_scan_arrow"/>
+                android:scaleType="fitCenter"
+                android:tag="themeColor"
+                app:srcCompat="@drawable/vector_scan_arrow" />
         </LinearLayout>
     </LinearLayout>
+
     <LinearLayout
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:id="@+id/scan_delete_parent"
-        android:tag="lineBackground"
-        android:background="@drawable/dialog_edit_normal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/scan_result_margin">
+        android:layout_marginTop="@dimen/scan_result_margin"
+        android:background="@drawable/dialog_edit_normal"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:tag="lineBackground">
+
         <TextView
-            android:textSize="15sp"
-            android:textColor="@color/white"
-            android:gravity="center_horizontal"
             android:id="@+id/scan_delete_details"
-            android:tag="themeColor"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/scan"
-            android:singleLine="true"/>
-        <androidx.appcompat.widget.AppCompatImageView
+            android:gravity="center_horizontal"
+            android:singleLine="true"
             android:tag="themeColor"
+            android:text="@string/scan"
+            android:textColor="@color/white"
+            android:textSize="15sp" />
+
+        <androidx.appcompat.widget.AppCompatImageView
             android:layout_width="10dp"
             android:layout_height="10dp"
-            android:scaleType="fitCenter"
             android:layout_marginStart="2dp"
-            app:srcCompat="@drawable/vector_scan_arrow"/>
+            android:scaleType="fitCenter"
+            android:tag="themeColor"
+            app:srcCompat="@drawable/vector_scan_arrow" />
     </LinearLayout>
 </LinearLayout>

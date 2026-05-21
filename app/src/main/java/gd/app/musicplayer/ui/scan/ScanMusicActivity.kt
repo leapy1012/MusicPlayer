@@ -1,18 +1,16 @@
 package gd.app.musicplayer.ui.scan
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.text.TextUtils
-import android.text.method.LinkMovementMethod
 import android.view.MenuItem
-import android.view.View
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -20,11 +18,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
+import gd.app.musicplayer.core.common.extension.readLongOrNull
+import gd.app.musicplayer.core.common.extension.setTextIfDifferent
 import gd.app.musicplayer.core.common.extension.startActivityCompat
-import gd.app.musicplayer.core.designsystem.view.SeekBar
-import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.databinding.ActivityScanMusicBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.library.deleted.DeletedMusicActivity
 import gd.app.musicplayer.ui.library.hidden.HiddenFoldersActivity
 import kotlinx.coroutines.launch
 
@@ -32,35 +31,46 @@ import kotlinx.coroutines.launch
 class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
     private val viewModel: ScanViewModel by viewModels()
+
     private lateinit var binding: ActivityScanMusicBinding
 
-    private val scanCheckbox by lazy { binding.root.findViewById<ImageView>(R.id.scan_checkbox) }
-    private val scanCheckbox2 by lazy { binding.root.findViewById<ImageView>(R.id.scan_checkbox2) }
-    private val scanCheckbox3 by lazy { binding.root.findViewById<ImageView>(R.id.scan_checkbox3) }
-    private val excludeDurationEditText by lazy { binding.root.findViewById<EditText>(R.id.excludeDurationEditText) }
-    private val excludeSizeEditText by lazy { binding.root.findViewById<EditText>(R.id.excludeSizeEditText) }
-    private val scanProgress by lazy { binding.root.findViewById<SeekBar>(R.id.scan_progress) }
-    private val scanPath by lazy { binding.root.findViewById<TextView>(R.id.scan_path) }
-    private val scanReportSongs by lazy { binding.root.findViewById<TextView>(R.id.scan_report_songs) }
-    private val scanReportAdded by lazy { binding.root.findViewById<TextView>(R.id.scan_report_added) }
-    private val scanReportFiltered by lazy { binding.root.findViewById<TextView>(R.id.scan_report_filtered) }
-    private val scanDeleteDetails by lazy { binding.root.findViewById<TextView>(R.id.scan_delete_details) }
-    private val scanHideParent by lazy { binding.root.findViewById<LinearLayout>(R.id.scan_hide_parent) }
-    private val scanHideClickParent by lazy { binding.root.findViewById<LinearLayout>(R.id.scan_hide_click_parent) }
-    private val scanDeleteParent by lazy { binding.root.findViewById<LinearLayout>(R.id.scan_delete_parent) }
+    private var openSettingsAfterPermission = false
 
-    private var currentPhase: ScanPhase = ScanPhase.IDLE
+    private val scanSettingsLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
 
-    companion object {
-        fun start(context: Context) {
-            context.startActivityCompat(Intent(context, ScanMusicActivity::class.java))
+            val selectedPaths = result.data
+                ?.getStringArrayListExtra(ScanSettingActivity.EXTRA_SELECT_PATHS)
+                .orEmpty()
+
+            startScanWithPaths(selectedPaths)
         }
-    }
 
-    private enum class ScanPhase {
-        IDLE,
-        SCANNING,
-        RESULT
+    private val beforeBinding
+        get() = requireNotNull(binding.layoutBeforeScanning) {
+            "layout_before_scanning include is missing from activity_scan_music.xml"
+        }
+
+    private val scanningBinding
+        get() = requireNotNull(binding.layoutScanning) {
+            "layout_scanning include is missing from activity_scan_music.xml"
+        }
+
+    private val resultBinding
+        get() = requireNotNull(binding.layoutAfterScanning) {
+            "layout_after_scanning include is missing from activity_scan_music.xml"
+        }
+
+    private val backCallback = object : OnBackPressedCallback(enabled = true) {
+        override fun handleOnBackPressed() {
+            if (viewModel.uiState.value.phase == ScanPhase.Scanning) {
+                viewModel.cancelScan()
+            } else {
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,175 +78,294 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         binding = ActivityScanMusicBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        initViews()
-        observeViewModel()
+        onBackPressedDispatcher.addCallback(this, backCallback)
+
+        setupSystemBars()
+        setupToolbar()
+        setupViews()
+        observeUiState()
     }
 
-    private fun initViews() {
-        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
+    private fun setupSystemBars() {
+        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.background)
+    }
+
+    private fun setupToolbar() {
         binding.toolbar.navigateBack(this)
         binding.toolbar.setOnMenuItemClickListener(this)
-
-        binding.scanStartStop.setOnClickListener(::onPrimaryActionClicked)
-        scanHideClickParent.setOnClickListener { HiddenFoldersActivity.start(this) }
-
-        scanPath.movementMethod = LinkMovementMethod.getInstance()
-        scanProgress.isEnabled = false
-        scanProgress.visibility = View.INVISIBLE
     }
 
-    private fun observeViewModel() {
+    private fun setupViews() {
+        binding.scanStartStop.setOnClickListener {
+            onPrimaryActionClick()
+        }
+
+        beforeBinding.scanCheckbox.setOnClickListener {
+            toggleDurationFilter()
+        }
+
+        beforeBinding.scanCheckbox2.setOnClickListener {
+            toggleSizeFilter()
+        }
+
+        beforeBinding.scanCheckbox3.setOnClickListener {
+            beforeBinding.scanCheckbox3.isSelected = !beforeBinding.scanCheckbox3.isSelected
+        }
+
+        resultBinding.scanHideClickParent.setOnClickListener {
+            openHiddenFolders()
+        }
+
+        resultBinding.scanDeleteParent.setOnClickListener {
+            DeletedMusicActivity.start(this)
+        }
+
+        scanningBinding.scanProgress.apply {
+            isEnabled = false
+            setMax(PROGRESS_MAX)
+            setProgress(0)
+        }
+    }
+
+    private fun observeUiState() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect(::renderState)
+                viewModel.uiState.collect(::render)
             }
         }
     }
 
-    private fun validateScanInput(): Boolean {
-        if (TextUtils.isEmpty(excludeDurationEditText.editableText)) {
-            ToastUtil.show(this, R.string.equalizer_edit_input_error)
-            return false
-        }
-        if (TextUtils.isEmpty(excludeSizeEditText.editableText)) {
-            ToastUtil.show(this, R.string.equalizer_edit_input_error)
-            return false
-        }
-        return true
+    private fun render(state: ScanUiState) {
+        renderOptions(state.options)
+        renderLibraryInfo(state.libraryInfo)
+        renderPhase(state)
     }
 
-    private fun onPrimaryActionClicked(view: View) {
-        when (currentPhase) {
-            ScanPhase.IDLE -> startScan()
-            ScanPhase.SCANNING -> viewModel.cancelScan()
-            ScanPhase.RESULT -> onBackPressedDispatcher.onBackPressed()
-        }
-    }
-
-    private fun startScan() {
-        if (!hasAudioPermission()) {
-            requestAudioPermission()
-            return
-        }
-        if (!validateScanInput()) return
-
-        viewModel.startScan(
-            ScanOptions(
-                excludeBySeconds = scanCheckbox.isSelected,
-                excludeBySize = scanCheckbox2.isSelected,
-                excludeRingtone = scanCheckbox3.isSelected,
-                excludeSeconds = excludeDurationEditText.text?.toString()?.toLongOrNull()
-                    ?.coerceIn(1L, 3600L) ?: 60L,
-                excludeSizeKb = excludeSizeEditText.text?.toString()?.toLongOrNull()
-                    ?.coerceIn(1L, 1_048_576L) ?: 50L
-            )
-        )
-    }
-
-    private fun renderState(state: ScanUiState) {
-        bindOptions(state.options)
-        when {
-            state.isScanning -> renderScanningState(state)
-            state.result != null -> renderResultState(state.result)
-            else -> renderIdleState()
-        }
-    }
-
-    private fun bindOptions(options: ScanOptions) {
+    private fun renderOptions(options: ScanOptions) = with(beforeBinding) {
         scanCheckbox.isSelected = options.excludeBySeconds
         scanCheckbox2.isSelected = options.excludeBySize
         scanCheckbox3.isSelected = options.excludeRingtone
 
-        excludeDurationEditText.isEnabled = options.excludeBySeconds
-        excludeSizeEditText.isEnabled = options.excludeBySize
+        excludeDurationEditText.setTextIfDifferent(options.excludeSeconds.toString())
+        excludeSizeEditText.setTextIfDifferent(options.excludeSizeKb.toString())
+    }
 
-        if (excludeDurationEditText.text?.toString() != options.excludeSeconds.toString()) {
-            excludeDurationEditText.setText(options.excludeSeconds.toString())
+    private fun renderPhase(state: ScanUiState) {
+        when (state.phase) {
+            ScanPhase.Idle -> renderIdle()
+            ScanPhase.Scanning -> renderScanning(state)
+            ScanPhase.Result -> renderResult(state.result)
         }
-        if (excludeSizeEditText.text?.toString() != options.excludeSizeKb.toString()) {
-            excludeSizeEditText.setText(options.excludeSizeKb.toString())
+    }
+
+    private fun renderIdle() {
+        binding.scanViewFlipper.displayedChild = CHILD_BEFORE_SCANNING
+        binding.scanStartStop.setText(R.string.scan_start)
+        binding.musicScanProgress?.stopAnimationImmediately()
+
+        scanningBinding.scanProgress.isVisible = false
+        scanningBinding.scanPath.text = null
+
+        setSettingsMenuVisible(true)
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun renderScanning(state: ScanUiState) {
+        val progress = state.progressPercent.coerceIn(0, PROGRESS_MAX)
+
+        binding.scanViewFlipper.displayedChild = CHILD_SCANNING
+        binding.scanStartStop.setText(R.string.scan_stop)
+
+        scanningBinding.scanPath.text = when (state.step) {
+            ScanStep.FindingFiles -> state.currentPath
+            ScanStep.ParsingFiles -> getString(R.string.parse_file) + progress + "%"
+            ScanStep.WritingDatabase -> getString(R.string.write_to_database)
         }
+        scanningBinding.scanProgress.apply {
+            setProgress(progress)
+            isVisible = state.step == ScanStep.ParsingFiles
+        }
+
+        binding.musicScanProgress?.startAnimation()
+        setSettingsMenuVisible(false)
+    }
+
+    private fun renderResult(result: ScanResultSummary?) {
+        if (result == null) {
+            renderIdle()
+            return
+        }
+
+        binding.scanViewFlipper.displayedChild = CHILD_AFTER_SCANNING
+        binding.scanStartStop.setText(R.string.scan_end)
+        binding.musicScanProgress?.stopAnimationSmoothly()
+
+        scanningBinding.scanProgress.isVisible = false
+
+        resultBinding.scanReportSongs.text = getString(
+            R.string.scan_result,
+            formatTrackCount(result.importedCount)
+        )
+        resultBinding.scanReportAdded.text = getString(
+            R.string.scan_result_1,
+            formatTrackCount(result.addedCount)
+        )
+        resultBinding.scanReportFiltered.text = getString(
+            R.string.scan_result_2,
+            formatTrackCount(result.filteredOutCount)
+        )
+
+        resultBinding.scanHideParent.isVisible = result.hiddenCount > 0
+
+        val hasDeletedTracks = result.deletedCount > 0
+        resultBinding.scanDeleteParent.isVisible = hasDeletedTracks
+        resultBinding.scanDeleteDetails.text = if (hasDeletedTracks) {
+            getString(R.string.scan_result_3, formatTrackCount(result.deletedCount))
+        } else {
+            null
+        }
+
+        setSettingsMenuVisible(true)
+    }
+
+    private fun renderLibraryInfo(info: ScanLibraryInfo) {
+        binding.scanLibraryInfo.text = getString(R.string.songs) +
+            ": ${info.songs}  " +
+            getString(R.string.albums) +
+            ": ${info.albums}  " +
+            getString(R.string.artists) +
+            ": ${info.artists}"
+    }
+
+    private fun onPrimaryActionClick() {
+        when (viewModel.uiState.value.phase) {
+            ScanPhase.Idle -> startScanIfReady()
+            ScanPhase.Scanning -> viewModel.cancelScan()
+            ScanPhase.Result -> onBackPressedDispatcher.onBackPressed()
+        }
+    }
+
+    private fun startScanIfReady() {
+        if (!hasAudioPermission()) {
+            requestAudioPermission()
+            return
+        }
+
+        startScanWithPaths(emptyList())
+    }
+
+    private fun startScanWithPaths(selectedPaths: List<String>) {
+        val options = readScanOptionsOrNull() ?: return
+        viewModel.startScan(
+            options.copy(selectedScanPaths = selectedPaths)
+        )
+    }
+
+    private fun openScanSettings() {
+        if (!hasAudioPermission()) {
+            openSettingsAfterPermission = true
+            requestAudioPermission()
+            return
+        }
+
+        val options = readScanOptionsOrNull() ?: return
+        scanSettingsLauncher.launch(
+            ScanSettingActivity.intent(
+                context = this,
+                selectedPaths = options.selectedScanPaths
+            )
+        )
+    }
+
+    private fun readScanOptionsOrNull(): ScanOptions? = with(beforeBinding) {
+        val excludeBySeconds = scanCheckbox.isSelected
+        val excludeBySize = scanCheckbox2.isSelected
+
+        val excludeSeconds = excludeDurationEditText.readLongOrNull(
+            required = excludeBySeconds,
+            defaultValue = DEFAULT_EXCLUDE_SECONDS,
+            minValue = MIN_EXCLUDE_SECONDS,
+            maxValue = MAX_EXCLUDE_SECONDS
+        ) ?: return null
+
+        val excludeSizeKb = excludeSizeEditText.readLongOrNull(
+            required = excludeBySize,
+            defaultValue = DEFAULT_EXCLUDE_SIZE_KB,
+            minValue = MIN_EXCLUDE_SIZE_KB,
+            maxValue = MAX_EXCLUDE_SIZE_KB
+        ) ?: return null
+
+        ScanOptions(
+            excludeBySeconds = excludeBySeconds,
+            excludeBySize = excludeBySize,
+            excludeRingtone = scanCheckbox3.isSelected,
+            excludeSeconds = excludeSeconds,
+            excludeSizeKb = excludeSizeKb,
+            selectedScanPaths = viewModel.uiState.value.options.selectedScanPaths
+        )
+    }
+
+    private fun toggleDurationFilter() = with(beforeBinding) {
+        scanCheckbox.isSelected = !scanCheckbox.isSelected
+    }
+
+    private fun toggleSizeFilter() = with(beforeBinding) {
+        scanCheckbox2.isSelected = !scanCheckbox2.isSelected
+    }
+
+    private fun setSettingsMenuVisible(visible: Boolean) {
+        binding.toolbar.menu.findItem(R.id.menu_setting)?.isVisible = visible
     }
 
     private fun formatTrackCount(value: Int): String {
         return resources.getQuantityString(R.plurals.plurals_track, value, value)
     }
 
-    private fun renderIdleState() {
-        currentPhase = ScanPhase.IDLE
-        binding.scanViewFlipper.displayedChild = 0
-        binding.scanStartStop.setText(R.string.scan_start)
-        binding.scanLibraryInfo.setText(R.string.scan_condition_title)
-        binding.musicScanProgress?.stopAnimationImmediately()
-
-        scanProgress.visibility = View.GONE
-        scanPath.text = ""
-        binding.toolbar.menu.findItem(R.id.menu_setting)?.isVisible = true
-    }
-
-    private fun renderScanningState(state: ScanUiState) {
-        currentPhase = ScanPhase.SCANNING
-        binding.scanViewFlipper.displayedChild = 1
-        binding.scanStartStop.setText(R.string.scan_stop)
-        binding.scanLibraryInfo.text = getString(R.string.scan_media) + " " + state.progressPercent + "%"
-
-        scanProgress.setMax(100)
-        scanProgress.setProgress(state.progressPercent)
-        scanProgress.visibility = View.VISIBLE
-
-        scanPath.text = state.currentPath
-        binding.musicScanProgress?.startAnimation()
-        binding.toolbar.menu.findItem(R.id.menu_setting)?.isVisible = false
-    }
-
-    private fun renderResultState(result: ScanResultSummary) {
-        currentPhase = ScanPhase.RESULT
-        binding.musicScanProgress?.stopAnimationSmoothly()
-        binding.scanViewFlipper.displayedChild = 2
-        binding.scanStartStop.setText(R.string.scan_end)
-        binding.scanLibraryInfo.setText(R.string.scan_end)
-
-        scanProgress.visibility = View.GONE
-
-        scanReportSongs.text = getString(R.string.scan_result, formatTrackCount(result.importedCount))
-        scanReportAdded.text = getString(R.string.scan_result_1, formatTrackCount(result.addedCount))
-        scanReportFiltered.text = getString(R.string.scan_result_2, formatTrackCount(result.filteredOutCount))
-
-        val hasDeleted = result.deletedCount > 0
-        scanDeleteParent.visibility = if (hasDeleted) View.VISIBLE else View.GONE
-        if (hasDeleted) {
-            scanDeleteDetails.text = getString(R.string.scan_result_3, formatTrackCount(result.deletedCount))
-        }
-        scanHideParent.visibility = View.VISIBLE
-        binding.toolbar.menu.findItem(R.id.menu_setting)?.isVisible = true
+    private fun openHiddenFolders() {
+        HiddenFoldersActivity.start(this)
     }
 
     override fun onAudioPermissionGranted() {
-        startScan()
+        if (openSettingsAfterPermission) {
+            openSettingsAfterPermission = false
+            openScanSettings()
+        } else {
+            startScanIfReady()
+        }
     }
 
     override fun onMenuItemClick(item: MenuItem): Boolean {
-        if (item.itemId == R.id.menu_setting && currentPhase != ScanPhase.SCANNING) {
-            HiddenFoldersActivity.start(this)
-            return true
+        return when (item.itemId) {
+            R.id.menu_setting -> {
+                if (viewModel.uiState.value.phase == ScanPhase.Scanning) {
+                    false
+                } else {
+                    openScanSettings()
+                    true
+                }
+            }
+
+            else -> false
         }
-        return false
     }
 
-    override fun onBackPressed() {
-        if (currentPhase == ScanPhase.SCANNING) {
-            viewModel.cancelScan()
-            return
-        }
-        super.onBackPressed()
-    }
+    companion object {
+        private const val CHILD_BEFORE_SCANNING = 0
+        private const val CHILD_SCANNING = 1
+        private const val CHILD_AFTER_SCANNING = 2
 
-    @Suppress("unused")
-    fun onCheckedChanged(view: View) {
-        view.isSelected = !view.isSelected
-        when (view.id) {
-            R.id.scan_checkbox -> excludeDurationEditText.isEnabled = view.isSelected
-            R.id.scan_checkbox2 -> excludeSizeEditText.isEnabled = view.isSelected
+        private const val PROGRESS_MAX = 100
+
+        private const val DEFAULT_EXCLUDE_SECONDS = 60L
+        private const val MIN_EXCLUDE_SECONDS = 1L
+        private const val MAX_EXCLUDE_SECONDS = 3_600L
+
+        private const val DEFAULT_EXCLUDE_SIZE_KB = 50L
+        private const val MIN_EXCLUDE_SIZE_KB = 1L
+        private const val MAX_EXCLUDE_SIZE_KB = 1_048_576L
+
+        fun start(context: Context) {
+            context.startActivityCompat(Intent(context, ScanMusicActivity::class.java))
         }
     }
 }

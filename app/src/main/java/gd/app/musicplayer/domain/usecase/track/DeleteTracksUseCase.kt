@@ -7,12 +7,14 @@ import android.provider.MediaStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.repository.LibraryRepo
+import gd.app.musicplayer.domain.usecase.playback.PrunePlaybackQueueTracksUseCase
 import java.io.File
 import javax.inject.Inject
 
 class DeleteTracksUseCase @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
-    private val libraryRepo: LibraryRepo
+    private val libraryRepo: LibraryRepo,
+    private val prunePlaybackQueueTracksUseCase: PrunePlaybackQueueTracksUseCase
 ) {
     suspend operator fun invoke(tracks: Collection<Music>): Int {
         val deletedIds = mutableListOf<Long>()
@@ -29,6 +31,7 @@ class DeleteTracksUseCase @Inject constructor(
         }
 
         if (deletedIds.isNotEmpty()) {
+            prunePlaybackQueueTracksUseCase(appContext, deletedIds)
             libraryRepo.hideTracks(deletedIds, System.currentTimeMillis())
         }
 

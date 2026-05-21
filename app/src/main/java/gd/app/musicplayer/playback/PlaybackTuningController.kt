@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -25,6 +24,8 @@ class PlaybackTuningController(
     private val soundEffectPreferences: SoundEffectPreferences,
     private val stereoBalanceAudioProcessor: StereoBalanceAudioProcessor,
     private val extraStereoBalanceAudioProcessors: List<StereoBalanceAudioProcessor> = emptyList(),
+    private val reverbAudioProcessor: ReverbAudioProcessor,
+    private val extraReverbAudioProcessors: List<ReverbAudioProcessor> = emptyList(),
     private val currentMusicProvider: () -> Music?,
     private val applicationScope: CoroutineScope
 ) {
@@ -40,6 +41,18 @@ class PlaybackTuningController(
 
     @Volatile
     private var latestReplayGainPreference = ReplayGainSettingPreference()
+
+    @Volatile
+    private var latestBalanceEnabled: Boolean = false
+
+    @Volatile
+    private var latestBalanceLeft: Float = 1f
+
+    @Volatile
+    private var latestBalanceRight: Float = 1f
+
+    @Volatile
+    private var latestReverbIndex: Int = 0
 
     init {
         observePlaybackSpeedAndPitch()
@@ -79,6 +92,29 @@ class PlaybackTuningController(
         player.volume = resolveTargetPlaybackVolume()
     }
 
+    suspend fun refreshSoundBalanceFromPreferences() {
+        val settings = soundEffectPreferences.getSoundEffectSettingsSnapshot()
+        val balance = SoundBalance(
+            enabled = settings.balanceEnabled,
+            left = settings.balanceLeft,
+            right = settings.balanceRight
+        )
+
+        latestBalanceEnabled = balance.enabled
+        latestBalanceLeft = balance.left
+        latestBalanceRight = balance.right
+        latestReverbIndex = settings.reverbIndex
+
+        applySoundBalance(stereoBalanceAudioProcessor, balance)
+        extraStereoBalanceAudioProcessors.forEach { processor ->
+            applySoundBalance(processor, balance)
+        }
+        applyReverb(reverbAudioProcessor, settings.reverbIndex)
+        extraReverbAudioProcessors.forEach { processor ->
+            applyReverb(processor, settings.reverbIndex)
+        }
+    }
+
     fun isPlayPauseFadeEnabled(): Boolean {
         return latestVolumeFadeEnabled
     }
@@ -92,7 +128,12 @@ class PlaybackTuningController(
             info = ReplayGainParser.parse(music?.data)
         )
 
-        return replayGainMultiplier.coerceIn(
+        return (
+            replayGainMultiplier.coerceIn(
+            minimumValue = MIN_VOLUME,
+            maximumValue = MAX_RESOLVED_VOLUME
+            ) * resolveBalanceOverallGain()
+        ).coerceIn(
             minimumValue = MIN_VOLUME,
             maximumValue = MAX_RESOLVED_VOLUME
         )
@@ -138,19 +179,29 @@ class PlaybackTuningController(
 
     private fun observeSoundBalance() {
         soundEffectPreferences.soundEffectSettings
-            .map { settings ->
-                SoundBalance(
+            .distinctUntilChanged()
+            .onEach { settings ->
+                val balance = SoundBalance(
                     enabled = settings.balanceEnabled,
                     left = settings.balanceLeft,
                     right = settings.balanceRight
                 )
-            }
-            .distinctUntilChanged()
-            .onEach { balance ->
+                latestBalanceEnabled = balance.enabled
+                latestBalanceLeft = balance.left
+                latestBalanceRight = balance.right
+                latestReverbIndex = settings.reverbIndex
+
                 applySoundBalance(stereoBalanceAudioProcessor, balance)
                 extraStereoBalanceAudioProcessors.forEach { processor ->
                     applySoundBalance(processor, balance)
                 }
+
+                applyReverb(reverbAudioProcessor, settings.reverbIndex)
+                extraReverbAudioProcessors.forEach { processor ->
+                    applyReverb(processor, settings.reverbIndex)
+                }
+
+                applyResolvedPlayerVolume()
             }
             .launchIn(applicationScope)
     }
@@ -159,10 +210,60 @@ class PlaybackTuningController(
         processor: StereoBalanceAudioProcessor,
         balance: SoundBalance
     ) {
+        val normalized = normalizeBalance(balance)
         processor.setChannelBalance(
-            enabled = balance.enabled,
-            left = balance.left,
-            right = balance.right
+            enabled = normalized.enabled,
+            left = normalized.left,
+            right = normalized.right
+        )
+    }
+
+    private fun applyReverb(
+        processor: ReverbAudioProcessor,
+        reverbIndex: Int
+    ) {
+        processor.setPreset(reverbIndex)
+    }
+
+    private fun resolveBalanceOverallGain(): Float {
+        if (!latestBalanceEnabled) {
+            return 1f
+        }
+
+        return maxOf(
+            latestBalanceLeft.coerceIn(0f, 1f),
+            latestBalanceRight.coerceIn(0f, 1f)
+        )
+    }
+
+    private fun normalizeBalance(
+        balance: SoundBalance
+    ): SoundBalance {
+        if (!balance.enabled) {
+            return SoundBalance(
+                enabled = false,
+                left = 1f,
+                right = 1f
+            )
+        }
+
+        val overallGain = maxOf(
+            balance.left.coerceIn(0f, 1f),
+            balance.right.coerceIn(0f, 1f)
+        )
+
+        if (overallGain <= 0f) {
+            return SoundBalance(
+                enabled = true,
+                left = 0f,
+                right = 0f
+            )
+        }
+
+        return SoundBalance(
+            enabled = true,
+            left = (balance.left / overallGain).coerceIn(0f, 1f),
+            right = (balance.right / overallGain).coerceIn(0f, 1f)
         )
     }
 

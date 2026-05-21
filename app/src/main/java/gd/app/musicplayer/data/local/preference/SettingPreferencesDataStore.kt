@@ -37,6 +37,7 @@ interface SettingPreferencesDataStore {
     suspend fun updateForwardBackwardSeconds(seconds: Int)
     suspend fun updateShowForwardBackward(enabled: Boolean)
     suspend fun updateShowHiddenFolders(enabled: Boolean)
+    suspend fun updateShowKeepAliveDot(enabled: Boolean)
     suspend fun updateFadeDurationSeconds(seconds: Int)
     suspend fun updateSwipeChangeSongsEnabled(enabled: Boolean)
     suspend fun updateSimultaneousPlayEnabled(enabled: Boolean)
@@ -64,4 +65,3 @@ interface SettingPreferencesDataStore {
     suspend fun updatePlaylistAddPosition(position: Int)
     suspend fun updateClickAddQueueEnabled(enabled: Boolean)
 }
-

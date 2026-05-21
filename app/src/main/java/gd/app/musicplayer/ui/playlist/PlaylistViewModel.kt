@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.playlist
 
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -177,7 +176,7 @@ class PlaylistViewModel @Inject constructor(
 
             SORT_STYLE_DATE -> {
                 compareByDescending<MusicSet.Playlist> { playlist ->
-                    playlist.setup_time
+                    playlist.setupTime
                 }.thenByDescending { playlist ->
                     playlist.id
                 }

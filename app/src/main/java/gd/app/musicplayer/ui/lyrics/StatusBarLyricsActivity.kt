@@ -38,6 +38,8 @@ import gd.app.musicplayer.databinding.ActivityStatusBarLyricsBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -54,6 +56,7 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
     private var currentPreference = StatusBarLyricPreference()
     private var suppressSeekBarCallback = false
     private var trackingSeekBar: SeekBar? = null
+    private var seekBarPersistJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +76,11 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         syncOverlayPermissionState()
     }
 
+    override fun onDestroy() {
+        seekBarPersistJob?.cancel()
+        super.onDestroy()
+    }
+
     override fun onProgressChanged(
         seekBar: SeekBar,
         progress: Int,
@@ -83,35 +91,21 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         val max = seekBar.getMax().coerceAtLeast(1)
         val ratio = progress.toFloat() / max.toFloat()
 
-        viewLifecycleOwnerOrActivityLaunch {
-            when (seekBar) {
-                binding.sbarLyricXSeek -> {
-                    statusBarLyricPreferenceStore.setXRatio(ratio)
-                }
-
-                binding.sbarLyricYSeek -> {
-                    statusBarLyricPreferenceStore.setYRatio(ratio)
-                }
-
-                binding.sbarLyricWidthSeek -> {
-                    statusBarLyricPreferenceStore.setWidthRatio(ratio)
-                }
-
-                binding.sbarLyricFontSizeSeek -> {
-                    statusBarLyricPreferenceStore.setFontSizeRatio(ratio)
-                }
-
-                binding.sbarLyricAlphaSeek -> {
-                    statusBarLyricPreferenceStore.setAlphaRatio(ratio)
-                }
-            }
-        }
+        currentPreference = currentPreference.withSeekRatio(seekBar, ratio)
+        scheduleSeekBarPersist(seekBar, ratio)
     }
 
     override fun onStopTrackingTouch(seekBar: SeekBar) {
         trackingSeekBar = null
         binding.settingScrollView.requestDisallowInterceptTouchEvent(false)
-        syncSeekBars(currentPreference)
+
+        val max = seekBar.getMax().coerceAtLeast(1)
+        val ratio = seekBar.getProgress().toFloat() / max.toFloat()
+
+        seekBarPersistJob?.cancel()
+        seekBarPersistJob = lifecycleScope.launch {
+            persistSeekRatio(seekBar, ratio)
+        }
     }
 
     override fun onStartTrackingTouch(seekBar: SeekBar) {
@@ -269,6 +263,53 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
 
     private fun setSeekProgress(seekBar: SeekBar, ratio: Float) {
         seekBar.setProgress((ratio.coerceIn(0f, 1f) * seekBar.getMax()).toInt())
+    }
+
+    private fun scheduleSeekBarPersist(seekBar: SeekBar, ratio: Float) {
+        seekBarPersistJob?.cancel()
+        seekBarPersistJob = lifecycleScope.launch {
+            delay(SEEK_BAR_PERSIST_DEBOUNCE_MS)
+            persistSeekRatio(seekBar, ratio)
+        }
+    }
+
+    private suspend fun persistSeekRatio(seekBar: SeekBar, ratio: Float) {
+        when (seekBar) {
+            binding.sbarLyricXSeek -> {
+                statusBarLyricPreferenceStore.setXRatio(ratio)
+            }
+
+            binding.sbarLyricYSeek -> {
+                statusBarLyricPreferenceStore.setYRatio(ratio)
+            }
+
+            binding.sbarLyricWidthSeek -> {
+                statusBarLyricPreferenceStore.setWidthRatio(ratio)
+            }
+
+            binding.sbarLyricFontSizeSeek -> {
+                statusBarLyricPreferenceStore.setFontSizeRatio(ratio)
+            }
+
+            binding.sbarLyricAlphaSeek -> {
+                statusBarLyricPreferenceStore.setAlphaRatio(ratio)
+            }
+        }
+    }
+
+    private fun StatusBarLyricPreference.withSeekRatio(
+        seekBar: SeekBar,
+        ratio: Float
+    ): StatusBarLyricPreference {
+        val coercedRatio = ratio.coerceIn(0f, 1f)
+        return when (seekBar) {
+            binding.sbarLyricXSeek -> copy(xRatio = coercedRatio)
+            binding.sbarLyricYSeek -> copy(yRatio = coercedRatio)
+            binding.sbarLyricWidthSeek -> copy(widthRatio = coercedRatio)
+            binding.sbarLyricFontSizeSeek -> copy(fontSizeRatio = coercedRatio)
+            binding.sbarLyricAlphaSeek -> copy(alphaRatio = coercedRatio)
+            else -> this
+        }
     }
 
     private fun handleEnableToggle() {
@@ -593,6 +634,7 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
 
     companion object {
         private const val PAYLOAD_SELECTION = "selection"
+        private const val SEEK_BAR_PERSIST_DEBOUNCE_MS = 120L
 
         private val DEFAULT_COLORS = intArrayOf(
             -16776961,

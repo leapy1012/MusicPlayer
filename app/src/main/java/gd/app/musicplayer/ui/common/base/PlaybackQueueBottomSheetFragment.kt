@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.common.base
 
-import android.content.DialogInterface
 import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Configuration
@@ -22,8 +21,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
-import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.messageColor
 import gd.app.musicplayer.core.designsystem.theme.titleColor
@@ -83,18 +80,7 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
 
         binding.currentListDelete.setOnClickListener {
             if (playbackState.queue.isEmpty()) return@setOnClickListener
-            requireActivity().showMessageDialog(
-                requireContext().createMessageDialogConfig(
-                    title = getString(R.string.clear),
-                    message = getString(R.string.clear_message),
-                    negativeText = getString(R.string.cancel),
-                    positiveText = getString(R.string.clear),
-                    positiveClickListener = DialogInterface.OnClickListener { dialog, _ ->
-                        viewModel.clearQueueOrDismiss(playbackState)
-                        dialog.dismiss()
-                    }
-                )
-            )
+            showClearQueueDialog()
         }
 
         binding.currentListMode.setOnClickListener {
@@ -115,6 +101,17 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
                 }
             }
         }
+    }
+
+    private fun showClearQueueDialog() {
+        if (parentFragmentManager.findFragmentByTag(QueueClearConfirmDialogFragment.TAG) != null) {
+            dismissAllowingStateLoss()
+            return
+        }
+
+        QueueClearConfirmDialogFragment()
+            .show(parentFragmentManager, QueueClearConfirmDialogFragment.TAG)
+        dismissAllowingStateLoss()
     }
 
     override fun onResume() {
@@ -154,8 +151,8 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         binding.currentListTitle.text = getString(R.string.music_queue, state.queue.size)
         binding.currentListSave.isEnabled = state.queue.isNotEmpty()
         binding.currentListDelete.isEnabled = state.queue.isNotEmpty()
-        binding.currentListRecycler.isVisible = state.queue.isNotEmpty()
-        adapter.submitQueue(state.queue, state.currentIndex)
+        binding.currentListRecycler.isVisible = true
+        adapter.submitQueue(state.queue, state.currentTrackId)
     }
 
     private fun handleEvent(event: PlaybackQueueBottomSheetEvent) {
@@ -177,7 +174,7 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         val isTablet =
             (configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK) >=
-                Configuration.SCREENLAYOUT_SIZE_LARGE
+                    Configuration.SCREENLAYOUT_SIZE_LARGE
 
         val ratio = if (isLandscape || isTablet) 0.72f else 0.60f
         return (screenHeight * ratio).toInt()
@@ -202,12 +199,14 @@ private class QueueAdapter(
 ) : RecyclerView.Adapter<QueueAdapter.QueueViewHolder>(), ItemMoveListener {
     private companion object {
         const val PAYLOAD_FAVORITE = "payload_favorite"
+        const val PAYLOAD_CURRENT = "payload_current"
         const val FAVORITES_PLAYLIST_ID = 1L
     }
 
     private val queue = mutableListOf<Music>()
     private val favoriteOverrides = mutableMapOf<Long, Boolean>()
-    private var currentIndex = -1
+    private var currentTrackId: Long? = null
+    private var isDragging = false
     private lateinit var recyclerView: RecyclerView
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var dragChanged = false
@@ -216,7 +215,15 @@ private class QueueAdapter(
         setHasStableIds(true)
     }
 
-    fun submitQueue(items: List<Music>, currentIndex: Int) {
+    fun submitQueue(items: List<Music>, currentTrackId: Long?) {
+        // Do not let a stale playback emission overwrite the user's local drag order.
+        // The final order is committed in onDragFinishedListener.
+        if (isDragging) {
+            this.currentTrackId = currentTrackId
+            return
+        }
+
+        val previousCurrentIndex = currentIndex()
         queue.clear()
         queue.addAll(
             items.map { music ->
@@ -225,15 +232,23 @@ private class QueueAdapter(
             }
         )
         favoriteOverrides.keys.retainAll(queue.mapTo(hashSetOf()) { it.id })
-        this.currentIndex = currentIndex
+
+        val currentChanged = this.currentTrackId != currentTrackId
+        this.currentTrackId = currentTrackId
+
         notifyDataSetChanged()
+
+        if (currentChanged) {
+            notifyCurrentChanged(previousCurrentIndex)
+            notifyCurrentChanged(currentIndex())
+        }
     }
 
-    fun updateFavorite(trackId: Long, favorited: Boolean) {
+    fun updateFavorite(trackId: Long, isFavorite: Boolean) {
         val index = queue.indexOfFirst { it.id == trackId }
         if (index < 0) return
-        favoriteOverrides[trackId] = favorited
-        queue[index] = queue[index].copy(playlistId = if (favorited) FAVORITES_PLAYLIST_ID else 0L)
+        favoriteOverrides[trackId] = isFavorite
+        queue[index] = queue[index].copy(playlistId = if (isFavorite) FAVORITES_PLAYLIST_ID else 0L)
         notifyItemChanged(index, PAYLOAD_FAVORITE)
     }
 
@@ -251,8 +266,10 @@ private class QueueAdapter(
             .setDragEnabled(true)
             .onItemDragListener(::onItemMove)
             .onDragFinishedListener {
+                isDragging = false
                 if (dragChanged) {
                     dragChanged = false
+                    notifyCurrentChanged(currentIndex())
                     onTrackMoved(queue.toList())
                 }
             }
@@ -278,10 +295,19 @@ private class QueueAdapter(
     override fun onBindViewHolder(holder: QueueViewHolder, position: Int) {
         holder.bind(
             music = queue[position],
-            isCurrent = position == currentIndex,
-            onClick = { onTrackClicked(position) },
-            onRemove = { onTrackRemoved(position) },
-            onFavoriteClick = { onToggleFavorite(queue[position]) },
+            isCurrent = queue[position].id == currentTrackId,
+            onClick = {
+                holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
+                    ?.let(onTrackClicked)
+            },
+            onRemove = {
+                holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
+                    ?.let(onTrackRemoved)
+            },
+            onFavoriteClick = {
+                holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
+                    ?.let { onToggleFavorite(queue[it]) }
+            },
             onDragStart = { itemTouchHelper.startDrag(holder) },
             palette = themeProvider(),
             accentColor = accentColorProvider(),
@@ -294,28 +320,50 @@ private class QueueAdapter(
         position: Int,
         payloads: MutableList<Any>
     ) {
-        if (payloads.contains(PAYLOAD_FAVORITE)) {
-            holder.bindFavorite(
-                music = queue[position],
-                palette = themeProvider(),
-                accentColor = accentColorProvider(),
-                applyTheme = applyTheme
-            )
-            return
+        when {
+            payloads.contains(PAYLOAD_FAVORITE) -> {
+                holder.bindFavorite(
+                    music = queue[position],
+                    palette = themeProvider(),
+                    accentColor = accentColorProvider(),
+                    applyTheme = applyTheme
+                )
+            }
+            payloads.contains(PAYLOAD_CURRENT) -> {
+                holder.bindCurrentState(
+                    isCurrent = queue[position].id == currentTrackId,
+                    palette = themeProvider(),
+                    accentColor = accentColorProvider()
+                )
+            }
+            else -> super.onBindViewHolder(holder, position, payloads)
         }
-        super.onBindViewHolder(holder, position, payloads)
     }
 
     override fun onItemMove(fromPosition: Int, toPosition: Int) {
         if (fromPosition !in queue.indices || toPosition !in queue.indices) return
         Collections.swap(queue, fromPosition, toPosition)
+        isDragging = true
         dragChanged = true
         notifyItemMoved(fromPosition, toPosition)
+        notifyCurrentChanged(fromPosition)
+        notifyCurrentChanged(toPosition)
+        notifyCurrentChanged(currentIndex())
+    }
+
+    private fun currentIndex(): Int = queue.indexOfFirst { it.id == currentTrackId }
+
+    private fun notifyCurrentChanged(position: Int) {
+        if (position in queue.indices) {
+            notifyItemChanged(position, PAYLOAD_CURRENT)
+        }
     }
 
     class QueueViewHolder(
         private val binding: DialogQueueListItemBinding
     ) : RecyclerView.ViewHolder(binding.root), ItemTouchStateListener {
+
+        private var boundIsCurrent = false
 
         fun bind(
             music: Music,
@@ -341,7 +389,7 @@ private class QueueAdapter(
             binding.currentListMusicArtist.setTextColor(artistColor)
             bindFavorite(music, palette, accentColor, applyTheme)
 
-            binding.root.alpha = if (isCurrent) 1f else 0.92f
+            bindCurrentState(isCurrent, palette, accentColor)
             binding.root.setOnClickListener { onClick() }
             binding.currentListRemove.setOnClickListener { onRemove() }
             binding.currentListFavorite.setOnClickListener { onFavoriteClick() }
@@ -351,6 +399,20 @@ private class QueueAdapter(
                 }
                 false
             }
+        }
+
+        fun bindCurrentState(
+            isCurrent: Boolean,
+            palette: ThemePalette,
+            accentColor: Int
+        ) {
+            boundIsCurrent = isCurrent
+            val titleColor = if (isCurrent) accentColor else palette.titleColor
+            val artistColor = if (isCurrent) titleColor else palette.messageColor
+
+            binding.currentListMusicTitle.setTextColor(titleColor)
+            binding.currentListMusicArtist.setTextColor(artistColor)
+            binding.root.alpha = if (isCurrent) 1f else 0.92f
         }
 
         fun bindFavorite(
@@ -376,7 +438,7 @@ private class QueueAdapter(
         }
 
         override fun onItemCleared() {
-            binding.root.alpha = 1f
+            binding.root.alpha = if (boundIsCurrent) 1f else 0.92f
         }
     }
 }

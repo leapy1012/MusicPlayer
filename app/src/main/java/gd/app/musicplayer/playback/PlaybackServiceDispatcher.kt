@@ -85,6 +85,19 @@ class PlaybackServiceDispatcher @Inject constructor() {
                     putExtra(MusicPlaybackService.EXTRA_TO_INDEX, command.toIndex)
                 }
 
+                is PlaybackCommand.RefreshEditedTrack -> {
+                    action = MusicPlaybackService.ACTION_UPDATE_TRACK_METADATA
+                    putExtra(MusicPlaybackService.EXTRA_TRACK, command.track)
+                }
+
+                is PlaybackCommand.RefreshEditedTracks -> {
+                    action = MusicPlaybackService.ACTION_UPDATE_TRACKS_METADATA
+                    putParcelableArrayListExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
+                        ArrayList(command.tracks)
+                    )
+                }
+
                 PlaybackCommand.TogglePlayPause -> {
                     action = MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE
                 }
@@ -95,6 +108,11 @@ class PlaybackServiceDispatcher @Inject constructor() {
 
                 PlaybackCommand.Pause -> {
                     action = MusicPlaybackService.ACTION_PAUSE
+                }
+
+                is PlaybackCommand.PlayIndex -> {
+                    action = MusicPlaybackService.ACTION_CHANGE_MUSIC_BY_INDEX
+                    putExtra(MusicPlaybackService.EXTRA_INDEX, command.index)
                 }
 
                 PlaybackCommand.Next -> {
@@ -150,6 +168,7 @@ class PlaybackServiceDispatcher @Inject constructor() {
             is PlaybackCommand.PlayNextItems,
             is PlaybackCommand.ReplaceQueue,
             PlaybackCommand.Play,
+            is PlaybackCommand.PlayIndex,
             PlaybackCommand.TogglePlayPause,
             PlaybackCommand.Next,
             PlaybackCommand.Previous -> true
@@ -159,6 +178,8 @@ class PlaybackServiceDispatcher @Inject constructor() {
             is PlaybackCommand.SetStopAfterCurrentTrack,
             is PlaybackCommand.RemoveQueueItem,
             is PlaybackCommand.MoveQueueItem,
+            is PlaybackCommand.RefreshEditedTrack,
+            is PlaybackCommand.RefreshEditedTracks,
             PlaybackCommand.Pause,
             PlaybackCommand.ClearQueue,
             PlaybackCommand.Stop,

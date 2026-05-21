@@ -13,10 +13,8 @@ import androidx.core.view.updatePadding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.view.PlayerSheetDragInsetReceiver
-import gd.app.musicplayer.core.designsystem.view.PlayerSheetInsetHost
 
-abstract class BasePlayerSheetActivity : BaseActivity(),
-    gd.app.musicplayer.core.designsystem.view.PlayerSheetInsetHost {
+abstract class BasePlayerSheetActivity : BaseActivity(){
 
     companion object {
         const val EXTRA_EXPAND_PLAYER = "gd.app.musicplayer.extra.EXPAND_PLAYER"
@@ -154,13 +152,6 @@ abstract class BasePlayerSheetActivity : BaseActivity(),
                 fullPlayer.visibility = View.VISIBLE
             }
         }
-    }
-
-
-    override fun currentPlayerSheetVisibleHeight(): Int {
-        if (!::playerSheetBehavior.isInitialized) return 0
-        val parent = playerSheet.parent as? View ?: return 0
-        return (parent.height - playerSheet.top).coerceAtLeast(0)
     }
 
     private fun updatePlayerSheetInsetTarget(progress: Float) {

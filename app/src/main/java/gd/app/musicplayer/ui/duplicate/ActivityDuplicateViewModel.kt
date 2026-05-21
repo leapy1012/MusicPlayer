@@ -13,6 +13,7 @@ import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -38,6 +39,7 @@ class ActivityDuplicateViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val observeTracksUseCase: ObserveTracksUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
+    private val deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase,
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
 
@@ -100,7 +102,7 @@ class ActivityDuplicateViewModel @Inject constructor(
         }
     }
 
-    fun deleteSelected() {
+    fun deleteSelected(deleteSourceFile: Boolean = true) {
         val state = _uiState.value
         if (state.isDeleting || state.selectedIds.isEmpty()) return
 
@@ -115,7 +117,12 @@ class ActivityDuplicateViewModel @Inject constructor(
                 .toList()
 
             val deletedCount = withContext(dispatchers.io) {
-                deleteTracksUseCase(selectedTracks)
+                if (deleteSourceFile) {
+                    deleteTracksUseCase(selectedTracks)
+                } else {
+                    deleteTracksFromLibraryUseCase(selectedTracks.map(Music::id))
+                    selectedTracks.size
+                }
             }
 
             if (deletedCount > 0) {

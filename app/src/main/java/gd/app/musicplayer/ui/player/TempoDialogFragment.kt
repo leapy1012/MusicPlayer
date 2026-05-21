@@ -56,6 +56,7 @@ class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarCh
         )
 
         binding.popupSeekPitch.setOnSeekBarChangeListener(this)
+        binding.popupSeekTempo.setMax(SPEED_MAX)
         binding.popupSeekTempo.setOnSeekBarChangeListener(this)
         binding.popupRefreshPitch.setOnClickListener { setPitchFactor(1f, fromUser = true) }
         binding.popupRefreshTempo.setOnClickListener { setSpeedFactor(1f, fromUser = true) }
@@ -81,20 +82,18 @@ class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarCh
         val progress = factorToPitchProgress(factor)
         if (binding.popupSeekPitch.getProgress() != progress) {
             binding.popupSeekPitch.setProgress(progress)
-        } else {
-            renderPitch(progress)
-            if (fromUser) persistPitch(progressToPitchFactor(progress))
         }
+        renderPitch(progress)
+        if (fromUser) persistPitch(progressToPitchFactor(progress))
     }
 
     private fun setSpeedFactor(factor: Float, fromUser: Boolean) {
         val progress = speedToProgress(factor)
         if (binding.popupSeekTempo.getProgress() != progress) {
             binding.popupSeekTempo.setProgress(progress)
-        } else {
-            renderSpeed(progress)
-            if (fromUser) persistSpeed(progressToSpeed(progress))
         }
+        renderSpeed(progress)
+        if (fromUser) persistSpeed(progressToSpeed(progress))
     }
 
     override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
@@ -158,11 +157,22 @@ class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarCh
     }
 
     private fun speedToProgress(speed: Float): Int {
-        return (((speed.coerceIn(0.5f, 2.0f) - 0.5f) / 1.5f) * SPEED_MAX).roundToInt().coerceIn(0, SPEED_MAX)
+        val clamped = speed.coerceIn(0.5f, 2.0f)
+        val normalized = if (clamped > 1.0f) {
+            ((clamped - 1.0f) / 2.0f) + 0.5f
+        } else {
+            (clamped - 0.5f)
+        }
+        return (normalized * SPEED_MAX).roundToInt().coerceIn(0, SPEED_MAX)
     }
 
     private fun progressToSpeed(progress: Int): Float {
-        return 0.5f + (progress.coerceIn(0, SPEED_MAX) / SPEED_MAX.toFloat()) * 1.5f
+        val normalized = progress.coerceIn(0, SPEED_MAX) / SPEED_MAX.toFloat()
+        return if (normalized < 0.5f) {
+            0.5f + normalized
+        } else {
+            normalized * 2.0f
+        }.coerceIn(0.5f, 2.0f)
     }
 
     private fun presetSpeedIndex(speed: Float): Int {
@@ -186,7 +196,7 @@ class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarCh
     companion object {
         private const val PITCH_MAX = 24
         private const val PITCH_CENTER = 12
-        private const val SPEED_MAX = 100
+        private const val SPEED_MAX = 20
 
         fun show(fragmentManager: FragmentManager) {
             TempoDialogFragment().show(fragmentManager, TempoDialogFragment::class.java.simpleName)

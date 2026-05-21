@@ -3,8 +3,8 @@ package gd.app.musicplayer.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.R
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.SmartPlaylistConfig
 import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveFavoriteCountUseCase
@@ -18,20 +18,24 @@ import gd.app.musicplayer.domain.usecase.main.UpdateMainPlaylistOrderUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ResetPlaylistsSortUseCase
 import gd.app.musicplayer.domain.usecase.preferences.ObserveSmartPlaylistConfigUseCase
 import gd.app.musicplayer.playback.PlaybackStartupInitializer
+import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+
+private const val SUBSCRIPTION_STOP_TIMEOUT_MS = 5_000L
 
 data class MainUiState(
     val items: List<MainItem> = emptyList(),
     val playlists: List<MusicSet.Playlist> = emptyList(),
-    val playlistCount: Int = 0
+    val playlistCount: Int = playlists.size
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -51,81 +55,107 @@ class MainViewModel @Inject constructor(
     private val playbackStartupInitializer: PlaybackStartupInitializer
 ) : ViewModel() {
 
+    private var updatePlaylistOrderJob: Job? = null
+
     init {
         viewModelScope.launch {
             playbackStartupInitializer.initialize()
         }
     }
 
-    val playlists: StateFlow<List<MusicSet.Playlist>> = combine(
+    private val smartPlaylistConfig: Flow<SmartPlaylistConfig> =
+        observeSmartPlaylistConfigUseCase()
+            .distinctUntilChanged()
+
+    private val playlists: StateFlow<List<MusicSet.Playlist>> = combine(
         observeMainPlaylistsUseCase(),
         observeSortUseCase(MusicSet.Playlists)
-    ) { playlists, (style, reversed) ->
-        sortPlaylists(playlists, style, reversed)
+    ) { playlists, sort ->
+        sortPlaylists(
+            playlists = playlists,
+            style = sort.first,
+            reversed = sort.second
+        )
     }
+        .distinctUntilChanged()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            started = SharingStarted.WhileSubscribed(SUBSCRIPTION_STOP_TIMEOUT_MS),
             initialValue = emptyList()
         )
 
-    private val smartPlaylistConfig: Flow<SmartPlaylistConfig> =
-        observeSmartPlaylistConfigUseCase()
-
-    val items: StateFlow<List<MainItem>> = smartPlaylistConfig.flatMapLatest { config ->
-        combine(
-            observeTracksCountUseCase(),
-            observeFolderCountUseCase(),
-            observeFavoriteCountUseCase(),
-            observeRecentPlayCountUseCase(
-                playlistWindowMs = config.windowDurationMs,
-                windowStartMs = config.windowStartMs,
-                playlistLimit = config.trackLimit
-            ),
-            observeRecentAddCountUseCase(
-                playlistWindowMs = config.windowDurationMs,
-                windowStartMs = config.windowStartMs,
-                playlistLimit = config.trackLimit
-            ),
-            observeMostPlayCountUseCase(
-                playlistWindowMs = config.windowDurationMs,
-                windowStartMs = config.windowStartMs,
-                playlistLimit = config.trackLimit
-            )
-        ) { values ->
-            buildMainItems(
-                libraryCount = values[0],
-                folderCount = values[1],
-                favoriteCount = values[2],
-                recentPlayCount = values[3],
-                recentAddCount = values[4],
-                mostPlayCount = values[5]
-            )
+    private val mainItems: StateFlow<List<MainItem>> = smartPlaylistConfig
+        .flatMapLatest { config ->
+            combine(
+                observeTracksCountUseCase(),
+                observeFolderCountUseCase(),
+                observeFavoriteCountUseCase(),
+                observeRecentPlayCountUseCase(
+                    playlistWindowMs = config.windowDurationMs,
+                    windowStartMs = config.windowStartMs,
+                    playlistLimit = config.trackLimit
+                ),
+                observeRecentAddCountUseCase(
+                    playlistWindowMs = config.windowDurationMs,
+                    windowStartMs = config.windowStartMs,
+                    playlistLimit = config.trackLimit
+                ),
+                observeMostPlayCountUseCase(
+                    playlistWindowMs = config.windowDurationMs,
+                    windowStartMs = config.windowStartMs,
+                    playlistLimit = config.trackLimit
+                )
+            ) { counts ->
+                buildMainItems(
+                    libraryCount = counts[0],
+                    folderCount = counts[1],
+                    favoriteCount = counts[2],
+                    recentPlayCount = counts[3],
+                    recentAddCount = counts[4],
+                    mostPlayCount = counts[5]
+                )
+            }
         }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = buildMainItems(
-            libraryCount = 0,
-            folderCount = 0,
-            favoriteCount = 0,
-            recentPlayCount = 0,
-            recentAddCount = 0,
-            mostPlayCount = 0
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(SUBSCRIPTION_STOP_TIMEOUT_MS),
+            initialValue = buildMainItems(
+                libraryCount = 0,
+                folderCount = 0,
+                favoriteCount = 0,
+                recentPlayCount = 0,
+                recentAddCount = 0,
+                mostPlayCount = 0
+            )
         )
-    )
 
-    val uiState: StateFlow<MainUiState> = combine(items, playlists) { items, playlists ->
+    val uiState: StateFlow<MainUiState> = combine(
+        mainItems,
+        playlists
+    ) { items, playlists ->
         MainUiState(
             items = items,
             playlists = playlists,
             playlistCount = playlists.size
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = MainUiState(items = items.value)
-    )
+    }
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(SUBSCRIPTION_STOP_TIMEOUT_MS),
+            initialValue = MainUiState()
+        )
+
+    fun updatePlaylistOrder(playlistIdsInDisplayOrder: List<Long>) {
+        if (playlistIdsInDisplayOrder.isEmpty()) return
+
+        updatePlaylistOrderJob?.cancel()
+        updatePlaylistOrderJob = viewModelScope.launch {
+            resetPlaylistsSortUseCase()
+            updateMainPlaylistOrderUseCase(playlistIdsInDisplayOrder)
+        }
+    }
 
     private fun buildMainItems(
         libraryCount: Int,
@@ -135,55 +165,50 @@ class MainViewModel @Inject constructor(
         recentAddCount: Int,
         mostPlayCount: Int
     ): List<MainItem> {
-
         return listOf(
             MainItem(
+                category = MainCategory.Library,
                 titleRes = R.string.library,
                 iconRes = R.drawable.main_local,
-                bgColor = -867723789,
+                bgColor = MAIN_LIBRARY_COLOR,
                 count = libraryCount
             ),
             MainItem(
+                category = MainCategory.Folders,
                 titleRes = R.string.folder,
                 iconRes = R.drawable.main_folder,
-                bgColor = -855992486,
+                bgColor = MAIN_FOLDER_COLOR,
                 count = folderCount
             ),
             MainItem(
+                category = MainCategory.Favorites,
                 titleRes = R.string.favorite,
                 iconRes = R.drawable.main_favourite,
-                bgColor = -856058475,
+                bgColor = MAIN_FAVORITE_COLOR,
                 count = favoriteCount
             ),
             MainItem(
+                category = MainCategory.RecentlyPlayed,
                 titleRes = R.string.recent_play,
                 iconRes = R.drawable.main_recent_play,
-                bgColor = -864305174,
+                bgColor = MAIN_RECENT_PLAY_COLOR,
                 count = recentPlayCount
             ),
             MainItem(
+                category = MainCategory.RecentlyAdded,
                 titleRes = R.string.recent_add,
                 iconRes = R.drawable.main_recent_add,
-                bgColor = -872359528,
+                bgColor = MAIN_RECENT_ADD_COLOR,
                 count = recentAddCount
             ),
             MainItem(
+                category = MainCategory.MostPlayed,
                 titleRes = R.string.most_play,
                 iconRes = R.drawable.main_most_play,
-                bgColor = -859467278,
+                bgColor = MAIN_MOST_PLAY_COLOR,
                 count = mostPlayCount
             )
         )
-    }
-
-
-    fun updatePlaylistOrder(playlistIdsInDisplayOrder: List<Long>) {
-        if (playlistIdsInDisplayOrder.isEmpty()) return
-
-        viewModelScope.launch {
-            resetPlaylistsSortUseCase()
-            updateMainPlaylistOrderUseCase(playlistIdsInDisplayOrder)
-        }
     }
 
     private fun sortPlaylists(
@@ -191,24 +216,36 @@ class MainViewModel @Inject constructor(
         style: String,
         reversed: Boolean
     ): List<MusicSet.Playlist> {
-
         val comparator = when (style) {
-            "name" -> compareBy<MusicSet.Playlist, String>(
-                String.CASE_INSENSITIVE_ORDER,
-                { it.name }
-            ).thenBy { it.id }
+            SORT_NAME -> compareBy<MusicSet.Playlist, String>(
+                String.CASE_INSENSITIVE_ORDER
+            ) { playlist -> playlist.name }.thenBy { playlist -> playlist.id }
 
-            "date" -> compareByDescending<MusicSet.Playlist> { it.setup_time }
-                .thenByDescending { it.id }
+            SORT_DATE -> compareByDescending<MusicSet.Playlist> { playlist -> playlist.setupTime }
+                .thenByDescending { playlist -> playlist.id }
 
+            SORT_AMOUNT -> compareByDescending<MusicSet.Playlist> { playlist -> playlist.musicCount }
+                .thenByDescending { playlist -> playlist.id }
 
-            "amount" -> compareByDescending<MusicSet.Playlist> { it.musicCount }
-                .thenByDescending { it.id }
+            else -> compareBy<MusicSet.Playlist> { playlist -> playlist.sort }
+                .thenBy { playlist -> playlist.id }
+        }
 
+        return playlists.sortedWith(
+            if (reversed) comparator.reversed() else comparator
+        )
+    }
 
-            else -> compareBy({ it.sort }, { it.id })
-        }.let { if (reversed) it.reversed() else it }
+    private companion object {
+        const val SORT_NAME = "name"
+        const val SORT_DATE = "date"
+        const val SORT_AMOUNT = "amount"
 
-        return playlists.sortedWith(comparator)
+        const val MAIN_LIBRARY_COLOR = -867723789
+        const val MAIN_FOLDER_COLOR = -855992486
+        const val MAIN_FAVORITE_COLOR = -856058475
+        const val MAIN_RECENT_PLAY_COLOR = -864305174
+        const val MAIN_RECENT_ADD_COLOR = -872359528
+        const val MAIN_MOST_PLAY_COLOR = -859467278
     }
 }

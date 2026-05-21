@@ -1,9 +1,16 @@
 package gd.app.musicplayer.domain.model
 
-import androidx.room.ColumnInfo
 import android.os.Parcelable
+import androidx.room.ColumnInfo
 import kotlinx.parcelize.Parcelize
 
+/**
+ * Immutable domain representation of a track in the local music library.
+ *
+ * This model is still annotated for Room/Parcelable compatibility with the current app.
+ * In a stricter clean-architecture module, Room annotations would move to a data-layer entity
+ * and this class would become a pure Kotlin model.
+ */
 @Parcelize
 data class Music(
     @ColumnInfo("_id")
@@ -29,11 +36,35 @@ data class Music(
     val playCount: Int = 0,
     val year: Int? = null,
     @ColumnInfo(defaultValue = "'Unknown'")
-    val genres: String = "Unknown",
+    val genres: String = DEFAULT_GENRE,
     @ColumnInfo(defaultValue = "-1")
-    val track: Int = -1,
+    val track: Int = UNKNOWN_NUMBER,
     @ColumnInfo(name = "bit_rate", defaultValue = "-1")
-    val bitRate: Int = -1,
+    val bitRate: Int = UNKNOWN_NUMBER,
     @ColumnInfo(name = "sample_rate", defaultValue = "-1")
-    val sampleRate: Int = -1
-) : Parcelable
+    val sampleRate: Int = UNKNOWN_NUMBER
+) : Parcelable {
+
+    val hasValidFilePath: Boolean
+        get() = !data.isNullOrBlank()
+
+    val durationMs: Long
+        get() = duration.coerceAtLeast(0).toLong()
+
+    val displayTitle: String
+        get() = title.ifBlank { UNKNOWN_TITLE }
+
+    val displayArtist: String
+        get() = artist.ifBlank { UNKNOWN_ARTIST }
+
+    val displayAlbum: String
+        get() = album.ifBlank { UNKNOWN_ALBUM }
+
+    companion object {
+        const val DEFAULT_GENRE = "Unknown"
+        const val UNKNOWN_NUMBER = -1
+        const val UNKNOWN_TITLE = "Unknown title"
+        const val UNKNOWN_ARTIST = "Unknown artist"
+        const val UNKNOWN_ALBUM = "Unknown album"
+    }
+}

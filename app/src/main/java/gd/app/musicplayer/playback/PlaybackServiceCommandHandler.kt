@@ -32,6 +32,8 @@ class PlaybackServiceCommandHandler(
         fun replaceQueue(queue: List<Music>, index: Int)
         fun removeQueueItem(index: Int)
         fun moveQueueItem(fromIndex: Int, toIndex: Int)
+        fun updateTrackMetadata(music: Music)
+        fun updateTracksMetadata(music: List<Music>)
         fun seekTo(positionMs: Int)
         fun setStopAfterCurrentTrack(enabled: Boolean)
         fun applyAudioEffects()
@@ -73,6 +75,18 @@ class PlaybackServiceCommandHandler(
                 fromIndex = intent?.getIntExtra(MusicPlaybackService.EXTRA_FROM_INDEX, -1) ?: -1,
                 toIndex = intent?.getIntExtra(MusicPlaybackService.EXTRA_TO_INDEX, -1) ?: -1
             )
+            MusicPlaybackService.ACTION_UPDATE_TRACK_METADATA -> {
+                val music = intent.parcelableExtraCompat<Music>(MusicPlaybackService.EXTRA_TRACK)
+                if (music != null) {
+                    callbacks.updateTrackMetadata(music)
+                }
+            }
+            MusicPlaybackService.ACTION_UPDATE_TRACKS_METADATA -> {
+                val tracks = intent.musicListExtraCompat(MusicPlaybackService.EXTRA_QUEUE_ITEMS)
+                if (tracks.isNotEmpty()) {
+                    callbacks.updateTracksMetadata(tracks)
+                }
+            }
             MusicPlaybackService.ACTION_CHANGE_MODE -> callbacks.cyclePlaybackMode()
             MusicPlaybackService.ACTION_MODE_RANDOM -> callbacks.setPlaybackMode(PlaybackMode.SHUFFLE_ALL)
 

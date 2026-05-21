@@ -1,5 +1,7 @@
 package gd.app.musicplayer.ui.duplicate
 
+import android.content.Context
+import android.text.format.Formatter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,6 +13,9 @@ import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderChildItemBinding
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderGroupItemBinding
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class ActivityDuplicateBinder(
@@ -162,7 +167,7 @@ class ActivityDuplicateBinder(
             groupKey = group.key
             val firstTrack = group.tracks.first()
             binding.musicItemTitle.text = firstTrack.title
-            binding.musicItemArtist.text = buildHeaderSubtitle(firstTrack)
+            binding.musicItemArtist.text = buildHeaderSubtitle(binding.root.context, firstTrack)
             binding.musicItemAlbum.setImageResource(R.drawable.default_album_identify)
             binding.musicItemAlbum.loadMusicArtwork(firstTrack.albumArtSource())
             binding.root.setOnClickListener {
@@ -170,10 +175,10 @@ class ActivityDuplicateBinder(
             }
         }
 
-        private fun buildHeaderSubtitle(music: Music): String {
-            val durationText = formatDuration(music.duration)
+        private fun buildHeaderSubtitle(context: Context, music: Music): String {
+            val sizeText = formatFileSize(context, music.size)
             val artist = music.artist.takeIf { it.isNotBlank() }.orEmpty()
-            return if (artist.isBlank()) durationText else "$durationText $artist"
+            return if (artist.isBlank()) sizeText else "$sizeText $artist"
         }
     }
 
@@ -186,8 +191,8 @@ class ActivityDuplicateBinder(
 
         fun bind(music: Music, index: Int, selected: Boolean) {
             trackId = music.id
-            binding.musicItemTitle.text = music.title
-            binding.musicItemArtist.text = music.artist
+            binding.musicItemTitle.text = duplicateLocationText(music)
+            binding.musicItemArtist.text = formatDuplicateAddedDate(music.date)
             binding.musicItemNumber.text = (index + 1).toString()
             updateSelection(selected)
             binding.root.setOnClickListener {
@@ -204,17 +209,28 @@ class ActivityDuplicateBinder(
         const val VIEW_TYPE_GROUP = 0
         const val VIEW_TYPE_CHILD = 1
         const val PAYLOAD_SELECTION = "selection"
+        private val DUPLICATE_DATE_FORMAT = ThreadLocal.withInitial {
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        }
 
-        fun formatDuration(durationMs: Int): String {
-            val totalSeconds = (durationMs / 1000).coerceAtLeast(0)
-            val hours = totalSeconds / 3600
-            val minutes = (totalSeconds % 3600) / 60
-            val seconds = totalSeconds % 60
-            return if (hours > 0) {
-                String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
-            } else {
-                String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
-            }
+        fun formatFileSize(context: Context, size: Long?): String {
+            return Formatter.formatFileSize(context, (size ?: 0L).coerceAtLeast(0L))
+                .uppercase(Locale.getDefault())
+        }
+
+        fun duplicateLocationText(music: Music): String {
+            return music.data
+                ?.takeIf { it.isNotBlank() }
+                ?.let { File(it).parent }
+                ?.takeIf { it.isNotBlank() }
+                ?: music.folderPath?.takeIf { it.isNotBlank() }
+                ?: music.title
+        }
+
+        fun formatDuplicateAddedDate(date: Long?): String {
+            if (date == null || date <= 0L) return ""
+            val epochMillis = if (date < 1_000_000_000_000L) date * 1000L else date
+            return requireNotNull(DUPLICATE_DATE_FORMAT.get()).format(Date(epochMillis))
         }
     }
 }

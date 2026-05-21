@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -23,7 +24,7 @@ class FullLyricFragment : Fragment() {
     private val binding get() = checkNotNull(_binding)
 
     private val fullLyricViewModel: FullLyricViewModel by viewModels()
-    private val playerViewModel: PlayerViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by activityViewModels()
 
     private var isResumedForAutoScroll: Boolean = false
     private var isAutoScrollAllowedByScreen: Boolean = true
@@ -73,21 +74,25 @@ class FullLyricFragment : Fragment() {
         fullLyricView.setOnClickListener {
             showPlayer()
         }
+
+        fullLyricView.setOnLyricLineClickListener { positionMs ->
+            playerViewModel.seekTo(requireContext(), positionMs)
+        }
     }
 
     private fun observePlayback() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                playerViewModel.trackUiState.collect { state ->
-
-//                    fullLyricViewModel.onPlaybackChanged(
-//                        title = state.title,
-//                        artist = state.artist,
-////                        positionMs = state.positionMs.toLong(),
-////                        trackId = track?.id,
-////                        source = track?.data,
-////                        isPlaying = state.isPlaying
-//                    )
+                playerViewModel.playbackState.collect { state ->
+                    val track = state.currentTrack
+                    fullLyricViewModel.onPlaybackChanged(
+                        title = track?.title.orEmpty(),
+                        artist = track?.artist.orEmpty(),
+                        positionMs = state.positionMs,
+                        trackId = track?.id,
+                        source = track?.data,
+                        isPlaying = state.isPlaying
+                    )
                 }
             }
         }

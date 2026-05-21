@@ -25,6 +25,7 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.AppForegroundTracker
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
 import gd.app.musicplayer.data.local.db.dao.MusicDao
 import gd.app.musicplayer.data.local.preference.DesktopLyricPreference
@@ -54,6 +55,7 @@ import gd.app.musicplayer.playback.PlaybackServiceCommandHandler
 import gd.app.musicplayer.playback.PlaybackStatePublisher
 import gd.app.musicplayer.playback.PlaybackStatsTracker
 import gd.app.musicplayer.playback.PlaybackTuningController
+import gd.app.musicplayer.playback.ReverbAudioProcessor
 import gd.app.musicplayer.playback.ScreenOffLockReceiver
 import gd.app.musicplayer.playback.StereoBalanceAudioProcessor
 import gd.app.musicplayer.playback.SleepTimerManager
@@ -193,6 +195,8 @@ class MusicPlaybackService : MediaSessionService() {
     private lateinit var statePublisher: PlaybackStatePublisher
     private lateinit var stereoBalanceAudioProcessor: StereoBalanceAudioProcessor
     private lateinit var crossfadeStereoBalanceAudioProcessor: StereoBalanceAudioProcessor
+    private lateinit var reverbAudioProcessor: ReverbAudioProcessor
+    private lateinit var crossfadeReverbAudioProcessor: ReverbAudioProcessor
     private lateinit var volumeFader: VolumeFader
     private lateinit var crossfadeVolumeFader: VolumeFader
 
@@ -247,6 +251,7 @@ class MusicPlaybackService : MediaSessionService() {
         observePreferences()
         observeCurrentTrackArtwork()
         observeCurrentTrackFavorite()
+        SleepTimerManager.setPlaybackActiveProvider(::isEffectivelyPlaying)
 
         notificationController.createNotificationChannel()
 
@@ -398,6 +403,8 @@ class MusicPlaybackService : MediaSessionService() {
             serviceScope.cancel()
         }
 
+        SleepTimerManager.setPlaybackActiveProvider(null)
+
         isRunning = false
 
         super.onDestroy()
@@ -470,6 +477,14 @@ class MusicPlaybackService : MediaSessionService() {
             }
             .launchIn(serviceScope)
 
+        AppForegroundTracker.isForeground
+            .onEach { isForeground ->
+                if (::desktopLyricsController.isInitialized) {
+                    desktopLyricsController.renderAppForeground(isForeground)
+                }
+            }
+            .launchIn(serviceScope)
+
         playbackRuntimeStateStore.state
             .onEach { state ->
                 if (::desktopLyricsController.isInitialized) {
@@ -516,14 +531,18 @@ class MusicPlaybackService : MediaSessionService() {
     private fun configurePlayer() {
         stereoBalanceAudioProcessor = StereoBalanceAudioProcessor()
         crossfadeStereoBalanceAudioProcessor = StereoBalanceAudioProcessor()
+        reverbAudioProcessor = ReverbAudioProcessor()
+        crossfadeReverbAudioProcessor = ReverbAudioProcessor()
 
         player = musicPlayerFactory.create(
             context = this,
-            stereoBalanceAudioProcessor = stereoBalanceAudioProcessor
+            stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
+            reverbAudioProcessor = reverbAudioProcessor
         )
         crossfadePlayer = musicPlayerFactory.create(
             context = this,
-            stereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor
+            stereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor,
+            reverbAudioProcessor = crossfadeReverbAudioProcessor
         )
         crossfadePlayer.volume = 0f
 
@@ -626,7 +645,8 @@ class MusicPlaybackService : MediaSessionService() {
             reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
                 playbackModeResolver.resolveNextIndex(
                     queueSize = queue.size,
-                    currentIndex = currentIndex
+                    currentIndex = currentIndex,
+                    fromAutoTransition = true
                 )
             }
 
@@ -667,7 +687,8 @@ class MusicPlaybackService : MediaSessionService() {
             Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> {
                 playbackModeResolver.resolveNextIndex(
                     queueSize = queue.size,
-                    currentIndex = startIndex
+                    currentIndex = startIndex,
+                    fromAutoTransition = false
                 )
             }
 
@@ -793,6 +814,8 @@ class MusicPlaybackService : MediaSessionService() {
             soundEffectPreferences = soundEffectPreferences,
             stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
             extraStereoBalanceAudioProcessors = listOf(crossfadeStereoBalanceAudioProcessor),
+            reverbAudioProcessor = reverbAudioProcessor,
+            extraReverbAudioProcessors = listOf(crossfadeReverbAudioProcessor),
             currentMusicProvider = {
                 queue.getOrNull(currentIndex)
             },
@@ -1004,11 +1027,13 @@ class MusicPlaybackService : MediaSessionService() {
 
                 override fun resolveNextIndex(
                     queueSize: Int,
-                    currentIndex: Int
+                    currentIndex: Int,
+                    fromAutoTransition: Boolean
                 ): Int? {
                     return playbackModeResolver.resolveNextIndex(
                         queueSize = queueSize,
-                        currentIndex = currentIndex
+                        currentIndex = currentIndex,
+                        fromAutoTransition = fromAutoTransition
                     )
                 }
 
@@ -1104,11 +1129,15 @@ class MusicPlaybackService : MediaSessionService() {
             callbacks = object : PlaybackServiceCommandHandler.Callbacks {
 
                 override fun refreshNotificationStyle() {
-                    notificationController.refreshStyle { delayMs, block ->
-                        progressTicker.postDelayed(
-                            block = block,
-                            delayMs = delayMs
-                        )
+                    serviceScope.launch {
+                        latestSettingPreferences =
+                            settingPreferencesDataStore.observeSettingPreferences().first()
+                        notificationController.refreshStyle { delayMs, block ->
+                            progressTicker.postDelayed(
+                                block = block,
+                                delayMs = delayMs
+                            )
+                        }
                     }
                 }
 
@@ -1208,19 +1237,27 @@ class MusicPlaybackService : MediaSessionService() {
                     this@MusicPlaybackService.removeQueueItem(index)
                 }
 
-                override fun moveQueueItem(fromIndex: Int, toIndex: Int) {
-                    this@MusicPlaybackService.moveQueueItem(
-                        fromIndex = fromIndex,
-                        toIndex = toIndex
-                    )
-                }
+                  override fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+                      this@MusicPlaybackService.moveQueueItem(
+                          fromIndex = fromIndex,
+                          toIndex = toIndex
+                      )
+                  }
 
-                override fun seekTo(positionMs: Int) {
-                    this@MusicPlaybackService.seekTo(positionMs)
-                }
+                  override fun updateTrackMetadata(music: Music) {
+                      this@MusicPlaybackService.updateEditedTrackMetadata(music)
+                  }
+
+                  override fun updateTracksMetadata(music: List<Music>) {
+                      this@MusicPlaybackService.updateEditedTracksMetadata(music)
+                  }
+
+                  override fun seekTo(positionMs: Int) {
+                      this@MusicPlaybackService.seekTo(positionMs)
+                  }
 
                 override fun setStopAfterCurrentTrack(enabled: Boolean) {
-                    stopAfterCurrentTrack = enabled
+                    updateStopAfterCurrentTrackMode(enabled)
                 }
 
                 override fun applyAudioEffects() {
@@ -1537,7 +1574,7 @@ class MusicPlaybackService : MediaSessionService() {
                 MEDIA3_COMMAND_CYCLE_PLAYBACK_MODE -> playbackModeResolver.cyclePlaybackMode()
                 MEDIA3_COMMAND_CLOSE_NOTIFICATION -> pauseAndPersistForNotificationClose()
                 MEDIA3_COMMAND_STOP_AFTER_CURRENT -> {
-                    stopAfterCurrentTrack = !stopAfterCurrentTrack
+                    updateStopAfterCurrentTrackMode(!stopAfterCurrentTrack)
                     publishAllRuntimeState(forceNotification = true)
                 }
 
@@ -1724,7 +1761,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun handleMedia3StopFinished(snapshot: PlaybackSnapshot) {
         keepIdleNotification = false
-        stopAfterCurrentTrack = false
+        updateStopAfterCurrentTrackMode(false)
         notificationDismissedByUser = false
 
         playbackStatsTracker.reset()
@@ -1771,13 +1808,44 @@ class MusicPlaybackService : MediaSessionService() {
         )
 
         if (stopAfterCurrentTrack) {
-            stopAfterCurrentTrack = false
-            SleepTimerManager.finishPendingTrackEnd()
-            stopAndClearQueue()
+            updateStopAfterCurrentTrackMode(false)
+            val timerAction = SleepTimerManager.state.value.action
+            if (timerAction == gd.app.musicplayer.playback.SleepTimerState.ACTION_STOP_PLAYBACK) {
+                SleepTimerManager.finishPendingTrackEnd(executeAction = false)
+                pauseAtTrackEndForSleepTimer()
+            } else {
+                SleepTimerManager.finishPendingTrackEnd()
+            }
             return
         }
 
         playNextInternal(fromAutoTransition = true)
+    }
+
+    private fun pauseAtTrackEndForSleepTimer() {
+        if (::volumeFader.isInitialized) {
+            volumeFader.cancel()
+            volumeFader.resetToFullVolume()
+        }
+
+        if (::audioFocusController.isInitialized) {
+            audioFocusController.abandon()
+        }
+
+        if (::player.isInitialized) {
+            player.playWhenReady = false
+        }
+
+        persistSessionFromCurrentStateAsync()
+        updateMedia3CommandButtons()
+        publishAllRuntimeState(forceNotification = true)
+    }
+
+    private fun updateStopAfterCurrentTrackMode(enabled: Boolean) {
+        stopAfterCurrentTrack = enabled
+        if (::player.isInitialized) {
+            player.pauseAtEndOfMediaItems = enabled
+        }
     }
 
     private fun resumeWithDefaultQueue() {
@@ -1845,54 +1913,78 @@ class MusicPlaybackService : MediaSessionService() {
         incomingQueue: List<Music>,
         incomingIndex: Int
     ) {
-        if (!::queueActionController.isInitialized) return
+        serviceScope.launch {
+            ensurePlaybackRestored()
 
-        queueActionController.playFromQueue(
-            incomingQueue = incomingQueue,
-            incomingIndex = incomingIndex
-        )
+            if (!::queueActionController.isInitialized) return@launch
+
+            queueActionController.playFromQueue(
+                incomingQueue = incomingQueue,
+                incomingIndex = incomingIndex
+            )
+        }
     }
 
     private fun handleEnqueue(incomingQueue: List<Music>) {
-        if (!::queueActionController.isInitialized) return
+        serviceScope.launch {
+            ensurePlaybackRestored()
 
-        queueActionController.enqueue(incomingQueue)
+            if (!::queueActionController.isInitialized) return@launch
+
+            queueActionController.enqueue(incomingQueue)
+        }
     }
 
     private fun handlePlayNextQueue(incomingQueue: List<Music>) {
-        if (!::queueActionController.isInitialized) return
+        serviceScope.launch {
+            ensurePlaybackRestored()
 
-        queueActionController.playNextQueue(incomingQueue)
+            if (!::queueActionController.isInitialized) return@launch
+
+            queueActionController.playNextQueue(incomingQueue)
+        }
     }
 
     private fun removeQueueItem(index: Int) {
-        if (!::queueActionController.isInitialized) return
+        serviceScope.launch {
+            ensurePlaybackRestored()
 
-        queueActionController.removeQueueItem(index)
+            if (!::queueActionController.isInitialized) return@launch
+
+            queueActionController.removeQueueItem(index)
+        }
     }
 
     private fun moveQueueItem(
         fromIndex: Int,
         toIndex: Int
     ) {
-        if (!::queueActionController.isInitialized) return
+        serviceScope.launch {
+            ensurePlaybackRestored()
 
-        queueActionController.moveQueueItem(
-            fromIndex = fromIndex,
-            toIndex = toIndex
-        )
+            if (!::queueActionController.isInitialized) return@launch
+
+            queueActionController.moveQueueItem(
+                fromIndex = fromIndex,
+                toIndex = toIndex
+            )
+        }
     }
 
     private fun replaceQueue(
         newQueue: List<Music>,
         requestedIndex: Int
     ) {
-        if (!::queueActionController.isInitialized) return
+        serviceScope.launch {
+            ensurePlaybackRestored()
 
-        queueActionController.replaceQueue(
-            newQueue = newQueue,
-            requestedIndex = requestedIndex
-        )
+            if (!::queueActionController.isInitialized) return@launch
+
+            queueActionController.replaceQueue(
+                newQueue = newQueue,
+                requestedIndex = requestedIndex
+            )
+        }
     }
 
     private fun playIndexFromCommand(index: Int) {
@@ -2207,6 +2299,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun applyAudioEffectsFromPreferences() {
         serviceScope.launch {
+            playbackTuningController.refreshSoundBalanceFromPreferences()
             audioEffectsManager.applyFromPreferences(player)
             if (::volumeFader.isInitialized) {
                 volumeFader.applyResolvedVolume()
@@ -2218,7 +2311,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun stopPlayback() {
         keepIdleNotification = false
-        stopAfterCurrentTrack = false
+        updateStopAfterCurrentTrackMode(false)
         notificationDismissedByUser = false
         val snapshot = capturePlaybackSnapshot()
 
@@ -2259,7 +2352,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun stopAtQueueStart() {
         notificationDismissedByUser = false
-        stopAfterCurrentTrack = false
+        updateStopAfterCurrentTrackMode(false)
 
         if (queue.isEmpty()) {
             stopAndClearQueue()
@@ -2320,7 +2413,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun shutdownPlayback(options: ShutdownOptions) {
         keepIdleNotification = false
-        stopAfterCurrentTrack = false
+        updateStopAfterCurrentTrackMode(false)
         notificationDismissedByUser = false
 
         if (::shutdownController.isInitialized) {
@@ -2365,6 +2458,40 @@ class MusicPlaybackService : MediaSessionService() {
         }
 
         updateNotification(force = true)
+    }
+
+    private fun updateEditedTrackMetadata(
+        music: Music
+    ) {
+        val changed = queueManager.updateTrackMetadata(music)
+        if (!changed) return
+
+        queueManager.save()
+        notificationSessionBridge.updateQueue()
+        refreshArtworkAndSession(force = true)
+        persistSessionFromCurrentStateAsync()
+        publishPlaybackState(
+            reason = PublishReason.QueueChanged,
+            forceNotification = true,
+            forceWidgetUpdate = true
+        )
+    }
+
+    private fun updateEditedTracksMetadata(
+        music: List<Music>
+    ) {
+        val changed = queueManager.updateTracksMetadata(music)
+        if (!changed) return
+
+        queueManager.save()
+        notificationSessionBridge.updateQueue()
+        refreshArtworkAndSession(force = true)
+        persistSessionFromCurrentStateAsync()
+        publishPlaybackState(
+            reason = PublishReason.QueueChanged,
+            forceNotification = true,
+            forceWidgetUpdate = true
+        )
     }
 
     private fun publishAllRuntimeState(
@@ -2665,6 +2792,8 @@ class MusicPlaybackService : MediaSessionService() {
         const val ACTION_CLEAR_QUEUE = "gd.app.musicplayer.action.CLEAR_QUEUE"
         const val ACTION_REMOVE_QUEUE_ITEM = "gd.app.musicplayer.action.REMOVE_QUEUE_ITEM"
         const val ACTION_MOVE_QUEUE_ITEM = "gd.app.musicplayer.action.MOVE_QUEUE_ITEM"
+        const val ACTION_UPDATE_TRACK_METADATA = "gd.app.musicplayer.action.UPDATE_TRACK_METADATA"
+        const val ACTION_UPDATE_TRACKS_METADATA = "gd.app.musicplayer.action.UPDATE_TRACKS_METADATA"
         const val ACTION_STOP = "music_action_stop"
         const val ACTION_QUIT = "gd.app.musicplayer.action.QUIT"
         const val ACTION_TOGGLE_FAVORITE = "gd.app.musicplayer.action.TOGGLE_FAVORITE"
@@ -2683,6 +2812,7 @@ class MusicPlaybackService : MediaSessionService() {
         const val EXTRA_INDEX = "index"
         const val EXTRA_FROM_INDEX = "from_index"
         const val EXTRA_TO_INDEX = "to_index"
+        const val EXTRA_TRACK = "track"
         const val EXTRA_ACTION_DATA = "music_action_data"
         const val EXTRA_SEEK_POSITION_MS = "seek_position_ms"
         const val EXTRA_STOP_AFTER_CURRENT_TRACK = "stop_after_current_track"

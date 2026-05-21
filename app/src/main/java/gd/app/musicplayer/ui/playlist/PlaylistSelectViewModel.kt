@@ -124,10 +124,10 @@ class PlaylistSelectViewModel @Inject constructor(
         val sorted = when (style) {
             "title" -> playlists.sortedWith(collator)
             "title_desc" -> playlists.sortedWith(collator.reversed())
-            "date" -> playlists.sortedWith(compareBy<MusicSet.Playlist> { it.setup_time }.thenBy { it.id })
+            "date" -> playlists.sortedWith(compareBy<MusicSet.Playlist> { it.setupTime }.thenBy { it.id })
             else -> playlists.sortedWith(
                 compareBy<MusicSet.Playlist> { it.sort }
-                    .thenBy { it.setup_time }
+                    .thenBy { it.setupTime }
                     .thenBy { it.id }
             )
         }

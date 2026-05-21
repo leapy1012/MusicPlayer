@@ -1,46 +1,64 @@
 package gd.app.musicplayer.ui.scan
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
+import gd.app.musicplayer.domain.usecase.scan.GetScanLibrarySummaryUseCase
 import gd.app.musicplayer.domain.usecase.scan.LoadScanOptionsUseCase
-import gd.app.musicplayer.domain.usecase.scan.ObserveLibraryTrackCountUseCase
+import gd.app.musicplayer.domain.usecase.scan.ScanAudioFilesUseCase
+import gd.app.musicplayer.domain.usecase.scan.SyncMediaStoreLibraryUseCase
 import gd.app.musicplayer.domain.usecase.scan.UpdateScanOptionsUseCase
-import gd.app.musicplayer.domain.usecase.scan.QueryMediaStoreTracksUseCase
-import gd.app.musicplayer.domain.usecase.scan.UpsertScannedTracksUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.max
-import kotlin.math.min
+
+enum class ScanPhase {
+    Idle,
+    Scanning,
+    Result
+}
+
+enum class ScanStep {
+    FindingFiles,
+    ParsingFiles,
+    WritingDatabase
+}
 
 data class ScanOptions(
     val excludeBySeconds: Boolean = false,
     val excludeBySize: Boolean = false,
     val excludeRingtone: Boolean = false,
-    val excludeSeconds: Long = 60,
-    val excludeSizeKb: Long = 50
+    val excludeSeconds: Long = 60L,
+    val excludeSizeKb: Long = 50L,
+    val selectedScanPaths: List<String> = emptyList()
 )
 
 data class ScanResultSummary(
     val importedCount: Int,
     val filteredOutCount: Int,
     val addedCount: Int,
-    val deletedCount: Int
+    val deletedCount: Int,
+    val hiddenCount: Int = 0,
+    val libraryInfo: ScanLibraryInfo = ScanLibraryInfo()
+)
+
+data class ScanLibraryInfo(
+    val songs: Int = 0,
+    val albums: Int = 0,
+    val artists: Int = 0
 )
 
 data class ScanUiState(
+    val phase: ScanPhase = ScanPhase.Idle,
     val options: ScanOptions = ScanOptions(),
-    val isScanning: Boolean = false,
+    val libraryInfo: ScanLibraryInfo = ScanLibraryInfo(),
+    val step: ScanStep = ScanStep.FindingFiles,
     val progressPercent: Int = 0,
     val currentPath: String = "",
     val result: ScanResultSummary? = null
@@ -48,88 +66,118 @@ data class ScanUiState(
 
 @HiltViewModel
 class ScanViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    private val getScanLibrarySummaryUseCase: GetScanLibrarySummaryUseCase,
     private val loadScanOptionsUseCase: LoadScanOptionsUseCase,
     private val updateScanOptionsUseCase: UpdateScanOptionsUseCase,
-    private val observeLibraryTrackCountUseCase: ObserveLibraryTrackCountUseCase,
-    private val queryMediaStoreTracksUseCase: QueryMediaStoreTracksUseCase,
-    private val upsertScannedTracksUseCase: UpsertScannedTracksUseCase,
+    private val scanAudioFilesUseCase: ScanAudioFilesUseCase,
+    private val syncMediaStoreLibraryUseCase: SyncMediaStoreLibraryUseCase,
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(
-        ScanUiState()
-    )
+    private val _uiState = MutableStateFlow(ScanUiState())
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
 
     private var scanJob: Job? = null
 
     init {
         viewModelScope.launch(dispatchers.io) {
-            _uiState.value = _uiState.value.copy(
-                options = loadScanOptionsUseCase()
-            )
+            val options = loadScanOptionsUseCase()
+            val libraryInfo = getScanLibrarySummaryUseCase()
+            _uiState.update { state ->
+                state.copy(
+                    options = options,
+                    libraryInfo = libraryInfo
+                )
+            }
         }
     }
 
     fun startScan(options: ScanOptions) {
         scanJob?.cancel()
-        _uiState.value = ScanUiState(
-            options = options,
-            isScanning = true,
-            progressPercent = 0,
-            currentPath = "",
-            result = null
-        )
 
         scanJob = viewModelScope.launch(dispatchers.io) {
-            updateScanOptionsUseCase(options)
-            val oldCount = observeLibraryTrackCountUseCase().first()
-            val imported = queryMediaStoreTracksUseCase(appContext)
-            val filtered = imported.filter { track ->
-                if (options.excludeBySeconds && track.duration < options.excludeSeconds * 1000) return@filter false
-                if (options.excludeBySize && (track.size ?: 0L) < options.excludeSizeKb * 1024L) return@filter false
-                if (options.excludeRingtone && track.isRingtone != 0) return@filter false
-                true
-            }
-
-            val total = max(1, filtered.size)
-            var processed = 0
-            val chunkSize = 500
+            _uiState.value = ScanUiState(
+                phase = ScanPhase.Scanning,
+                options = options,
+                libraryInfo = _uiState.value.libraryInfo
+            )
 
             try {
-                filtered.chunked(chunkSize).forEach { chunk ->
-                    coroutineContext.ensureActive()
-                    upsertScannedTracksUseCase(chunk)
-                    processed += chunk.size
-                    _uiState.value = _uiState.value.copy(
-                        isScanning = true,
-                        progressPercent = min(100, (processed * 100) / total),
-                        currentPath = chunk.lastOrNull()?.data.orEmpty()
-                    )
-                }
+                updateScanOptionsUseCase(options)
 
-                val newCount = observeLibraryTrackCountUseCase().first()
-                _uiState.value = ScanUiState(
+                scanAudioFilesUseCase(
+                    selectedPaths = options.selectedScanPaths,
+                    onFindingFile = { path ->
+                        updateScanningState(
+                            options = options,
+                            step = ScanStep.FindingFiles,
+                            currentPath = path
+                        )
+                    },
+                    onParseProgress = { progress ->
+                        updateScanningState(
+                            options = options,
+                            step = ScanStep.ParsingFiles,
+                            progressPercent = progress
+                        )
+                    }
+                )
+
+                updateScanningState(
                     options = options,
-                    isScanning = false,
+                    step = ScanStep.WritingDatabase
+                )
+
+                val result = syncMediaStoreLibraryUseCase(options)
+
+                _uiState.value = ScanUiState(
+                    phase = ScanPhase.Result,
+                    options = options,
+                    libraryInfo = result.libraryInfo,
                     progressPercent = 100,
                     currentPath = _uiState.value.currentPath,
-                    result = ScanResultSummary(
-                        importedCount = imported.size,
-                        filteredOutCount = imported.size - filtered.size,
-                        addedCount = max(0, newCount - oldCount),
-                        deletedCount = max(0, imported.size - newCount)
-                    )
+                    result = result
                 )
             } catch (_: CancellationException) {
-                _uiState.value = ScanUiState(options = options)
+                resetToIdle(options)
             }
         }
     }
 
     fun cancelScan() {
         scanJob?.cancel()
-        _uiState.value = ScanUiState(options = _uiState.value.options)
+        resetToIdle(_uiState.value.options)
+    }
+
+    private fun updateScanningState(
+        options: ScanOptions,
+        step: ScanStep,
+        progressPercent: Int = _uiState.value.progressPercent,
+        currentPath: String = _uiState.value.currentPath
+    ) {
+        _uiState.value = ScanUiState(
+            phase = ScanPhase.Scanning,
+            options = options,
+            libraryInfo = _uiState.value.libraryInfo,
+            step = step,
+            progressPercent = progressPercent.coerceIn(0, 100),
+            currentPath = currentPath
+        )
+    }
+
+    private fun resetToIdle(options: ScanOptions) {
+        _uiState.value = ScanUiState(
+            phase = ScanPhase.Idle,
+            options = options,
+            libraryInfo = _uiState.value.libraryInfo
+        )
+    }
+
+    override fun onCleared() {
+        scanJob?.cancel()
+        super.onCleared()
+    }
+
+    companion object {
     }
 }

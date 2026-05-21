@@ -157,7 +157,7 @@ class ScrollingLyricRenderer(
                 setCurrentTime(selectedLine.startTime)
                 invalidate()
 
-//               z6. y.Y().P0(currentTime.toInt(), true)
+                view?.dispatchLyricLineClick(selectedLine.startTime)
             } else {
                 view?.performClick()
             }

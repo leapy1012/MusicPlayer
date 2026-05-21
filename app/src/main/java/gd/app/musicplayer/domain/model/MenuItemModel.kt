@@ -1,94 +1,85 @@
 package gd.app.musicplayer.domain.model
 
-//package: l4.d
 import android.content.Context
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 
-class MenuItemModel {
+/**
+ * Legacy-compatible menu model.
+ *
+ * New code should prefer immutable construction through [copy], while existing Java/Kotlin call
+ * sites can still use the factory and fluent setter methods below.
+ */
+data class MenuItemModel(
+    @param:StringRes private val titleResId: Int = 0,
+    private val customTitle: String? = null,
+    private val accentStyle: Boolean = false,
+    private val destructiveStyle: Boolean = false,
+    private val toggleStyle: Boolean = false,
+    @param:DrawableRes private val iconResId: Int = 0,
+    private val backgroundStyleResId: Int = 0
+) {
 
-    private var titleResId: Int = 0
-    private var customTitle: String? = null
-
-    private var isAccentStyle: Boolean = false
-    private var isDestructiveStyle: Boolean = false
-    private var isToggleStyle: Boolean = false
-
-    private var iconResId: Int = 0
-    private var backgroundStyleResId: Int = 0
-
-    companion object {
-
-        // original: a
-        fun create(titleResId: Int): MenuItemModel {
-            return MenuItemModel().apply {
-                this.titleResId = titleResId
-            }
-        }
-
-        // original: b
-        fun createToggleItem(titleResId: Int, isToggleStyle: Boolean): MenuItemModel {
-            return MenuItemModel().apply {
-                this.titleResId = titleResId
-                this.isToggleStyle = isToggleStyle
-//                this.backgroundStyleResId = i4.a.f10014b
-            }
-        }
-
-        // original: c
-        fun createAccentItem(titleResId: Int): MenuItemModel {
-            return MenuItemModel().apply {
-                this.titleResId = titleResId
-                this.isAccentStyle = true
-//                this.backgroundStyleResId = i4.a.f10013a
-            }
-        }
-
-        // original: d
-        fun createDestructiveItem(titleResId: Int): MenuItemModel {
-            return MenuItemModel().apply {
-                this.titleResId = titleResId
-                this.isDestructiveStyle = true
-            }
-        }
-    }
-
-    // original: e
     fun getIconResId(): Int = iconResId
 
-    // original: f
     fun getBackgroundStyleResId(): Int = backgroundStyleResId
 
-    // original: g
     fun getTitle(context: Context): String {
         return customTitle ?: context.getString(titleResId)
     }
 
-    // original: h
     fun getTitleResId(): Int = titleResId
 
-    // original: i
-    fun hasIcon(): Boolean = iconResId != 0
-
-    // original: j
-    fun hasBackgroundStyle(): Boolean = backgroundStyleResId != 0
-
-    // original: k
-    fun isToggleStyle(): Boolean = isToggleStyle
-
-    // original: l
-    fun isAccentStyle(): Boolean = isAccentStyle
-
-    // original: m
-    fun isDestructiveStyle(): Boolean = isDestructiveStyle
-
-    // original: n
-    fun setCustomTitle(title: String): MenuItemModel {
-        this.customTitle = title
-        return this
+    fun hasIcon(): Boolean {
+        return iconResId != 0
     }
 
-    // original: o
-    fun setIcon(iconResId: Int): MenuItemModel {
-        this.iconResId = iconResId
-        return this
+    fun hasBackgroundStyle(): Boolean {
+        return backgroundStyleResId != 0
+    }
+
+    fun isToggleStyle(): Boolean = toggleStyle
+
+    fun isAccentStyle(): Boolean = accentStyle
+
+    fun isDestructiveStyle(): Boolean = destructiveStyle
+
+    fun setCustomTitle(title: String): MenuItemModel {
+        return copy(customTitle = title)
+    }
+
+    fun setIcon(@DrawableRes iconResId: Int): MenuItemModel {
+        return copy(iconResId = iconResId)
+    }
+
+    companion object {
+
+        fun create(@StringRes titleResId: Int): MenuItemModel {
+            return MenuItemModel(titleResId = titleResId)
+        }
+
+        fun createToggleItem(
+            @StringRes titleResId: Int,
+            isToggleStyle: Boolean
+        ): MenuItemModel {
+            return MenuItemModel(
+                titleResId = titleResId,
+                toggleStyle = isToggleStyle
+            )
+        }
+
+        fun createAccentItem(@StringRes titleResId: Int): MenuItemModel {
+            return MenuItemModel(
+                titleResId = titleResId,
+                accentStyle = true
+            )
+        }
+
+        fun createDestructiveItem(@StringRes titleResId: Int): MenuItemModel {
+            return MenuItemModel(
+                titleResId = titleResId,
+                destructiveStyle = true
+            )
+        }
     }
 }

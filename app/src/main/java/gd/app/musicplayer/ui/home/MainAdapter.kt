@@ -1,6 +1,7 @@
 package gd.app.musicplayer.ui.home
 
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
@@ -14,55 +15,34 @@ import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.databinding.FragmentMainItemBinding
 
 class MainAdapter(
-    private var items: List<MainItem>,
     private val onItemClick: (MainItem) -> Unit
 ) : BaseAdapter() {
-    private val rippleColor = ColorStateList.valueOf(872415231)
-    private val mask = ShapeDrawable(RectShape())
-    private val backgroundCache = hashMapOf<Int, RippleDrawable>()
 
-    override fun getCount() = items.size
-    override fun getItem(position: Int) = items[position]
+    private var items: List<MainItem> = emptyList()
 
-    override fun getItemId(position: Int) = position.toLong()
+    override fun hasStableIds(): Boolean = true
 
-    override fun getView(
-        position: Int,
-        convertView: View?,
-        parent: ViewGroup
-    ): View {
+    override fun getCount(): Int = items.size
 
-        val binding: FragmentMainItemBinding
+    override fun getItem(position: Int): MainItem = items[position]
 
-        if (convertView == null) {
-            binding =
-                FragmentMainItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+    override fun getItemId(position: Int): Long = getItem(position).category.ordinal.toLong()
 
-            binding.root.applyRoundedOutline(R.dimen.item_image_corner_radius)
-            binding.root.tag = binding
-
-
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val holder = if (convertView == null) {
+            ViewHolder(
+                FragmentMainItemBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+            )
         } else {
-            binding = convertView.tag as FragmentMainItemBinding
+            convertView.tag as ViewHolder
         }
 
-        val item = getItem(position)
-
-        binding.apply {
-
-            mainItemImage.setImageResource(item.iconRes)
-            mainItemName.setText(item.titleRes)
-            mainItemCount.text = item.count.toString()
-
-            root.background = backgroundFor(item.bgColor)
-        }
-
-        binding.root.setOnClickListener {
-            onItemClick(item)
-        }
-
-        return binding.root
-
+        holder.bind(getItem(position), onItemClick)
+        return holder.itemView
     }
 
     fun submitList(newItems: List<MainItem>) {
@@ -71,15 +51,39 @@ class MainAdapter(
         notifyDataSetChanged()
     }
 
-    private fun backgroundFor(color: Int): RippleDrawable {
-        val prototype = backgroundCache[color] ?: RippleDrawable(
-            rippleColor,
-            color.toDrawable(),
-            mask
-        ).also { drawable ->
-            backgroundCache[color] = drawable
+    private class ViewHolder(
+        private val binding: FragmentMainItemBinding
+    ) {
+        val itemView: View = binding.root
+
+        init {
+            binding.root.applyRoundedOutline(R.dimen.item_image_corner_radius)
+            binding.root.tag = this
         }
-        return (prototype.constantState?.newDrawable()?.mutate() as? RippleDrawable)
-            ?: RippleDrawable(rippleColor, color.toDrawable(), mask)
+
+        fun bind(
+            item: MainItem,
+            onItemClick: (MainItem) -> Unit
+        ) = with(binding) {
+            mainItemImage.setImageResource(item.iconRes)
+            mainItemName.setText(item.titleRes)
+            mainItemCount.text = item.count.toString()
+            root.background = item.bgColor.asRippleBackground()
+            root.setOnClickListener { onItemClick(item) }
+        }
+    }
+
+    private companion object {
+        val RIPPLE_COLOR: ColorStateList = ColorStateList.valueOf(0x33FFFFFF)
+
+        fun Int.asRippleBackground(): RippleDrawable {
+            return RippleDrawable(
+                RIPPLE_COLOR,
+                this.toDrawable(),
+                ShapeDrawable(RectShape()).apply {
+                    paint.color = Color.WHITE
+                }
+            )
+        }
     }
 }

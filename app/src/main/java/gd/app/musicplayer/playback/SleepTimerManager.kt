@@ -42,6 +42,7 @@ object SleepTimerManager {
 
     private var appContext: Context? = null
     private var ticker: Runnable? = null
+    private var playbackActiveProvider: (() -> Boolean)? = null
 
     fun start(
         context: Context,
@@ -87,6 +88,7 @@ object SleepTimerManager {
         ) {
             appContext?.let { setStopAfterCurrentTrack(it, false) }
             mutableState.value = SleepTimerState()
+            executeConfiguredAction(current.action)
             return
         }
 
@@ -96,9 +98,17 @@ object SleepTimerManager {
         )
     }
 
-    fun finishPendingTrackEnd() {
+    fun finishPendingTrackEnd(executeAction: Boolean = true) {
         stopTicker()
+        val current = mutableState.value
         mutableState.value = SleepTimerState()
+        if (executeAction && current.status == SleepTimerState.STATUS_PENDING_TRACK_END) {
+            executeConfiguredAction(current.action)
+        }
+    }
+
+    fun setPlaybackActiveProvider(provider: (() -> Boolean)?) {
+        playbackActiveProvider = provider
     }
 
     private fun startTicker() {
@@ -131,27 +141,33 @@ object SleepTimerManager {
 
     private fun fireAction(current: SleepTimerState): SleepTimerState {
         val context = appContext ?: return SleepTimerState()
-        if (current.stopAfterCurrentTrack) {
+        if (current.stopAfterCurrentTrack && playbackActiveProvider?.invoke() == true) {
             setStopAfterCurrentTrack(context, true)
             return current.copy(
                 status = SleepTimerState.STATUS_PENDING_TRACK_END,
                 remainingMs = 0L
             )
         }
-        when (current.action) {
+        executeConfiguredAction(current.action)
+        return SleepTimerState()
+    }
+
+    private fun executeConfiguredAction(timerAction: Int) {
+        val context = appContext ?: return
+        SleepTimerFeedback.showScheduled(context, 0L)
+        when (timerAction) {
             SleepTimerState.ACTION_STOP_PLAYBACK,
             SleepTimerState.ACTION_EXIT_PLAYER -> {
                 val intent = android.content.Intent(context, MusicPlaybackService::class.java).apply {
-                    action = if (current.action == SleepTimerState.ACTION_EXIT_PLAYER) {
+                    action = if (timerAction == SleepTimerState.ACTION_EXIT_PLAYER) {
                         MusicPlaybackService.ACTION_EXIT
                     } else {
-                        MusicPlaybackService.ACTION_STOP
+                        MusicPlaybackService.ACTION_PAUSE
                     }
                 }
                 context.startService(intent)
             }
         }
-        return SleepTimerState()
     }
 
     private fun setStopAfterCurrentTrack(context: Context, enabled: Boolean) {

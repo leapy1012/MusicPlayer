@@ -431,6 +431,7 @@
                         android:layout_marginStart="4dp"
                         android:layout_weight="1"
                         android:paddingVertical="4dp"
+                        android:tag="preferenceFadeSeekBar"
                         app:seekProgressHeight="2.5dp"
                         app:seekThumb="@drawable/seekbar_thumb_dot" />
 

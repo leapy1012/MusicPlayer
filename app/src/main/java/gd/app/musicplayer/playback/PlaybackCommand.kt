@@ -30,6 +30,10 @@ sealed interface PlaybackCommand {
         val enabled: Boolean
     ) : PlaybackCommand
 
+    data class PlayIndex(
+        val index: Int
+    ) : PlaybackCommand
+
     data class RemoveQueueItem(
         val index: Int
     ) : PlaybackCommand
@@ -37,6 +41,14 @@ sealed interface PlaybackCommand {
     data class MoveQueueItem(
         val fromIndex: Int,
         val toIndex: Int
+    ) : PlaybackCommand
+
+    data class RefreshEditedTrack(
+        val track: Music
+    ) : PlaybackCommand
+
+    data class RefreshEditedTracks(
+        val tracks: List<Music>
     ) : PlaybackCommand
 
     data object TogglePlayPause : PlaybackCommand

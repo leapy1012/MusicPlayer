@@ -84,6 +84,7 @@ class DesktopLyricsOverlayController(
     private var presetColorAdapter: DesktopLyricPresetColorAdapter? = null
 
     private var preference = DesktopLyricPreference()
+    private var appInForeground = false
     private var lastTrackId: Long? = null
     private var lyricsLoadJob: Job? = null
     private var maxY = 0
@@ -92,7 +93,16 @@ class DesktopLyricsOverlayController(
         val previousPreference = this.preference
         this.preference = preference
 
-        if (preference.visible && hasOverlayPermission()) {
+        applyVisibilityState(previousPreference = previousPreference)
+    }
+
+    fun renderAppForeground(isForeground: Boolean) {
+        appInForeground = isForeground
+        applyVisibilityState(previousPreference = preference)
+    }
+
+    private fun applyVisibilityState(previousPreference: DesktopLyricPreference) {
+        if (preference.visible && !appInForeground && hasOverlayPermission()) {
             ensureAdded()
             applyPreference(
                 preference = preference,
@@ -247,7 +257,7 @@ class DesktopLyricsOverlayController(
     }
 
     override fun run() {
-        setControlsVisible(false)
+        setControlsVisible(false, scheduleNextHide = false)
     }
 
     private fun ensureAdded() {
@@ -360,6 +370,7 @@ class DesktopLyricsOverlayController(
             format = PixelFormat.RGBA_8888
             flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+            horizontalMargin = context.resources.displayMetrics.density * 10f
             width = WindowManager.LayoutParams.MATCH_PARENT
             height = WindowManager.LayoutParams.WRAP_CONTENT
             gravity = Gravity.TOP or Gravity.START
@@ -380,8 +391,7 @@ class DesktopLyricsOverlayController(
             presetColorAdapter?.render(preference.presetColorIndex, applySelected = true)
             showPresetColors()
         } else {
-            showCustomColors()
-            applyCustomColors(preference)
+            showCustomColors(applyPreferenceColors = true)
         }
 
         val alpha = preference.alpha.coerceIn(MIN_ALPHA, MAX_ALPHA)
@@ -419,10 +429,16 @@ class DesktopLyricsOverlayController(
     }
 
     private fun showCustomColors() {
+        showCustomColors(applyPreferenceColors = false)
+    }
+
+    private fun showCustomColors(applyPreferenceColors: Boolean) {
         presetColorButton?.isSelected = false
         customColorButton?.isSelected = true
         viewFlipper?.displayedChild = 1
-        applyCustomColors(preference)
+        if (applyPreferenceColors) {
+            applyCustomColors(preference)
+        }
     }
 
     private fun toggleSettings() {
@@ -466,7 +482,10 @@ class DesktopLyricsOverlayController(
         fontZoomOutButton?.isSelected = textSize <= MIN_TEXT_SIZE
     }
 
-    private fun setControlsVisible(visible: Boolean) {
+    private fun setControlsVisible(
+        visible: Boolean,
+        scheduleNextHide: Boolean = true
+    ) {
         val root = rootView ?: return
         val params = layoutParams ?: return
 
@@ -499,7 +518,9 @@ class DesktopLyricsOverlayController(
             runCatching { windowManager.updateViewLayout(root, params) }
         }
 
-        scheduleAutoHide()
+        if (scheduleNextHide) {
+            scheduleAutoHide()
+        }
     }
 
     private fun applyLock(locked: Boolean, showToast: Boolean) {
@@ -510,6 +531,10 @@ class DesktopLyricsOverlayController(
             params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         } else {
             params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            params.alpha = if (locked) LOCKED_WINDOW_ALPHA else UNLOCKED_WINDOW_ALPHA
         }
 
         if (locked) {
@@ -530,7 +555,10 @@ class DesktopLyricsOverlayController(
         lyricsLoadJob?.cancel()
         lyricView?.setLyricText(null)
 
-        if (track == null) return
+        if (track == null) {
+            lyricView?.setLyricText(context.getString(R.string.no_lrc_1))
+            return
+        }
 
         lyricsLoadJob = scope.launch {
             val result = LyricsLoader.load(
@@ -539,7 +567,13 @@ class DesktopLyricsOverlayController(
                 audioPath = track.data
             )
             if (lastTrackId == track.id) {
-                lyricView?.setLyricText(result.text)
+                lyricView?.setLyricText(
+                    if (result.hasLyrics) {
+                        result.text
+                    } else {
+                        context.getString(R.string.no_lrc_1)
+                    }
+                )
             }
         }
     }
@@ -613,5 +647,7 @@ class DesktopLyricsOverlayController(
         private const val MIN_TEXT_SIZE = 14
         private const val MAX_TEXT_SIZE = 24
         private const val TEXT_SIZE_STEP = 2
+        private const val LOCKED_WINDOW_ALPHA = 0.7f
+        private const val UNLOCKED_WINDOW_ALPHA = 1f
     }
 }

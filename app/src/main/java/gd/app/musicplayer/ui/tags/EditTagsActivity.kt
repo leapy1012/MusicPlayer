@@ -2,21 +2,25 @@ package gd.app.musicplayer.ui.tags
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.common.extension.applyLengthFilter
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
@@ -34,6 +38,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.domain.repository.MusicSetMetadataRepo
 import gd.app.musicplayer.domain.repository.TrackMetadataRepo
+import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.ui.library.artwork.ManageArtworkDialogFragment
 import javax.inject.Inject
 
@@ -59,6 +64,8 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     @Inject lateinit var metadataRepo: TrackMetadataRepo
 
     @Inject lateinit var musicSetMetadataRepo: MusicSetMetadataRepo
+
+    @Inject lateinit var playbackController: PlaybackController
 
     companion object {
         private const val EXTRA_TRACK = "KEY_MUSIC"
@@ -99,6 +106,7 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         binding.toolbar.setOnMenuItemClickListener(this)
 
         registerArtworkResultListener()
+        setupKeyboardInsets()
         buildFields(binding.editTagsContainer)
     }
 
@@ -169,6 +177,12 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         genreField?.setText(currentTrack.genres)
         trackNumberField?.setText(currentTrack.track.takeIf { it > 0 }?.toString().orEmpty())
 
+        titleField.applyLengthFilter(120)
+        albumField?.applyLengthFilter(120)
+        artistField?.applyLengthFilter(120)
+        genreField?.applyLengthFilter(120)
+        trackNumberField?.applyLengthFilter(8)
+
         bindDirtyWatcher(titleField)
         bindDirtyWatcher(albumField)
         bindDirtyWatcher(artistField)
@@ -214,6 +228,11 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
                 genreField?.setText(set.genres)
                 yearField?.setText(set.year.takeIf { it > 0 }?.toString().orEmpty())
 
+                titleField.applyLengthFilter(120)
+                artistField?.applyLengthFilter(120)
+                genreField?.applyLengthFilter(120)
+                yearField?.applyLengthFilter(4)
+
                 bindDirtyWatcher(titleField)
                 bindDirtyWatcher(artistField)
                 bindDirtyWatcher(genreField)
@@ -223,12 +242,14 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             is MusicSet.Artist -> {
                 titleField = container.findViewById(R.id.music_edit_artist)
                 titleField.setText(set.name)
+                titleField.applyLengthFilter(120)
                 bindDirtyWatcher(titleField)
             }
 
             is MusicSet.Genre -> {
                 titleField = container.findViewById(R.id.music_edit_genre)
                 titleField.setText(set.name)
+                titleField.applyLengthFilter(120)
                 bindDirtyWatcher(titleField)
             }
             else -> TODO()
@@ -236,6 +257,11 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun bindDirtyWatcher(editText: EditText?) {
+        editText?.setOnFocusChangeListener { view, hasFocus ->
+            if (hasFocus) {
+                scrollFocusedViewAboveKeyboard(view)
+            }
+        }
         editText?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -243,6 +269,29 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             }
             override fun afterTextChanged(s: Editable?) = Unit
         })
+    }
+
+    private fun setupKeyboardInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.editTagsScroll) { view, insets ->
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val systemBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            view.updatePadding(bottom = imeBottom.coerceAtLeast(systemBottom))
+            insets
+        }
+    }
+
+    private fun scrollFocusedViewAboveKeyboard(view: View) {
+        binding.editTagsScroll.post {
+            val scrollBoundsBottom =
+                binding.editTagsScroll.scrollY + binding.editTagsScroll.height
+            val viewBottom = view.bottom + binding.editTagsContainer.top
+            if (viewBottom > scrollBoundsBottom) {
+                binding.editTagsScroll.smoothScrollTo(
+                    0,
+                    viewBottom - binding.editTagsScroll.height + view.height
+                )
+            }
+        }
     }
 
     private fun hasChanges(): Boolean {
@@ -307,17 +356,23 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         val currentTrack = track ?: return
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val success = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                metadataRepo.updateTrackMetadata(currentTrack, metadata)
-            } else {
-                false
-            }
+            val updatedTrack = metadataRepo.updateTrackMetadata(
+                track = currentTrack,
+                metadata = metadata,
+                artworkPath = currentTrackCoverPath
+            )
             launch(Dispatchers.Main) {
-                if (success) {
+                if (updatedTrack != null) {
+                    if (playbackController.state.value.queue.any { it.id == updatedTrack.id }) {
+                        playbackController.refreshEditedTrack(
+                            context = this@EditTagsActivity,
+                            track = updatedTrack
+                        )
+                    }
                     ToastUtil.show(this@EditTagsActivity, R.string.audio_editor_succeed)
                     finish()
                 } else {
-                    ToastUtil.show(this@EditTagsActivity, R.string.feature_not_implemented)
+                    ToastUtil.show(this@EditTagsActivity, R.string.equalizer_edit_input_error)
                 }
             }
         }
@@ -325,6 +380,7 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
     private fun saveSetChanges() {
         val currentSet = musicSet ?: return
+        val queueUpdates = buildSetQueueUpdates(currentSet)
         lifecycleScope.launch(Dispatchers.IO) {
             val success = when (currentSet) {
                 is MusicSet.Album -> {
@@ -375,6 +431,12 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             }
             launch(Dispatchers.Main) {
                 if (success) {
+                    if (queueUpdates.isNotEmpty()) {
+                        playbackController.refreshEditedTracks(
+                            context = this@EditTagsActivity,
+                            tracks = queueUpdates
+                        )
+                    }
                     ToastUtil.show(this@EditTagsActivity, R.string.audio_editor_succeed)
                     finish()
                 } else {
@@ -436,6 +498,65 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
                 .load(source)
                 .error(fallback)
                 .into(image)
+        }
+    }
+
+    private fun buildSetQueueUpdates(
+        currentSet: MusicSet
+    ): List<Music> {
+        val queue = playbackController.state.value.queue
+        if (queue.isEmpty()) return emptyList()
+
+        return when (currentSet) {
+            is MusicSet.Album -> {
+                val newAlbum = titleField.text?.toString()?.trim().orEmpty()
+                val newArtist = artistField?.text?.toString()?.trim().orEmpty()
+                val newGenre = genreField?.text?.toString()?.trim().orEmpty()
+                val newYear = yearField?.text?.toString()?.trim()?.toIntOrNull() ?: 0
+                queue.mapNotNull { music ->
+                    if (music.album == currentSet.name) {
+                        music.copy(
+                            album = newAlbum,
+                            artist = newArtist,
+                            genres = newGenre,
+                            year = newYear,
+                            albumPicture = currentSetCoverPath
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+
+            is MusicSet.Artist -> {
+                val newArtist = titleField.text?.toString()?.trim().orEmpty()
+                queue.mapNotNull { music ->
+                    if (music.artist == currentSet.name) {
+                        music.copy(
+                            artist = newArtist,
+                            albumPicture = currentSetCoverPath
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+
+            is MusicSet.Genre -> {
+                val newGenre = titleField.text?.toString()?.trim().orEmpty()
+                queue.mapNotNull { music ->
+                    if (music.genres == currentSet.name) {
+                        music.copy(
+                            genres = newGenre,
+                            albumPicture = currentSetCoverPath
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+
+            else -> emptyList()
         }
     }
 }

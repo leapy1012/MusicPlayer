@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
+import gd.app.musicplayer.data.local.mediastore.MediaStoreLibraryObserver
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.ui.library.options.RingtoneActionHandler
 import gd.app.musicplayer.ui.theme.ThemeEngine
@@ -26,6 +27,7 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     @Inject lateinit var themeEngine: ThemeEngine
     @Inject lateinit var themeRegistry: ThemeRegistry
     @Inject lateinit var themeRepo: ThemeRepo
+    @Inject lateinit var mediaStoreLibraryObserver: MediaStoreLibraryObserver
 
     override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
         super.onSaveInstanceState(outState, outPersistentState)
@@ -75,6 +77,9 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
         super.onResume()
         isStateSaved = false
         RingtoneActionHandler.handlePendingPermissionResult(this)
+        if (hasAudioPermission()) {
+            mediaStoreLibraryObserver.scheduleSync()
+        }
         applyThemeTo(findViewById(android.R.id.content))
     }
 

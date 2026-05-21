@@ -10,6 +10,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
+import gd.app.musicplayer.playback.ReverbAudioProcessor
 import gd.app.musicplayer.playback.StereoBalanceAudioProcessor
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,7 +21,8 @@ class MusicPlayerFactory @Inject constructor() {
     @OptIn(UnstableApi::class)
     fun create(
         context: Context,
-        stereoBalanceAudioProcessor: StereoBalanceAudioProcessor
+        stereoBalanceAudioProcessor: StereoBalanceAudioProcessor,
+        reverbAudioProcessor: ReverbAudioProcessor
     ): ExoPlayer {
         val renderersFactory = object : DefaultRenderersFactory(context) {
             override fun buildAudioSink(
@@ -29,10 +31,15 @@ class MusicPlayerFactory @Inject constructor() {
                 enableAudioTrackPlaybackParams: Boolean
             ): AudioSink {
                 return DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(enableFloatOutput)
+                    // The custom balance/reverb processors only operate on PCM16.
+                    // Keep float output disabled so the effect path stays active.
+                    .setEnableFloatOutput(false)
                     .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(
-                        arrayOf<AudioProcessor>(stereoBalanceAudioProcessor)
+                        arrayOf<AudioProcessor>(
+                            reverbAudioProcessor,
+                            stereoBalanceAudioProcessor
+                        )
                     )
                     .build()
             }

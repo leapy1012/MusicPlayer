@@ -69,9 +69,14 @@ class LyricListActivity :
     private var track: Music? = null
     private var searchText = ""
 
-    private val filePicker =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let(::selectExternalLyric)
+    private val lrcBrowserLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                setResult(Activity.RESULT_OK)
+                finish()
+            } else {
+                loadLyrics()
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -109,7 +114,9 @@ class LyricListActivity :
     override fun onMenuItemClick(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_folder -> {
-                filePicker.launch("*/*")
+                track?.let { currentTrack ->
+                    lrcBrowserLauncher.launch(LrcBrowserActivity.intent(this, currentTrack))
+                }
                 true
             }
 

@@ -7,17 +7,20 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.data.local.preference.DesktopLyricPreferenceStore
+import gd.app.musicplayer.data.local.preference.PlaylistPreferenceDataStore
 import gd.app.musicplayer.data.local.preference.SettingPreferences
 import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
 import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
 import gd.app.musicplayer.data.local.preference.StatusBarLyricPreference
 import gd.app.musicplayer.data.local.preference.StatusBarLyricPreferenceStore
+import gd.app.musicplayer.domain.model.SmartPlaylistConfig
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.round
 
@@ -28,6 +31,7 @@ class SettingsViewModel @Inject constructor(
     private val desktopLyricPreferenceStore: DesktopLyricPreferenceStore,
     private val statusBarLyricPreferenceStore: StatusBarLyricPreferenceStore,
     private val soundEffectPreferences: SoundEffectPreferences,
+    private val playlistPreferenceDataStore: PlaylistPreferenceDataStore,
     private val themeRepo: ThemeRepo
 ) : ViewModel() {
 
@@ -36,12 +40,14 @@ class SettingsViewModel @Inject constructor(
             settingPreferences.observeSettingPreferences(),
             soundEffectPreferences.equalizerPreference,
             desktopLyricPreferenceStore.desktopLyricPreference,
-            statusBarLyricPreferenceStore.preference
-        ) { preferences, equalizer, desktopLyricPreference, statusBarLyricPreference ->
+            statusBarLyricPreferenceStore.preference,
+            playlistPreferenceDataStore.observeSmartPlaylistConfig()
+        ) { preferences, equalizer, desktopLyricPreference, statusBarLyricPreference, smartPlaylistConfig ->
             preferences.toUiState(
                 useTenBand = equalizer.bandMode == SoundEffectPreferences.TEN_BAND_MODE,
                 desktopLyricPreference = desktopLyricPreference,
-                statusBarLyricPreference = statusBarLyricPreference
+                statusBarLyricPreference = statusBarLyricPreference,
+                smartPlaylistConfig = smartPlaylistConfig
             )
         }
             .stateIn(
@@ -59,6 +65,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setShowHiddenFolders(enabled: Boolean) = update {
         settingPreferences.updateShowHiddenFolders(enabled)
+    }
+
+    fun setKeepAliveTipSeen() = update {
+        settingPreferences.updateShowKeepAliveDot(false)
     }
 
     fun setDarkModeEnabled(enabled: Boolean) = update {
@@ -156,7 +166,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setSmartPlaylistSelection(selectionIndex: Int, customLimit: Int = -1) = update {
-//        musicPreferencesRepository.setSmartPlaylistSelection(selectionIndex, customLimit)
+        playlistPreferenceDataStore.setSmartPlaylistSelection(selectionIndex, customLimit)
     }
 
     fun setNotificationBarEnabled(enabled: Boolean) = update {
@@ -199,22 +209,32 @@ class SettingsViewModel @Inject constructor(
         settingPreferences.updateHeadsetControlAllowed(enabled)
     }
 
-    private fun update(block: suspend () -> Unit) {
-        viewModelScope.launch {
+    private fun update(block: suspend () -> Unit): Job {
+        return viewModelScope.launch {
             block()
         }
+    }
+
+    private fun supportsModernMediaStyleNotification(): Boolean {
+        return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N
     }
 
     private fun SettingPreferences.toUiState(
         useTenBand: Boolean = false,
         desktopLyricPreference: gd.app.musicplayer.data.local.preference.DesktopLyricPreference =
             gd.app.musicplayer.data.local.preference.DesktopLyricPreference(),
-        statusBarLyricPreference: StatusBarLyricPreference = StatusBarLyricPreference()
+        statusBarLyricPreference: StatusBarLyricPreference = StatusBarLyricPreference(),
+        smartPlaylistConfig: SmartPlaylistConfig = SmartPlaylistConfig(
+            windowStartMs = 0L,
+            windowDurationMs = PlaylistPreferenceDataStore.MONTH_MS_6,
+            trackLimit = -1
+        )
     ): SettingsUiState {
         return SettingsUiState(
             useTenBand = useTenBand,
             useTenBandAvailable = SoundEffectPreferences.supportsTenBandEqualizer(),
             showHiddenFolders = normal.showHiddenFolders,
+            showKeepAliveDot = normal.showKeepAliveDot,
             darkModeEnabled = themeRepo.getCorePalette().isDarkMode(),
             showForwardBackward = normal.showForwardBackward,
             forwardBackwardSeconds = normal.forwardBackwardSeconds,
@@ -241,14 +261,14 @@ class SettingsViewModel @Inject constructor(
             clickAddQueueEnabled = playlist.clickAddQueueEnabled,
             playlistAddPosition = playlist.addPosition,
             playlistAddPositionLabel = playlistAddPositionLabel(playlist.addPosition),
-            smartPlaylistSelectionIndex = 0,
-            smartPlaylistCustomLimit = -1,
-            playlistTrackLimitLabel = "",
+            smartPlaylistSelectionIndex = smartPlaylistSelectionIndex(smartPlaylistConfig),
+            smartPlaylistCustomLimit = smartPlaylistConfig.trackLimit,
+            playlistTrackLimitLabel = smartPlaylistLimitLabel(smartPlaylistConfig),
             notificationBarEnabled = notification.notificationBarEnabled,
             oldNotificationEnabled = notification.oldNotificationEnabled,
-            colorNotificationEnabled =
-                notification.colorNotificationEnabled && !notification.oldNotificationEnabled,
-            colorNotificationEnabledAvailable = !notification.oldNotificationEnabled,
+            colorNotificationEnabled = notification.colorNotificationEnabled,
+            colorNotificationEnabledAvailable =
+                !supportsModernMediaStyleNotification() || notification.oldNotificationEnabled,
             desktopLyricPreference = desktopLyricPreference,
             statusBarLyricPreference = statusBarLyricPreference,
             lockScreenEnabled = lockscreen.lockScreenEnabled,
@@ -286,6 +306,35 @@ class SettingsViewModel @Inject constructor(
         return appContext.getString(
             if (position == 0) R.string.add_music_position_top else R.string.add_music_position_end
         )
+    }
+
+    private fun smartPlaylistSelectionIndex(config: SmartPlaylistConfig): Int {
+        return when (config.windowDurationMs) {
+            PlaylistPreferenceDataStore.DAY_MS -> 0
+            PlaylistPreferenceDataStore.WEEK_MS -> 1
+            PlaylistPreferenceDataStore.MONTH_MS -> 2
+            PlaylistPreferenceDataStore.MONTH_MS_3 -> 3
+            PlaylistPreferenceDataStore.MONTH_MS_6 -> 4
+            PlaylistPreferenceDataStore.YEAR_MS -> 5
+            PlaylistPreferenceDataStore.FOREVER -> 6
+            else -> 7
+        }
+    }
+
+    private fun smartPlaylistLimitLabel(config: SmartPlaylistConfig): String {
+        return when (smartPlaylistSelectionIndex(config)) {
+            0 -> appContext.getString(R.string.playlist_limit_day)
+            1 -> appContext.getString(R.string.playlist_limit_week)
+            2 -> appContext.getString(R.string.playlist_limit_month)
+            3 -> appContext.getString(R.string.playlist_limit_month_3)
+            4 -> appContext.getString(R.string.playlist_limit_month_6)
+            5 -> appContext.getString(R.string.playlist_limit_year)
+            6 -> appContext.getString(R.string.playlist_limit_forever)
+            else -> config.trackLimit
+                .takeIf { it > 0 }
+                ?.toString()
+                ?: appContext.getString(R.string.playlist_track_limit_default)
+        }
     }
 
     private fun lockBackgroundLabel(mode: Int): String {

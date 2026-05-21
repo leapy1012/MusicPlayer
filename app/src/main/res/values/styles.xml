@@ -211,6 +211,34 @@
         <item name="android:layout_marginStart">16dp</item>
     </style>
 
+    <style name="PlaylistLimitRow">
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">16dp</item>
+    </style>
+
+    <style name="PlaylistLimitCheck">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:tag">dialogSelectBox</item>
+        <item name="srcCompat">@drawable/vector_single_check_selector</item>
+    </style>
+
+    <style name="PlaylistLimitText">
+        <item name="android:textSize">16sp</item>
+        <item name="android:tag">dialogTitle</item>
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:layout_marginStart">8dp</item>
+    </style>
+
     <!-- Equalizer -->
     <style name="Equalizer.SelectItem" parent="@android:style/Widget.TextView">
         <item name="android:textSize">12sp</item>

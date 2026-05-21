@@ -4,6 +4,7 @@
     android:id="@+id/scan_music_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#000"
     android:orientation="vertical"
     android:tag="activityBackgroundColor">
 
@@ -11,8 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/main_actionbar"
-        >
+        android:tag="titleBackgroundColor">
 
         <View
             android:id="@+id/status_bar_space"
@@ -29,7 +29,7 @@
             app:menu="@menu/menu_activity_scan_menu"
             app:navigationIcon="@drawable/vector_menu_back"
             app:theme="@style/AppToolbar"
-            app:title="@string/scan_library"
+            app:title="@string/scan"
             app:titleTextAppearance="@style/AppToolbarTitle" />
     </LinearLayout>
 
@@ -37,7 +37,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:tag="shadowMark">
+        android:tag="shadowMark"
+        android:id="@+id/background">
 
         <Space
             android:layout_width="match_parent"
@@ -86,11 +87,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <include layout="@layout/layout_before_scanning" />
+            <include
+                android:id="@+id/layout_before_scanning"
+                layout="@layout/layout_before_scanning" />
 
-            <include layout="@layout/layout_scanning" />
+            <include
+                android:id="@+id/layout_scanning"
+                layout="@layout/layout_scanning" />
 
-            <include layout="@layout/layout_after_scanning" />
+            <include
+                android:id="@+id/layout_after_scanning"
+                layout="@layout/layout_after_scanning" />
         </ViewFlipper>
 
         <Space

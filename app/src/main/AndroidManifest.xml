@@ -109,7 +109,15 @@
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.duplicate.ActivityDuplicatedFinder"
+            android:name=".ui.scan.ScanSettingActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.library.deleted.DeletedMusicActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.duplicate.DuplicateFinderActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -124,13 +132,18 @@
         <activity
             android:name=".ui.tags.EditTagsActivity"
             android:exported="false"
-            android:launchMode="singleTop" />
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.lyrics.LyricEditActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".ui.lyrics.LyricListActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.lyrics.LrcBrowserActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity

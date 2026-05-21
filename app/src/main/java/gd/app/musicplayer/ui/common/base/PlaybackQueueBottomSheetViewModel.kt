@@ -30,10 +30,13 @@ import javax.inject.Inject
 
 data class PlaybackQueueBottomSheetUiState(
     val queue: List<Music> = emptyList(),
-    val currentIndex: Int = 0,
+    val currentIndex: Int = -1,
     val currentMusic: Music? = null,
     val isPlaying: Boolean = false
-)
+) {
+    val currentTrackId: Long?
+        get() = currentMusic?.id ?: queue.getOrNull(currentIndex)?.id
+}
 
 sealed interface PlaybackQueueBottomSheetEvent {
     data object Dismiss : PlaybackQueueBottomSheetEvent
@@ -146,7 +149,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
             return
         }
 
-        val currentTrackId = state.currentMusic?.id
+        val currentTrackId = state.currentTrackId
         val nextIndex = updatedQueue.indexOfFirst { it.id == currentTrackId }
             .takeIf { it >= 0 }
             ?: state.currentIndex.coerceIn(0, updatedQueue.lastIndex)
@@ -158,7 +161,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         val queue = state.queue
         if (queue.size < 2) return
 
-        val currentTrack = state.currentMusic
+        val currentTrack = state.currentMusic ?: queue.getOrNull(state.currentIndex)
         val shuffledQueue = if (currentTrack == null) {
             queue.shuffled()
         } else {

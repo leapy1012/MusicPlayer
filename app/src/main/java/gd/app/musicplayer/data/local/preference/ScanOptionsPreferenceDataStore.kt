@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import gd.app.musicplayer.ui.scan.ScanOptions
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -34,6 +35,7 @@ class ScanOptionsPreferenceDataStore @Inject constructor(
             preferences[PREF_EXCLUDE_RINGTONE] = scanOptions.excludeRingtone
             preferences[PREF_EXCLUDE_MUSIC_SECONDS] = scanOptions.excludeSeconds
             preferences[PREF_EXCLUDE_MUSIC_SIZE] = scanOptions.excludeSizeKb
+            preferences[PREF_SELECTED_SCAN_PATHS] = scanOptions.selectedScanPaths.toSet()
         }
     }
 
@@ -43,7 +45,8 @@ class ScanOptionsPreferenceDataStore @Inject constructor(
             excludeBySize = this[PREF_EXCLUDE_MUSIC_BY_SIZE] ?: true,
             excludeRingtone = this[PREF_EXCLUDE_RINGTONE] ?: false,
             excludeSeconds = this[PREF_EXCLUDE_MUSIC_SECONDS] ?: 60L,
-            excludeSizeKb = this[PREF_EXCLUDE_MUSIC_SIZE] ?: 50L
+            excludeSizeKb = this[PREF_EXCLUDE_MUSIC_SIZE] ?: 50L,
+            selectedScanPaths = this[PREF_SELECTED_SCAN_PATHS]?.toList().orEmpty()
         )
     }
 
@@ -62,5 +65,8 @@ class ScanOptionsPreferenceDataStore @Inject constructor(
 
         private val PREF_EXCLUDE_MUSIC_BY_SIZE =
             booleanPreferencesKey("pref_exclude_music_by_size")
+
+        private val PREF_SELECTED_SCAN_PATHS =
+            stringSetPreferencesKey("pref_selected_scan_paths")
     }
 }

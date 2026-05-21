@@ -21,6 +21,112 @@ interface LibraryDao {
     @Upsert
     suspend fun upsertAll(items: List<MusicEntity>)
 
+    @Query("SELECT * FROM musictbl")
+    suspend fun getAllMusicForSync(): List<MusicEntity>
+
+    @Query("SELECT * FROM musictbl WHERE _id = :trackId LIMIT 1")
+    suspend fun getMusicEntityById(trackId: Long): MusicEntity?
+
+    @Query("SELECT * FROM musictbl WHERE _id IN (:trackIds)")
+    suspend fun getMusicEntitiesByIds(trackIds: List<Long>): List<MusicEntity>
+
+    @Query("SELECT _id FROM musictbl")
+    suspend fun getAllTrackIdsForSync(): List<Long>
+
+    @Query("SELECT MAX(date_modified) FROM musictbl")
+    suspend fun getMaxTrackDateModifiedForSync(): Long?
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET title = :title,
+            album = :album,
+            artist = :artist,
+            genres = :genre,
+            track = :trackNumber,
+            album_pic = :artworkPath
+        WHERE _id = :trackId
+        """
+    )
+    suspend fun updateTrackMetadata(
+        trackId: Long,
+        title: String,
+        album: String,
+        artist: String,
+        genre: String,
+        trackNumber: Int,
+        artworkPath: String?
+    ): Int
+
+    @Query(
+        """
+        SELECT COUNT(_id)
+        FROM musictbl
+        WHERE hide_time = 0
+          AND `show` = 1
+          AND folder_path NOT IN (SELECT folder_path FROM hide_folder)
+        """
+    )
+    suspend fun countVisibleTracksForSync(): Int
+
+    @Query(
+        """
+        SELECT COUNT(DISTINCT album)
+        FROM musictbl
+        WHERE hide_time = 0
+          AND `show` = 1
+          AND folder_path NOT IN (SELECT folder_path FROM hide_folder)
+          AND album IS NOT NULL
+          AND album != ''
+        """
+    )
+    suspend fun countVisibleAlbumsForSync(): Int
+
+    @Query(
+        """
+        SELECT COUNT(DISTINCT artist)
+        FROM musictbl
+        WHERE hide_time = 0
+          AND `show` = 1
+          AND folder_path NOT IN (SELECT folder_path FROM hide_folder)
+          AND artist IS NOT NULL
+          AND artist != ''
+        """
+    )
+    suspend fun countVisibleArtistsForSync(): Int
+
+    @Query("SELECT COUNT(*) FROM hide_folder")
+    suspend fun countHiddenFoldersForSync(): Int
+
+    @Query(
+        """
+        SELECT COUNT(_id)
+        FROM musictbl
+        WHERE hide_time > 0
+          AND `show` = 1
+        """
+    )
+    suspend fun countHiddenTracksForSync(): Int
+
+    @Query(
+        """
+        SELECT COUNT(_id)
+        FROM musictbl
+        WHERE hide_time = 0
+          AND `show` = 0
+        """
+    )
+    suspend fun countSourceDeletedTracksForSync(): Int
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET `show` = 0
+        WHERE `show` = 2
+        """
+    )
+    suspend fun normalizeSourceDeletedTracksForSync(): Int
+
     @Query(
         """
         UPDATE musictbl
@@ -371,6 +477,53 @@ interface LibraryDao {
     )
     @RewriteQueriesToDropUnusedColumns
     fun observeHiddenSongs(): Flow<List<Music>>
+
+    @Query(
+        """
+        SELECT
+          music.*,
+          list.p_id AS p_id
+        FROM (SELECT * FROM musictbl WHERE hide_time = 0 AND `show` = 0) AS music
+        LEFT JOIN (
+            SELECT DISTINCT([m_id]), [p_id]
+            FROM music_playlist
+            WHERE music_playlist.p_id = 1
+        ) AS list
+            ON music.[_id] = list.[m_id]
+        ORDER BY music.state_time DESC
+        """
+    )
+    @RewriteQueriesToDropUnusedColumns
+    fun observeDeletedSongs(): Flow<List<Music>>
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET `show` = 1
+        WHERE _id IN (:musicIds)
+        """
+    )
+    suspend fun restoreDeletedSongs(musicIds: List<Long>)
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET `show` = 0,
+            state_time = :stateTime
+        WHERE _id IN (:musicIds)
+        """
+    )
+    suspend fun markSourceDeletedSongs(musicIds: List<Long>, stateTime: Long)
+
+    @Query(
+        """
+        UPDATE musictbl
+        SET `show` = 2,
+            state_time = :stateTime
+        WHERE _id IN (:musicIds)
+        """
+    )
+    suspend fun markDeletedSourceFilesRemoved(musicIds: List<Long>, stateTime: Long)
 
     @Query(
         """

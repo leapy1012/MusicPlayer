@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -27,13 +28,15 @@ import gd.app.musicplayer.playback.AudioEffectsManager
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
 
     private val soundEffectViewModel: SoundEffectViewModel by viewModels()
-    private val playerViewModel: PlayerViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by activityViewModels()
 
     private lateinit var audioManager: AudioManager
 
@@ -45,6 +48,7 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
     private var boostTracking: Boolean = false
     private var leftBalanceTracking: Boolean = false
     private var rightBalanceTracking: Boolean = false
+    private var loudnessApplyJob: Job? = null
 
     private val systemVolumeObserver: ContentObserver by lazy {
         object : ContentObserver(Handler(Looper.getMainLooper())) {
@@ -150,6 +154,10 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
                     if (!fromUser || isRendering) return
 
                     latestSettings = latestSettings.copy(loudnessStrength = value)
+                    loudnessApplyJob?.cancel()
+                    loudnessApplyJob = persistAndApplyDelayed(CONTROL_APPLY_DELAY_MS) {
+                        soundEffectViewModel.persistLoudnessStrength(value)
+                    }
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar) {
@@ -160,10 +168,12 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
                 override fun onStopTrackingTouch(seekBar: SeekBar) {
                     boostTracking = false
                     updateGestureInterception(false)
-
-                    saveLoudnessStrengthAndApply(
-                        latestSettings.loudnessStrength
-                    )
+                    loudnessApplyJob?.cancel()
+                    persistAndApply {
+                        soundEffectViewModel.persistLoudnessStrength(
+                            latestSettings.loudnessStrength
+                        )
+                    }
                 }
             }
         )
@@ -187,9 +197,9 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
 
                     latestSettings = latestSettings.copy(loudnessEnabled = isSelected)
                     renderEnabledState(requireBinding(), latestSettings)
-
-                    soundEffectViewModel.setLoudnessEnabled(isSelected)
-                    applyAudioEffects()
+                    persistAndApply {
+                        soundEffectViewModel.persistLoudnessEnabled(isSelected)
+                    }
                 }
             }
         )
@@ -205,9 +215,9 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
 
                     latestSettings = latestSettings.copy(balanceEnabled = isSelected)
                     renderEnabledState(requireBinding(), latestSettings)
-
-                    soundEffectViewModel.setBalanceEnabled(isSelected)
-                    applyAudioEffects()
+                    persistAndApply {
+                        soundEffectViewModel.persistBalanceEnabled(isSelected)
+                    }
                 }
             }
         )
@@ -242,7 +252,7 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
                 )
 
                 if (!isTracking) {
-                    saveBalanceAndApply(isLeft)
+                    persistAndApplyBalance(isLeft)
                 }
             }
 
@@ -259,9 +269,7 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
                 } else {
                     latestSettings.copy(balanceRight = value)
                 }
-
-                // Do not save on every small movement.
-                // Saving here causes DataStore emissions that fight the rotate bar.
+                persistBalanceValue(isLeft, value)
             }
         }
     }
@@ -283,9 +291,11 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
                     }
 
                     latestSettings = latestSettings.copy(reverbIndex = reverbIndex)
-
-                    soundEffectViewModel.setReverbIndex(reverbIndex)
-                    applyAudioEffects()
+                    persistAndApply {
+                        soundEffectViewModel.persistBalanceLeft(latestSettings.balanceLeft)
+                        soundEffectViewModel.persistBalanceRight(latestSettings.balanceRight)
+                        soundEffectViewModel.persistReverbIndex(reverbIndex)
+                    }
                 }
             }
         )
@@ -441,27 +451,53 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
         binding.equalizerVolumeProgressDes.text = value.toPercentText()
     }
 
-    private fun saveLoudnessStrengthAndApply(strength: Float) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            soundEffectViewModel.setLoudnessStrength(strength)
-            applyAudioEffects()
-        }
-    }
-
-    private fun saveBalanceAndApply(isLeft: Boolean) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            if (isLeft) {
-                soundEffectViewModel.setBalanceLeft(latestSettings.balanceLeft)
-            } else {
-                soundEffectViewModel.setBalanceRight(latestSettings.balanceRight)
-            }
-
-            applyAudioEffects()
-        }
-    }
-
     private fun applyAudioEffects() {
         playerViewModel.applyAudioEffects(requireContext())
+    }
+
+    private fun persistBalanceValue(
+        isLeft: Boolean,
+        value: Float
+    ) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (isLeft) {
+                soundEffectViewModel.persistBalanceLeft(value)
+            } else {
+                soundEffectViewModel.persistBalanceRight(value)
+            }
+        }
+    }
+
+    private fun persistAndApplyBalance(
+        isLeft: Boolean
+    ): Job {
+        return persistAndApply {
+            if (isLeft) {
+                soundEffectViewModel.persistBalanceLeft(latestSettings.balanceLeft)
+            } else {
+                soundEffectViewModel.persistBalanceRight(latestSettings.balanceRight)
+            }
+        }
+    }
+
+    private fun persistAndApply(
+        work: suspend () -> Unit
+    ): Job {
+        return viewLifecycleOwner.lifecycleScope.launch {
+            work()
+            applyAudioEffects()
+        }
+    }
+
+    private fun persistAndApplyDelayed(
+        delayMs: Long,
+        work: suspend () -> Unit
+    ): Job {
+        return viewLifecycleOwner.lifecycleScope.launch {
+            delay(delayMs)
+            work()
+            applyAudioEffects()
+        }
     }
 
     private fun updateGestureInterception(intercept: Boolean) {
@@ -500,5 +536,6 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
     private companion object {
         const val REVERB_NONE = 0
         const val NO_SELECTED_REVERB_INDEX = -1
+        const val CONTROL_APPLY_DELAY_MS = 80L
     }
 }

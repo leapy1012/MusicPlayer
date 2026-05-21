@@ -381,7 +381,7 @@ class AlbumMusicFragment :
             is MusicSet.Album -> copy(albumArt = artworkPath)
             is MusicSet.Artist -> copy(albumArt = artworkPath)
             is MusicSet.Genre -> copy(albumArt = artworkPath)
-            is MusicSet.Playlist -> copy(albumArt = artworkPath, s_pic = artworkPath.orEmpty())
+            is MusicSet.Playlist -> copy(albumArt = artworkPath, sourcePicture = artworkPath.orEmpty())
             is MusicSet.Folder -> copy(albumArt = artworkPath)
             else -> this
         }

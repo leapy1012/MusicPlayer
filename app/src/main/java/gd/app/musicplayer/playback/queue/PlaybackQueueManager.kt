@@ -178,6 +178,52 @@ class PlaybackQueueManager @Inject constructor(
         return changed
     }
 
+    fun updateTrackMetadata(
+        updatedTrack: Music
+    ): Boolean {
+        var changed = false
+
+        val updatedQueue = _state.queue.map { music ->
+            if (music.id == updatedTrack.id && music != updatedTrack) {
+                changed = true
+                updatedTrack
+            } else {
+                music
+            }
+        }
+
+        if (changed) {
+            _state = _state.copy(queue = updatedQueue)
+        }
+
+        return changed
+    }
+
+    fun updateTracksMetadata(
+        updatedTracks: List<Music>
+    ): Boolean {
+        if (updatedTracks.isEmpty()) return false
+
+        val updatesById = updatedTracks.associateBy { it.id }
+        var changed = false
+
+        val updatedQueue = _state.queue.map { music ->
+            val updated = updatesById[music.id]
+            if (updated != null && updated != music) {
+                changed = true
+                updated
+            } else {
+                music
+            }
+        }
+
+        if (changed) {
+            _state = _state.copy(queue = updatedQueue)
+        }
+
+        return changed
+    }
+
     fun save() {
         queuePersistence.save(_state.queue)
     }

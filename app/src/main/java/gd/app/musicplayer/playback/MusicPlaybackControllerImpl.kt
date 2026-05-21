@@ -74,6 +74,13 @@ class MusicPlaybackControllerImpl @Inject constructor(
         dispatcher.dispatch(context, PlaybackCommand.Pause)
     }
 
+    override fun playIndex(context: Context, index: Int) {
+        dispatcher.dispatch(
+            context = context,
+            command = PlaybackCommand.PlayIndex(index.coerceAtLeast(0))
+        )
+    }
+
     override fun playNext(context: Context) {
         dispatcher.dispatch(context, PlaybackCommand.Next)
     }
@@ -156,6 +163,22 @@ class MusicPlaybackControllerImpl @Inject constructor(
 
     override fun refreshNotificationStyle(context: Context) {
         dispatcher.dispatch(context, PlaybackCommand.RefreshNotificationStyle)
+    }
+
+    override fun refreshEditedTrack(context: Context, track: Music) {
+        dispatcher.dispatch(
+            context = context,
+            command = PlaybackCommand.RefreshEditedTrack(track)
+        )
+    }
+
+    override fun refreshEditedTracks(context: Context, tracks: List<Music>) {
+        if (tracks.isEmpty()) return
+
+        dispatcher.dispatch(
+            context = context,
+            command = PlaybackCommand.RefreshEditedTracks(tracks)
+        )
     }
 
     override fun restartCurrentTrack(context: Context) {

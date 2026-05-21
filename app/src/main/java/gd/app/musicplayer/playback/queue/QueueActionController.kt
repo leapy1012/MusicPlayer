@@ -16,7 +16,8 @@ class QueueActionController(
 
         val nextIndex = callbacks.resolveNextIndex(
             queueSize = currentState.queue.size,
-            currentIndex = currentState.currentIndex
+            currentIndex = currentState.currentIndex,
+            fromAutoTransition = fromAutoTransition
         ) ?: run {
             if (fromAutoTransition) {
                 callbacks.onAutoTransitionReachedQueueEnd()

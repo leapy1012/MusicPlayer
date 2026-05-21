@@ -73,6 +73,8 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         get() = requireArguments().getInt(ARG_DIALOG_TYPE)
     private val itemName: String
         get() = requireArguments().getString(ARG_ITEM_NAME).orEmpty()
+    private val itemCount: Int
+        get() = requireArguments().getInt(ARG_ITEM_COUNT, 0)
     private val executionMode: Int
         get() = requireArguments().getInt(ARG_EXECUTION_MODE, EXECUTION_RESULT_ONLY)
 
@@ -91,6 +93,14 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
                 message = getString(R.string.delete_playlist_x, itemName),
                 confirmTextRes = R.string.delete,
                 showExtra = false,
+                extraCheckedDefault = true
+            )
+
+            TYPE_TRACKS_DELETE -> Spec(
+                titleRes = R.string.delete,
+                message = getString(R.string.delete_x_songs, itemCount),
+                confirmTextRes = R.string.delete,
+                showExtra = true,
                 extraCheckedDefault = true
             )
 
@@ -267,6 +277,7 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         const val RESULT_EXTRA_CHECKED = "extra_checked"
 
         private const val ARG_ITEM_NAME = "item_name"
+        private const val ARG_ITEM_COUNT = "item_count"
         private const val ARG_DIALOG_TYPE = "dialog_type"
         private const val ARG_RESULT_KEY = "result_key"
         private const val ARG_EXECUTION_MODE = "execution_mode"
@@ -280,6 +291,7 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         private const val TYPE_SET_DELETE_TRACKS = 2
         private const val TYPE_SET_DELETE_PLAYLIST = 3
         private const val TYPE_TRACK_REMOVE_FROM_LIST = 4
+        private const val TYPE_TRACKS_DELETE = 5
 
         private data class Spec(
             val titleRes: Int,
@@ -293,6 +305,7 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
             resultKey: String,
             itemName: String,
             type: Int,
+            itemCount: Int = 0,
             executionMode: Int = EXECUTION_RESULT_ONLY,
             music: Music? = null,
             musicSet: MusicSet? = null
@@ -301,6 +314,7 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
                 arguments = bundleOf(
                     ARG_RESULT_KEY to resultKey,
                     ARG_ITEM_NAME to itemName,
+                    ARG_ITEM_COUNT to itemCount,
                     ARG_DIALOG_TYPE to type,
                     ARG_EXECUTION_MODE to executionMode
                 ).apply {
@@ -326,6 +340,15 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
         fun forTrackRemoveFromList(resultKey: String, trackTitle: String): DeleteConfirmDialogFragment {
             return create(resultKey = resultKey, itemName = trackTitle, type = TYPE_TRACK_REMOVE_FROM_LIST)
+        }
+
+        fun forTracksDelete(resultKey: String, trackCount: Int): DeleteConfirmDialogFragment {
+            return create(
+                resultKey = resultKey,
+                itemName = "",
+                type = TYPE_TRACKS_DELETE,
+                itemCount = trackCount
+            )
         }
 
         fun forSetDelete(

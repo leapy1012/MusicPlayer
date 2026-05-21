@@ -2,6 +2,7 @@ package gd.app.musicplayer.ui.library.tracks
 
 import android.os.Bundle
 import android.view.View
+import androidx.fragment.app.setFragmentResultListener
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -16,6 +17,7 @@ import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.model.displayName
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.databinding.LayoutRecyclerviewBinding
 import gd.app.musicplayer.domain.usecase.preferences.GetReplaySongEnabledUseCase
@@ -29,6 +31,7 @@ import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.menu.ContextMenu
 import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
+import gd.app.musicplayer.ui.player.full.MusicPlayActivity
 import gd.app.musicplayer.ui.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.ui.library.ARG_MUSIC_SET
 import gd.app.musicplayer.ui.library.albums.AlbumMusicActivity
@@ -56,6 +59,9 @@ class TrackListFragment : BaseListFragment() {
     private var artistAlbumHeaderAdapter: ArtistAlbumHeaderAdapter? = null
     private var currentTracks: List<Music> = emptyList()
     private var currentSortState: TrackListSortState = TrackListSortState()
+    private val clearDialogResultKey: String by lazy {
+        "clear_music_set_confirm_${hashCode()}"
+    }
 
     fun currentSortState(): TrackListSortState = currentSortState
 
@@ -74,6 +80,7 @@ class TrackListFragment : BaseListFragment() {
         observeSortState()
         observeEvents()
         observeCurrentTrack()
+        observeClearDialogResult()
 
         viewModel.bind(musicSet)
     }
@@ -206,18 +213,32 @@ class TrackListFragment : BaseListFragment() {
     private fun onTrackClicked(track: Music) {
         val context = requireContext()
         viewLifecycleOwner.lifecycleScope.launch {
-            val shouldRestartCurrentTrack =
-                getReplaySongEnabledUseCase() &&
-                        playerViewModel.playbackHighlightState.value.currentMusicId == track.id
+            val highlightState = playerViewModel.playbackHighlightState.value
+            val isCurrentTrack = highlightState.currentMusicId == track.id
+            val replaySongEnabled = getReplaySongEnabledUseCase()
 
-            if (shouldRestartCurrentTrack) {
-                playerViewModel.restartCurrentTrack(context)
-            } else {
-                playTrackFromCurrentList(track)
+            when {
+                isCurrentTrack && highlightState.isPlaying && replaySongEnabled -> {
+                    playerViewModel.restartCurrentTrack(context)
+                }
+
+                isCurrentTrack && highlightState.isPlaying -> {
+                    playerViewModel.pause(context)
+                }
+
+                isCurrentTrack -> {
+                    playerViewModel.play(context)
+                }
+
+                else -> {
+                    // Match the obfuscated app: tapping another track should switch playback,
+                    // while tapping the current track pauses only when it is actively playing.
+                    playTrackFromCurrentList(track)
+                }
             }
 
             if (isTrackClickOperationEnabledUseCase()) {
-                PlayQueueActivity.start(context)
+                MusicPlayActivity.start(context)
             }
         }
     }
@@ -286,11 +307,12 @@ class TrackListFragment : BaseListFragment() {
             ContextMenuAction.ShuffleAll,
             ContextMenuAction.PlayNext,
             ContextMenuAction.AddToQueue,
-            ContextMenuAction.AddToPlaylist,
+            ContextMenuAction.AddToPlaylist -> viewModel.onMenuAction(action)
+
             ContextMenuAction.ClearFavorites,
             ContextMenuAction.ClearRecentlyAdded,
             ContextMenuAction.ClearRecentlyPlayed,
-            ContextMenuAction.ClearMostPlayed -> viewModel.onMenuAction(action)
+            ContextMenuAction.ClearMostPlayed -> showClearMusicSetDialog(action)
 
             ContextMenuAction.Rename -> showRenameDialog()
 
@@ -305,7 +327,7 @@ class TrackListFragment : BaseListFragment() {
                 val success = MusicSetShortcutHelper.requestPinnedShortcut(
                     context = context,
                     musicSet = musicSet,
-                    title = musicSet.name
+                    title = musicSet.displayName(context)
                 )
                 ToastUtil.show(
                     context,
@@ -322,6 +344,47 @@ class TrackListFragment : BaseListFragment() {
             context = requireContext(),
             musicSet = musicSet
         )
+    }
+
+    private fun showClearMusicSetDialog(action: ContextMenuAction) {
+        pendingClearAction = action
+        ClearMusicSetConfirmDialogFragment
+            .newInstance(
+                titleRes = resolveClearDialogTitleRes(),
+                messageText = getString(
+                    R.string.clear_playlist_message,
+                    musicSet.displayName(requireContext())
+                ),
+                resultKey = clearDialogResultKey
+            )
+            .show(
+                parentFragmentManager,
+                ClearMusicSetConfirmDialogFragment::class.java.simpleName
+            )
+    }
+
+    private fun resolveClearDialogTitleRes(): Int {
+        return when (musicSet) {
+            is MusicSet.Favorites -> R.string.clear_favorite
+            is MusicSet.RecentlyAdded -> R.string.clear_recent_add
+            is MusicSet.RecentlyPlayed -> R.string.clear_recent_play
+            is MusicSet.MostPlayed -> R.string.clear_most_play
+            else -> R.string.clear_playlist
+        }
+    }
+
+    private var pendingClearAction: ContextMenuAction? = null
+
+    private fun observeClearDialogResult() {
+        parentFragmentManager.setFragmentResultListener(
+            clearDialogResultKey,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            if (bundle.getBoolean(ClearMusicSetConfirmDialogFragment.RESULT_CONFIRMED)) {
+                pendingClearAction?.let(viewModel::onMenuAction)
+            }
+            pendingClearAction = null
+        }
     }
 
     private fun showRenameDialog() {

@@ -62,7 +62,8 @@ class TimedTransitionController(
 
         val nextIndex = playbackModeResolver.resolveNextIndex(
             queueSize = queue.size,
-            currentIndex = currentIndex
+            currentIndex = currentIndex,
+            fromAutoTransition = true
         ) ?: return
 
         if (nextIndex !in queue.indices) return

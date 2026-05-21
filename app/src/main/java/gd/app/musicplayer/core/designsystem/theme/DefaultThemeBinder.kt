@@ -122,7 +122,12 @@ class DefaultThemeBinder : ThemeViewBinder {
                 return true
             }
 
-            ThemeTags.DIALOG_ITEM, "dialogTitle", "dialogTitleColor", "dialogItem" -> {
+            "dialogTitle", "dialogTitleColor" -> {
+                applyDialogTitleColor(view, palette.dialogTitleColor)
+                return true
+            }
+
+            ThemeTags.DIALOG_ITEM, "dialogItem" -> {
                 applyTextOrIconColor(
                     view,
                     palette.dialogTitleColor,
@@ -224,12 +229,28 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             ThemeTags.BUTTON_CONFIRM, "dialogConfirm" -> {
                 if (view is TextView) {
-                    view.setTextColor(Color.WHITE)
+                    view.setTextColor(
+                        ViewStateDrawables.enabledDisabledColors(
+                            Color.WHITE,
+                            0x80FFFFFF.toInt()
+                        )
+                    )
                 }
-                view.background = DrawableUtil.roundedRipple(
-                    accentColor,
-                    palette.confirmRippleColor,
-                    1000.0f
+                val disabledFillColor = if (usesDarkForegroundPalette(palette)) {
+                    0x26000000
+                } else {
+                    0x33FFFFFF
+                }
+                view.background = ViewStateDrawables.defaultWithDisabledDrawable(
+                    DrawableUtil.roundedRipple(
+                        accentColor,
+                        palette.confirmRippleColor,
+                        1000.0f
+                    ),
+                    DrawableUtil.roundedFill(
+                        1000.0f,
+                        disabledFillColor
+                    )
                 )
                 return true
             }
@@ -247,11 +268,59 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             "dialogCancel" -> {
                 if (view is TextView) {
-                    view.setTextColor(palette.cancelTextColor)
+                    view.setTextColor(
+                        if (palette.isDialogSurfaceLight()) {
+                            0xDE000000.toInt()
+                        } else {
+                            0xCCFFFFFF.toInt()
+                        }
+                    )
                 }
                 view.background = DrawableUtil.roundedRipple(
-                    fillColor = palette.cancelBaseColor,
-                    rippleColor = palette.rippleColor,
+                    fillColor = if (palette.isDialogSurfaceLight()) {
+                        0x0D000000
+                    } else {
+                        0x0DFFFFFF
+                    },
+                    rippleColor = palette.dialogPressedOverlayColor,
+                    radius = 1000f
+                )
+                return true
+            }
+
+            "deleteButton" -> {
+                if (view is TextView) {
+                    view.setTextColor(
+                        if (palette.isDialogSurfaceLight()) {
+                            0xDE000000.toInt()
+                        } else {
+                            0xCCFFFFFF.toInt()
+                        }
+                    )
+                }
+                view.background = DrawableUtil.roundedRipple(
+                    fillColor = if (palette.isDialogSurfaceLight()) {
+                        0x0D000000
+                    } else {
+                        0x0DFFFFFF
+                    },
+                    rippleColor = if (palette.isDialogSurfaceLight()) {
+                        0x1A000000
+                    } else {
+                        0x26FFFFFF
+                    },
+                    radius = 1000f
+                )
+                return true
+            }
+
+            "restoreButton" -> {
+                if (view is TextView) {
+                    view.setTextColor(Color.WHITE)
+                }
+                view.background = DrawableUtil.roundedRipple(
+                    fillColor = accentColor,
+                    rippleColor = 0x26FFFFFF,
                     radius = 1000f
                 )
                 return true
@@ -433,17 +502,15 @@ class DefaultThemeBinder : ThemeViewBinder {
         }
 
         if (tag == "dialogSelectBox" && view is ImageView) {
-            val normalColor = if (palette.dialogTitleColor == Color.WHITE) -2171170 else -3355444
+            val normalColor = if (palette.isDialogSurfaceLight()) -3355444 else -2171170
             view.imageTintList = ColorStateList(
                 arrayOf(
-                    intArrayOf(android.R.attr.state_selected),
-                    intArrayOf(android.R.attr.state_checked),
-                    intArrayOf(android.R.attr.state_activated),
-                    intArrayOf()
+                    intArrayOf(-android.R.attr.state_enabled),
+                    intArrayOf(android.R.attr.state_selected, android.R.attr.state_enabled),
+                    intArrayOf(android.R.attr.state_enabled)
                 ),
                 intArrayOf(
-                    accentColor,
-                    accentColor,
+                    normalColor,
                     accentColor,
                     normalColor
                 )
@@ -568,16 +635,16 @@ class DefaultThemeBinder : ThemeViewBinder {
             return true
         }
 
-        if (tag == ThemeTags.EMPTY_BUTTON || tag == ThemeTags.THEME_STROKE_BUTTON) {
+        if (tag == ThemeTags.EMPTY_BUTTON || tag == ThemeTags.THEME_STROKE_BUTTON || tag == "scanButton") {
             if (view is TextView) {
-                view.setTextColor(accentColor)
-                tintCompoundDrawables(view, accentColor)
+                view.setTextColor(itemTextColor)
+                tintCompoundDrawables(view, itemTextColor)
                 view.background = DrawableUtil.outlinedRoundedRipple(
                     (view.context.resources.displayMetrics.density * 100f).toInt(),
-                    (view.context.resources.displayMetrics.density * 1f).toInt(),
-                    if (usesDarkForegroundPalette(palette)) 0x1A000000 else 0x33FFFFFF,
+                    (view.context.resources.displayMetrics.density * 1.5f).toInt(),
+                    accentColor,
                     0,
-                    rippleColor
+                    contentOverlay
                 )
             }
             return true
@@ -738,6 +805,18 @@ class DefaultThemeBinder : ThemeViewBinder {
             return true
         }
 
+        if (tag == "preferenceFadeSeekBar" && view is SeekBar) {
+            view.setThumbColor(accentColor)
+            view.setProgressDrawable(
+                DrawableUtil.roundedProgress(
+                    if (usesDarkForegroundPalette(palette)) 436207616 else 654311423,
+                    accentColor,
+                    view.context.dpToPx(16f)
+                )
+            )
+            return true
+        }
+
         if (tag == ThemeTags.PLAY_PAUSE_BUTTON && view is ImageView) {
             view.imageTintList = ViewStateDrawables.pressedDefaultColors(
                 if (usesDarkForegroundPalette(palette)) accentColor else itemTextColor,
@@ -830,18 +909,20 @@ class DefaultThemeBinder : ThemeViewBinder {
                 if (view.isClickable) {
                     view.background = DrawableUtil.ovalRipple(0, rippleColor)
                 }
+                val normalColor = if (palette.isContentSurfaceLight()) -3355444 else -2171170
+                val disabledColor = if (palette.isContentSurfaceLight()) 0x66000000 else 0x4DFFFFFF
                 view.imageTintList = ColorStateList(
                     arrayOf(
-                        intArrayOf(android.R.attr.state_selected),
-                        intArrayOf(android.R.attr.state_checked),
-                        intArrayOf(android.R.attr.state_activated),
-                        intArrayOf()
+                        intArrayOf(-android.R.attr.state_enabled),
+                        intArrayOf(android.R.attr.state_selected, android.R.attr.state_enabled),
+                        intArrayOf(android.R.attr.state_checked, android.R.attr.state_enabled),
+                        intArrayOf(android.R.attr.state_enabled)
                     ),
                     intArrayOf(
+                        disabledColor,
                         accentColor,
                         accentColor,
-                        accentColor,
-                        ColorUtils.setAlphaComponent(itemTextColor, 180)
+                        normalColor
                     )
                 )
             }
@@ -956,6 +1037,13 @@ class DefaultThemeBinder : ThemeViewBinder {
                 view.setTextColor(color)
                 view.setHintTextColor(ColorUtils.setAlphaComponent(color, 128))
             }
+        }
+    }
+
+    private fun applyDialogTitleColor(view: View, color: Int) {
+        when (view) {
+            is ImageView -> view.imageTintList = ColorStateList.valueOf(color)
+            is TextView -> view.setTextColor(color)
         }
     }
 

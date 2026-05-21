@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import gd.app.musicplayer.playback.PlaybackController
 
 sealed interface QueueTrackOptionsEvent {
     data object Dismiss : QueueTrackOptionsEvent
@@ -37,15 +38,26 @@ class QueueTrackOptionsViewModel @Inject constructor(
     private val clearQueueUseCase: ClearQueueUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase,
     private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
-    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase
+    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    private val playbackController: PlaybackController
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<QueueTrackOptionsEvent>()
     val events: SharedFlow<QueueTrackOptionsEvent> = _events.asSharedFlow()
 
     fun onPlay(music: Music) {
-        playTracksUseCase(appContext, listOf(music), 0)
-        emit(QueueTrackOptionsEvent.Dismiss)
+        viewModelScope.launch {
+            val queue = getPlaybackQueueUseCase()
+            val index = queue.indexOfFirst { it.id == music.id }
+
+            if (index >= 0) {
+                playbackController.playIndex(appContext, index)
+            } else {
+                playTracksUseCase(appContext, listOf(music), 0)
+            }
+
+            emit(QueueTrackOptionsEvent.Dismiss)
+        }
     }
 
     fun onAddToPlaylist(music: Music) {

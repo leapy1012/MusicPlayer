@@ -25,32 +25,31 @@ class EqualizerViewModel @Inject constructor(
 
     fun setEqualizerEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            soundEffectPreferences.setEqualizerEnabled(enabled)
+            persistEqualizerEnabled(enabled)
         }
     }
 
     fun setBandMode(bandMode: Int) {
         viewModelScope.launch {
-            soundEffectPreferences.setEqualizerBandMode(bandMode)
+            persistBandMode(bandMode)
         }
     }
 
     fun setSelectedEffectId(effectId: Int) {
         viewModelScope.launch {
-            val bandMode = settings.value.bandMode
-            soundEffectPreferences.setLastEffectId(bandMode, effectId)
+            persistSelectedEffectId(effectId)
         }
     }
 
     fun setBassEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            soundEffectPreferences.setBassEnabled(enabled)
+            persistBassEnabled(enabled)
         }
     }
 
     fun setBassProgress(progress: Float) {
         viewModelScope.launch {
-            soundEffectPreferences.setBassProgress(progress)
+            persistBassProgress(progress)
         }
     }
 
@@ -62,13 +61,13 @@ class EqualizerViewModel @Inject constructor(
 
     fun setVirtualizerEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            soundEffectPreferences.setVirtualizerEnabled(enabled)
+            persistVirtualizerEnabled(enabled)
         }
     }
 
     fun setVirtualizerProgress(progress: Float) {
         viewModelScope.launch {
-            soundEffectPreferences.setVirtualizerProgress(progress)
+            persistVirtualizerProgress(progress)
         }
     }
 
@@ -88,5 +87,36 @@ class EqualizerViewModel @Inject constructor(
         viewModelScope.launch {
             soundEffectPreferences.setGroupSoundEffectIndex(index)
         }
+    }
+
+    suspend fun persistEqualizerEnabled(enabled: Boolean) {
+        soundEffectPreferences.setEqualizerEnabled(enabled)
+    }
+
+    suspend fun persistBandMode(bandMode: Int) {
+        soundEffectPreferences.setEqualizerBandMode(bandMode)
+    }
+
+    suspend fun persistSelectedEffectId(effectId: Int) {
+        soundEffectPreferences.setLastEffectId(
+            settings.value.bandMode,
+            effectId
+        )
+    }
+
+    suspend fun persistBassEnabled(enabled: Boolean) {
+        soundEffectPreferences.setBassEnabled(enabled)
+    }
+
+    suspend fun persistBassProgress(progress: Float) {
+        soundEffectPreferences.setBassProgress(progress)
+    }
+
+    suspend fun persistVirtualizerEnabled(enabled: Boolean) {
+        soundEffectPreferences.setVirtualizerEnabled(enabled)
+    }
+
+    suspend fun persistVirtualizerProgress(progress: Float) {
+        soundEffectPreferences.setVirtualizerProgress(progress)
     }
 }

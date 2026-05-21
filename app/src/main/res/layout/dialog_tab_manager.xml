@@ -1,32 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical">
 
     <TextView
         android:id="@+id/tab_manager_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginEnd="24dp"
-        android:maxLines="2"
-        android:tag="dialogTitle"
-        android:text="@string/library_order"
-        android:textSize="20sp" />
+        style="@style/DialogTitle"
+        android:text="@string/tab_manager_title" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/tab_manager_recycler"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp" />
+        android:layout_height="0dp"
+        android:layout_marginTop="20dp"
+        android:layout_weight="1" />
 
-    <LinearLayout
-        style="@style/DialogButtonLayout"
-        android:layout_marginTop="8dp">
+    <LinearLayout style="@style/DialogButtonLayout">
 
         <TextView
             android:id="@+id/dialog_button_cancel"

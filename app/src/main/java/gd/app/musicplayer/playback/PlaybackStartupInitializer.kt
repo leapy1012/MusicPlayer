@@ -1,6 +1,7 @@
 package gd.app.musicplayer.playback
 
 import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
+import gd.app.musicplayer.core.common.util.ShakeDetector
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
@@ -13,11 +14,14 @@ import javax.inject.Singleton
 class PlaybackStartupInitializer @Inject constructor(
     private val playbackQueueRepo: PlaybackQueueRepo,
     private val playbackStatePreferenceStore: PlaybackStatePreferenceStore,
-    private val stateStore: PlaybackRuntimeStateStore
+    private val stateStore: PlaybackRuntimeStateStore,
+    private val shakeDetector: ShakeDetector
 ) {
     private val mutex = Mutex()
 
     suspend fun initialize() {
+        shakeDetector.initialize()
+
         mutex.withLock {
             // If service already published live state, do nothing.
             if (stateStore.hasActiveState()) {

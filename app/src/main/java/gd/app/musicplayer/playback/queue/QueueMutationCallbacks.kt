@@ -32,7 +32,8 @@ interface QueueMutationCallbacks {
 
     fun resolveNextIndex(
         queueSize: Int,
-        currentIndex: Int
+        currentIndex: Int,
+        fromAutoTransition: Boolean
     ): Int?
 
     fun resolvePreviousIndex(

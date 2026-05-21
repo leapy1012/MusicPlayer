@@ -44,6 +44,8 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
     private var volumeText: TextView? = null
     private var volumeIcon: ImageView? = null
     private var lastNonZeroVolume = 0
+    private var sleepTimerMenuItem: MenuItem =
+        MenuItem.create(R.string.sleep_timer_2, R.drawable.ic_menu_sleep)
 
     @Inject
     lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
@@ -54,6 +56,9 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
     override fun onReadArguments(arguments: Bundle) {
         music = arguments.parcelable(ARG_MUSIC) ?: error("Missing music")
         viewModel.initialize(music)
+        sleepTimerMenuItem = createSleepTimerMenuItem(
+            viewModel.uiState.value.sleepMenuLabelOverride
+        )
     }
 
     override fun provideMenuItems(): List<MenuItem> = buildList {
@@ -61,7 +66,7 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         add(MenuItem.create(R.string.dlg_more_view_artist, R.drawable.ic_more_artist))
         add(MenuItem.create(R.string.dlg_more_view_album, R.drawable.ic_more_album))
         add(MenuItem.create(R.string.dlg_manage_artwork, R.drawable.ic_menu_artwork))
-        add(MenuItem.create(R.string.sleep_timer_2, R.drawable.ic_menu_sleep).withLabel(viewModel.uiState.value.sleepMenuLabel.ifBlank { getString(R.string.sleep_timer_2) }))
+        add(sleepTimerMenuItem)
         add(MenuItem.create(R.string.dlg_ringtone_2, R.drawable.ic_menu_ringtone))
         add(MenuItem.create(R.string.hide_music, R.drawable.ic_menu_hide_music))
         add(MenuItem.create(R.string.delete, R.drawable.ic_menu_delete))
@@ -180,7 +185,12 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
                 launch {
                     viewModel.uiState.collect { state ->
                         state.music?.let { music = it }
-                        refreshMenuItems()
+                        val updatedSleepTimerItem =
+                            createSleepTimerMenuItem(state.sleepMenuLabelOverride)
+                        if (updatedSleepTimerItem != sleepTimerMenuItem) {
+                            sleepTimerMenuItem = updatedSleepTimerItem
+                            notifyMenuItemUpdated(updatedSleepTimerItem)
+                        }
                     }
                 }
                 launch {
@@ -210,6 +220,15 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         val percent = ((volume / max.toFloat()) * 100f).roundToInt()
         volumeText?.text = "$percent%"
         volumeIcon?.isSelected = volume == 0
+    }
+
+    private fun createSleepTimerMenuItem(labelOverride: String?): MenuItem {
+        val baseItem = MenuItem.create(R.string.sleep_timer_2, R.drawable.ic_menu_sleep)
+        return if (labelOverride.isNullOrEmpty()) {
+            baseItem
+        } else {
+            baseItem.withLabel(labelOverride)
+        }
     }
 
     private fun confirmDeleteTrack() {

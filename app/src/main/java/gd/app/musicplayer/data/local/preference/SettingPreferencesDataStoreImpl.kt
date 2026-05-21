@@ -154,6 +154,10 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
         dataStore.set(SettingsKeys.SHOW_HIDDEN_FOLDERS, enabled)
     }
 
+    override suspend fun updateShowKeepAliveDot(enabled: Boolean) {
+        dataStore.set(SettingsKeys.SHOW_KEEP_ALIVE_DOT, enabled)
+    }
+
     override suspend fun updateFadeDurationSeconds(seconds: Int) {
         val durationMs = seconds.coerceIn(1, 12) * 1000
         dataStore.set(SettingsKeys.FADE_DURATION_MS, durationMs)
@@ -283,6 +287,7 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
             normal = NormalSettingPreference(
                 forwardBackwardSeconds = preferences[SettingsKeys.FORWARD_BACKWARD_SECONDS] ?: 15,
                 showForwardBackward = preferences[SettingsKeys.SHOW_FORWARD_BACKWARD] ?: false,
+                showKeepAliveDot = preferences[SettingsKeys.SHOW_KEEP_ALIVE_DOT] ?: true,
                 queueForSearchingMode = preferences[SettingsKeys.QUEUE_FOR_SEARCHING] ?: 0,
                 showHiddenFolders = preferences[SettingsKeys.SHOW_HIDDEN_FOLDERS] ?: true,
                 libraryTabConfig = LibraryTabConfigStore.parse(preferences[SettingsKeys.LIBRARY_TAB_CONFIG])
@@ -375,4 +380,3 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
         private const val PREAMP_ROUNDING_SCALE = 10f
     }
 }
-

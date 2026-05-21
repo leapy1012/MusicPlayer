@@ -18,6 +18,7 @@ data class SettingPreferences(
 data class NormalSettingPreference(
     val forwardBackwardSeconds: Int = 15,
     val showForwardBackward: Boolean = false,
+    val showKeepAliveDot: Boolean = true,
     val queueForSearchingMode: Int = 0,
     val showHiddenFolders: Boolean = true,
     val libraryTabConfig: List<LibraryTabConfig> = LibraryTabConfigStore.defaultItems

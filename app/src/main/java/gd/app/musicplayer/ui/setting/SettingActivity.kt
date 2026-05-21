@@ -2,20 +2,21 @@ package gd.app.musicplayer.ui.setting
 
 import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
-import android.text.InputType
 import android.view.View
 import android.widget.AdapterView
-import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -33,7 +34,7 @@ import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.databinding.ActivitySettingBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.ui.duplicate.ActivityDuplicatedFinder
+import gd.app.musicplayer.ui.duplicate.DuplicateFinderActivity
 import gd.app.musicplayer.ui.lyrics.StatusBarLyricsActivity
 import gd.app.musicplayer.ui.player.full.PlayerViewModel
 import gd.app.musicplayer.ui.theme.SelectAccentColorDialog
@@ -81,8 +82,10 @@ class SettingActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        renderNotificationPermissionPrompt()
         binding.preferenceShowDeskLrc.resumeDesktopLyricsAfterOverlayPermissionChange()
         binding.preferenceShowDeskLrc.disableDesktopLyricsIfOverlayPermissionWasRevoked()
+        renderKeepAlivePermission()
     }
 
     override fun onNotificationPermissionResult() {
@@ -141,6 +144,16 @@ class SettingActivity : BaseActivity() {
             )
             playerViewModel.applyPlaybackTuning(this)
         }
+
+        supportFragmentManager.setFragmentResultListener(
+            SmartPlaylistLimitDialogFragment.RESULT_KEY,
+            this
+        ) { _, bundle ->
+            viewModel.setSmartPlaylistSelection(
+                selectionIndex = bundle.getInt(SmartPlaylistLimitDialogFragment.KEY_SELECTION_INDEX),
+                customLimit = bundle.getInt(SmartPlaylistLimitDialogFragment.KEY_CUSTOM_LIMIT)
+            )
+        }
     }
 
     private fun observeUiState() {
@@ -181,6 +194,7 @@ class SettingActivity : BaseActivity() {
         binding.preferenceFadeSeekText.text = formatSecondsLabel(state.fadeDurationSeconds)
         binding.preferenceTrackClickOperation.isSelected = state.trackClickOperationEnabled
         binding.preferenceReplaySong.isSelected = state.replaySongEnabled
+        renderKeepAlivePermission()
 
         binding.preferenceReplayGainMode.setSummaryOn(state.replayGainModeLabel)
         binding.preferenceReplayGainPreamp.setSummaryOn(state.replayGainPreampLabel)
@@ -189,9 +203,10 @@ class SettingActivity : BaseActivity() {
         binding.preferencePlaylistAddPosition.setTips(state.playlistAddPositionLabel)
         binding.preferencePlaylistTrackLimit.setTips(state.playlistTrackLimitLabel)
 
-        binding.preferenceUseNotification.isSelected = state.notificationBarEnabled
+        renderNotificationPermissionPrompt()
         binding.preferenceUseOldNotification.isSelected = state.oldNotificationEnabled
         binding.preferenceUseColorNotification.isSelected = state.colorNotificationEnabled
+        renderOldNotificationAvailability()
         binding.preferenceShowDeskLrc.render(state.desktopLyricPreference)
         binding.preferenceStatusBarLyrics.setTips(
             if (state.statusBarLyricPreference.enabled) {
@@ -232,7 +247,7 @@ class SettingActivity : BaseActivity() {
             showForwardBackwardDialog()
         }
         binding.preferenceKeepAliveBackground.setOnClickListener {
-            openKeepAliveSettings()
+            onKeepAliveBackgroundClicked()
         }
         binding.preferenceQueueForSearching.setOnClickListener {
             showQueueForSearchingDialog()
@@ -249,7 +264,7 @@ class SettingActivity : BaseActivity() {
             )
         }
         binding.preferenceFindDuplicate.setOnClickListener {
-            ActivityDuplicatedFinder.start(this)
+            DuplicateFinderActivity.start(this)
         }
 
         binding.preferenceBluetoothLyric.onPreferenceChanged {
@@ -320,8 +335,10 @@ class SettingActivity : BaseActivity() {
         binding.preferenceUseNotification.onPreferenceChanged(::onNotificationBarChanged)
         binding.preferenceUseOldNotification.onPreferenceChanged(::onOldNotificationChanged)
         binding.preferenceUseColorNotification.onPreferenceChanged {
-            viewModel.setColorNotificationEnabled(it)
-            playerViewModel.refreshNotificationStyle(this)
+            lifecycleScope.launch {
+                viewModel.setColorNotificationEnabled(it).join()
+                playerViewModel.refreshNotificationStyle(this@SettingActivity)
+            }
         }
         binding.preferenceShowDeskLrc.onVisibleChanged = { visible ->
             viewModel.setDesktopLyricsVisible(visible)
@@ -373,11 +390,6 @@ class SettingActivity : BaseActivity() {
     }
 
     private fun onNotificationBarChanged(enabled: Boolean) {
-        if (!enabled) {
-            viewModel.setNotificationBarEnabled(false)
-            return
-        }
-
         if (!hasNotificationPermission()) {
             pendingNotificationBarEnable = true
             binding.preferenceUseNotification.isSelected = false
@@ -385,13 +397,15 @@ class SettingActivity : BaseActivity() {
             return
         }
 
-        viewModel.setNotificationBarEnabled(true)
+        viewModel.setNotificationBarEnabled(enabled)
     }
 
     private fun onOldNotificationChanged(enabled: Boolean) {
         if (!enabled) {
-            viewModel.setOldNotificationEnabled(false)
-            playerViewModel.refreshNotificationStyle(this)
+            lifecycleScope.launch {
+                viewModel.setOldNotificationEnabled(false).join()
+                playerViewModel.refreshNotificationStyle(this@SettingActivity)
+            }
             return
         }
 
@@ -402,8 +416,10 @@ class SettingActivity : BaseActivity() {
             return
         }
 
-        viewModel.setOldNotificationEnabled(true)
-        playerViewModel.refreshNotificationStyle(this)
+        lifecycleScope.launch {
+            viewModel.setOldNotificationEnabled(true).join()
+            playerViewModel.refreshNotificationStyle(this@SettingActivity)
+        }
     }
 
     private fun onBluetoothAutoStartChanged(enabled: Boolean) {
@@ -479,54 +495,12 @@ class SettingActivity : BaseActivity() {
     }
 
     private fun showSmartPlaylistLimitDialog() {
-        val labels = listOf(
-            getString(R.string.playlist_limit_day),
-            getString(R.string.playlist_limit_week),
-            getString(R.string.playlist_limit_month),
-            getString(R.string.playlist_limit_month_3),
-            getString(R.string.playlist_limit_month_6),
-            getString(R.string.playlist_limit_year),
-            getString(R.string.playlist_limit_forever),
-            getString(R.string.playlist_limit_custom)
-        )
-
-        showSingleChoiceDialog(
-            title = getString(R.string.playlist_track_limit),
-            labels = labels,
-            checkedIndex = viewModel.uiState.value.smartPlaylistSelectionIndex.coerceIn(0, 7)
-        ) { which ->
-            if (which == 7) {
-                showSmartPlaylistCustomLimitDialog()
-            } else {
-                viewModel.setSmartPlaylistSelection(which)
-            }
-        }
-    }
-
-    private fun showSmartPlaylistCustomLimitDialog() {
-        val input = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText(viewModel.uiState.value.smartPlaylistCustomLimit.takeIf { it > 0 }?.toString().orEmpty())
-            setSelection(text?.length ?: 0)
-        }
-
-        showMessageDialog(
-            createMessageDialogConfig(
-                title = getString(R.string.playlist_limit_custom),
-                customView = input,
-                negativeText = getString(android.R.string.cancel),
-                positiveText = getString(android.R.string.ok),
-                positiveClickListener = { dialog, _ ->
-                    val limit = input.text?.toString()?.toIntOrNull()
-                    if (limit == null || limit <= 0) {
-                        ToastUtil.show(this, Toast.LENGTH_SHORT, getString(R.string.input_error))
-                    } else {
-                        dialog.dismiss()
-                        viewModel.setSmartPlaylistSelection(7, limit)
-                    }
-                }
+        SmartPlaylistLimitDialogFragment
+            .newInstance(
+                selectedIndex = viewModel.uiState.value.smartPlaylistSelectionIndex,
+                customLimit = viewModel.uiState.value.smartPlaylistCustomLimit
             )
-        )
+            .show(supportFragmentManager, SmartPlaylistLimitDialogFragment::class.java.simpleName)
     }
 
     private fun showLockBackgroundDialog() {
@@ -563,14 +537,69 @@ class SettingActivity : BaseActivity() {
         OptionsListDialog.show(this, config)
     }
 
-    private fun openKeepAliveSettings() {
-        val packageUri = Uri.parse("package:$packageName")
-        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUri)
-        try {
-            startActivity(intent)
-        } catch (_: ActivityNotFoundException) {
-            openAppDetailsSettings()
+    private fun onKeepAliveBackgroundClicked() {
+        setKeepAliveTipSeen()
+        renderKeepAlivePermission()
+
+        if (isIgnoringBatteryOptimizations()) {
+            ToastUtil.show(this, Toast.LENGTH_SHORT, getString(R.string.succeed))
+            return
         }
+
+        showKeepAlivePermissionDialog()
+    }
+
+    private fun showKeepAlivePermissionDialog() {
+        showMessageDialog(
+            materialDialogConfigFactory.createMaterialMessageDialogConfig(this).apply {
+                titleText = getString(R.string.avoid_stop_title)
+                messageText = getString(R.string.avoid_stop_content)
+                positiveButtonText = getString(R.string.grant_permission)
+                negativeButtonText = getString(R.string.cancel)
+                positiveButtonClickListener = android.content.DialogInterface.OnClickListener { dialog, _ ->
+                    dialog.dismiss()
+                    if (!openKeepAliveSettings()) {
+                        ToastUtil.show(
+                            this@SettingActivity,
+                            Toast.LENGTH_SHORT,
+                            getString(R.string.open_permission_failed)
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    private fun openKeepAliveSettings(): Boolean {
+        if (isMiuiDevice()) {
+            val openedMiuiPowerKeeper = runCatching {
+                startActivity(
+                    Intent().apply {
+                        component = ComponentName(
+                            "com.miui.powerkeeper",
+                            "com.miui.powerkeeper.ui.HiddenAppsConfigActivity"
+                        )
+                        putExtra("package_name", packageName)
+                    }
+                )
+            }.isSuccess
+
+            if (openedMiuiPowerKeeper) return true
+        }
+
+        val packageUri = Uri.parse("package:$packageName")
+
+        return runCatching {
+            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUri))
+        }.recoverCatching {
+            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }.recoverCatching {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = packageUri
+                }
+            )
+        }.isSuccess
     }
 
     private fun openAppNotificationSettings() {
@@ -610,9 +639,71 @@ class SettingActivity : BaseActivity() {
         binding.preferenceFadeSeekBar.isEnabled = enabled
     }
 
+    private fun renderKeepAlivePermission() {
+        val shouldHide = isIgnoringBatteryOptimizations()
+        binding.preferenceKeepAliveBackground.visibility = if (shouldHide) View.GONE else View.VISIBLE
+        binding.preferenceKeepAliveBackgroundDivider.visibility =
+            if (shouldHide) View.GONE else View.VISIBLE
+
+        val tipsView = binding.preferenceKeepAliveBackground.getTipsView()
+        tipsView.setCompoundDrawablesWithIntrinsicBounds(
+            null,
+            null,
+            if (shouldShowKeepAliveTip()) {
+                AppCompatResources.getDrawable(this, R.drawable.vector_dot_tip)
+            } else {
+                null
+            },
+            null
+        )
+    }
+
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return false
+        return powerManager.isIgnoringBatteryOptimizations(packageName)
+    }
+
+    private fun shouldShowKeepAliveTip(): Boolean {
+        return getSharedPreferences(MUSIC_PREFERENCE_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_SHOW_KEEP_ALIVE_DOT, true)
+    }
+
+    private fun setKeepAliveTipSeen() {
+        getSharedPreferences(MUSIC_PREFERENCE_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_SHOW_KEEP_ALIVE_DOT, false)
+            .apply()
+    }
+
+    private fun isMiuiDevice(): Boolean {
+        return Build.MANUFACTURER.equals("xiaomi", ignoreCase = true) ||
+            Build.BRAND.equals("xiaomi", ignoreCase = true)
+    }
+
     private fun setEnabledState(view: View, enabled: Boolean) {
         view.isEnabled = enabled
         view.alpha = if (enabled) 1f else 0.45f
+    }
+
+    private fun renderNotificationPermissionPrompt() {
+        val showPermissionPrompt = !hasNotificationPermission()
+        binding.preferenceUseNotification.visibility =
+            if (showPermissionPrompt) View.VISIBLE else View.GONE
+        binding.preferenceUseNotificationDivider.visibility =
+            if (showPermissionPrompt) View.VISIBLE else View.GONE
+        binding.preferenceUseNotification.isSelected = hasNotificationPermission()
+    }
+
+    private fun renderOldNotificationAvailability() {
+        val showOldNotificationSetting = supportsModernMediaStyleNotification()
+        binding.preferenceUseOldNotification.visibility =
+            if (showOldNotificationSetting) View.VISIBLE else View.GONE
+        binding.preferenceUseOldNotificationDivider.visibility =
+            if (showOldNotificationSetting) View.VISIBLE else View.GONE
+    }
+
+    private fun supportsModernMediaStyleNotification(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
     }
 
     private fun formatSecondsLabel(seconds: Int): String {
@@ -624,6 +715,9 @@ class SettingActivity : BaseActivity() {
     }
 
     companion object {
+        private const val MUSIC_PREFERENCE_NAME = "music_preference"
+        private const val KEY_SHOW_KEEP_ALIVE_DOT = "show_keep_alive_dot"
+
         fun start(context: Context) {
             context.startActivityCompat(Intent(context, SettingActivity::class.java))
         }

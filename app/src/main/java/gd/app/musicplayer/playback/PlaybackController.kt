@@ -23,6 +23,8 @@ interface PlaybackController {
 
     fun pause(context: Context)
 
+    fun playIndex(context: Context, index: Int)
+
     fun playNext(context: Context)
 
     fun playPrevious(context: Context)
@@ -46,6 +48,10 @@ interface PlaybackController {
     fun applyPlaybackTuning(context: Context)
 
     fun refreshNotificationStyle(context: Context)
+
+    fun refreshEditedTrack(context: Context, track: Music)
+
+    fun refreshEditedTracks(context: Context, tracks: List<Music>)
 
     fun restartCurrentTrack(context: Context)
 

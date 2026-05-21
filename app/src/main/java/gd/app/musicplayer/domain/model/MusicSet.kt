@@ -1,19 +1,26 @@
 package gd.app.musicplayer.domain.model
 
+import android.content.Context
 import android.os.Parcelable
+import androidx.room.ColumnInfo
+import gd.app.musicplayer.R
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
+/**
+ * Represents a browsable library destination or a concrete track collection.
+ */
 @Parcelize
 sealed class MusicSet : Parcelable {
+
+    @IgnoredOnParcel
+    open val id: Long = UNKNOWN_ID
+
     @IgnoredOnParcel
     open val name: String = ""
 
     @IgnoredOnParcel
     open val albumArt: String? = null
-
-    @IgnoredOnParcel
-    open val id: Long = UNKNOWN_ID
 
     interface BrowseCategory
 
@@ -75,6 +82,7 @@ sealed class MusicSet : Parcelable {
         override val id: Long = MOST_PLAYED
     }
 
+    @Parcelize
     object Favorites : MusicSet(), TrackCollection {
         @IgnoredOnParcel
         override val id: Long = FAVORITES
@@ -123,9 +131,12 @@ sealed class MusicSet : Parcelable {
         val musicCount: Int,
         val disabled: Boolean = false,
         val sort: Long,
-        val setup_time: Long,
-        val album_id: Long,
-        val s_pic: String
+        @ColumnInfo(name = "setup_time")
+        val setupTime: Long,
+        @ColumnInfo(name = "album_id")
+        val albumId: Long,
+        @ColumnInfo(name = "s_pic")
+        val sourcePicture: String
     ) : MusicSet(), ConcreteCollection
 
     @Parcelize
@@ -140,6 +151,7 @@ sealed class MusicSet : Parcelable {
 
     companion object {
         const val UNKNOWN_ID = -1000L
+
         const val FAVORITES = 1L
         const val ALL_TRACKS = -1L
         const val RECENT_PLAYED = -2L
@@ -150,15 +162,16 @@ sealed class MusicSet : Parcelable {
         const val GENRES = -8L
         const val PLAYING_QUEUE = -9L
         const val MOST_PLAYED = -11L
-
-        // -12L (alternate queue/search queue bucket (handled same as playlist queue in SQL branch)
-        // -13L: rated songs
-        // -16L: raw musictbl mode (special internal set)
-        const val HIDDEN_FOLDERS = -14L
-        const val DELECTED_TRACKS = -15L
-        const val HIDDEN_TRACKS = -18L
         const val USER_PLAYLIST = -9L
+        const val HIDDEN_FOLDERS = -14L
+        const val DELETED_TRACKS = -15L
+        const val HIDDEN_TRACKS = -18L
 
+        @Deprecated(
+            message = "Typo kept for source compatibility. Use DELETED_TRACKS.",
+            replaceWith = ReplaceWith("DELETED_TRACKS")
+        )
+        const val DELECTED_TRACKS = DELETED_TRACKS
     }
 }
 
@@ -171,11 +184,31 @@ val MusicSet.isTrackCollection: Boolean
 val MusicSet.isConcreteCollection: Boolean
     get() = this is MusicSet.ConcreteCollection
 
-fun MusicSet.asBrowseCategory(): MusicSet.BrowseCategory? =
-    this as? MusicSet.BrowseCategory
+val MusicSet.isUserPlaylist: Boolean
+    get() = this is MusicSet.Playlist && id != MusicSet.FAVORITES
 
-fun MusicSet.asTrackCollection(): MusicSet.TrackCollection? =
-    this as? MusicSet.TrackCollection
+fun MusicSet.asBrowseCategory(): MusicSet.BrowseCategory? {
+    return this as? MusicSet.BrowseCategory
+}
 
-val MusicSet.isUserPlaylist : Boolean
-    get() = this is MusicSet.Playlist && this.id != MusicSet.FAVORITES
+fun MusicSet.asTrackCollection(): MusicSet.TrackCollection? {
+    return this as? MusicSet.TrackCollection
+}
+
+fun MusicSet.displayName(): String {
+    return when (this) {
+        is MusicSet.Folder -> name.ifBlank { folderPath.substringAfterLast('/') }
+        else -> name
+    }
+}
+
+fun MusicSet.displayName(context: Context): String {
+    return when (this) {
+        is MusicSet.Tracks -> context.getString(R.string.all_songs)
+        is MusicSet.Favorites -> context.getString(R.string.favorite)
+        is MusicSet.RecentlyAdded -> context.getString(R.string.recently_added)
+        is MusicSet.RecentlyPlayed -> context.getString(R.string.recently_played)
+        is MusicSet.MostPlayed -> context.getString(R.string.mostly_played)
+        else -> displayName().ifBlank { context.getString(R.string.music_player) }
+    }
+}

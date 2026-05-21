@@ -45,6 +45,7 @@ class LyricView @JvmOverloads constructor(
     private var fadeHeight: Int = -1
 
     private var lyricChangeListener: OnLyricChangeListener? = null
+    private var lyricLineClickListener: ((Long) -> Unit)? = null
 
     init {
         attrs?.let {
@@ -237,6 +238,14 @@ class LyricView @JvmOverloads constructor(
 
     fun setOnLyricTextChangeListener(listener: OnLyricChangeListener?) {
         lyricChangeListener = listener
+    }
+
+    fun setOnLyricLineClickListener(listener: ((Long) -> Unit)?) {
+        lyricLineClickListener = listener
+    }
+
+    fun dispatchLyricLineClick(timeMs: Long) {
+        lyricLineClickListener?.invoke(timeMs)
     }
 
     fun setParagraphSpacing(spacing: Int) {
