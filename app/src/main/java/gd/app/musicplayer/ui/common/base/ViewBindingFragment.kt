@@ -4,10 +4,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
 import gd.app.musicplayer.ui.theme.ThemeEngine
 import javax.inject.Inject
 
@@ -15,6 +17,10 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
 
     @Inject
     lateinit var themeEngine: ThemeEngine
+
+    @Inject
+    lateinit var themeRegistry: ThemeRegistry
+
     private var _binding: VB? = null
 
     /**
@@ -71,6 +77,17 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
         onBindingCreated(requireBinding(), savedInstanceState)
     }
 
+    override fun onStart() {
+        super.onStart()
+        themeRegistry.registerObserver(this)
+        applyThemeAndInsets()
+    }
+
+    override fun onStop() {
+        themeRegistry.unregisterObserver(this)
+        super.onStop()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         // Clear binding
@@ -78,15 +95,21 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
     }
 
     override fun onThemeChanged(palette: ThemePalette?) {
-        applyThemeTo(requireBinding().root)
+        applyThemeAndInsets()
     }
 
     override fun onResume() {
         super.onResume()
-        applyThemeTo(requireBinding().root)
+        applyThemeAndInsets()
     }
 
     fun applyThemeTo(root: View?) {
         themeEngine.apply(root)
+    }
+
+    private fun applyThemeAndInsets() {
+        val root = binding?.root ?: return
+        applyThemeTo(root)
+//        ViewCompat.requestApplyInsets(root)
     }
 }

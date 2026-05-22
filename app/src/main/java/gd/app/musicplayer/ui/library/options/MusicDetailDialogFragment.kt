@@ -9,13 +9,13 @@ import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.formatDuration
 import gd.app.musicplayer.core.common.extension.formatFileSize
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.databinding.DialogMusicDetailBinding
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
 import gd.app.musicplayer.ui.tags.EditTagsActivity
 import gd.app.musicplayer.core.common.extension.parcelable
+import gd.app.musicplayer.core.common.extension.toDurationString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -59,7 +59,7 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
         binding.musicEditArtist.text = track.artist.ifBlank { getString(android.R.string.unknownName) }
         binding.musicEditGenre.text = track.genres.ifBlank { unknown() }
         binding.tvMusicDetailPath.text = track.data.orEmpty().ifBlank { getString(android.R.string.unknownName) }
-        binding.tvMusicDetailDuration.text = track.formatDuration()
+        binding.tvMusicDetailDuration.text = track.durationMs.toDurationString()
         binding.tvMusicDetailSize.text = track.formatFileSize(requireContext())
         binding.tvMusicDetailDate.text = formatDetailDate(track.date)
         binding.tvMusicDetailBit.text = formatBitRateOrUnknown(track.bitRate)

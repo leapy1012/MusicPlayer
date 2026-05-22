@@ -39,6 +39,9 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
     private var artworkJob: Job? = null
     private var isRecordAudioGranted = false
     private var lastArtworkPath: String? = null
+    private var dragDismissInProgress = false
+    private var pendingArtworkPath: String? = null
+    private var dismissInterceptionBlocked = false
 
     private val audioPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -71,6 +74,27 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
         binding.dragDismissLayout.apply {
             setAllowedDirections(DragDismissLayout.Direction.DOWN)
             setOnDismissListener(this@MusicPlayActivity)
+            setOnDragStateListener(
+                object : DragDismissLayout.OnDragStateListener {
+                    override fun onDragStarted() {
+                        dragDismissInProgress = true
+                    }
+
+                    override fun onDragProgress(progress: Float) = Unit
+
+                    override fun onDragFinished(dismissed: Boolean) {
+                        dragDismissInProgress = false
+                        binding.dragDismissLayout.setDisallowInterceptTouchEvent(
+                            dismissInterceptionBlocked
+                        )
+                        if (!dismissed) {
+                            pendingArtworkPath?.let(::applyArtworkIfChanged)
+                            pendingArtworkPath = null
+                            refreshVisiblePlayerPage()
+                        }
+                    }
+                }
+            )
         }
     }
 
@@ -112,7 +136,12 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
                     }
                     .distinctUntilChanged()
                     .collect { artworkPath ->
-                        applyArtworkIfChanged(artworkPath)
+                        if (dragDismissInProgress) {
+                            pendingArtworkPath = artworkPath
+                        } else {
+                            pendingArtworkPath = null
+                            applyArtworkIfChanged(artworkPath)
+                        }
                     }
             }
         }
@@ -142,6 +171,17 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
 
     fun showPlayer() {
         viewFlipper.flipTo(PLAYER_FLIP_POSITION)
+    }
+
+    fun isDragDismissInProgress(): Boolean {
+        return dragDismissInProgress
+    }
+
+    fun setDismissInterceptionBlocked(blocked: Boolean) {
+        dismissInterceptionBlocked = blocked
+        if (!dragDismissInProgress) {
+            binding.dragDismissLayout.setDisallowInterceptTouchEvent(blocked)
+        }
     }
 
     fun ensureRecordAudioPermission(): Boolean {
@@ -204,5 +244,12 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
                 Intent(context, MusicPlayActivity::class.java)
             )
         }
+    }
+
+    private fun refreshVisiblePlayerPage() {
+        (supportFragmentManager.findFragmentByTag(MusicPlayerFragment::class.java.simpleName) as? MusicPlayerFragment)
+            ?.refreshFromCurrentState()
+        (supportFragmentManager.findFragmentByTag(FullLyricFragment.TAG) as? FullLyricFragment)
+            ?.refreshFromCurrentState()
     }
 }

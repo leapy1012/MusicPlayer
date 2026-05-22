@@ -8,24 +8,29 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.ui.common.base.BaseActivity
 
 internal class WidgetAddHelper(
-    private val activity: AppCompatActivity,
-    private val onAddSuccess: () -> Unit,
+    private val activity: BaseActivity,
     private val onManualAddRequired: () -> Unit
 ) {
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == ACTION_WIDGET_ADD_SUCCESS) {
-                onAddSuccess()
+                ToastUtil.show(context, R.string.dlg_add_widget_success)
             }
         }
     }
 
     private var receiverRegistered = false
+
+    fun register() {
+        ensureReceiverRegistered()
+    }
 
     fun requestAdd(item: WidgetProviderSpec) {
         if (shouldUseManualAddFlow()) {
@@ -44,9 +49,9 @@ internal class WidgetAddHelper(
         val successIntent = Intent(ACTION_WIDGET_ADD_SUCCESS).setPackage(activity.packageName)
         val successCallback = PendingIntent.getBroadcast(
             activity,
-            item.providerClass.name.hashCode(),
+            System.currentTimeMillis().toInt(),
             successIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            pendingIntentFlags()
         )
 
         val pinned = manager.requestPinAppWidget(
@@ -72,26 +77,30 @@ internal class WidgetAddHelper(
             activity,
             receiver,
             IntentFilter(ACTION_WIDGET_ADD_SUCCESS),
-            ContextCompat.RECEIVER_NOT_EXPORTED
+            ContextCompat.RECEIVER_EXPORTED
         )
         receiverRegistered = true
     }
 
     private fun shouldUseManualAddFlow(): Boolean {
         val manufacturer = Build.MANUFACTURER.orEmpty().lowercase()
-        val brand = Build.BRAND.orEmpty().lowercase()
-        val display = Build.DISPLAY.orEmpty().lowercase()
+        return blockedManufacturers.any(manufacturer::contains)
+    }
 
-        return manufacturer in blockedManufacturers ||
-            brand in blockedManufacturers ||
-            display.contains("flyme")
+    private fun pendingIntentFlags(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
     }
 
     private companion object {
-        const val ACTION_WIDGET_ADD_SUCCESS = "gd.app.musicplayer.action.WIDGET_ADD_SUCCESS"
+        const val ACTION_WIDGET_ADD_SUCCESS = "gd.app.musicplayer.action_widget_add_success"
 
         val blockedManufacturers = setOf(
             "xiaomi",
+            "flyme",
             "vivo",
             "coolpad",
             "oppo"

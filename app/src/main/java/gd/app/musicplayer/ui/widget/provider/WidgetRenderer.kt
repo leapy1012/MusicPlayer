@@ -33,6 +33,9 @@ import gd.app.musicplayer.ui.shell.MainActivity
 import java.io.File
 import java.io.InputStream
 import kotlin.math.roundToInt
+import androidx.core.net.toUri
+import androidx.core.graphics.withTranslation
+import androidx.core.graphics.createBitmap
 
 internal object WidgetRenderer {
 
@@ -114,7 +117,6 @@ internal object WidgetRenderer {
         } else {
             LIGHT_FOREGROUND_SECONDARY
         }
-        val iconColor = textColor
 
         remoteViews.setImageViewResource(
             R.id.widget_background_image,
@@ -186,18 +188,18 @@ internal object WidgetRenderer {
             modeIcon(snapshot.playMode)
         )
 
-        tintControl(remoteViews, R.id.widget_previous, iconColor)
-        tintControl(remoteViews, R.id.widget_next, iconColor)
-        tintControl(remoteViews, R.id.widget_mode, iconColor)
-        tintControl(remoteViews, R.id.widget_play, iconColor)
-        tintControl(remoteViews, R.id.widget_pause, iconColor)
-        tintControl(remoteViews, R.id.widget_setting, iconColor)
+        tintControl(remoteViews, R.id.widget_previous, textColor)
+        tintControl(remoteViews, R.id.widget_next, textColor)
+        tintControl(remoteViews, R.id.widget_mode, textColor)
+        tintControl(remoteViews, R.id.widget_play, textColor)
+        tintControl(remoteViews, R.id.widget_pause, textColor)
+        tintControl(remoteViews, R.id.widget_setting, textColor)
         tintControl(
             remoteViews,
             R.id.widget_favorite_selected,
             ContextCompat.getColor(context, R.color.color_theme)
         )
-        tintControl(remoteViews, R.id.widget_favorite_unselected, iconColor)
+        tintControl(remoteViews, R.id.widget_favorite_unselected, textColor)
         bindControlBackgrounds(
             remoteViews = remoteViews,
             useDarkForeground = useDarkForeground
@@ -485,7 +487,7 @@ internal object WidgetRenderer {
         if (classify == CLASSIFY_LIST) {
             val intent = Intent(context, WidgetQueueService::class.java).apply {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
+                data = toUri(Intent.URI_INTENT_SCHEME).toUri()
             }
 
             remoteViews.setRemoteAdapter(R.id.widget_queue, intent)
@@ -637,7 +639,7 @@ internal object WidgetRenderer {
         )
         if (size <= 0) return bitmap
 
-        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val output = createBitmap(size, size)
         val shader = BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
         val matrix = Matrix()
         val scale = maxOf(
@@ -685,7 +687,7 @@ internal object WidgetRenderer {
         )
         if (size <= 0) return bitmap
 
-        val output = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565)
+        val output = createBitmap(size, size, Bitmap.Config.RGB_565)
         val canvas = Canvas(output)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             isFilterBitmap = true
@@ -700,11 +702,10 @@ internal object WidgetRenderer {
         val top = (size - scaledHeight) / 2f
 
         canvas.drawColor(Color.BLACK)
-        canvas.save()
-        canvas.translate(left, top)
-        canvas.scale(scale, scale)
-        canvas.drawBitmap(bitmap, 0f, 0f, paint)
-        canvas.restore()
+        canvas.withTranslation(left, top) {
+            scale(scale, scale)
+            drawBitmap(bitmap, 0f, 0f, paint)
+        }
 
         return output
     }
@@ -718,7 +719,7 @@ internal object WidgetRenderer {
 
     private fun String.toArtworkUri(): Uri {
         return if (contains("://")) {
-            Uri.parse(this)
+            this.toUri()
         } else {
             Uri.fromFile(File(this))
         }
@@ -762,12 +763,21 @@ internal object WidgetRenderer {
         val intent = Intent(context, MusicPlaybackService::class.java)
             .setAction(action)
 
-        return PendingIntent.getService(
-            context,
-            requestCode,
-            intent,
-            pendingIntentFlags()
-        )
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(
+                context,
+                requestCode,
+                intent,
+                pendingIntentFlags()
+            )
+        } else {
+            PendingIntent.getService(
+                context,
+                requestCode,
+                intent,
+                pendingIntentFlags()
+            )
+        }
     }
 
     private fun widgetBroadcast(

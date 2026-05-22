@@ -11,14 +11,19 @@ object PlaybackRestoreResolver {
     ): RestoredPlayback? {
         if (queue.isEmpty()) return null
 
-        val index = queue
+        val indexByTrackId = queue
             .indexOfFirst { music ->
                 music.id == progress.trackId
             }
             .takeIf { index -> index >= 0 }
-            ?: 0
 
-        val positionMs = if (queue[index].id == progress.trackId) {
+        val index = indexByTrackId
+            ?: progress.currentIndex.takeIf { currentIndex ->
+                currentIndex in queue.indices
+            }
+            ?: return null
+
+        val positionMs = if (indexByTrackId != null) {
             progress.progressMs.toLong().coerceAtLeast(0L)
         } else {
             0L

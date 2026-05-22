@@ -28,7 +28,7 @@
         <FrameLayout
             android:id="@+id/playerSheet"
             android:layout_width="match_parent"
-            android:layout_height="236dp"
+            android:layout_height="@dimen/player_sheet_height"
             android:background="@android:color/transparent"
             android:clipToPadding="false"
             app:behavior_hideable="false"
@@ -40,7 +40,7 @@
                 android:id="@+id/bottomPlayer"
                 android:name="gd.app.musicplayer.ui.player.bottomsheet.BottomPlayerFragment"
                 android:layout_width="match_parent"
-                android:layout_height="236dp"
+                android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:visibility="gone" />
 

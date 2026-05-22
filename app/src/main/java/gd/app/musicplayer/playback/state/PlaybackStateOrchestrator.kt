@@ -61,7 +61,8 @@ class PlaybackStateOrchestrator(
     }
 
     fun publishStateAfterShutdown(
-        snapshot: PlaybackSnapshot? = null
+        snapshot: PlaybackSnapshot? = null,
+        notifyWidgets: Boolean = true
     ) {
         notificationSessionBridge.updatePlaybackState()
 
@@ -81,7 +82,8 @@ class PlaybackStateOrchestrator(
             isPlaying = false,
             positionMs = snapshot.positionMs,
             durationMs = snapshot.durationMs,
-            audioSessionId = snapshot.audioSessionId
+            audioSessionId = snapshot.audioSessionId,
+            notifyWidgets = notifyWidgets
         )
     }
 

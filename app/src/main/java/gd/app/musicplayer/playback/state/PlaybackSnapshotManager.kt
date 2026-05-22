@@ -85,14 +85,16 @@ class PlaybackSnapshotManager(
 
             persistProgress(
                 track = snapshot.currentTrack,
-                positionMs = snapshot.positionMs
+                positionMs = snapshot.positionMs,
+                currentIndex = snapshot.currentIndex
             )
         }
     }
 
     suspend fun persistProgress(
         track: Music?,
-        positionMs: Long
+        positionMs: Long,
+        currentIndex: Int = QueueState.NO_INDEX
     ) {
         if (track == null) return
 
@@ -103,7 +105,8 @@ class PlaybackSnapshotManager(
 
         playbackStatePreferenceStore.setMusicProgress(
             trackId = track.id,
-            progressMs = safePositionMs
+            progressMs = safePositionMs,
+            currentIndex = currentIndex
         )
     }
 

@@ -24,6 +24,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.designsystem.view.SeekBar
+import gd.app.musicplayer.data.local.preference.WidgetConfigStore
 import gd.app.musicplayer.databinding.ActivityWidgetConfigBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.widget.provider.WidgetPlaybackSnapshotLoader
@@ -32,20 +33,17 @@ import gd.app.musicplayer.ui.widget.provider.WidgetUpdateCoordinator
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
-private const val CLASSIFY_2X1 = "2*1"
-private const val CLASSIFY_3X2 = "3*2"
-private const val CLASSIFY_4X1 = "4*1"
-private const val CLASSIFY_4X2 = "4*2"
-private const val CLASSIFY_4X3 = "4*3"
-private const val CLASSIFY_4X4 = "4*4"
-private const val CLASSIFY_LIST = "List"
-
 @AndroidEntryPoint
 class WidgetConfigActivity : BaseActivity() {
 
-    @Inject lateinit var store: WidgetConfigStore
-    @Inject lateinit var snapshotLoader: WidgetPlaybackSnapshotLoader
-    @Inject lateinit var widgetUpdateCoordinator: WidgetUpdateCoordinator
+    @Inject
+    lateinit var store: WidgetConfigStore
+
+    @Inject
+    lateinit var snapshotLoader: WidgetPlaybackSnapshotLoader
+
+    @Inject
+    lateinit var widgetUpdateCoordinator: WidgetUpdateCoordinator
 
     private lateinit var binding: ActivityWidgetConfigBinding
     private lateinit var spec: WidgetProviderSpec
@@ -138,7 +136,8 @@ class WidgetConfigActivity : BaseActivity() {
             rawStyleKey = currentConfig.styleKey
         )
 
-        selectedThemeOption = WidgetCatalog.themeOption(currentConfig.themeType, currentConfig.themeIndex)
+        selectedThemeOption =
+            WidgetCatalog.themeOption(currentConfig.themeType, currentConfig.themeIndex)
 
         selectedThemeAlpha = currentConfig.alpha.coerceIn(0f, 1f)
 
@@ -164,10 +163,6 @@ class WidgetConfigActivity : BaseActivity() {
         }
 
         if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            store.loadClassify(appWidgetId)?.let { classify ->
-                return classify
-            }
-
             val providerInfo = AppWidgetManager
                 .getInstance(this)
                 .getAppWidgetInfo(appWidgetId)
@@ -176,6 +171,10 @@ class WidgetConfigActivity : BaseActivity() {
                 return WidgetCatalog.classifyForProvider(
                     Class.forName(providerInfo.provider.className)
                 )
+            }
+
+            store.loadClassify(appWidgetId)?.let { classify ->
+                return classify
             }
         }
 
@@ -469,39 +468,21 @@ class WidgetConfigActivity : BaseActivity() {
     }
 
     private fun previewLayoutParams(classify: String): FrameLayout.LayoutParams {
-        val width = when (classify) {
-            CLASSIFY_2X1 -> {
-                (screenWidth * 0.45f).toInt()
-            }
+        val horizontalMargin = resources.getDimensionPixelSize(R.dimen.widget_preview_margin_h)
+        val fullWidth = screenWidth - horizontalMargin * 2
 
-            CLASSIFY_3X2 -> {
-                (screenWidth * 0.75f).toInt()
-            }
-
-            CLASSIFY_4X4,
-            CLASSIFY_LIST -> {
-                resources.getDimensionPixelSize(R.dimen.widget_4x4_height)
-            }
-
-            else -> {
-                screenWidth -
-                        resources.getDimensionPixelSize(R.dimen.widget_preview_margin_h) * 2
-            }
-        }
-
-        val heightRes = when (classify) {
-            CLASSIFY_2X1 -> R.dimen.widget_2x1_height
-            CLASSIFY_3X2 -> R.dimen.widget_3x2_height
-            CLASSIFY_4X2 -> R.dimen.widget_4x2_height
-            CLASSIFY_4X3 -> R.dimen.widget_4x3_height
-            CLASSIFY_4X4,
-            CLASSIFY_LIST -> R.dimen.widget_4x4_height
-            else -> R.dimen.widget_4x1_height
+        val (width, heightResId) = when (classify) {
+            "2*1" -> (screenWidth * 0.45f).toInt() to R.dimen.widget_2x1_height
+            "3*2" -> (screenWidth * 0.75f).toInt() to R.dimen.widget_3x2_height
+            "4*2" -> fullWidth to R.dimen.widget_4x2_height
+            "4*3" -> fullWidth to R.dimen.widget_4x3_height
+            "4*4", "List" -> resources.getDimensionPixelSize(R.dimen.widget_4x4_height) to R.dimen.widget_4x4_height
+            else -> fullWidth to R.dimen.widget_4x1_height
         }
 
         return FrameLayout.LayoutParams(
             width,
-            resources.getDimensionPixelSize(heightRes)
+            resources.getDimensionPixelSize(heightResId)
         ).apply {
             gravity = Gravity.CENTER
         }

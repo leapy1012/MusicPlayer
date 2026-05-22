@@ -2,6 +2,7 @@ package gd.app.musicplayer.ui.shell
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -56,8 +57,6 @@ class MainActivity : BasePlayerSheetActivity() {
     fun openDrawer() {
         navigationDrawer.openDrawer(GravityCompat.START)
     }
-
-
 
     fun drawerLayout(): DrawerLayout = navigationDrawer
 

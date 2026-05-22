@@ -113,6 +113,7 @@ class LockActivity : BaseActivity(),
         bindViews()
         configureDragDismiss()
         bindListeners()
+        renderCurrentPlaybackSnapshot()
         observePlayback()
         observeLockscreenSettings()
         observePlayMode()
@@ -134,6 +135,11 @@ class LockActivity : BaseActivity(),
         lyricsJob?.cancel()
         lyricsJob = null
         super.onDestroy()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        renderCurrentPlaybackSnapshot()
     }
 
     override fun onClick(view: View) {
@@ -267,6 +273,11 @@ class LockActivity : BaseActivity(),
 
                 override fun onDragFinished(dismissed: Boolean) {
                     dragDismissing = false
+                    if (!dismissed) {
+                        renderCurrentPlaybackSnapshot()
+                        currentTrack?.let(::loadLyrics)
+                        renderClockNow()
+                    }
                 }
             }
         )
@@ -311,6 +322,21 @@ class LockActivity : BaseActivity(),
                 }
             }
         }
+    }
+
+    private fun renderCurrentPlaybackSnapshot() {
+        val state = playerViewModel.playbackState.value
+        val track = state.currentTrack ?: run {
+            finish()
+            return
+        }
+
+        renderPlaybackState(
+            track = track,
+            isPlaying = state.isPlaying,
+            positionMs = state.positionMs
+        )
+        playModeView.setImageResource(playModeViewModel.uiState.value.iconRes)
     }
 
     private fun renderPlaybackState(
@@ -456,6 +482,7 @@ class LockActivity : BaseActivity(),
             )
 
             if (currentTrack?.id != track.id) return@launch
+            if (dragDismissing) return@launch
 
             lyricView.setTimeOffset(
                 TrackLyricsStore.from(this@LockActivity).getTrackLyricOffset(track.id)
@@ -470,21 +497,27 @@ class LockActivity : BaseActivity(),
 
         clockJob = lifecycleScope.launch {
             while (isActive) {
-                val now = Date()
-
-                timeView.text = SimpleDateFormat(
-                    CLOCK_TIME_PATTERN,
-                    Locale.getDefault()
-                ).format(now)
-
-                dateView.text = DateFormat.format(
-                    CLOCK_DATE_PATTERN,
-                    now
-                )
+                if (!dragDismissing) {
+                    renderClockNow()
+                }
 
                 delay(CLOCK_TICK_MS)
             }
         }
+    }
+
+    private fun renderClockNow() {
+        val now = Date()
+
+        timeView.text = SimpleDateFormat(
+            CLOCK_TIME_PATTERN,
+            Locale.getDefault()
+        ).format(now)
+
+        dateView.text = DateFormat.format(
+            CLOCK_DATE_PATTERN,
+            now
+        )
     }
 
     private fun stopClock() {

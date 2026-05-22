@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="scan_result_margin">4dp</dimen>
+    <dimen name="widget_4x1_2_icon_padding">6dp</dimen>
+    <dimen name="widget_4x1_2_play_padding">4dp</dimen>
+    <dimen name="widget_4x1_3_icon_padding">6dp</dimen>
+    <dimen name="widget_4x1_3_play_padding">4dp</dimen>
+    <dimen name="widget_4x1_4_icon_padding">6dp</dimen>
+    <dimen name="widget_4x1_4_play_padding">4dp</dimen>
+    <dimen name="widget_4x2_2_icon_padding">4.5dp</dimen>
+    <dimen name="widget_4x2_2_play_size">38dp</dimen>
+    <dimen name="widget_4x2_3_icon_padding">4.5dp</dimen>
+    <dimen name="widget_4x3_1_artist_margin_top">6dp</dimen>
+    <dimen name="widget_4x3_6_artist_margin_top">4dp</dimen>
+    <dimen name="widget_4x4_height">360dp</dimen>
+    <dimen name="widget_config_content_margin_start">24dp</dimen>
+    <dimen name="widget_config_item_space">4dp</dimen>
+    <dimen name="widget_config_margin_h_1">16dp</dimen>
+    <dimen name="widget_config_margin_v_1">24dp</dimen>
+    <dimen name="widget_config_margin_v_2">16dp</dimen>
+    <dimen name="widget_config_style_h_4x4">144dp</dimen>
+    <dimen name="widget_preview_margin_h">42dp</dimen>
+    <dimen name="widget_preview_margin_v">32dp</dimen>
 </resources>

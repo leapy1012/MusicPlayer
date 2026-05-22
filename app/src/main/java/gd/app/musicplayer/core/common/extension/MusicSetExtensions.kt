@@ -14,11 +14,6 @@ internal val MusicSet.supportsShuffleAllMenu: Boolean
 
 internal val MusicSet.supportsPlayNextMenu: Boolean
     get() = isTrackCollection && this !is MusicSet.Tracks
-internal val MusicSet.supportsPlaylistManagementMenu: Boolean
-    get() = isTrackCollection
-
-internal val MusicSet.opensTrackCollectionScreen: Boolean
-    get() = isConcreteCollection
 
 internal val MusicSet.supportsCompactAlbumHeader: Boolean
     get() = this is MusicSet.Folder || this is MusicSet.Playlist || this is MusicSet.Favorites || this is MusicSet.RecentlyAdded || this is MusicSet.RecentlyPlayed || this is MusicSet.MostPlayed

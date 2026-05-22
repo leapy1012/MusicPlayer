@@ -4,9 +4,9 @@ import android.view.View
 import androidx.core.graphics.ColorUtils
 import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.formatAddedDate
-import gd.app.musicplayer.core.common.extension.formatDuration
 import gd.app.musicplayer.core.common.extension.formatFileSize
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.itemTextColor
@@ -165,7 +165,7 @@ class MusicViewHolder(
             }
 
             viewInfo == VIEW_INFO_DURATION -> {
-                showTrackMetadata(music.formatDuration())
+                showTrackMetadata(music.durationMs.toDurationString())
             }
 
             else -> Unit

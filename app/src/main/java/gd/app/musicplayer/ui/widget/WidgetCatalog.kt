@@ -3,13 +3,13 @@ package gd.app.musicplayer.ui.widget
 import androidx.annotation.DrawableRes
 import androidx.annotation.LayoutRes
 import gd.app.musicplayer.R
-import gd.app.musicplayer.ui.widget.provider.Widget2x1Provider
-import gd.app.musicplayer.ui.widget.provider.Widget3x2Provider
-import gd.app.musicplayer.ui.widget.provider.Widget4x1Provider
-import gd.app.musicplayer.ui.widget.provider.Widget4x2Provider
-import gd.app.musicplayer.ui.widget.provider.Widget4x3Provider
-import gd.app.musicplayer.ui.widget.provider.Widget4x4Provider
-import gd.app.musicplayer.ui.widget.provider.WidgetListProvider
+import gd.app.musicplayer.ui.widget.provider.Widget2x2Transparent
+import gd.app.musicplayer.ui.widget.provider.Widget4x1Transparent
+import gd.app.musicplayer.ui.widget.provider.Widget4x1White
+import gd.app.musicplayer.ui.widget.provider.Widget4x2
+import gd.app.musicplayer.ui.widget.provider.Widget4x2Large
+import gd.app.musicplayer.ui.widget.provider.Widget4x4
+import gd.app.musicplayer.ui.widget.provider.WidgetList
 
 data class WidgetThemeOption(
     val themeType: Int,
@@ -119,7 +119,7 @@ object WidgetCatalog {
             classify = "2*1",
             titleRes = R.string.widget_2x1,
             previewRes = R.drawable.widget_2x1_1,
-            providerClass = Widget2x1Provider::class.java,
+            providerClass = Widget2x2Transparent::class.java,
             styles = listOf(
                 WidgetStyleOption(
                     styleKey = "2x1_2",
@@ -137,7 +137,7 @@ object WidgetCatalog {
             classify = "3*2",
             titleRes = R.string.widget_3x2,
             previewRes = R.drawable.widget_3x2_1,
-            providerClass = Widget3x2Provider::class.java,
+            providerClass = Widget4x2::class.java,
             styles = listOf(
                 WidgetStyleOption(
                     styleKey = "3x2_2",
@@ -155,7 +155,7 @@ object WidgetCatalog {
             classify = "4*1",
             titleRes = R.string.widget_4x1,
             previewRes = R.drawable.widget_4x1_1,
-            providerClass = Widget4x1Provider::class.java,
+            providerClass = Widget4x1Transparent::class.java,
             styles = listOf(
                 WidgetStyleOption("4x1_1", R.layout.widget_4x1_1, R.drawable.widget_4x1_1),
                 WidgetStyleOption("4x1_4", R.layout.widget_4x1_4, R.drawable.widget_4x1_4),
@@ -167,7 +167,7 @@ object WidgetCatalog {
             classify = "4*2",
             titleRes = R.string.widget_4x2,
             previewRes = R.drawable.widget_4x2_2,
-            providerClass = Widget4x2Provider::class.java,
+            providerClass = Widget4x1White::class.java,
             styles = listOf(
                 WidgetStyleOption("4x2_2", R.layout.widget_4x2_2, R.drawable.widget_4x2_2),
                 WidgetStyleOption("4x2_1", R.layout.widget_4x2_1, R.drawable.widget_4x2_1),
@@ -179,7 +179,7 @@ object WidgetCatalog {
             classify = "4*3",
             titleRes = R.string.widget_4x3,
             previewRes = R.drawable.widget_4x3_1,
-            providerClass = Widget4x3Provider::class.java,
+            providerClass = Widget4x2Large::class.java,
             styles = listOf(
                 WidgetStyleOption("4x3_3", R.layout.widget_4x3_3, R.drawable.widget_4x3_3),
                 WidgetStyleOption("4x3_4", R.layout.widget_4x3_4, R.drawable.widget_4x3_4),
@@ -193,7 +193,7 @@ object WidgetCatalog {
             classify = "4*4",
             titleRes = R.string.widget_4x4,
             previewRes = R.drawable.widget_4x4_1,
-            providerClass = Widget4x4Provider::class.java,
+            providerClass = Widget4x4::class.java,
             styles = listOf(
                 WidgetStyleOption("4x4_2", R.layout.widget_4x4_2, R.drawable.widget_4x4_2),
                 WidgetStyleOption("4x4_3", R.layout.widget_4x4_3, R.drawable.widget_4x4_3),
@@ -204,7 +204,7 @@ object WidgetCatalog {
             classify = "List",
             titleRes = R.string.widget_list,
             previewRes = R.drawable.widget_queue,
-            providerClass = WidgetListProvider::class.java,
+            providerClass = WidgetList::class.java,
             styles = listOf(
                 WidgetStyleOption(
                     styleKey = "LIST",
@@ -223,7 +223,8 @@ object WidgetCatalog {
 
     fun specForProvider(providerClass: Class<*>): WidgetProviderSpec {
         return items.firstOrNull { item ->
-            item.providerClass == providerClass
+            item.providerClass == providerClass ||
+                    item.providerClass.isAssignableFrom(providerClass)
         } ?: defaultSpec()
     }
 

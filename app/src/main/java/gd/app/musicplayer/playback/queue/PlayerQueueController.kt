@@ -1,19 +1,18 @@
 package gd.app.musicplayer.playback.queue
 
 import androidx.media3.exoplayer.ExoPlayer
+import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.playback.player.MediaItemMapper
 import androidx.media3.common.Player
 
 class PlayerQueueController(
     private val player: ExoPlayer,
-    private val mediaItemMapper: MediaItemMapper,
     private val queueProvider: () -> List<Music>
 ) {
 
     fun filterPlayable(queue: List<Music>): List<Music> {
         return queue.filter { music ->
-            mediaItemMapper.toMediaItemOrNull(music) != null
+            music.toMediaItemOrNull() != null
         }
     }
 
@@ -25,7 +24,9 @@ class PlayerQueueController(
     ) {
         if (queue.isEmpty()) return
 
-        val mediaItems = mediaItemMapper.toMediaItems(queue)
+        val mediaItems = queue.mapNotNull { music ->
+            music.toMediaItemOrNull()
+        }
 
         if (mediaItems.isEmpty()) return
 
@@ -45,7 +46,9 @@ class PlayerQueueController(
     }
 
     fun addMediaItems(queue: List<Music>) {
-        val mediaItems = mediaItemMapper.toMediaItems(queue)
+        val mediaItems = queue.mapNotNull { music ->
+            music.toMediaItemOrNull()
+        }
 
         if (mediaItems.isEmpty()) return
 
@@ -56,7 +59,9 @@ class PlayerQueueController(
         index: Int,
         queue: List<Music>
     ) {
-        val mediaItems = mediaItemMapper.toMediaItems(queue)
+        val mediaItems = queue.mapNotNull { music ->
+            music.toMediaItemOrNull()
+        }
 
         if (mediaItems.isEmpty()) return
 

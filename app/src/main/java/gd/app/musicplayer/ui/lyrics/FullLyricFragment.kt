@@ -109,6 +109,10 @@ class FullLyricFragment : Fragment() {
     }
 
     private fun render(state: FullLyricUiState) = with(binding) {
+        if ((activity as? MusicPlayActivity)?.isDragDismissInProgress() == true) {
+            return
+        }
+
         fullLyricTitle.text = state.title
         fullLyricArtist.text = state.artist.ifBlank {
             getString(R.string.artist)
@@ -139,6 +143,11 @@ class FullLyricFragment : Fragment() {
 
     private fun showPlayer() {
         (activity as? MusicPlayActivity)?.showPlayer()
+    }
+
+    fun refreshFromCurrentState() {
+        if (_binding == null) return
+        render(fullLyricViewModel.uiState.value)
     }
 
     companion object {

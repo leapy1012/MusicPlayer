@@ -33,9 +33,14 @@ class WidgetPlaybackSnapshotLoader @Inject constructor(
                 queue.any { queued -> queued.id == track.id }
             }
 
-        val restoredIndex = restoredProgress
+        val restoredIndexByTrackId = restoredProgress
             ?.let { progress -> queue.indexOfFirst { queued -> queued.id == progress.trackId } }
             ?.takeIf { index -> index in queue.indices }
+
+        val restoredIndex = restoredIndexByTrackId
+            ?: restoredProgress?.currentIndex?.takeIf { index ->
+                index in queue.indices
+            }
 
         val currentTrack = runtimeTrack
             ?: restoredIndex?.let { index -> queue[index] }
@@ -54,7 +59,7 @@ class WidgetPlaybackSnapshotLoader @Inject constructor(
             currentIndex = currentIndex,
             positionMs = if (runtimeTrack != null) {
                 runtimeState.positionMs
-            } else if (restoredIndex != null) {
+            } else if (restoredIndexByTrackId != null) {
                 restoredProgress?.progressMs?.toLong()?.coerceAtLeast(0L) ?: 0L
             } else {
                 0L

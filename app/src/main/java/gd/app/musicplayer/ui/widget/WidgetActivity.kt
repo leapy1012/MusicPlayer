@@ -10,82 +10,82 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.startActivityCompat
-import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
-import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.databinding.ActivityWidgetBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 
 @AndroidEntryPoint
 class WidgetActivity : BaseActivity() {
+
     private lateinit var binding: ActivityWidgetBinding
-    private lateinit var addHelper: WidgetAddHelper
+
+    private var addHelper: WidgetAddHelper? = null
+
+    private val widgetAdapter by lazy {
+        WidgetSizeAdapter(
+            items = WidgetCatalog.items,
+            applyTheme = themeEngine::apply,
+            currentTheme = themeEngine::currentTheme,
+            onAddClicked = ::requestAddWidget
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (handleConfigureIntent(intent)) {
-            return
-        }
+        if (finishIfWidgetConfigureRequest(intent)) return
 
         binding = ActivityWidgetBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        addHelper = WidgetAddHelper(
-            activity = this,
-            onAddSuccess = {
-                ToastUtil.show(this, R.string.dlg_add_widget_success)
-            },
-            onManualAddRequired = {
-                showManualAddDialog()
-            }
-        )
-
-        binding.root.applySystemBarInsets(
-            statusBarView = binding.statusBarSpace,
-            bottomPaddingView = binding.recyclerView
-        )
-
+        setupWidgetAddHelper()
+        setupSystemBars()
         setupToolbar()
-        setupRecycler()
+        setupWidgetList()
     }
 
     override fun onDestroy() {
-        if (::addHelper.isInitialized) {
-            addHelper.dispose()
-        }
-
+        addHelper?.dispose()
+        addHelper = null
         super.onDestroy()
     }
 
-    private fun setupToolbar() {
-        binding.toolbar.setNavigationOnClickListener {
+    private fun setupWidgetAddHelper() {
+        addHelper = WidgetAddHelper(
+            activity = this,
+            onManualAddRequired = ::showManualAddDialog
+        ).also { it.register() }
+    }
+
+    private fun setupSystemBars() = with(binding) {
+        root.applySystemBarInsets(
+            statusBarView = statusBarSpace,
+            bottomPaddingView = recyclerView
+        )
+    }
+
+    private fun setupToolbar() = with(binding.toolbar) {
+        setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
     }
 
-    private fun setupRecycler() {
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+    private fun setupWidgetList() = with(binding.recyclerView) {
+        layoutManager = LinearLayoutManager(this@WidgetActivity)
+        adapter = widgetAdapter
 
-        if (binding.recyclerView.itemDecorationCount == 0) {
-            binding.recyclerView.addItemDecoration(
-                SpacingItemDecoration.all(dpToPx(8f))
+        if (itemDecorationCount == 0) {
+            addItemDecoration(
+                SpacingItemDecoration.all(dpToPx(WIDGET_ITEM_SPACING_DP))
             )
         }
-
-        binding.recyclerView.adapter = WidgetSizeAdapter(
-            items = WidgetCatalog.items,
-            applyTheme = { root ->
-                themeEngine.apply(root)
-            },
-            onAddClicked = { item ->
-                addHelper.requestAdd(item)
-            }
-        )
     }
 
-    private fun handleConfigureIntent(intent: Intent?): Boolean {
+    private fun requestAddWidget(item: WidgetProviderSpec) {
+        addHelper?.requestAdd(item)
+    }
+
+    private fun finishIfWidgetConfigureRequest(intent: Intent?): Boolean {
         val appWidgetId = intent?.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
@@ -97,10 +97,7 @@ class WidgetActivity : BaseActivity() {
 
         setResult(
             RESULT_OK,
-            Intent().putExtra(
-                AppWidgetManager.EXTRA_APPWIDGET_ID,
-                appWidgetId
-            )
+            Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
         )
 
         finish()
@@ -108,22 +105,12 @@ class WidgetActivity : BaseActivity() {
     }
 
     private fun showManualAddDialog() {
-        showMessageDialog(
-            createMessageDialogConfig(
-                title = getString(R.string.widget),
-                message =
-                listOf(
-                    getString(R.string.dlg_add_widget_tips_1),
-                    getString(R.string.dlg_add_widget_tips_2),
-                    getString(R.string.dlg_add_widget_tips_3),
-                    getString(R.string.dlg_add_widget_tips_4)
-                ).joinToString(separator = "\n\n"),
-                positiveText = getString(android.R.string.ok)
-            )
-        )
+        WidgetManualAddDialogFragment.show(supportFragmentManager)
     }
 
     companion object {
+        private const val WIDGET_ITEM_SPACING_DP = 8f
+
         fun start(context: Context) {
             context.startActivityCompat(
                 Intent(context, WidgetActivity::class.java)

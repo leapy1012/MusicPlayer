@@ -1,4 +1,4 @@
-package gd.app.musicplayer.ui.widget
+package gd.app.musicplayer.data.local.preference
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -7,13 +7,15 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import gd.app.musicplayer.di.WidgetConfigDataStore
+import gd.app.musicplayer.ui.widget.WidgetCatalog
+import gd.app.musicplayer.ui.widget.WidgetConfig
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.first
 
 @Singleton
 class WidgetConfigStore @Inject constructor(
-    @WidgetConfigDataStore
+    @param:WidgetConfigDataStore
     private val dataStore: DataStore<Preferences>
 ) {
 

@@ -45,7 +45,8 @@ class PlaybackQueueRepo @Inject constructor(
         replaceQueue(queue)
         playbackStatePreferenceStore.setMusicProgress(
             trackId = queue[currentIndex].id,
-            progressMs = currentPositionMs.coerceAtLeast(0)
+            progressMs = currentPositionMs.coerceAtLeast(0),
+            currentIndex = currentIndex
         )
     }
 

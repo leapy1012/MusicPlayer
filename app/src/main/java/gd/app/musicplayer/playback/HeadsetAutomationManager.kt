@@ -2,6 +2,8 @@ package gd.app.musicplayer.playback
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothA2dp
+import android.bluetooth.BluetoothHeadset
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothProfile
@@ -66,6 +68,34 @@ class HeadsetAutomationManager @Inject constructor(
                     intent,
                     connected = false
                 )
+                BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED -> {
+                    when (intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1)) {
+                        BluetoothProfile.STATE_CONNECTED -> handleBluetoothState(
+                            context,
+                            intent,
+                            connected = true
+                        )
+                        BluetoothProfile.STATE_DISCONNECTED -> handleBluetoothState(
+                            context,
+                            intent,
+                            connected = false
+                        )
+                    }
+                }
+                BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED -> {
+                    when (intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1)) {
+                        BluetoothProfile.STATE_CONNECTED -> handleBluetoothState(
+                            context,
+                            intent,
+                            connected = true
+                        )
+                        BluetoothProfile.STATE_DISCONNECTED -> handleBluetoothState(
+                            context,
+                            intent,
+                            connected = false
+                        )
+                    }
+                }
                 BluetoothAdapter.ACTION_STATE_CHANGED -> {
                     if (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1) == BluetoothAdapter.STATE_OFF &&
                         bluetoothHeadsetOn
@@ -87,6 +117,8 @@ class HeadsetAutomationManager @Inject constructor(
             val filter = IntentFilter().apply {
                 addAction(Intent.ACTION_HEADSET_PLUG)
                 addAction(AudioManagerActions.ACTION_AUDIO_BECOMING_NOISY)
+                addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)
+                addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED)
                 addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
                 addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
                 addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
@@ -95,7 +127,7 @@ class HeadsetAutomationManager @Inject constructor(
                 appContext,
                 receiver,
                 filter,
-                ContextCompat.RECEIVER_NOT_EXPORTED
+                ContextCompat.RECEIVER_EXPORTED
             )
             lastRegisterAtMs = SystemClock.elapsedRealtime()
             registered = true
@@ -164,14 +196,7 @@ class HeadsetAutomationManager @Inject constructor(
 
     private fun isAudioDevice(bluetoothClass: BluetoothClass?): Boolean {
         val majorClass = bluetoothClass?.majorDeviceClass ?: return false
-        if (majorClass != BluetoothClass.Device.Major.AUDIO_VIDEO) return false
-        return when (bluetoothClass.deviceClass) {
-            BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET,
-            BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES,
-            BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER,
-            BluetoothClass.Device.AUDIO_VIDEO_HIFI_AUDIO -> true
-            else -> false
-        }
+        return majorClass == BluetoothClass.Device.Major.AUDIO_VIDEO
     }
 
     private object AudioManagerActions {

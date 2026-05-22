@@ -4,12 +4,15 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.Selection
 import android.text.TextWatcher
 import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.getSystemService
 import androidx.lifecycle.lifecycleScope
@@ -19,6 +22,10 @@ import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.ThemeViewBinder
+import gd.app.musicplayer.core.designsystem.theme.headerTitleColor
+import gd.app.musicplayer.core.designsystem.theme.itemPrimaryTextColor
 import gd.app.musicplayer.databinding.ActivityLyricEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -37,6 +44,18 @@ class LyricEditActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     private var clipboardLyrics: String? = null
     private var initialLyricsText = ""
     private var hasExistingLyrics = false
+    private val lyricThemeBinder = ThemeViewBinder { palette, payload, view ->
+        if (payload == "dialogEditText" && view is EditText) {
+            view.setTextColor(palette.itemPrimaryTextColor)
+            view.setHintTextColor(
+                if (usesDarkForegroundPalette(palette)) 1291845632 else 1308622847
+            )
+            view.background = ColorDrawable(Color.TRANSPARENT)
+            true
+        } else {
+            false
+        }
+    }
 
     private val trackId: Long
         get() = intent.getLongExtra(EXTRA_TRACK_ID, INVALID_TRACK_ID)
@@ -104,6 +123,7 @@ class LyricEditActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         binding.lrcEditInput.post {
             binding.lrcEditInput.requestFocus()
         }
+        applyLyricTheme()
 
         lifecycleScope.launch {
             val result = LyricsLoader.load(this@LyricEditActivity, trackId, audioPath)
@@ -126,7 +146,15 @@ class LyricEditActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
     override fun onResume() {
         super.onResume()
+        applyLyricTheme()
         binding.lrcEditInput.requestFocus()
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        if (::binding.isInitialized && palette != null) {
+            themeRegistry.apply(binding.root, palette, lyricThemeBinder)
+        }
     }
 
     override fun onMenuItemClick(item: MenuItem): Boolean {
@@ -255,6 +283,16 @@ class LyricEditActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         val clip = clipboard.primaryClip ?: return null
         val item = clip.getItemAt(0) ?: return null
         return item.coerceToText(this)?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun applyLyricTheme() {
+        if (::binding.isInitialized) {
+            themeRegistry.apply(binding.root, themeEngine.currentTheme(), lyricThemeBinder)
+        }
+    }
+
+    private fun usesDarkForegroundPalette(palette: ThemePalette): Boolean {
+        return palette.headerTitleColor != Color.WHITE
     }
 
     companion object {

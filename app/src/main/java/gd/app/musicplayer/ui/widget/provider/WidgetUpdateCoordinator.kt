@@ -10,7 +10,7 @@ import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.widget.WidgetCatalog
 import gd.app.musicplayer.ui.widget.WidgetConfig
-import gd.app.musicplayer.ui.widget.WidgetConfigStore
+import gd.app.musicplayer.data.local.preference.WidgetConfigStore
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,9 +24,12 @@ class WidgetUpdateCoordinator @Inject constructor(
 ) {
 
     suspend fun updateAll() {
-        val manager = AppWidgetManager.getInstance(appContext)
         val snapshot = snapshotLoader.load()
+        updateAll(snapshot)
+    }
 
+    suspend fun updateAll(snapshot: WidgetPlaybackSnapshot) {
+        val manager = AppWidgetManager.getInstance(appContext)
         WidgetCatalog.items.forEach { spec ->
             val appWidgetIds = manager.getAppWidgetIds(
                 ComponentName(appContext, spec.providerClass)

@@ -153,30 +153,38 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
     }
 }
 
-class Widget2x1Provider : BaseMusicAppWidgetProvider() {
+open class Widget2x2Transparent : BaseMusicAppWidgetProvider() {
     override val classify: String = "2*1"
 }
 
-class Widget3x2Provider : BaseMusicAppWidgetProvider() {
+open class Widget4x2 : BaseMusicAppWidgetProvider() {
     override val classify: String = "3*2"
 }
 
-class Widget4x1Provider : BaseMusicAppWidgetProvider() {
+open class Widget4x1Transparent : BaseMusicAppWidgetProvider() {
     override val classify: String = "4*1"
 }
 
-class Widget4x2Provider : BaseMusicAppWidgetProvider() {
+open class Widget4x1White : BaseMusicAppWidgetProvider() {
     override val classify: String = "4*2"
 }
 
-class Widget4x3Provider : BaseMusicAppWidgetProvider() {
+open class Widget4x2Large : BaseMusicAppWidgetProvider() {
     override val classify: String = "4*3"
 }
 
-class Widget4x4Provider : BaseMusicAppWidgetProvider() {
+open class Widget4x4 : BaseMusicAppWidgetProvider() {
     override val classify: String = "4*4"
 }
 
-class WidgetListProvider : BaseMusicAppWidgetProvider() {
+open class WidgetList : BaseMusicAppWidgetProvider() {
     override val classify: String = "List"
 }
+
+class Widget2x1Provider : Widget2x2Transparent()
+class Widget3x2Provider : Widget4x2()
+class Widget4x1Provider : Widget4x1Transparent()
+class Widget4x2Provider : Widget4x1White()
+class Widget4x3Provider : Widget4x2Large()
+class Widget4x4Provider : Widget4x4()
+class WidgetListProvider : WidgetList()

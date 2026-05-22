@@ -13,7 +13,7 @@
     <dimen name="item_recycler_height">72dp</dimen>
     <dimen name="music_grid_banner_height">64dp</dimen>
     <dimen name="album_recycler_height">120dp</dimen>
-    <dimen name="scan_result_padding">24</dimen>
+    <dimen name="scan_result_padding">24dp</dimen>
     <dimen name="scan_checkbox_margin_top">0dp</dimen>
     <dimen name="scan_result_margin">1dp</dimen>
     <dimen name="equalizer_bass_height">100dp</dimen>
@@ -365,6 +365,8 @@
     <dimen name="widget_queue_progress_height">1.5dp</dimen>
     <dimen name="widget_queue_setting_padding_bl">6dp</dimen>
     <dimen name="widget_queue_setting_padding_tr">6dp</dimen>
+    <dimen name="widget_manual_add_indicator_size">6dp</dimen>
+    <dimen name="widget_manual_add_indicator_margin">10dp</dimen>
     <dimen name="widget_queue_setting_size">24dp</dimen>
     <dimen name="widget_queue_text_margin_end">56dp</dimen>
     <dimen name="widget_queue_text_margin_start">16dp</dimen>

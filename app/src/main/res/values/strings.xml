@@ -1374,6 +1374,6 @@
     <string name="write_to_database">Saving data…</string>
     <string name="yes">Yes</string>
 
-
+    <string name="widget_size_format">Size: %1$s</string>
     <string name="feature_not_implemented">feature_not_implemented</string>
 </resources>

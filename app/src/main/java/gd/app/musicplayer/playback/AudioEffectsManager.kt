@@ -3,6 +3,7 @@ package gd.app.musicplayer.playback
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
+import android.media.audiofx.PresetReverb
 import android.media.audiofx.Virtualizer
 import android.os.Build
 import androidx.annotation.OptIn
@@ -34,6 +35,7 @@ class AudioEffectsManager @Inject constructor(
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var presetReverb: PresetReverb? = null
 
     private suspend fun loadSettings(): AudioEffectSettings {
         return withContext(Dispatchers.IO) {
@@ -76,6 +78,12 @@ class AudioEffectsManager @Inject constructor(
             loudnessEnhancer = runCatching {
                 LoudnessEnhancer(sessionId)
             }.getOrNull()
+
+            presetReverb = runCatching {
+                PresetReverb(REVERB_PRIORITY, AUX_AUDIO_SESSION_ID).apply {
+                    enabled = false
+                }
+            }.getOrNull()
         }
 
         val settings = loadSettings()
@@ -87,7 +95,10 @@ class AudioEffectsManager @Inject constructor(
         applyLoudness(effectiveSettings)
 
         withContext(Dispatchers.Main.immediate) {
-            clearLegacyAuxReverbOnMain(player)
+            applyReverbOnMain(
+                settings = effectiveSettings,
+                player = player
+            )
         }
     }
 
@@ -189,8 +200,44 @@ class AudioEffectsManager @Inject constructor(
     }
 
     @OptIn(UnstableApi::class)
-    private fun clearLegacyAuxReverbOnMain(player: ExoPlayer) {
+    private fun applyReverbOnMain(
+        settings: AudioEffectSettings,
+        player: ExoPlayer
+    ) {
+        val effect = presetReverb
+
+        if (effect == null || settings.reverbIndex <= 0) {
+            clearAuxReverbOnMain(player)
+            return
+        }
+
+        val sendLevel = resolveReverbSendLevel(settings)
+        if (sendLevel <= 0f) {
+            runCatching {
+                effect.enabled = false
+            }
+            clearAuxReverbOnMain(player)
+            return
+        }
+
         runCatching {
+            effect.preset = settings.reverbIndex.toShort()
+            effect.enabled = true
+            player.setAuxEffectInfo(
+                AuxEffectInfo(
+                    effect.id,
+                    sendLevel
+                )
+            )
+        }.onFailure {
+            clearAuxReverbOnMain(player)
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun clearAuxReverbOnMain(player: ExoPlayer) {
+        runCatching {
+            presetReverb?.enabled = false
             player.setAuxEffectInfo(
                 AuxEffectInfo(
                     AuxEffectInfo.NO_AUX_EFFECT_ID,
@@ -206,12 +253,30 @@ class AudioEffectsManager @Inject constructor(
             bassBoost?.release()
             virtualizer?.release()
             loudnessEnhancer?.release()
+            presetReverb?.release()
         }
 
         equalizer = null
         bassBoost = null
         virtualizer = null
         loudnessEnhancer = null
+        presetReverb = null
+    }
+
+    private fun resolveReverbSendLevel(
+        settings: AudioEffectSettings
+    ): Float {
+        if (!settings.balanceEnabled) {
+            return FULL_AUX_SEND_LEVEL
+        }
+
+        return maxOf(
+            settings.balanceLeft.coerceIn(0f, 1f),
+            settings.balanceRight.coerceIn(0f, 1f)
+        ).coerceIn(
+            minimumValue = 0f,
+            maximumValue = FULL_AUX_SEND_LEVEL
+        )
     }
 
     companion object {
@@ -219,6 +284,9 @@ class AudioEffectsManager @Inject constructor(
         private const val DEFAULT_MAX_EQ_LEVEL = 1500
 
         private const val MAX_EFFECT_STRENGTH = 1000f
+        private const val REVERB_PRIORITY = 1000
+        private const val AUX_AUDIO_SESSION_ID = 0
+        private const val FULL_AUX_SEND_LEVEL = 1f
         // The reference app maps loudness_enhancer_progress to 0..15 input gain.
         // LoudnessEnhancer expects millibels, so use 0..15000 mB for parity.
         private const val MAX_LOUDNESS_GAIN = 15_000f

@@ -12,6 +12,7 @@ import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
 import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.playback.PlaybackController
+import gd.app.musicplayer.playback.PlaybackStartupInitializer
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,12 +57,19 @@ data class PlaybackHighlightState(
 class PlayerViewModel @Inject constructor(
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val playbackController: PlaybackController,
+    private val playbackStartupInitializer: PlaybackStartupInitializer,
     private val playlistRepo: PlaylistRepo,
     private val getTracksUseCase: GetTracksUseCase,
     private val observeAlbumPictureUseCase: ObserveAlbumPictureUseCase,
 ) : ViewModel() {
 
     private val playbackStateFlow = observePlaybackStateUseCase()
+
+    init {
+        viewModelScope.launch {
+            playbackStartupInitializer.initialize()
+        }
+    }
 
     val playbackState: StateFlow<MusicPlaybackState> =
         playbackStateFlow

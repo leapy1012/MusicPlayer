@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
@@ -207,6 +208,19 @@ class MusicPlayerFragment :
         binding.musicPlayPagerIndicator.setViewPager(binding.musicPlayPager)
         binding.musicPlayPagerIndicator.setOnPageChangeListener(this)
         binding.musicPlayPager.currentItem = pagerIndex
+        binding.musicPlayPager.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    (activity as? MusicPlayActivity)?.setDismissInterceptionBlocked(true)
+                }
+
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL -> {
+                    (activity as? MusicPlayActivity)?.setDismissInterceptionBlocked(false)
+                }
+            }
+            false
+        }
         onPageSelected(pagerIndex)
     }
 
@@ -294,6 +308,8 @@ class MusicPlayerFragment :
     }
 
     private fun renderTrackMetadata(state: TrackUiState) {
+        if ((activity as? MusicPlayActivity)?.isDragDismissInProgress() == true) return
+
         val binding = binding ?: return
         val track = currentTrack
         val lyricPage = lyricBinding
@@ -338,6 +354,8 @@ class MusicPlayerFragment :
     }
 
     private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
+        if ((activity as? MusicPlayActivity)?.isDragDismissInProgress() == true) return
+
         val binding = binding ?: return
 
         val duration = state.durationMs.coerceAtLeast(1L)
@@ -638,13 +656,22 @@ class MusicPlayerFragment :
         updateVisualizerState()
     }
 
+    fun refreshFromCurrentState() {
+        renderTrackMetadata(playerViewModel.trackUiState.value)
+        renderPlaybackProgress(playerViewModel.progressUiState.value)
+    }
+
     override fun onPageScrolled(
         position: Int,
         positionOffset: Float,
         positionOffsetPixels: Int
     ) = Unit
 
-    override fun onPageScrollStateChanged(state: Int) = Unit
+    override fun onPageScrollStateChanged(state: Int) {
+        (activity as? MusicPlayActivity)?.setDismissInterceptionBlocked(
+            state != ViewPager.SCROLL_STATE_IDLE
+        )
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)

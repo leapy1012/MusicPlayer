@@ -27,6 +27,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.AppForegroundTracker
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
+import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.data.local.db.dao.MusicDao
 import gd.app.musicplayer.data.local.preference.DesktopLyricPreference
 import gd.app.musicplayer.data.local.preference.DesktopLyricPreferenceStore
@@ -55,7 +56,6 @@ import gd.app.musicplayer.playback.PlaybackServiceCommandHandler
 import gd.app.musicplayer.playback.PlaybackStatePublisher
 import gd.app.musicplayer.playback.PlaybackStatsTracker
 import gd.app.musicplayer.playback.PlaybackTuningController
-import gd.app.musicplayer.playback.ReverbAudioProcessor
 import gd.app.musicplayer.playback.ScreenOffLockReceiver
 import gd.app.musicplayer.playback.StereoBalanceAudioProcessor
 import gd.app.musicplayer.playback.SleepTimerManager
@@ -82,7 +82,6 @@ import gd.app.musicplayer.playback.artwork.CurrentArtworkController
 import gd.app.musicplayer.playback.favorite.CurrentFavoriteController
 import gd.app.musicplayer.playback.notification.NotificationCloseCallbacks
 import gd.app.musicplayer.playback.notification.NotificationCloseController
-import gd.app.musicplayer.playback.player.MediaItemMapper
 import gd.app.musicplayer.playback.player.MusicPlayerFactory
 import gd.app.musicplayer.playback.player.PlayerEventHandler
 import gd.app.musicplayer.playback.progress.PlaybackProgressTicker
@@ -102,14 +101,13 @@ import gd.app.musicplayer.playback.state.PublishReason
 import gd.app.musicplayer.playback.transition.TimedTransitionController
 import gd.app.musicplayer.playback.desktop.DesktopLyricsOverlayController
 import gd.app.musicplayer.playback.statusbar.StatusBarLyricsOverlayController
+import gd.app.musicplayer.ui.widget.provider.WidgetUpdateCoordinator
+import gd.app.musicplayer.ui.widget.provider.WidgetPlaybackSnapshot
 import kotlinx.coroutines.NonCancellable
 
 
 @AndroidEntryPoint
 class MusicPlaybackService : MediaSessionService() {
-
-    @Inject
-    lateinit var mediaItemMapper: MediaItemMapper
 
     @Inject
     lateinit var musicPlayerFactory: MusicPlayerFactory
@@ -179,6 +177,9 @@ class MusicPlaybackService : MediaSessionService() {
     @Inject
     lateinit var playbackStatsTracker: PlaybackStatsTracker
 
+    @Inject
+    lateinit var widgetUpdateCoordinator: WidgetUpdateCoordinator
+
     private lateinit var player: ExoPlayer
     private lateinit var crossfadePlayer: ExoPlayer
     private lateinit var serviceScope: CoroutineScope
@@ -195,8 +196,6 @@ class MusicPlaybackService : MediaSessionService() {
     private lateinit var statePublisher: PlaybackStatePublisher
     private lateinit var stereoBalanceAudioProcessor: StereoBalanceAudioProcessor
     private lateinit var crossfadeStereoBalanceAudioProcessor: StereoBalanceAudioProcessor
-    private lateinit var reverbAudioProcessor: ReverbAudioProcessor
-    private lateinit var crossfadeReverbAudioProcessor: ReverbAudioProcessor
     private lateinit var volumeFader: VolumeFader
     private lateinit var crossfadeVolumeFader: VolumeFader
 
@@ -222,7 +221,10 @@ class MusicPlaybackService : MediaSessionService() {
     private var pendingMedia3TransportStartIndex = NO_INDEX
     private var pendingMedia3TransportStartPositionMs = 0L
     private var pendingMedia3StopSnapshot: PlaybackSnapshot? = null
+    private var widgetUpdateJob: Job? = null
     private var correctingMediaItemTransition = false
+    private var suppressNextCrossfadeCommitTransition = false
+    private var pendingRestoreTrackId: Long? = null
     private var isNightMode = false
 
     @Volatile
@@ -531,18 +533,14 @@ class MusicPlaybackService : MediaSessionService() {
     private fun configurePlayer() {
         stereoBalanceAudioProcessor = StereoBalanceAudioProcessor()
         crossfadeStereoBalanceAudioProcessor = StereoBalanceAudioProcessor()
-        reverbAudioProcessor = ReverbAudioProcessor()
-        crossfadeReverbAudioProcessor = ReverbAudioProcessor()
 
         player = musicPlayerFactory.create(
             context = this,
-            stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
-            reverbAudioProcessor = reverbAudioProcessor
+            stereoBalanceAudioProcessor = stereoBalanceAudioProcessor
         )
         crossfadePlayer = musicPlayerFactory.create(
             context = this,
-            stereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor,
-            reverbAudioProcessor = crossfadeReverbAudioProcessor
+            stereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor
         )
         crossfadePlayer.volume = 0f
 
@@ -598,6 +596,14 @@ class MusicPlaybackService : MediaSessionService() {
 
 
     private fun handleMediaItemTransition(reason: Int) {
+        if (
+            suppressNextCrossfadeCommitTransition &&
+            reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK
+        ) {
+            suppressNextCrossfadeCommitTransition = false
+            return
+        }
+
         if (maybeCorrectExternalMediaItemTransition(reason)) {
             return
         }
@@ -814,8 +820,6 @@ class MusicPlaybackService : MediaSessionService() {
             soundEffectPreferences = soundEffectPreferences,
             stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
             extraStereoBalanceAudioProcessors = listOf(crossfadeStereoBalanceAudioProcessor),
-            reverbAudioProcessor = reverbAudioProcessor,
-            extraReverbAudioProcessors = listOf(crossfadeReverbAudioProcessor),
             currentMusicProvider = {
                 queue.getOrNull(currentIndex)
             },
@@ -824,7 +828,6 @@ class MusicPlaybackService : MediaSessionService() {
 
         playerQueueController = PlayerQueueController(
             player = player,
-            mediaItemMapper = mediaItemMapper,
             queueProvider = {
                 queue
             }
@@ -1318,7 +1321,6 @@ class MusicPlaybackService : MediaSessionService() {
             playbackModeResolver = playbackModeResolver,
             volumeFader = volumeFader,
             incomingVolumeFader = crossfadeVolumeFader,
-            mediaItemMapper = mediaItemMapper,
             queueProvider = {
                 queue
             },
@@ -1618,7 +1620,9 @@ class MusicPlaybackService : MediaSessionService() {
                         throw IllegalStateException("Audio focus request was denied.")
                     }
 
-                    val mediaItems = mediaItemMapper.toMediaItems(queue)
+                    val mediaItems = queue.mapNotNull { music ->
+                        music.toMediaItemOrNull()
+                    }
 
                     if (mediaItems.isEmpty()) {
                         throw UnsupportedOperationException("No restorable media items.")
@@ -1704,6 +1708,7 @@ class MusicPlaybackService : MediaSessionService() {
                     0L
                 }
 
+                pendingRestoreTrackId = restoredTrackId
                 prepareRestoredPlayerState(
                     index = restoredIndex,
                     positionMs = restoredPositionMs
@@ -1718,6 +1723,7 @@ class MusicPlaybackService : MediaSessionService() {
                 )
             },
             onEmpty = {
+                pendingRestoreTrackId = null
                 clearQueueState()
 
                 syncControllersAfterQueueRestore(forceArtwork = false)
@@ -1728,6 +1734,7 @@ class MusicPlaybackService : MediaSessionService() {
                 )
             },
             onFailed = {
+                pendingRestoreTrackId = null
                 publishPlaybackState(
                     reason = PublishReason.Restore,
                     forceNotification = true
@@ -1801,6 +1808,13 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     private fun handleTrackEnded() {
+        if (
+            ::timedTransitionController.isInitialized &&
+            timedTransitionController.consumeTrackEndedDuringCrossfade()
+        ) {
+            return
+        }
+
         resetTimedTransitionState()
 
         playbackStatsTracker.onTrackEnded(
@@ -1880,7 +1894,8 @@ class MusicPlaybackService : MediaSessionService() {
                 playbackQueueRepo.replaceQueue(playableTracks)
                 playbackStatePreferenceStore.setMusicProgress(
                     trackId = playableTracks.first().id,
-                    progressMs = 0
+                    progressMs = 0,
+                    currentIndex = 0
                 )
             }
 
@@ -2252,6 +2267,7 @@ class MusicPlaybackService : MediaSessionService() {
                 playWhenReady = true
             )
         } else {
+            suppressNextCrossfadeCommitTransition = true
             playerQueueController.seekTo(
                 index = nextIndex,
                 positionMs = positionMs
@@ -2263,7 +2279,6 @@ class MusicPlaybackService : MediaSessionService() {
         queueManager.updateCurrentIndex(nextIndex)
         playbackStatsTracker.reset()
         playbackTuningController.applyPlaybackTuning()
-        applyAudioEffectsFromPreferences()
 
         refreshArtworkAndSession(force = true)
         persistSessionFromCurrentStateAsync()
@@ -2423,7 +2438,22 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun publishStateAfterShutdown(snapshot: PlaybackSnapshot? = null) {
         if (::stateOrchestrator.isInitialized) {
-            stateOrchestrator.publishStateAfterShutdown(snapshot)
+            stateOrchestrator.publishStateAfterShutdown(
+                snapshot = snapshot,
+                notifyWidgets = false
+            )
+        }
+
+        if (::widgetUpdateCoordinator.isInitialized) {
+            val widgetSnapshot = snapshot?.toWidgetPlaybackSnapshot()
+                ?: playbackRuntimeStateStore.state.value.toWidgetPlaybackSnapshot()
+
+            widgetUpdateJob?.cancel()
+            runBlocking {
+                withContext(NonCancellable) {
+                    widgetUpdateCoordinator.updateAll(widgetSnapshot)
+                }
+            }
         }
     }
 
@@ -2502,6 +2532,8 @@ class MusicPlaybackService : MediaSessionService() {
                 forceNotification = forceNotification
             )
         }
+
+        updateWidgetsFromRuntimeState()
     }
 
     private fun publishPlaybackState(
@@ -2516,6 +2548,46 @@ class MusicPlaybackService : MediaSessionService() {
                 forceWidgetUpdate = forceWidgetUpdate
             )
         }
+
+        if (reason != PublishReason.ProgressTick) {
+            updateWidgetsFromRuntimeState()
+        }
+    }
+
+    private fun updateWidgetsFromRuntimeState() {
+        if (!::widgetUpdateCoordinator.isInitialized || !::serviceScope.isInitialized) return
+
+        val state = playbackRuntimeStateStore.state.value
+        val snapshot = state.toWidgetPlaybackSnapshot()
+
+        widgetUpdateJob?.cancel()
+        widgetUpdateJob = serviceScope.launch {
+            withContext(NonCancellable) {
+                widgetUpdateCoordinator.updateAll(snapshot)
+            }
+        }
+    }
+
+    private fun gd.app.musicplayer.playback.queue.MusicPlaybackState.toWidgetPlaybackSnapshot(): WidgetPlaybackSnapshot {
+        return WidgetPlaybackSnapshot(
+            queue = queue,
+            currentTrack = currentTrack,
+            currentIndex = currentIndex,
+            positionMs = positionMs,
+            isPlaying = isPlaying,
+            playMode = latestSettingPreferences.playMode
+        )
+    }
+
+    private fun PlaybackSnapshot.toWidgetPlaybackSnapshot(): WidgetPlaybackSnapshot {
+        return WidgetPlaybackSnapshot(
+            queue = queue,
+            currentTrack = currentTrack,
+            currentIndex = currentIndex,
+            positionMs = positionMs,
+            isPlaying = false,
+            playMode = latestSettingPreferences.playMode
+        )
     }
 
     private fun updateNotification(force: Boolean = false) {
@@ -2684,6 +2756,15 @@ class MusicPlaybackService : MediaSessionService() {
 
 
     private fun syncCurrentIndexWithPlayer() {
+        val restoreTrackId = pendingRestoreTrackId
+        if (restoreTrackId != null) {
+            val currentPlayerTrackId = currentPlayerMediaId()
+            if (currentPlayerTrackId != restoreTrackId) {
+                return
+            }
+            pendingRestoreTrackId = null
+        }
+
         val resolvedIndex = snapshotManager.resolvePlayerIndex(
             player = if (::player.isInitialized) player else null,
             queue = queue
@@ -2732,6 +2813,14 @@ class MusicPlaybackService : MediaSessionService() {
             snapshot = capturePlaybackSnapshot(),
             persistQueue = false
         )
+    }
+
+    private fun currentPlayerMediaId(): Long? {
+        if (!::player.isInitialized) return null
+
+        return runCatching {
+            player.currentMediaItem?.mediaId?.toLongOrNull()
+        }.getOrNull()
     }
 
     private fun clearPersistedPlaybackState() {
@@ -2825,7 +2914,7 @@ class MusicPlaybackService : MediaSessionService() {
         private const val NO_TRACK_ID = Long.MIN_VALUE
         private const val NO_PLAYER_COMMAND = -1
 
-        private const val PROGRESS_TICK_MS = 500L
+        private const val PROGRESS_TICK_MS = 100L
         private const val SESSION_AUTO_SAVE_INTERVAL_MS = 5_000L
         private const val MEDIA3_SESSION_ACTIVITY_REQUEST_CODE = 2
         private const val MEDIA3_COMMAND_TOGGLE_FAVORITE =

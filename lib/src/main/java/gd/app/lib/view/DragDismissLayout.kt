@@ -49,6 +49,7 @@ class DragDismissLayout @JvmOverloads constructor(
     private var isInterceptingDrag = false
     private var dragInProgress = false
     private var dismissedDispatched = false
+    private var childTouchCancelled = false
 
     val isDragging: Boolean
         get() = dragInProgress || dragCallback.isDragging
@@ -59,35 +60,66 @@ class DragDismissLayout @JvmOverloads constructor(
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-        if (disallowDragIntercept) {
-            dragHelper.cancel()
-            return false
-        }
-
         return runCatching {
             when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> handleInterceptDown(event)
-                MotionEvent.ACTION_MOVE -> handleInterceptMove(event)
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = event.x
+                    initialY = event.y
+                    isInterceptingDrag = false
+                    dismissedDispatched = false
+                    childTouchCancelled = false
+                    dragCallback.reset()
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.x - initialX
+                    val dy = event.y - initialY
+                    val direction = resolveDirection(dx, dy)
+                    if (
+                        direction != 0 &&
+                        isDirectionAllowed(direction) &&
+                        isDragPastSlop(dx, dy)
+                    ) {
+                        isInterceptingDrag = true
+                    }
+                }
                 MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL -> handleInterceptEnd()
-                else -> dragHelper.shouldInterceptTouchEvent(event)
+                MotionEvent.ACTION_CANCEL -> {
+                    isInterceptingDrag = false
+                }
             }
+            dragHelper.shouldInterceptTouchEvent(event)
+            true
         }.getOrElse {
             dragHelper.cancel()
-            false
+            true
         }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (disallowDragIntercept) return false
-
         return runCatching {
-            dragHelper.processTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                childTouchCancelled = false
+            }
 
-            if (
-                event.actionMasked == MotionEvent.ACTION_UP &&
-                !dragCallback.isDragging
-            ) {
+            if (!disallowDragIntercept) {
+                dragHelper.processTouchEvent(event)
+            }
+
+            val child = contentView
+            if (child != null) {
+                if (disallowDragIntercept || childTouchCancelled || !dragCallback.hasActiveDragDirection()) {
+                    child.dispatchTouchEvent(event)
+                } else if (!childTouchCancelled) {
+                    childTouchCancelled = true
+                    MotionEvent.obtain(event).apply {
+                        action = MotionEvent.ACTION_CANCEL
+                        child.dispatchTouchEvent(this)
+                        recycle()
+                    }
+                }
+            }
+
+            if (event.actionMasked == MotionEvent.ACTION_UP && !dragCallback.isDragging) {
                 performClick()
             }
 
@@ -126,8 +158,8 @@ class DragDismissLayout @JvmOverloads constructor(
     }
 
     override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
-        setDisallowInterceptTouchEvent(disallowIntercept)
-        super.requestDisallowInterceptTouchEvent(disallowIntercept)
+        // Intentionally ignored. This layout only respects explicit
+        // setDisallowInterceptTouchEvent(...) calls, matching the reference behavior.
     }
 
     fun setAllowedDirections(directions: Int) {
@@ -143,7 +175,8 @@ class DragDismissLayout @JvmOverloads constructor(
 
         if (disallow) {
             dragHelper.cancel()
-            resetDragState()
+            childTouchCancelled = false
+            dragCallback.reset()
         }
     }
 
@@ -153,46 +186,6 @@ class DragDismissLayout @JvmOverloads constructor(
 
     fun setOnDragStateListener(listener: OnDragStateListener?) {
         dragStateListener = listener
-    }
-
-    private fun handleInterceptDown(event: MotionEvent): Boolean {
-        initialX = event.x
-        initialY = event.y
-        isInterceptingDrag = false
-        dismissedDispatched = false
-        dragCallback.reset()
-
-        dragHelper.processTouchEvent(event)
-
-        return false
-    }
-
-    private fun handleInterceptMove(event: MotionEvent): Boolean {
-        val dx = event.x - initialX
-        val dy = event.y - initialY
-
-        val direction = resolveDirection(dx, dy)
-
-        if (
-            direction != 0 &&
-            isDirectionAllowed(direction) &&
-            isDragPastSlop(dx, dy)
-        ) {
-            isInterceptingDrag = true
-        }
-
-        return isInterceptingDrag &&
-                dragHelper.shouldInterceptTouchEvent(event)
-    }
-
-    private fun handleInterceptEnd(): Boolean {
-        /*
-         * Do not call dragHelper.cancel() here.
-         * Cancelling during UP/CANCEL can make the dragged view snap back while
-         * the ViewDragHelper is still settling.
-         */
-        isInterceptingDrag = false
-        return false
     }
 
     private fun notifyDismissed() {
@@ -275,6 +268,10 @@ class DragDismissLayout @JvmOverloads constructor(
             dragDirection = 0
             isDismissed = false
             isDragging = false
+        }
+
+        fun hasActiveDragDirection(): Boolean {
+            return dragDirection != 0
         }
 
         override fun tryCaptureView(

@@ -158,9 +158,21 @@ class DefaultThemeBinder : ThemeViewBinder {
             ThemeTags.DIALOG_TITLE_ICON,
             ThemeTags.DIALOG_VOLUME_ICON,
             ThemeTags.DIALOG_SIZE_BUTTON,
-            "dialogTitleIcon" -> {
+            "dialogTitleIcon",
+            "dialogArrow" -> {
                 if (view is ImageView) {
-                    view.imageTintList = ColorStateList.valueOf(palette.dialogTitleColor)
+                    view.imageTintList = if (tag == "dialogArrow") {
+                        ViewStateDrawables.disabledSelectedDefaultColors(
+                            palette.dialogTitleColor,
+                            palette.dialogTitleColor,
+                            ColorUtils.setAlphaComponent(
+                                palette.dialogTitleColor,
+                                77
+                            )
+                        )
+                    } else {
+                        ColorStateList.valueOf(palette.dialogTitleColor)
+                    }
                     view.background = DrawableUtil.ovalRipple(
                         Color.TRANSPARENT,
                         palette.dialogPressedOverlayColor
@@ -640,10 +652,9 @@ class DefaultThemeBinder : ThemeViewBinder {
                 view.setTextColor(itemTextColor)
                 tintCompoundDrawables(view, itemTextColor)
                 view.background = DrawableUtil.outlinedRoundedRipple(
-                    (view.context.resources.displayMetrics.density * 100f).toInt(),
-                    (view.context.resources.displayMetrics.density * 1.5f).toInt(),
+                    view.context.dpToPx(100f),
+                    view.context.dpToPx(1.5f),
                     accentColor,
-                    0,
                     contentOverlay
                 )
             }
@@ -861,8 +872,8 @@ class DefaultThemeBinder : ThemeViewBinder {
                 is TextView -> {
                     view.setTextColor(accentColor)
                     view.background = DrawableUtil.outlinedRoundedRipple(
-                        (view.context.resources.displayMetrics.density * 100f).toInt(),
-                        (view.context.resources.displayMetrics.density * 1.5f).toInt(),
+                        view.context.dpToPx(100f),
+                        view.context.dpToPx(1.5f),
                         accentColor,
                         ColorUtils.setAlphaComponent(accentColor, 20),
                         rippleColor
@@ -876,8 +887,8 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.PASTE_BACKGROUND) {
             view.background = DrawableUtil.roundedRipple(
-                fillColor = accentColor,
-                rippleColor = palette.rippleColor,
+                fillColor = if (usesDarkForegroundPalette(palette)) 436207616 else 452984831,
+                rippleColor = accentColor,
                 radius = view.context.resources.displayMetrics.density * 50f
             )
             return true

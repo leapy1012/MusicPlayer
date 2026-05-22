@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
 }
@@ -56,7 +57,7 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.glide)
     implementation(libs.androidx.datastore.preferences)
-    ksp(libs.hilt.compiler)
+    kapt(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.test.core)

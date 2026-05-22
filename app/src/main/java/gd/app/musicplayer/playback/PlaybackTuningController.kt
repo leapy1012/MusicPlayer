@@ -24,8 +24,6 @@ class PlaybackTuningController(
     private val soundEffectPreferences: SoundEffectPreferences,
     private val stereoBalanceAudioProcessor: StereoBalanceAudioProcessor,
     private val extraStereoBalanceAudioProcessors: List<StereoBalanceAudioProcessor> = emptyList(),
-    private val reverbAudioProcessor: ReverbAudioProcessor,
-    private val extraReverbAudioProcessors: List<ReverbAudioProcessor> = emptyList(),
     private val currentMusicProvider: () -> Music?,
     private val applicationScope: CoroutineScope
 ) {
@@ -50,9 +48,6 @@ class PlaybackTuningController(
 
     @Volatile
     private var latestBalanceRight: Float = 1f
-
-    @Volatile
-    private var latestReverbIndex: Int = 0
 
     init {
         observePlaybackSpeedAndPitch()
@@ -103,15 +98,10 @@ class PlaybackTuningController(
         latestBalanceEnabled = balance.enabled
         latestBalanceLeft = balance.left
         latestBalanceRight = balance.right
-        latestReverbIndex = settings.reverbIndex
 
         applySoundBalance(stereoBalanceAudioProcessor, balance)
         extraStereoBalanceAudioProcessors.forEach { processor ->
             applySoundBalance(processor, balance)
-        }
-        applyReverb(reverbAudioProcessor, settings.reverbIndex)
-        extraReverbAudioProcessors.forEach { processor ->
-            applyReverb(processor, settings.reverbIndex)
         }
     }
 
@@ -189,16 +179,10 @@ class PlaybackTuningController(
                 latestBalanceEnabled = balance.enabled
                 latestBalanceLeft = balance.left
                 latestBalanceRight = balance.right
-                latestReverbIndex = settings.reverbIndex
 
                 applySoundBalance(stereoBalanceAudioProcessor, balance)
                 extraStereoBalanceAudioProcessors.forEach { processor ->
                     applySoundBalance(processor, balance)
-                }
-
-                applyReverb(reverbAudioProcessor, settings.reverbIndex)
-                extraReverbAudioProcessors.forEach { processor ->
-                    applyReverb(processor, settings.reverbIndex)
                 }
 
                 applyResolvedPlayerVolume()
@@ -216,13 +200,6 @@ class PlaybackTuningController(
             left = normalized.left,
             right = normalized.right
         )
-    }
-
-    private fun applyReverb(
-        processor: ReverbAudioProcessor,
-        reverbIndex: Int
-    ) {
-        processor.setPreset(reverbIndex)
     }
 
     private fun resolveBalanceOverallGain(): Float {

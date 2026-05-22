@@ -73,7 +73,6 @@ class RecyclerEmptyStateController(
             cornerRadius = button.context.dpToPx(100f),
             strokeWidth = button.context.dpToPx(1f),
             strokeColor = if (usesDarkForegroundPalette) 0x1A000000 else 0x33FFFFFF,
-            fillColor = 0,
             rippleColor = theme.rippleColor
         )
 

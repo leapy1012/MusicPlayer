@@ -41,7 +41,7 @@ fun Context.isDarkTheme(): Boolean {
 }
 
 fun Context.isTablet(): Boolean {
-    return resources.configuration.smallestScreenWidthDp >= 600
+    return smallestScreenWidthDp >= 600
 }
 
 fun Context.isLandscape(): Boolean {

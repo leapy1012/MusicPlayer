@@ -11,4 +11,5 @@
     <dimen name="equalizer_title_margin_bottom">16dp</dimen>
     <dimen name="equalizer_toggle_height">25dp</dimen>
     <dimen name="equalizer_toggle_width">50dp</dimen>
+    <dimen name="widget_list_divider_height">1.5px</dimen>
 </resources>

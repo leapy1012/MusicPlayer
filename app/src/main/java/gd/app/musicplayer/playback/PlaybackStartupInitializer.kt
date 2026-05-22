@@ -39,7 +39,6 @@ class PlaybackStartupInitializer @Inject constructor(
     }
 
     private suspend fun buildRestoredState(): MusicPlaybackState? {
-        android.util.Log.e("Leapy", "buildRestoredState")
         val queue = playbackQueueRepo.getQueue()
         if (queue.isEmpty()) return null
 

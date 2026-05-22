@@ -11,6 +11,7 @@ import android.view.ViewStub
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.isGone
 import androidx.core.view.updateLayoutParams
+import androidx.fragment.app.setFragmentResultListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -22,8 +23,6 @@ import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyStatusBarInsetHeight
-import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
-import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.util.ToastUtil
@@ -41,6 +40,7 @@ import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.ItemMoveListener
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.base.QueueClearConfirmDialogFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
@@ -83,6 +83,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
 
         applyInsets(binding)
+        setupDialogResults()
         setupToolbar(binding)
         adapter = buildAdapter()
 
@@ -113,20 +114,29 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             if (resolveQueue().isEmpty()) {
                 ToastUtil.show(requireContext(), R.string.list_is_empty)
             } else {
-                requireActivity().showMessageDialog(
-                    requireContext().createMessageDialogConfig(
-                        title = getString(R.string.clear),
-                        message = getString(R.string.clear_message),
-                        negativeText = getString(R.string.cancel),
-                        positiveText = getString(R.string.clear),
-                        positiveClickListener = { dialog, _ ->
-                            viewModel.clearQueue(requireContext())
-                            dialog.dismiss()
-                        }
-                    )
-                )
+                showClearQueueDialog()
             }
         }
+    }
+
+    private fun setupDialogResults() {
+        parentFragmentManager.setFragmentResultListener(
+            QueueClearConfirmDialogFragment.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            if (bundle.getBoolean(QueueClearConfirmDialogFragment.RESULT_CONFIRMED)) {
+                viewModel.clearQueue(requireContext())
+            }
+        }
+    }
+
+    private fun showClearQueueDialog() {
+        if (parentFragmentManager.findFragmentByTag(QueueClearConfirmDialogFragment.TAG) != null) {
+            return
+        }
+
+        QueueClearConfirmDialogFragment()
+            .show(parentFragmentManager, QueueClearConfirmDialogFragment.TAG)
     }
 
     private fun buildAdapter(): QueueListAdapter {

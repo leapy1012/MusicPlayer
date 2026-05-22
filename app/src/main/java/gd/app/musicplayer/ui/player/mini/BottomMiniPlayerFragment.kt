@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -40,7 +41,7 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
         super.onBindingCreated(binding, savedInstanceState)
 
         if (shouldApplyInsets) {
-            setupInsets(binding)
+//            setupInsets(binding)
         }
         setupControls(binding)
         observeTrackMetadata()
@@ -48,9 +49,13 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
     }
 
     private fun setupInsets(binding: MainBottomControlPanelBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val bottomInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            view.updatePadding(bottom = bottomInset)
+
+            binding.navigationBarSpacer.updateLayoutParams {
+                height = bottomInset
+            }
+
             insets
         }
 

@@ -113,12 +113,6 @@ class WindowInsetsHelper {
 
         if (allowLandscapeDisplayCutout) return
 
-
-        Log.e(
-            "WindowInsetsHelper",
-            "interceptInsets displayCutoutInsets:$displayCutoutInsets insets:$insets"
-        )
-
         when {
             displayCutoutInsets.left == insets.left -> insets.left = 0
             displayCutoutInsets.right == insets.right -> insets.right = 0

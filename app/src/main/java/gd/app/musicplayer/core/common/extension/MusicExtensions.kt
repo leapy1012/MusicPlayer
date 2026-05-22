@@ -11,7 +11,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
 
 
 const val URI_SCHEME_SEPARATOR = "://"
@@ -66,21 +65,4 @@ fun Music.formatAddedDate(): String {
 fun Music.formatFileSize(context: Context): String {
     if (size == null || size <= 0L) return ""
     return Formatter.formatShortFileSize(context, size)
-}
-
-fun Music.formatDuration(): String {
-
-    if (duration <= 0) return ""
-
-    val duration = duration.milliseconds
-    val totalSeconds = duration.inWholeSeconds
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-
-    return if (hours > 0) {
-        "%d:%02d:%02d".format(Locale.getDefault(), hours, minutes, seconds)
-    } else {
-        "%d:%02d".format(Locale.getDefault(), minutes, seconds)
-    }
 }

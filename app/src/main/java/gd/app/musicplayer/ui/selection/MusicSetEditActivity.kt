@@ -33,6 +33,7 @@ import gd.app.musicplayer.ui.library.folder.isHiddenFoldersEntry
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.isTablet
 import gd.app.musicplayer.core.common.extension.parcelable
+import gd.app.musicplayer.core.common.extension.smallestScreenWidthDp
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
@@ -151,7 +152,7 @@ class MusicSetEditActivity : BaseActivity() {
         recyclerView.clipToPadding = false
 
         if (viewMode == MUSIC_SET_VIEW_MODE_GRID) {
-            val spacing = dpToPx(if (resources.configuration.smallestScreenWidthDp >= 600) 16f else 2f)
+            val spacing = dpToPx(if (smallestScreenWidthDp >= 600) 16f else 2f)
             recyclerView.layoutManager = GridLayoutManager(this, resolveSpanCount())
             recyclerView.setPadding(spacing, spacing, spacing, spacing)
             recyclerView.addItemDecoration(SpacingItemDecoration.all(spacing))

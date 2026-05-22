@@ -1,142 +1,154 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main_bottom_control_panel"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/main_control_banner_height"
-    android:orientation="horizontal"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
     android:tag="bottomControlBackground">
 
-    <gd.app.musicplayer.core.designsystem.view.SeekBar
-        android:id="@+id/main_music_progress"
+    <RelativeLayout
+        android:id="@+id/main_bottom_control_content"
         android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:layout_alignParentTop="true"
-        android:tag="seekBar"
-        app:seekMax="100"
-        app:seekProgress="0"
-        app:seekProgressHeight="2dp"
-        app:seekRtlEnable="false" />
+        android:layout_height="@dimen/main_control_banner_height">
 
-    <LinearLayout
-        android:id="@+id/background"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/main_music_progress"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        <gd.app.musicplayer.core.designsystem.view.SeekBar
+            android:id="@+id/main_music_progress"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_alignParentTop="true"
+            android:tag="seekBar"
+            app:seekMax="100"
+            app:seekProgress="0"
+            app:seekProgressHeight="2dp"
+            app:seekRtlEnable="false" />
 
-        <!--        <gd.app.lib.view.loop.LoopViewPager-->
-        <!--            android:id="@+id/main_control_pager"-->
-        <!--            android:layout_width="0dp"-->
-        <!--            android:layout_height="match_parent"-->
-        <!--            android:layout_weight="20" />-->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="@dimen/main_control_banner_height"
-            android:layout_weight="20"
+            android:id="@+id/background"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/main_music_progress"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <gd.app.musicplayer.core.designsystem.view.RotationalImageView
-                android:id="@+id/item_main_control_album"
-                android:layout_width="@dimen/main_control_banner_height"
-                android:layout_height="@dimen/main_control_banner_height"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:padding="4dp"
-                android:scaleType="centerCrop"
-                android:src="@drawable/default_album_identify" />
-
+            <!--        <gd.app.lib.view.loop.LoopViewPager-->
+            <!--            android:id="@+id/main_control_pager"-->
+            <!--            android:layout_width="0dp"-->
+            <!--            android:layout_height="match_parent"-->
+            <!--            android:layout_weight="20" />-->
             <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_height="@dimen/main_control_banner_height"
+                android:layout_weight="20"
+                android:orientation="horizontal">
 
-                <Space
-                    android:layout_width="1px"
-                    android:layout_height="0dp"
-                    android:layout_weight="2" />
+                <gd.app.musicplayer.core.designsystem.view.RotationalImageView
+                    android:id="@+id/item_main_control_album"
+                    android:layout_width="@dimen/main_control_banner_height"
+                    android:layout_height="@dimen/main_control_banner_height"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:padding="4dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/default_album_identify" />
 
-                <gd.app.lib.view.MarqueeTextView
-                    android:id="@+id/item_main_control_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:singleLine="true"
-                    android:tag="itemTextColor"
-                    android:text="111111"
-                    android:textAlignment="viewStart"
-                    android:textColor="@color/main_text"
-                    android:textSize="@dimen/main_item_name_size" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                <Space
-                    android:layout_width="1px"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
+                    <Space
+                        android:layout_width="1px"
+                        android:layout_height="0dp"
+                        android:layout_weight="2" />
 
-                <gd.app.lib.view.MarqueeTextView
-                    android:id="@+id/item_main_control_artist"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:singleLine="true"
-                    android:tag="itemTextExtraColor"
-                    android:text="111111"
-                    android:textAlignment="viewStart"
-                    android:textColor="@color/extra_text"
-                    android:textSize="@dimen/main_item_count_size" />
+                    <gd.app.lib.view.MarqueeTextView
+                        android:id="@+id/item_main_control_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:tag="itemTextColor"
+                        android:text="111111"
+                        android:textAlignment="viewStart"
+                        android:textColor="@color/main_text"
+                        android:textSize="@dimen/main_item_name_size" />
 
-                <Space
-                    android:layout_width="1px"
-                    android:layout_height="0dp"
-                    android:layout_weight="2" />
+                    <Space
+                        android:layout_width="1px"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <gd.app.lib.view.MarqueeTextView
+                        android:id="@+id/item_main_control_artist"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:tag="itemTextExtraColor"
+                        android:text="111111"
+                        android:textAlignment="viewStart"
+                        android:textColor="@color/extra_text"
+                        android:textSize="@dimen/main_item_count_size" />
+
+                    <Space
+                        android:layout_width="1px"
+                        android:layout_height="0dp"
+                        android:layout_weight="2" />
+                </LinearLayout>
             </LinearLayout>
+
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1px"
+                android:layout_weight="1" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/main_control_play_pause"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/selector_image_bg_w"
+                android:scaleType="centerInside"
+                android:tag="itemTextColor"
+                app:srcCompat="@drawable/vector_main_play_pause_selector" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1px"
+                android:layout_weight="1" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/main_control_next"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/selector_image_bg_w"
+                android:padding="1dp"
+                android:scaleType="centerInside"
+                android:tag="itemTextColor"
+                app:srcCompat="@drawable/vector_main_play_next" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1px"
+                android:layout_weight="1" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/main_control_list"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/selector_image_bg_w"
+                android:scaleType="centerInside"
+                android:tag="itemTextColor"
+                app:srcCompat="@drawable/vector_play_queue_menu" />
         </LinearLayout>
+    </RelativeLayout>
 
+    <View
+        android:id="@+id/navigation_bar_spacer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp" />
 
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1px"
-            android:layout_weight="1" />
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/main_control_play_pause"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/selector_image_bg_w"
-            android:scaleType="centerInside"
-            android:tag="itemTextColor"
-            app:srcCompat="@drawable/vector_main_play_pause_selector" />
-
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1px"
-            android:layout_weight="1" />
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/main_control_next"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/selector_image_bg_w"
-            android:padding="1dp"
-            android:scaleType="centerInside"
-            android:tag="itemTextColor"
-            app:srcCompat="@drawable/vector_main_play_next" />
-
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1px"
-            android:layout_weight="1" />
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/main_control_list"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/selector_image_bg_w"
-            android:scaleType="centerInside"
-            android:tag="itemTextColor"
-            app:srcCompat="@drawable/vector_play_queue_menu" />
-    </LinearLayout>
-</RelativeLayout>
+</LinearLayout>
 

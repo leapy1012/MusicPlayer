@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.map
 
 data class PlaybackProgress(
     val trackId: Long,
-    val progressMs: Int
+    val progressMs: Int,
+    val currentIndex: Int
 )
 
 @Singleton
@@ -43,12 +44,14 @@ class PlaybackStatePreferenceStore @Inject constructor(
 
     suspend fun setMusicProgress(
         trackId: Long,
-        progressMs: Int
+        progressMs: Int,
+        currentIndex: Int = NO_INDEX
     ) {
         dataStore.edit { preferences ->
             preferences[KEY_MUSIC_PROGRESS] = buildProgressValue(
                 trackId = trackId,
-                progressMs = progressMs.coerceAtLeast(0)
+                progressMs = progressMs.coerceAtLeast(0),
+                currentIndex = currentIndex
             )
         }
     }
@@ -83,27 +86,35 @@ class PlaybackStatePreferenceStore @Inject constructor(
     private fun String.toPlaybackProgress(): PlaybackProgress {
         val parts = split(PROGRESS_SEPARATOR, limit = 2)
         val trackId = parts.getOrNull(0)?.toLongOrNull() ?: NO_TRACK_ID
-        val progressMs = parts.getOrNull(1)
-            ?.substringBefore(INDEX_SEPARATOR)
+        val progressAndIndex = parts.getOrNull(1).orEmpty()
+        val progressMs = progressAndIndex
+            .substringBefore(INDEX_SEPARATOR)
             ?.toIntOrNull()
             ?.coerceAtLeast(0)
             ?: 0
+        val currentIndex = progressAndIndex
+            .substringAfter(INDEX_SEPARATOR, "")
+            .toIntOrNull()
+            ?: NO_INDEX
 
         return PlaybackProgress(
             trackId = trackId,
-            progressMs = progressMs
+            progressMs = progressMs,
+            currentIndex = currentIndex
         )
     }
 
     private fun buildProgressValue(
         trackId: Long,
-        progressMs: Int
+        progressMs: Int,
+        currentIndex: Int
     ): String {
-        return "$trackId$PROGRESS_SEPARATOR$progressMs"
+        return "$trackId$PROGRESS_SEPARATOR$progressMs$INDEX_SEPARATOR$currentIndex"
     }
 
     private companion object {
         const val NO_TRACK_ID = -1L
+        const val NO_INDEX = -1
         const val PROGRESS_SEPARATOR = "&"
         const val INDEX_SEPARATOR = "|"
         const val DEFAULT_PLAY_SPEED = 1.0f

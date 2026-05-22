@@ -4,11 +4,11 @@ import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.data.local.preference.SettingPreferences
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.VolumeFader
-import gd.app.musicplayer.playback.player.MediaItemMapper
 import kotlin.math.min
 
 class TimedTransitionController(
@@ -17,7 +17,6 @@ class TimedTransitionController(
     private val playbackModeResolver: PlaybackModeResolver,
     private val volumeFader: VolumeFader,
     private val incomingVolumeFader: VolumeFader,
-    private val mediaItemMapper: MediaItemMapper,
     private val queueProvider: () -> List<Music>,
     private val currentIndexProvider: () -> Int,
     private val preferencesProvider: () -> SettingPreferences,
@@ -94,6 +93,19 @@ class TimedTransitionController(
         cancelIncomingPlayer()
     }
 
+    fun isCrossfadeActive(): Boolean {
+        return activeTransition is ActiveTransition.Crossfade
+    }
+
+    fun consumeTrackEndedDuringCrossfade(): Boolean {
+        val transition = activeTransition as? ActiveTransition.Crossfade ?: return false
+        commitCrossfadeIfStillOnTrack(
+            expectedTrackId = transition.trackId,
+            expectedNextIndex = transition.nextIndex
+        )
+        return true
+    }
+
     fun cancelAndRestoreVolume() {
         activeTransition = null
         cancelIncomingPlayer()
@@ -127,7 +139,7 @@ class TimedTransitionController(
 
         val queue = queueProvider()
         val nextTrack = queue.getOrNull(nextIndex) ?: return
-        val mediaItem = mediaItemMapper.toMediaItemOrNull(nextTrack) ?: return
+        val mediaItem = nextTrack.toMediaItemOrNull() ?: return
 
         activeTransition = ActiveTransition.Crossfade(
             trackId = currentTrackId,

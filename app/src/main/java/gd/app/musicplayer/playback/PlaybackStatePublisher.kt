@@ -91,7 +91,8 @@ class PlaybackStatePublisher(
         isPlaying: Boolean,
         positionMs: Long,
         durationMs: Long,
-        audioSessionId: Int = player.audioSessionId
+        audioSessionId: Int = player.audioSessionId,
+        notifyWidgets: Boolean = true
     ) {
         val safeQueue = queue.toList()
         val safeIndex = resolveSnapshotIndex(
@@ -114,10 +115,12 @@ class PlaybackStatePublisher(
 
         setRuntimeState(state)
 
-        maybeNotifyWidgets(
-            state = state,
-            force = true
-        )
+        if (notifyWidgets) {
+            maybeNotifyWidgets(
+                state = state,
+                force = true
+            )
+        }
     }
 
     fun reset() {

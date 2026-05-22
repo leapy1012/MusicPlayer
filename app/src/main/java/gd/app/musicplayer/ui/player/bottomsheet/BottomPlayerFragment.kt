@@ -17,6 +17,7 @@ import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.databinding.FragmentMainControl2Binding
+import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.player.full.MusicPlayActivity
@@ -134,7 +135,8 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
     }
 
     private fun collapsePlayerPanel() {
-        (activity as? MainActivity)?.collapsePlayerPanel()
+        android.util.Log.e("Leapy", "collapsePlayerPanel")
+        (activity as? BasePlayerSheetActivity)?.collapsePlayerPanel()
     }
 
     private fun showPlaybackQueue() {

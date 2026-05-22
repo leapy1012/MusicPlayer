@@ -52,6 +52,7 @@
         <activity
             android:name=".ui.shell.MainActivity"
             android:exported="true"
+            android:configChanges="uiMode"
             android:launchMode="singleTop" />
 
         <activity
@@ -249,9 +250,10 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget2x1Provider"
+            android:name=".ui.widget.provider.Widget2x2Transparent"
             android:enabled="true"
-            android:exported="false">
+            android:exported="true"
+            android:label="@string/widget_2x1">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -262,9 +264,10 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget3x2Provider"
+            android:name=".ui.widget.provider.Widget4x2"
             android:enabled="true"
-            android:exported="false">
+            android:exported="true"
+            android:label="@string/widget_3x2">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -275,9 +278,10 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x1Provider"
+            android:name=".ui.widget.provider.Widget4x1Transparent"
             android:enabled="true"
-            android:exported="false">
+            android:exported="true"
+            android:label="@string/widget_4x1">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -288,9 +292,10 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x2Provider"
+            android:name=".ui.widget.provider.Widget4x1White"
             android:enabled="true"
-            android:exported="false">
+            android:exported="true"
+            android:label="@string/widget_4x2">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -301,9 +306,10 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x3Provider"
+            android:name=".ui.widget.provider.Widget4x2Large"
             android:enabled="true"
-            android:exported="false">
+            android:exported="true"
+            android:label="@string/widget_4x3">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -314,9 +320,10 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x4Provider"
+            android:name=".ui.widget.provider.Widget4x4"
             android:enabled="true"
-            android:exported="false">
+            android:exported="true"
+            android:label="@string/widget_4x4">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -327,9 +334,10 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.WidgetListProvider"
+            android:name=".ui.widget.provider.WidgetList"
             android:enabled="true"
-            android:exported="false">
+            android:exported="true"
+            android:label="@string/widget_list">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
