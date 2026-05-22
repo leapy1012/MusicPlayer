@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.playlist
 
-import gd.app.musicplayer.data.local.preference.SortPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SortPreferencesDataStore
 import javax.inject.Inject
 
 class ResetPlaylistsSortUseCase @Inject constructor(

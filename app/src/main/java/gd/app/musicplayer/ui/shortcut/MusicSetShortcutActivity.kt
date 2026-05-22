@@ -5,7 +5,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.library.albums.AlbumMusicActivity
+import gd.app.musicplayer.feature.library.albums.AlbumMusicActivity
 import gd.app.musicplayer.ui.shell.MainActivity
 
 @AndroidEntryPoint

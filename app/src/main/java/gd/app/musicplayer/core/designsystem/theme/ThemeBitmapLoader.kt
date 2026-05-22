@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
+import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import gd.app.musicplayer.core.common.util.FastBlur
 import java.io.File
 import javax.inject.Inject

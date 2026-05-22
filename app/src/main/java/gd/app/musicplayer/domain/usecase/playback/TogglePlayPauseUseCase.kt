@@ -8,6 +8,6 @@ class TogglePlayPauseUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ){
     operator fun invoke(context: Context) {
-        playbackController.togglePlayPause(context)
+        playbackController.togglePlayPause()
     }
 }

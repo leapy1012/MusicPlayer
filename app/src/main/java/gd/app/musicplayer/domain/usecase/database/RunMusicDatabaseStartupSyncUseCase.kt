@@ -4,22 +4,23 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.local.mediastore.MediaStoreMusicImporter
-import gd.app.musicplayer.data.local.db.MusicDatabase
-import gd.app.musicplayer.data.local.db.MusicDatabaseSeedProvider
-import gd.app.musicplayer.data.local.db.MusicDatabaseSeeder
-import gd.app.musicplayer.data.local.preference.AppStartupPreferenceDataStore
+import gd.app.musicplayer.core.mediastore.MediaStoreMusicImporter
+import gd.app.musicplayer.core.database.MusicDatabase
+import gd.app.musicplayer.core.database.MusicDatabaseSeedProvider
+import gd.app.musicplayer.core.database.MusicDatabaseSeeder
+import gd.app.musicplayer.core.datastore.AppStartupPreferenceDataStore
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class RunMusicDatabaseStartupSyncUseCase @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val database: MusicDatabase,
     private val seedProvider: MusicDatabaseSeedProvider,
     private val appStartupPreferenceDataStore: AppStartupPreferenceDataStore
 ) {
 
+    @RequiresApi(Build.VERSION_CODES.R)
     suspend operator fun invoke() {
         reseedEffectPresetsIfNeeded()
         importMusicOnFirstStartIfNeeded()

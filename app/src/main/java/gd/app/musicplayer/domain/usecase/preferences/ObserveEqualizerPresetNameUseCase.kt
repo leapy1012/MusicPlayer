@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.preferences
 
-import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
+import gd.app.musicplayer.core.datastore.SoundEffectPreferences
 import gd.app.musicplayer.domain.repository.EqualizerPresetRepository
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow

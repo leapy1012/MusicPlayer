@@ -2,10 +2,10 @@ package gd.app.musicplayer.playback
 
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.ExoPlayer
-import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
-import gd.app.musicplayer.data.local.preference.ReplayGainSettingPreference
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
-import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
+import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
+import gd.app.musicplayer.core.datastore.ReplayGainSettingPreference
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SoundEffectPreferences
 import gd.app.musicplayer.domain.model.Music
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

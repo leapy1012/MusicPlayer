@@ -8,7 +8,7 @@ import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.rippleColor
-import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
+import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import gd.app.musicplayer.domain.model.ThemeGroup
 import javax.inject.Inject
 import javax.inject.Singleton

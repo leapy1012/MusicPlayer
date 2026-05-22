@@ -8,6 +8,6 @@ class PlayPreviousTrackUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
     operator fun invoke(context: Context) {
-        playbackController.playPrevious(context)
+        playbackController.playPrevious()
     }
 }

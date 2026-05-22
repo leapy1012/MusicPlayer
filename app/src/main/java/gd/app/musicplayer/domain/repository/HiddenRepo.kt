@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.repository
 
-import gd.app.musicplayer.data.local.db.dao.MusicDao
-import gd.app.musicplayer.data.local.db.entity.HiddenFolderEntity
+import gd.app.musicplayer.core.database.dao.MusicDao
+import gd.app.musicplayer.core.database.entity.HiddenFolderEntity
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import kotlinx.coroutines.flow.Flow

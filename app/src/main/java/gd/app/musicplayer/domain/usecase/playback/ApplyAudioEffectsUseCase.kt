@@ -7,7 +7,7 @@ import javax.inject.Inject
 class ApplyAudioEffectsUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
-    operator fun invoke(context: Context) {
-        playbackController.applyAudioEffects(context)
+    operator fun invoke() {
+        playbackController.applyAudioEffects()
     }
 }

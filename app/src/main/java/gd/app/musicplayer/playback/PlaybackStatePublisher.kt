@@ -10,7 +10,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
-import gd.app.musicplayer.ui.widget.WidgetCatalog
+import gd.app.musicplayer.feature.widget.WidgetCatalog
 
 class PlaybackStatePublisher(
     private val context: Context,

@@ -10,7 +10,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.drawable.DialogBackgroundFactory
 import gd.app.musicplayer.core.designsystem.drawable.OverlayCenterCropDrawable
 import gd.app.musicplayer.core.designsystem.drawable.RoundedMaskDrawable
-import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
+import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 
 open class PictureThemePalette : BaseThemePalette() {
     protected var themeAccentColor: Int = 0

@@ -29,7 +29,7 @@ import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
-import gd.app.musicplayer.data.local.mediastore.MediaStoreMusicImporter
+import gd.app.musicplayer.core.mediastore.MediaStoreMusicImporter
 import gd.app.musicplayer.databinding.ActivityAudioEditorBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.scan.UpsertScannedTracksUseCase
@@ -219,7 +219,7 @@ class AudioEditorActivity : BaseActivity(),
 
     private fun pauseCurrentPlaybackIfNeeded() {
         if (playbackController.state.value.isPlaying) {
-            playbackController.pause(this)
+            playbackController.pause()
         }
     }
 

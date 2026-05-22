@@ -16,7 +16,7 @@ import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityThemeBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.library.artwork.ArtworkCropActivity
+import gd.app.musicplayer.feature.library.artwork.ArtworkCropActivity
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint

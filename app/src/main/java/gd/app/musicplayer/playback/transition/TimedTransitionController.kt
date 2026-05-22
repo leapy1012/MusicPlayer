@@ -5,7 +5,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
-import gd.app.musicplayer.data.local.preference.SettingPreferences
+import gd.app.musicplayer.core.datastore.SettingPreferences
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.VolumeFader

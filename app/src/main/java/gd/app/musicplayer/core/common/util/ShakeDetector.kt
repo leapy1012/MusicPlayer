@@ -6,7 +6,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.di.ApplicationScope
 import gd.app.musicplayer.playback.PlaybackController
 import kotlinx.coroutines.CoroutineScope
@@ -138,7 +138,7 @@ class ShakeDetector @Inject constructor(
             playbackController.state.value.currentTrack != null
         ) {
             lastShakeTriggeredAtMs = now
-            playbackController.playNext(appContext)
+            playbackController.playNext()
         }
     }
 

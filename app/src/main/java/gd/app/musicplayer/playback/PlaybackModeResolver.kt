@@ -1,6 +1,6 @@
 package gd.app.musicplayer.playback
 
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.di.ApplicationScope
 import javax.inject.Inject
 import javax.inject.Singleton

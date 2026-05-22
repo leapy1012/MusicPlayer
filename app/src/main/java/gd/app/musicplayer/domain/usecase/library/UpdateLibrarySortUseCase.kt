@@ -1,7 +1,6 @@
 package gd.app.musicplayer.domain.usecase.library
 
-import androidx.datastore.preferences.core.stringPreferencesKey
-import gd.app.musicplayer.data.local.preference.SortPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SortPreferencesDataStore
 import gd.app.musicplayer.domain.model.MusicSet
 import javax.inject.Inject
 

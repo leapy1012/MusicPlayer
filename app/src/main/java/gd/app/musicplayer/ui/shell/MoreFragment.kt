@@ -23,13 +23,13 @@ import gd.app.musicplayer.databinding.FragmentMoreBinding
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.drivemode.DriveModeLauncher
-import gd.app.musicplayer.ui.equalizer.EqualizerActivity
+import gd.app.musicplayer.feature.equalizer.EqualizerActivity
 import gd.app.musicplayer.ui.scan.ScanMusicActivity
-import gd.app.musicplayer.ui.setting.SettingActivity
-import gd.app.musicplayer.ui.library.hidden.HiddenFoldersActivity
+import gd.app.musicplayer.feature.setting.SettingActivity
+import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity
 import gd.app.musicplayer.ui.sleep.SleepActivity
 import gd.app.musicplayer.ui.theme.ThemeActivity
-import gd.app.musicplayer.ui.widget.WidgetActivity
+import gd.app.musicplayer.feature.widget.WidgetActivity
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 

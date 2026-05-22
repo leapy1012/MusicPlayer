@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.library
 
-import gd.app.musicplayer.data.local.preference.ViewModePreferences
+import gd.app.musicplayer.core.datastore.ViewModePreferences
 import gd.app.musicplayer.domain.model.MusicSet
 import javax.inject.Inject
 

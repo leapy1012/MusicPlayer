@@ -23,8 +23,8 @@ import gd.app.musicplayer.core.common.extension.setTextIfDifferent
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityScanMusicBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.library.deleted.DeletedMusicActivity
-import gd.app.musicplayer.ui.library.hidden.HiddenFoldersActivity
+import gd.app.musicplayer.feature.library.deleted.DeletedMusicActivity
+import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint

@@ -11,7 +11,7 @@ import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.palette.graphics.Palette
-import gd.app.musicplayer.data.local.preference.NotificationSettingPreference
+import gd.app.musicplayer.core.datastore.NotificationSettingPreference
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.notification.BaseMusicNotificationBuilder
 import gd.app.musicplayer.playback.notification.DefaultMusicNotificationContent

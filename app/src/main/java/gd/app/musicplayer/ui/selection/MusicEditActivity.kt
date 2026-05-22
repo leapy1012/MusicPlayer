@@ -36,8 +36,8 @@ import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.menu.EditBottomMenuController
-import gd.app.musicplayer.ui.library.ARG_MUSIC
-import gd.app.musicplayer.ui.library.ARG_MUSIC_SET
+import gd.app.musicplayer.feature.library.ARG_MUSIC
+import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 

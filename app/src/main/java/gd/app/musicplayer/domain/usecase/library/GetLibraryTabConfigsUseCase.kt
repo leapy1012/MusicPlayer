@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.library
 
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
-import gd.app.musicplayer.ui.library.model.LibraryTabConfig
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
+import gd.app.musicplayer.feature.library.model.LibraryTabConfig
 import javax.inject.Inject
 
 class GetLibraryTabConfigsUseCase @Inject constructor(

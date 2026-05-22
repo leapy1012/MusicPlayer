@@ -24,7 +24,7 @@ import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCas
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.ui.selection.MusicEditActivity
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
+import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import kotlinx.coroutines.launch
 

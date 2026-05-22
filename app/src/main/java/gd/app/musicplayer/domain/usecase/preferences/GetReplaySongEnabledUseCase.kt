@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.preferences
 
 
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import javax.inject.Inject
 
 class GetReplaySongEnabledUseCase @Inject constructor(

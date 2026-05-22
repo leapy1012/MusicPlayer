@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.setting
 
-import gd.app.musicplayer.data.local.preference.SettingPreferences
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SettingPreferences
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 

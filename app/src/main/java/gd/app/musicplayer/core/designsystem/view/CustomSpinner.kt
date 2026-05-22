@@ -105,7 +105,6 @@ class CustomSpinner @JvmOverloads constructor(
         popupWindow?.dismiss()
 
         val popupTextColor = BasePopupBackgroundProvider.popupTextColor(context)
-        android.util.Log.e("Leapy", "popupTextColor" + popupTextColor)
 
         val listView = ListView(context).apply {
             divider = null

@@ -9,17 +9,17 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import gd.app.musicplayer.data.local.db.DatabaseMigrations
-import gd.app.musicplayer.data.local.db.MusicDatabase
-import gd.app.musicplayer.data.local.db.MusicDatabaseSeedProvider
-import gd.app.musicplayer.data.local.db.MusicDatabaseSeeder
-import gd.app.musicplayer.data.local.db.ResourceMusicDatabaseSeedProvider
-import gd.app.musicplayer.data.local.db.dao.DatabaseMaintenanceDao
-import gd.app.musicplayer.data.local.db.dao.LibraryDao
-import gd.app.musicplayer.data.local.db.dao.MusicDao
-import gd.app.musicplayer.data.local.db.dao.PlaybackQueueDao
-import gd.app.musicplayer.data.local.db.dao.PlaylistDao
-import gd.app.musicplayer.data.local.db.dao.SearchDao
+import gd.app.musicplayer.core.database.DatabaseMigrations
+import gd.app.musicplayer.core.database.MusicDatabase
+import gd.app.musicplayer.core.database.MusicDatabaseSeedProvider
+import gd.app.musicplayer.core.database.MusicDatabaseSeeder
+import gd.app.musicplayer.core.database.ResourceMusicDatabaseSeedProvider
+import gd.app.musicplayer.core.database.dao.DatabaseMaintenanceDao
+import gd.app.musicplayer.core.database.dao.LibraryDao
+import gd.app.musicplayer.core.database.dao.MusicDao
+import gd.app.musicplayer.core.database.dao.PlaybackQueueDao
+import gd.app.musicplayer.core.database.dao.PlaylistDao
+import gd.app.musicplayer.core.database.dao.SearchDao
 import javax.inject.Singleton
 
 @Module

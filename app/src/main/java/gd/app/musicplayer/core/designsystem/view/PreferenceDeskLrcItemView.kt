@@ -15,7 +15,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.data.local.preference.DesktopLyricPreference
+import gd.app.musicplayer.core.datastore.DesktopLyricPreference
 
 class PreferenceDeskLrcItemView(
     context: Context,

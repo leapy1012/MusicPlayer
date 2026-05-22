@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.setting
 
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import javax.inject.Inject
 
 class UpdateBluetoothLyricEnabledUseCase @Inject constructor(

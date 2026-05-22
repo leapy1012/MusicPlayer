@@ -14,9 +14,9 @@ import androidx.appcompat.app.AppCompatActivity
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
-import gd.app.musicplayer.data.local.mediastore.MediaStoreLibraryObserver
+import gd.app.musicplayer.core.mediastore.MediaStoreLibraryObserver
 import gd.app.musicplayer.domain.repository.ThemeRepo
-import gd.app.musicplayer.ui.library.options.RingtoneActionHandler
+import gd.app.musicplayer.feature.library.options.RingtoneActionHandler
 import gd.app.musicplayer.ui.theme.ThemeEngine
 import javax.inject.Inject
 

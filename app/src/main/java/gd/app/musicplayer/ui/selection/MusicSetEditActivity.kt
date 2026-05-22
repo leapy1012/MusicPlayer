@@ -26,9 +26,9 @@ import gd.app.musicplayer.databinding.ActivityMusicSetEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.ui.library.ARG_MUSIC_SET
-import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
-import gd.app.musicplayer.ui.library.folder.isHiddenFoldersEntry
+import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
+import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
+import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
 
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.isTablet

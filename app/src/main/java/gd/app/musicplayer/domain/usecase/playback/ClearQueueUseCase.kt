@@ -7,7 +7,7 @@ import javax.inject.Inject
 class ClearQueueUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
-    operator fun invoke(context: Context) {
-        playbackController.clearQueue(context)
+    operator fun invoke() {
+        playbackController.clearQueue()
     }
 }

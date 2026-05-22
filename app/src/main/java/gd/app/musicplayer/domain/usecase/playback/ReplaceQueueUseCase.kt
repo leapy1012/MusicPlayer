@@ -9,6 +9,6 @@ class ReplaceQueueUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
     operator fun invoke(context: Context, queue: List<Music>, currentIndex: Int) {
-        playbackController.replaceQueue(context, queue, currentIndex)
+        playbackController.replaceQueue(queue, currentIndex)
     }
 }

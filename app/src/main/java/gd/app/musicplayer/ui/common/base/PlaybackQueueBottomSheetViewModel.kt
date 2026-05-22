@@ -116,7 +116,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
 
     fun clearQueueOrDismiss(state: PlaybackQueueBottomSheetUiState) {
         if (state.queue.isEmpty()) return
-        clearQueueUseCase(appContext)
+        clearQueueUseCase()
         emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
     }
 
@@ -126,7 +126,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
 
         val updatedQueue = currentQueue.toMutableList().apply { removeAt(position) }
         if (updatedQueue.isEmpty()) {
-            clearQueueUseCase(appContext)
+            clearQueueUseCase()
             emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
             return
         }
@@ -144,7 +144,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
 
     fun replaceQueuePreservingCurrentTrack(updatedQueue: List<Music>, state: PlaybackQueueBottomSheetUiState) {
         if (updatedQueue.isEmpty()) {
-            clearQueueUseCase(appContext)
+            clearQueueUseCase()
             emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
             return
         }

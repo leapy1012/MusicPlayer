@@ -4,7 +4,7 @@ import android.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gd.app.musicplayer.data.local.preference.ThemeSettings
+import gd.app.musicplayer.core.datastore.ThemeSettings
 import gd.app.musicplayer.domain.usecase.theme.GetThemeSettingsUseCase
 import gd.app.musicplayer.domain.usecase.theme.UpdateThemeAppearanceUseCase
 import javax.inject.Inject

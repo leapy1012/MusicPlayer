@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.repository
 
-import gd.app.musicplayer.data.local.db.dao.LibraryDao
-import gd.app.musicplayer.data.local.db.entity.AlbumPictureEntity
+import gd.app.musicplayer.core.database.dao.LibraryDao
+import gd.app.musicplayer.core.database.entity.AlbumPictureEntity
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import java.io.File
@@ -138,9 +138,6 @@ class ArtworkRepo @Inject constructor(
         sourceName: String,
         artworkPath: String?
     ) {
-        android.util.Log.e("Leapy", "sourceId" + sourceId)
-        android.util.Log.e("Leapy", "sourceName" + sourceName)
-        android.util.Log.e("Leapy", "artworkPath" + artworkPath)
 
         val existingRowId = libraryDao.getAlbumPictureRowId(sourceId, sourceName)
         if (existingRowId == null) {

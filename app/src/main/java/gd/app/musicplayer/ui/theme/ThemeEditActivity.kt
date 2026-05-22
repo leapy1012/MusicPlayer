@@ -15,12 +15,12 @@ import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.theme.ThemeBitmapLoader
 import gd.app.musicplayer.core.designsystem.view.SeekBar
-import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
+import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import gd.app.musicplayer.databinding.ActivityThemeEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.home.MainFragment
-import gd.app.musicplayer.ui.library.artwork.ArtworkCropActivity
-import gd.app.musicplayer.ui.player.mini.BottomMiniPlayerFragment
+import gd.app.musicplayer.feature.home.MainFragment
+import gd.app.musicplayer.feature.library.artwork.ArtworkCropActivity
+import gd.app.musicplayer.feature.player.mini.BottomMiniPlayerFragment
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers

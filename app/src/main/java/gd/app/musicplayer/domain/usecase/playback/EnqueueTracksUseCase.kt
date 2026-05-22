@@ -9,6 +9,6 @@ class EnqueueTracksUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
     operator fun invoke(context: Context, tracks: List<Music>) {
-        playbackController.enqueue(context, tracks)
+        playbackController.enqueue(tracks)
     }
 }

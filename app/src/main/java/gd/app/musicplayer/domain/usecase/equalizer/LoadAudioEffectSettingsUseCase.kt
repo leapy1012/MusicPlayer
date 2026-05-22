@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.equalizer
 
-import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
+import gd.app.musicplayer.core.datastore.SoundEffectPreferences
 import gd.app.musicplayer.domain.model.AudioEffectSettings
 import gd.app.musicplayer.domain.repository.EqualizerPresetRepository
 import javax.inject.Inject

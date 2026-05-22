@@ -2,7 +2,7 @@ package gd.app.musicplayer.playback.notification
 
 import android.content.Context
 import android.os.Build
-import gd.app.musicplayer.data.local.preference.NotificationSettingPreference
+import gd.app.musicplayer.core.datastore.NotificationSettingPreference
 
 object MusicNotificationBuilderFactory {
 

@@ -316,8 +316,6 @@ class SortByContextMenu(
     private fun playlistSortOptions(): List<SortOption> {
         val selectedStyle = currentSortStyle
         val reversed = currentSortDescending
-        android.util.Log.e("Leapy", "playlistSortOptions" + currentSortStyle)
-        android.util.Log.e("Leapy", "playlistSortOptions" + currentSortDescending)
         return listOf(
             SortOption(
                 id = ID_DEFAULT,

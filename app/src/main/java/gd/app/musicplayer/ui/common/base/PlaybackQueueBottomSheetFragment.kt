@@ -31,7 +31,7 @@ import gd.app.musicplayer.core.common.extension.isFavorite
 import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
 import gd.app.musicplayer.databinding.DialogQueueListBinding
 import gd.app.musicplayer.databinding.DialogQueueListItemBinding
-import gd.app.musicplayer.ui.playlist.PlaylistSelectActivity
+import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.ItemMoveListener
 import gd.app.musicplayer.ui.selection.ItemTouchStateListener
 import javax.inject.Inject

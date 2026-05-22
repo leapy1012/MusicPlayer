@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.repository
 
-import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
-import gd.app.musicplayer.data.local.db.dao.PlaybackQueueDao
+import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
+import gd.app.musicplayer.core.database.dao.PlaybackQueueDao
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 

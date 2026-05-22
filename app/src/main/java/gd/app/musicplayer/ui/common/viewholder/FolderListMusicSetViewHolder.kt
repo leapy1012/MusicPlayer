@@ -7,7 +7,7 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentFolderListItemBinding
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
-import gd.app.musicplayer.ui.library.folder.isHiddenFoldersEntry
+import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
 
 class FolderListMusicSetViewHolder(
     private val binding: FragmentFolderListItemBinding

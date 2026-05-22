@@ -8,6 +8,6 @@ class RestartCurrentTrackUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
     operator fun invoke(context: Context) {
-        playbackController.restartCurrentTrack(context)
+        playbackController.restartCurrentTrack()
     }
 }

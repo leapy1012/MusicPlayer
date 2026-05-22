@@ -4,7 +4,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import gd.app.musicplayer.data.local.preference.NotificationSettingPreference
+import gd.app.musicplayer.core.datastore.NotificationSettingPreference
 
 abstract class BaseMusicNotificationBuilder(
     protected val context: Context,

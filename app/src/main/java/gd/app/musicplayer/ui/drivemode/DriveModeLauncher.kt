@@ -2,7 +2,7 @@ package gd.app.musicplayer.ui.drivemode
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.local.preference.DrivePreferenceStore
+import gd.app.musicplayer.core.datastore.DrivePreferenceStore
 import javax.inject.Inject
 import javax.inject.Singleton
 

@@ -9,6 +9,6 @@ class PlayNextTracksUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
     operator fun invoke(context: Context, tracks: List<Music>) {
-        playbackController.playNext(context, tracks)
+        playbackController.playNext(tracks)
     }
 }

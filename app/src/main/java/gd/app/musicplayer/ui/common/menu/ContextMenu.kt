@@ -15,7 +15,7 @@ import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
 import gd.app.musicplayer.domain.model.ContextMenuItem
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.isTrackCollection
-import gd.app.musicplayer.ui.library.musicset.MusicSetAdapter
+import gd.app.musicplayer.feature.library.musicset.MusicSetAdapter
 
 class ContextMenu(
     context: Context,

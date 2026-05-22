@@ -10,20 +10,27 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.core.graphics.ColorUtils
+import gd.app.lib.view.MarqueeTextView
 import gd.app.musicplayer.R
-import gd.app.musicplayer.data.local.preference.StatusBarLyricPreference
-import gd.app.musicplayer.data.local.preference.StatusBarLyricPreferenceStore
-import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.core.datastore.StatusBarLyricPreference
+import gd.app.musicplayer.core.datastore.StatusBarLyricPreferenceStore
+import gd.app.musicplayer.core.datastore.TrackLyricData
+import gd.app.musicplayer.core.datastore.TrackLyricPreferenceStore
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import gd.app.musicplayer.util.LyricsLoader
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class StatusBarLyricsOverlayController(
     private val context: Context,
     private val scope: CoroutineScope,
+    private val trackLyricPreferenceStore: TrackLyricPreferenceStore,
     private val callbacks: Callbacks
 ) {
 
@@ -35,14 +42,19 @@ class StatusBarLyricsOverlayController(
         context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     private var preference = StatusBarLyricPreference()
-    private var textView: androidx.appcompat.widget.AppCompatTextView? = null
+    private var textView: MarqueeTextView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var lyricLines: List<TimedLyricLine> = emptyList()
-    private var lastTrackId: Long? = null
+    private val currentTrack = MutableStateFlow<TrackRequest?>(null)
     private var lastDisplayText = ""
     private var hideState = HIDE_STATE_HIDDEN
     private var lyricsLoadJob: Job? = null
+    private var currentLoadKey: LyricLoadKey? = null
     private var currentState = MusicPlaybackState()
+
+    init {
+        observeCurrentTrackLyricData()
+    }
 
     private val hidePausedRunnable = Runnable {
         if (hideState == HIDE_STATE_PAUSED_TIP) {
@@ -74,10 +86,7 @@ class StatusBarLyricsOverlayController(
         ensureAdded()
 
         val track = state.currentTrack
-        if (lastTrackId != track?.id) {
-            lastTrackId = track?.id
-            loadLyrics(track)
-        }
+        currentTrack.value = track?.let { TrackRequest(it.id, it.data) }
 
         val displayText = resolveDisplayText(state)
         if (displayText != lastDisplayText) {
@@ -136,18 +145,14 @@ class StatusBarLyricsOverlayController(
         }
     }
 
-    private fun createTextView(): androidx.appcompat.widget.AppCompatTextView {
+    private fun createTextView(): MarqueeTextView {
         val horizontalPadding = dp(6f)
         val verticalPadding = dp(1f)
 
-        return androidx.appcompat.widget.AppCompatTextView(context).apply {
+        return MarqueeTextView(context).apply {
             setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
             textAlignment = View.TEXT_ALIGNMENT_GRAVITY
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            isSingleLine = true
-            ellipsize = android.text.TextUtils.TruncateAt.MARQUEE
-            marqueeRepeatLimit = -1
-            isSelected = true
             setOnClickListener {
                 if (preference.clickable) {
                     callbacks.togglePlayPause()
@@ -247,22 +252,60 @@ class StatusBarLyricsOverlayController(
         return current?.text ?: lyricLines.firstOrNull { it.text.isNotBlank() }?.text ?: track.title
     }
 
-    private fun loadLyrics(track: Music?) {
-        lyricsLoadJob?.cancel()
-        lyricLines = emptyList()
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun observeCurrentTrackLyricData() {
+        scope.launch {
+            currentTrack
+                .flatMapLatest { request ->
+                    if (request == null) {
+                        flowOf(null)
+                    } else {
+                        trackLyricPreferenceStore.observeTrackLyricData(request.trackId)
+                            .map { data -> request to data }
+                    }
+                }
+                .collect { requestAndData ->
+                    if (requestAndData == null) {
+                        loadLyrics(null, null)
+                    } else {
+                        loadLyrics(requestAndData.first, requestAndData.second)
+                    }
+                }
+        }
+    }
+
+    private fun loadLyrics(
+        track: TrackRequest?,
+        lyricData: TrackLyricData?
+    ) {
         if (track == null) {
+            lyricsLoadJob?.cancel()
+            currentLoadKey = null
+            lyricLines = emptyList()
             lastDisplayText = ""
             setOverlayText("")
             return
         }
 
+        val loadKey = LyricLoadKey(
+            trackId = track.trackId,
+            source = track.source,
+            lyricPath = lyricData?.path,
+            lyricRevision = lyricData?.revision ?: 0
+        )
+        if (loadKey == currentLoadKey) return
+        currentLoadKey = loadKey
+
+        lyricsLoadJob?.cancel()
+        lyricLines = emptyList()
+
         lyricsLoadJob = scope.launch {
             val result = LyricsLoader.load(
                 context = context,
-                trackId = track.id,
-                audioPath = track.data
+                trackId = track.trackId,
+                audioPath = track.source
             )
-            if (lastTrackId != track.id) return@launch
+            if (currentLoadKey != loadKey) return@launch
             lyricLines = parseTimedLyrics(result.text)
             val displayText = resolveDisplayText(currentState)
             lastDisplayText = displayText
@@ -341,6 +384,18 @@ class StatusBarLyricsOverlayController(
     private data class TimedLyricLine(
         val timeMs: Long,
         val text: String
+    )
+
+    private data class TrackRequest(
+        val trackId: Long,
+        val source: String?
+    )
+
+    private data class LyricLoadKey(
+        val trackId: Long,
+        val source: String?,
+        val lyricPath: String?,
+        val lyricRevision: Int
     )
 
     private companion object {

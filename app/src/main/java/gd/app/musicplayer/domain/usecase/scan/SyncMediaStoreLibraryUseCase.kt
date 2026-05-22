@@ -2,7 +2,7 @@ package gd.app.musicplayer.domain.usecase.scan
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.local.db.entity.MusicEntity
+import gd.app.musicplayer.core.database.entity.MusicEntity
 import gd.app.musicplayer.domain.repository.ScanRepo
 import gd.app.musicplayer.domain.usecase.playback.PrunePlaybackQueueTracksUseCase
 import gd.app.musicplayer.ui.scan.ScanLibraryInfo

@@ -15,8 +15,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
-import gd.app.musicplayer.data.local.preference.HeadsetSettingPreference
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.HeadsetSettingPreference
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.di.ApplicationScope
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -140,10 +140,10 @@ class HeadsetAutomationManager @Inject constructor(
         val settings = headsetSettings
         if (connected) {
             if (settings.headsetInPlayEnabled) {
-                playbackController.play(context)
+                playbackController.play()
             }
         } else if (settings.headsetOutStopEnabled) {
-            playbackController.pause(context)
+            playbackController.pause()
         }
     }
 
@@ -154,20 +154,29 @@ class HeadsetAutomationManager @Inject constructor(
             return
         }
         if (bluetoothHeadsetOn && settings.bluetoothAutoStopEnabled) {
-            playbackController.pause(context)
+            playbackController.pause()
         } else if (settings.headsetOutStopEnabled) {
-            playbackController.pause(context)
+            playbackController.pause()
         }
     }
 
     private fun handleBluetoothState(context: Context, intent: Intent, connected: Boolean) {
+
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
         val device = intent.parcelableExtraCompat<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) ?: return
         if (!isAudioDevice(device.bluetoothClass)) return
         bluetoothHeadsetOn = connected
         val settings = headsetSettings
         if (connected) {
             if (settings.bluetoothAutoStartEnabled) {
-                playbackController.play(context)
+                playbackController.play()
             }
         } else {
             maybeStopForBluetoothDisconnect(context)
@@ -176,7 +185,7 @@ class HeadsetAutomationManager @Inject constructor(
 
     private fun maybeStopForBluetoothDisconnect(context: Context) {
         if (headsetSettings.bluetoothAutoStopEnabled) {
-            playbackController.pause(context)
+            playbackController.pause()
         }
     }
 
@@ -215,4 +224,3 @@ class HeadsetAutomationManager @Inject constructor(
         const val NOISY_GUARD_MS = 2_000L
     }
 }
-

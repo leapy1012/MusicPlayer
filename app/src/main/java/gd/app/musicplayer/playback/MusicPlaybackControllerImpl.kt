@@ -1,6 +1,7 @@
 package gd.app.musicplayer.playback
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.flow.StateFlow
@@ -9,6 +10,7 @@ import javax.inject.Singleton
 
 @Singleton
 class MusicPlaybackControllerImpl @Inject constructor(
+    @param:ApplicationContext private  val context: Context,
     private val runtimeStateStore: PlaybackRuntimeStateStore,
     private val dispatcher: PlaybackServiceDispatcher
 ) : PlaybackController {
@@ -17,7 +19,6 @@ class MusicPlaybackControllerImpl @Inject constructor(
         get() = runtimeStateStore.state
 
     override fun playQueue(
-        context: Context,
         queue: List<Music>,
         startIndex: Int
     ) {
@@ -34,17 +35,16 @@ class MusicPlaybackControllerImpl @Inject constructor(
         )
     }
 
-    override fun shufflePlay(context: Context, queue: List<Music>) {
+    override fun shufflePlay(queue: List<Music>) {
         if (queue.isEmpty()) return
 
         playQueue(
-            context = context,
             queue = queue.shuffled(),
             startIndex = 0
         )
     }
 
-    override fun enqueue(context: Context, items: List<Music>) {
+    override fun enqueue(items: List<Music>) {
         if (items.isEmpty()) return
 
         dispatcher.dispatch(
@@ -53,7 +53,7 @@ class MusicPlaybackControllerImpl @Inject constructor(
         )
     }
 
-    override fun playNext(context: Context, items: List<Music>) {
+    override fun playNext(items: List<Music>) {
         if (items.isEmpty()) return
 
         dispatcher.dispatch(
@@ -62,34 +62,34 @@ class MusicPlaybackControllerImpl @Inject constructor(
         )
     }
 
-    override fun togglePlayPause(context: Context) {
+    override fun togglePlayPause() {
         dispatcher.dispatch(context, PlaybackCommand.TogglePlayPause)
     }
 
-    override fun play(context: Context) {
+    override fun play() {
         dispatcher.dispatch(context, PlaybackCommand.Play)
     }
 
-    override fun pause(context: Context) {
+    override fun pause() {
         dispatcher.dispatch(context, PlaybackCommand.Pause)
     }
 
-    override fun playIndex(context: Context, index: Int) {
+    override fun playIndex(index: Int) {
         dispatcher.dispatch(
             context = context,
             command = PlaybackCommand.PlayIndex(index.coerceAtLeast(0))
         )
     }
 
-    override fun playNext(context: Context) {
+    override fun playNext() {
         dispatcher.dispatch(context, PlaybackCommand.Next)
     }
 
-    override fun playPrevious(context: Context) {
+    override fun playPrevious() {
         dispatcher.dispatch(context, PlaybackCommand.Previous)
     }
 
-    override fun seekTo(context: Context, positionMs: Int) {
+    override fun seekTo(positionMs: Int) {
         dispatcher.dispatch(
             context = context,
             command = PlaybackCommand.SeekTo(
@@ -98,24 +98,23 @@ class MusicPlaybackControllerImpl @Inject constructor(
         )
     }
 
-    override fun setStopAfterCurrentTrack(context: Context, enabled: Boolean) {
+    override fun setStopAfterCurrentTrack(enabled: Boolean) {
         dispatcher.dispatch(
             context = context,
             command = PlaybackCommand.SetStopAfterCurrentTrack(enabled)
         )
     }
 
-    override fun applyAudioEffects(context: Context) {
+    override fun applyAudioEffects() {
         dispatcher.dispatch(context, PlaybackCommand.ApplyAudioEffects)
     }
 
     override fun replaceQueue(
-        context: Context,
         queue: List<Music>,
         currentIndex: Int
     ) {
         if (queue.isEmpty()) {
-            clearQueue(context)
+            clearQueue()
             return
         }
 
@@ -130,18 +129,18 @@ class MusicPlaybackControllerImpl @Inject constructor(
         )
     }
 
-    override fun clearQueue(context: Context) {
+    override fun clearQueue() {
         dispatcher.dispatch(context, PlaybackCommand.ClearQueue)
     }
 
-    override fun removeQueueItem(context: Context, index: Int) {
+    override fun removeQueueItem(index: Int) {
         dispatcher.dispatch(
             context = context,
             command = PlaybackCommand.RemoveQueueItem(index.coerceAtLeast(0))
         )
     }
 
-    override fun moveQueueItem(context: Context, fromIndex: Int, toIndex: Int) {
+    override fun moveQueueItem(fromIndex: Int, toIndex: Int) {
         if (fromIndex == toIndex) return
 
         dispatcher.dispatch(
@@ -153,26 +152,26 @@ class MusicPlaybackControllerImpl @Inject constructor(
         )
     }
 
-    override fun stop(context: Context) {
+    override fun stop() {
         dispatcher.dispatch(context, PlaybackCommand.Stop)
     }
 
-    override fun applyPlaybackTuning(context: Context) {
+    override fun applyPlaybackTuning() {
         dispatcher.dispatch(context, PlaybackCommand.ApplyPlaybackTuning)
     }
 
-    override fun refreshNotificationStyle(context: Context) {
+    override fun refreshNotificationStyle() {
         dispatcher.dispatch(context, PlaybackCommand.RefreshNotificationStyle)
     }
 
-    override fun refreshEditedTrack(context: Context, track: Music) {
+    override fun refreshEditedTrack(track: Music) {
         dispatcher.dispatch(
             context = context,
             command = PlaybackCommand.RefreshEditedTrack(track)
         )
     }
 
-    override fun refreshEditedTracks(context: Context, tracks: List<Music>) {
+    override fun refreshEditedTracks(tracks: List<Music>) {
         if (tracks.isEmpty()) return
 
         dispatcher.dispatch(
@@ -181,19 +180,19 @@ class MusicPlaybackControllerImpl @Inject constructor(
         )
     }
 
-    override fun restartCurrentTrack(context: Context) {
+    override fun restartCurrentTrack() {
         dispatcher.dispatch(context, PlaybackCommand.RestartCurrentTrack)
     }
 
-    override fun cyclePlayMode(context: Context) {
+    override fun cyclePlayMode() {
         dispatcher.dispatch(context, PlaybackCommand.ChangeMode)
     }
 
-    override fun setShuffleAllMode(context: Context) {
+    override fun setShuffleAllMode() {
         dispatcher.dispatch(context, PlaybackCommand.SetShuffleAllMode)
     }
 
-    override fun toggleFavorite(context: Context) {
+    override fun toggleFavorite() {
         dispatcher.dispatch(context, PlaybackCommand.ToggleFavorite)
     }
 }

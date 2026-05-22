@@ -24,13 +24,13 @@ import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.DialogRegistry
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
-import gd.app.musicplayer.data.local.preference.SleepPreferenceStore
+import gd.app.musicplayer.core.datastore.SleepPreferenceStore
 import gd.app.musicplayer.databinding.ActivitySleepBinding
 import gd.app.musicplayer.playback.SleepTimerManager
 import gd.app.musicplayer.playback.SleepTimerState
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.ui.player.full.PlayerViewModel
+import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 

@@ -26,7 +26,7 @@ import gd.app.musicplayer.databinding.ActivityDuplicatedFinderBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.ui.library.options.DeleteConfirmDialogFragment
+import gd.app.musicplayer.feature.library.options.DeleteConfirmDialogFragment
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 

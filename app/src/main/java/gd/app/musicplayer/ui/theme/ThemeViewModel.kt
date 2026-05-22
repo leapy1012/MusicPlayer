@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.local.preference.ThemeSettings
+import gd.app.musicplayer.core.datastore.ThemeSettings
 import gd.app.musicplayer.domain.model.ThemeGroup
 import gd.app.musicplayer.domain.usecase.theme.AddThemeImageNameUseCase
 import gd.app.musicplayer.domain.usecase.theme.ApplyPictureThemeUseCase

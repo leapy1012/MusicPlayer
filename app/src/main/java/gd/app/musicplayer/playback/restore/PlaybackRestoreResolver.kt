@@ -1,6 +1,6 @@
 package gd.app.musicplayer.playback.restore
 
-import gd.app.musicplayer.data.local.preference.PlaybackProgress
+import gd.app.musicplayer.core.datastore.PlaybackProgress
 import gd.app.musicplayer.domain.model.Music
 
 object PlaybackRestoreResolver {

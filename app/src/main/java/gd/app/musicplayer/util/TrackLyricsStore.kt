@@ -2,7 +2,7 @@ package gd.app.musicplayer.util
 
 import android.content.Context
 import dagger.hilt.android.EntryPointAccessors
-import gd.app.musicplayer.data.local.preference.TrackLyricPreferenceStore
+import gd.app.musicplayer.core.datastore.TrackLyricPreferenceStore
 import gd.app.musicplayer.di.TrackLyricPreferenceStoreEntryPoint
 import javax.inject.Inject
 import javax.inject.Singleton

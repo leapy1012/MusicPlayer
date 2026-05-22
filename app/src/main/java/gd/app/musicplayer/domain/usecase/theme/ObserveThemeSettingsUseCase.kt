@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.theme
 
-import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
-import gd.app.musicplayer.data.local.preference.ThemeSettings
+import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
+import gd.app.musicplayer.core.datastore.ThemeSettings
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 

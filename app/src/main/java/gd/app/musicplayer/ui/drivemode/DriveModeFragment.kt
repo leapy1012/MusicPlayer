@@ -19,18 +19,17 @@ import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.toDurationString
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.databinding.ActivityDriveModeItemBinding
 import gd.app.musicplayer.databinding.FragmentDriveModeBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackQueueUseCase
 import gd.app.musicplayer.playback.PlaybackController
-import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
-import gd.app.musicplayer.ui.player.full.PlayerViewModel
+import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import gd.app.musicplayer.core.designsystem.view.SeekBar
-import gd.app.musicplayer.ui.player.queue.PlayQueueActivity
+import gd.app.musicplayer.feature.player.queue.PlayQueueActivity
 import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -201,9 +200,7 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     private fun toggleFavorite() {
         if (viewModel.playbackState.value.currentTrack == null) return
 
-        playbackController.toggleFavorite(
-            context = requireContext(),
-        )
+        playbackController.toggleFavorite()
     }
 
     private fun skipDurationMs(): Int {

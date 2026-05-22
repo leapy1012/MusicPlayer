@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.repository
 
-import gd.app.musicplayer.data.local.db.dao.LibraryDao
+import gd.app.musicplayer.core.database.dao.LibraryDao
 import gd.app.musicplayer.domain.model.Music
 import javax.inject.Inject
 import javax.inject.Singleton

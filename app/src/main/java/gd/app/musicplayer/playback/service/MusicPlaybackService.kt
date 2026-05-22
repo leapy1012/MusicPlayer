@@ -22,20 +22,22 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.AppForegroundTracker
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
 import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
-import gd.app.musicplayer.data.local.db.dao.MusicDao
-import gd.app.musicplayer.data.local.preference.DesktopLyricPreference
-import gd.app.musicplayer.data.local.preference.DesktopLyricPreferenceStore
-import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
-import gd.app.musicplayer.data.local.preference.SettingPreferences
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
-import gd.app.musicplayer.data.local.preference.SoundEffectPreferences
-import gd.app.musicplayer.data.local.preference.StatusBarLyricPreferenceStore
+import gd.app.musicplayer.core.database.dao.MusicDao
+import gd.app.musicplayer.core.datastore.DesktopLyricPreference
+import gd.app.musicplayer.core.datastore.DesktopLyricPreferenceStore
+import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
+import gd.app.musicplayer.core.datastore.SettingPreferences
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SoundEffectPreferences
+import gd.app.musicplayer.core.datastore.StatusBarLyricPreferenceStore
+import gd.app.musicplayer.core.datastore.TrackLyricPreferenceStore
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
@@ -101,8 +103,8 @@ import gd.app.musicplayer.playback.state.PublishReason
 import gd.app.musicplayer.playback.transition.TimedTransitionController
 import gd.app.musicplayer.playback.desktop.DesktopLyricsOverlayController
 import gd.app.musicplayer.playback.statusbar.StatusBarLyricsOverlayController
-import gd.app.musicplayer.ui.widget.provider.WidgetUpdateCoordinator
-import gd.app.musicplayer.ui.widget.provider.WidgetPlaybackSnapshot
+import gd.app.musicplayer.feature.widget.provider.WidgetUpdateCoordinator
+import gd.app.musicplayer.feature.widget.provider.WidgetPlaybackSnapshot
 import kotlinx.coroutines.NonCancellable
 
 
@@ -143,6 +145,9 @@ class MusicPlaybackService : MediaSessionService() {
 
     @Inject
     lateinit var statusBarLyricPreferenceStore: StatusBarLyricPreferenceStore
+
+    @Inject
+    lateinit var trackLyricPreferenceStore: TrackLyricPreferenceStore
 
     @Inject
     lateinit var playbackStatePreferenceStore: PlaybackStatePreferenceStore
@@ -743,6 +748,7 @@ class MusicPlaybackService : MediaSessionService() {
         desktopLyricsController = DesktopLyricsOverlayController(
             context = applicationContext,
             scope = serviceScope,
+            trackLyricPreferenceStore = trackLyricPreferenceStore,
             callbacks = object : DesktopLyricsOverlayController.Callbacks {
                 override fun previous() {
                     playPrevious()
@@ -806,6 +812,7 @@ class MusicPlaybackService : MediaSessionService() {
         statusBarLyricsController = StatusBarLyricsOverlayController(
             context = applicationContext,
             scope = serviceScope,
+            trackLyricPreferenceStore = trackLyricPreferenceStore,
             callbacks = object : StatusBarLyricsOverlayController.Callbacks {
                 override fun togglePlayPause() {
                     this@MusicPlaybackService.togglePlayPause()
@@ -1580,7 +1587,7 @@ class MusicPlaybackService : MediaSessionService() {
                     publishAllRuntimeState(forceNotification = true)
                 }
 
-                else -> return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
+                else -> return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
             }
 
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -1855,6 +1862,7 @@ class MusicPlaybackService : MediaSessionService() {
         publishAllRuntimeState(forceNotification = true)
     }
 
+    @OptIn(UnstableApi::class)
     private fun updateStopAfterCurrentTrackMode(enabled: Boolean) {
         stopAfterCurrentTrack = enabled
         if (::player.isInitialized) {

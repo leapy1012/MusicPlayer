@@ -1,6 +1,6 @@
 package gd.app.musicplayer.playback
 
-import gd.app.musicplayer.data.local.preference.PlaybackStatePreferenceStore
+import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.core.common.util.ShakeDetector
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo

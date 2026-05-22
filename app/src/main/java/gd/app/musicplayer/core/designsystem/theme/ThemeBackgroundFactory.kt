@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.drawable.BitmapDrawable
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.core.designsystem.drawable.OverlayCenterCropDrawable
-import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
+import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.graphics.drawable.toDrawable

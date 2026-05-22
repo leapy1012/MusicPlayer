@@ -9,7 +9,7 @@ class ShuffleTracksUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
     operator fun invoke(context: Context, tracks: List<Music>) {
-        playbackController.setShuffleAllMode(context)
-        playbackController.shufflePlay(context, tracks)
+        playbackController.setShuffleAllMode()
+        playbackController.shufflePlay(tracks)
     }
 }

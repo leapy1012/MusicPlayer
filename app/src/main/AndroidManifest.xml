@@ -228,11 +228,14 @@
             android:launchMode="singleTop" />
 
         <service
+            android:label="@string/music_player"
             android:name=".playback.service.MusicPlaybackService"
             android:exported="true"
+            android:stopWithTask="false"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
         <service

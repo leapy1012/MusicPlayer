@@ -12,7 +12,7 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.databinding.ActivityMainBinding
-import gd.app.musicplayer.ui.home.MainFragment
+import gd.app.musicplayer.feature.home.MainFragment
 import gd.app.musicplayer.core.common.extension.isTablet
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat

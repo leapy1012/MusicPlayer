@@ -5,7 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
 import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.di.ApplicationScope
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -49,31 +49,31 @@ class HeadsetMediaButtonHandler @Inject constructor(
     fun handle(keyCode: Int): Boolean {
         return when (keyCode) {
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                playbackController.play(context)
+                playbackController.play()
                 true
             }
 
             KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                playbackController.pause(context)
+                playbackController.pause()
                 true
             }
 
             KeyEvent.KEYCODE_MEDIA_NEXT -> {
                 if (headsetControlAllowed) {
-                    playbackController.playNext(context)
+                    playbackController.playNext()
                 }
                 true
             }
 
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                 if (headsetControlAllowed) {
-                    playbackController.playPrevious(context)
+                    playbackController.playPrevious()
                 }
                 true
             }
 
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                playbackController.togglePlayPause(context)
+                playbackController.togglePlayPause()
                 true
             }
 
@@ -99,15 +99,15 @@ class HeadsetMediaButtonHandler @Inject constructor(
 
         when {
             count >= 3 && headsetControlAllowed -> {
-                playbackController.playPrevious(context)
+                playbackController.playPrevious()
             }
 
             count == 2 && headsetControlAllowed -> {
-                playbackController.playNext(context)
+                playbackController.playNext()
             }
 
             count >= 1 -> {
-                playbackController.togglePlayPause(context)
+                playbackController.togglePlayPause()
             }
         }
     }

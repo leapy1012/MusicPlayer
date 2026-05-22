@@ -39,7 +39,7 @@ import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.domain.repository.MusicSetMetadataRepo
 import gd.app.musicplayer.domain.repository.TrackMetadataRepo
 import gd.app.musicplayer.playback.PlaybackController
-import gd.app.musicplayer.ui.library.artwork.ManageArtworkDialogFragment
+import gd.app.musicplayer.feature.library.artwork.ManageArtworkDialogFragment
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -252,7 +252,10 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
                 titleField.applyLengthFilter(120)
                 bindDirtyWatcher(titleField)
             }
-            else -> TODO()
+            else -> {
+                finish()
+                return
+            }
         }
     }
 
@@ -365,7 +368,6 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
                 if (updatedTrack != null) {
                     if (playbackController.state.value.queue.any { it.id == updatedTrack.id }) {
                         playbackController.refreshEditedTrack(
-                            context = this@EditTagsActivity,
                             track = updatedTrack
                         )
                     }
@@ -433,7 +435,6 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
                 if (success) {
                     if (queueUpdates.isNotEmpty()) {
                         playbackController.refreshEditedTracks(
-                            context = this@EditTagsActivity,
                             tracks = queueUpdates
                         )
                     }

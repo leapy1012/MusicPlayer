@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.scan
 
-import gd.app.musicplayer.data.local.db.entity.MusicEntity
+import gd.app.musicplayer.core.database.entity.MusicEntity
 import gd.app.musicplayer.domain.repository.ScanRepo
 import javax.inject.Inject
 

@@ -15,27 +15,34 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.ViewFlipper
 import androidx.recyclerview.widget.RecyclerView
+import gd.app.lib.model.lrc.renderer.StaticMessageLyricRenderer
 import gd.app.lib.model.lrc.view.LyricView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.view.DeskLrcDragLayout
 import gd.app.musicplayer.core.designsystem.view.DeskLrcRootLayout
 import gd.app.musicplayer.core.designsystem.view.SeekBar
-import gd.app.musicplayer.data.local.preference.DesktopLyricPreference
-import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.core.datastore.DesktopLyricPreference
+import gd.app.musicplayer.core.datastore.TrackLyricData
+import gd.app.musicplayer.core.datastore.TrackLyricPreferenceStore
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import gd.app.musicplayer.ui.common.playback.PlayModeUiMapper
-import gd.app.musicplayer.ui.lyrics.setLyricText
+import gd.app.musicplayer.feature.lyrics.setLyricText
 import gd.app.musicplayer.ui.shell.MainActivity
 import gd.app.musicplayer.util.LyricsLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class DesktopLyricsOverlayController(
     private val context: Context,
     private val scope: CoroutineScope,
+    private val trackLyricPreferenceStore: TrackLyricPreferenceStore,
     private val callbacks: Callbacks
 ) : View.OnClickListener,
     SeekBar.OnSeekBarChangeListener,
@@ -85,9 +92,14 @@ class DesktopLyricsOverlayController(
 
     private var preference = DesktopLyricPreference()
     private var appInForeground = false
-    private var lastTrackId: Long? = null
+    private val currentTrack = MutableStateFlow<TrackRequest?>(null)
     private var lyricsLoadJob: Job? = null
+    private var currentLoadKey: LyricLoadKey? = null
     private var maxY = 0
+
+    init {
+        observeCurrentTrackLyricData()
+    }
 
     fun renderPreference(preference: DesktopLyricPreference) {
         val previousPreference = this.preference
@@ -123,10 +135,7 @@ class DesktopLyricsOverlayController(
         favoriteButton?.isSelected = currentTrack?.playlistId == MusicSet.FAVORITES
         modeButton?.setImageResource(PlayModeUiMapper.iconRes(callbacks.currentPlaybackMode()))
 
-        if (lastTrackId != currentTrack?.id) {
-            lastTrackId = currentTrack?.id
-            loadLyrics(currentTrack)
-        }
+        this.currentTrack.value = currentTrack?.let { TrackRequest(it.id, it.data) }
 
         lyric.setCurrentTime(state.positionMs)
 
@@ -551,31 +560,70 @@ class DesktopLyricsOverlayController(
         }
     }
 
-    private fun loadLyrics(track: Music?) {
-        lyricsLoadJob?.cancel()
-        lyricView?.setLyricText(null)
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun observeCurrentTrackLyricData() {
+        scope.launch {
+            currentTrack
+                .flatMapLatest { request ->
+                    if (request == null) {
+                        flowOf(null)
+                    } else {
+                        trackLyricPreferenceStore.observeTrackLyricData(request.trackId)
+                            .map { data -> request to data }
+                    }
+                }
+                .collect { requestAndData ->
+                    if (requestAndData == null) {
+                        loadLyrics(null, null)
+                    } else {
+                        loadLyrics(requestAndData.first, requestAndData.second)
+                    }
+                }
+        }
+    }
 
+    private fun loadLyrics(
+        track: TrackRequest?,
+        lyricData: TrackLyricData?
+    ) {
         if (track == null) {
-            lyricView?.setLyricText(context.getString(R.string.no_lrc_1))
+            lyricsLoadJob?.cancel()
+            currentLoadKey = null
+            lyricView?.setLyricText(null)
+            lyricView?.showStaticMessage(context.getString(R.string.no_lrc_1))
             return
         }
+
+        val loadKey = LyricLoadKey(
+            trackId = track.trackId,
+            source = track.source,
+            lyricPath = lyricData?.path,
+            lyricRevision = lyricData?.revision ?: 0
+        )
+        if (loadKey == currentLoadKey) return
+        currentLoadKey = loadKey
+
+        lyricsLoadJob?.cancel()
+        lyricView?.setLyricText(null)
 
         lyricsLoadJob = scope.launch {
             val result = LyricsLoader.load(
                 context = context,
-                trackId = track.id,
-                audioPath = track.data
+                trackId = track.trackId,
+                audioPath = track.source
             )
-            if (lastTrackId == track.id) {
-                lyricView?.setLyricText(
-                    if (result.hasLyrics) {
-                        result.text
-                    } else {
-                        context.getString(R.string.no_lrc_1)
-                    }
-                )
+            if (currentLoadKey == loadKey) {
+                if (result.hasLyrics) {
+                    lyricView?.setLyricText(result.text)
+                } else {
+                    lyricView?.showStaticMessage(context.getString(R.string.no_lrc_1))
+                }
             }
         }
+    }
+
+    private fun LyricView.showStaticMessage(message: String) {
+        setLyricRenderer(StaticMessageLyricRenderer(message))
     }
 
     private fun applyInitialY(root: View, params: WindowManager.LayoutParams) {
@@ -650,4 +698,16 @@ class DesktopLyricsOverlayController(
         private const val LOCKED_WINDOW_ALPHA = 0.7f
         private const val UNLOCKED_WINDOW_ALPHA = 1f
     }
+
+    private data class TrackRequest(
+        val trackId: Long,
+        val source: String?
+    )
+
+    private data class LyricLoadKey(
+        val trackId: Long,
+        val source: String?,
+        val lyricPath: String?,
+        val lyricRevision: Int
+    )
 }

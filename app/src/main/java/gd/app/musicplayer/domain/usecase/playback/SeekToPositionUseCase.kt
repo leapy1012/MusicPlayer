@@ -8,6 +8,6 @@ class SeekToPositionUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
     operator fun invoke(context: Context, positionMs: Int) {
-        playbackController.seekTo(context, positionMs)
+        playbackController.seekTo(positionMs)
     }
 }

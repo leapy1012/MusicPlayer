@@ -10,7 +10,7 @@ import gd.app.musicplayer.core.designsystem.theme.DefaultThemeProvider
 import gd.app.musicplayer.core.designsystem.theme.ThemeBitmapLoader
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
-import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
+import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import kotlinx.coroutines.CoroutineScope
 
 import javax.inject.Singleton

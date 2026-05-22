@@ -6,7 +6,7 @@ import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.extension.startActivityCompat
-import gd.app.musicplayer.data.local.preference.DrivePreferenceStore
+import gd.app.musicplayer.core.datastore.DrivePreferenceStore
 import gd.app.musicplayer.databinding.ActivityDriveRemindBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import javax.inject.Inject

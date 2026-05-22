@@ -1,6 +1,6 @@
 package gd.app.musicplayer.domain.usecase.library
 
-import gd.app.musicplayer.data.local.preference.SettingPreferencesDataStore
+import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import javax.inject.Inject
 
 class GetLibraryLastTabUseCase @Inject constructor(

@@ -9,55 +9,55 @@ interface PlaybackController {
 
     val state: StateFlow<MusicPlaybackState>
 
-    fun playQueue(context: Context, queue: List<Music>, startIndex: Int)
+    fun playQueue(queue: List<Music>, startIndex: Int)
 
-    fun shufflePlay(context: Context, queue: List<Music>)
+    fun shufflePlay(queue: List<Music>)
 
-    fun enqueue(context: Context, items: List<Music>)
+    fun enqueue(items: List<Music>)
 
-    fun playNext(context: Context, items: List<Music>)
+    fun playNext(items: List<Music>)
 
-    fun togglePlayPause(context: Context)
+    fun togglePlayPause()
 
-    fun play(context: Context)
+    fun play()
 
-    fun pause(context: Context)
+    fun pause()
 
-    fun playIndex(context: Context, index: Int)
+    fun playIndex(index: Int)
 
-    fun playNext(context: Context)
+    fun playNext()
 
-    fun playPrevious(context: Context)
+    fun playPrevious()
 
-    fun seekTo(context: Context, positionMs: Int)
+    fun seekTo(positionMs: Int)
 
-    fun setStopAfterCurrentTrack(context: Context, enabled: Boolean)
+    fun setStopAfterCurrentTrack(enabled: Boolean)
 
-    fun applyAudioEffects(context: Context)
+    fun applyAudioEffects()
 
-    fun replaceQueue(context: Context, queue: List<Music>, currentIndex: Int)
+    fun replaceQueue(queue: List<Music>, currentIndex: Int)
 
-    fun clearQueue(context: Context)
+    fun clearQueue()
 
-    fun removeQueueItem(context: Context, index: Int)
+    fun removeQueueItem(index: Int)
 
-    fun moveQueueItem(context: Context, fromIndex: Int, toIndex: Int)
+    fun moveQueueItem(fromIndex: Int, toIndex: Int)
 
-    fun stop(context: Context)
+    fun stop()
 
-    fun applyPlaybackTuning(context: Context)
+    fun applyPlaybackTuning()
 
-    fun refreshNotificationStyle(context: Context)
+    fun refreshNotificationStyle()
 
-    fun refreshEditedTrack(context: Context, track: Music)
+    fun refreshEditedTrack(track: Music)
 
-    fun refreshEditedTracks(context: Context, tracks: List<Music>)
+    fun refreshEditedTracks(tracks: List<Music>)
 
-    fun restartCurrentTrack(context: Context)
+    fun restartCurrentTrack()
 
-    fun cyclePlayMode(context: Context)
+    fun cyclePlayMode()
 
-    fun setShuffleAllMode(context: Context)
+    fun setShuffleAllMode()
 
-    fun toggleFavorite(context: Context)
+    fun toggleFavorite()
 }

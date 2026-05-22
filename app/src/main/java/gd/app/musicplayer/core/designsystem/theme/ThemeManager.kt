@@ -2,8 +2,8 @@ package gd.app.musicplayer.core.designsystem.theme
 
 import android.content.Context
 import gd.app.musicplayer.core.common.extension.isDarkTheme
-import gd.app.musicplayer.data.local.preference.ThemeSettings
-import gd.app.musicplayer.data.local.preference.ThemeSettingPreferenceStore
+import gd.app.musicplayer.core.datastore.ThemeSettings
+import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import gd.app.musicplayer.di.ApplicationScope
 import javax.inject.Inject
 import javax.inject.Singleton

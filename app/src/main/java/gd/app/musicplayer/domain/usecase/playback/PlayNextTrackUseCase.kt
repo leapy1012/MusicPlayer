@@ -8,6 +8,6 @@ class PlayNextTrackUseCase @Inject constructor(
     private val playbackController: PlaybackController
 ) {
     operator fun invoke(context: Context) {
-        playbackController.playNext(context)
+        playbackController.playNext()
     }
 }

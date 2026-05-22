@@ -1,11 +1,11 @@
 package gd.app.musicplayer.domain.repository
 
 import gd.app.musicplayer.core.common.extension.isValidId
-import gd.app.musicplayer.data.local.preference.PlaylistPreferenceDataStore
-import gd.app.musicplayer.data.local.preference.SortPreferencesDataStore
-import gd.app.musicplayer.data.local.db.dao.PlaylistDao
-import gd.app.musicplayer.data.local.db.entity.MusicPlaylistEntity
-import gd.app.musicplayer.data.local.db.entity.PlaylistEntity
+import gd.app.musicplayer.core.datastore.PlaylistPreferenceDataStore
+import gd.app.musicplayer.core.datastore.SortPreferencesDataStore
+import gd.app.musicplayer.core.database.dao.PlaylistDao
+import gd.app.musicplayer.core.database.entity.MusicPlaylistEntity
+import gd.app.musicplayer.core.database.entity.PlaylistEntity
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import kotlinx.coroutines.flow.Flow
