@@ -55,9 +55,9 @@ class MusicSetOptionsViewModel @Inject constructor(
             }
 
             when (action) {
-                R.string.operation_play -> playTracksUseCase(appContext, tracks, 0)
+                R.string.operation_play -> playTracksUseCase(tracks, 0)
                 R.string.play_next_2 -> {
-                    playNextTracksUseCase(appContext, tracks)
+                    playNextTracksUseCase(tracks)
                     _events.emit(
                         MusicSetOptionsEvent.ShowToast(
                             messageRes = R.string.enqueue_msg_count,
@@ -67,7 +67,7 @@ class MusicSetOptionsViewModel @Inject constructor(
                 }
 
                 R.string.operation_enqueue -> {
-                    enqueueTracksUseCase(appContext, tracks)
+                    enqueueTracksUseCase(tracks)
                     _events.emit(
                         MusicSetOptionsEvent.ShowToast(
                             messageRes = R.string.enqueue_msg_count,

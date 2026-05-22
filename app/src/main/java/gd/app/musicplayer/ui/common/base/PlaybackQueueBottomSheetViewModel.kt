@@ -101,7 +101,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         val state = uiState.value
         val queue = state.queue
         if (position !in queue.indices) return
-        playTracksUseCase(appContext, queue, position)
+        playTracksUseCase(queue, position)
         if (dismissAfterPlay) {
             emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
         }
@@ -139,7 +139,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
             else -> position
         }.coerceIn(0, updatedQueue.lastIndex)
 
-        replaceQueueUseCase(appContext, updatedQueue, nextIndex)
+        replaceQueueUseCase(updatedQueue, nextIndex)
     }
 
     fun replaceQueuePreservingCurrentTrack(updatedQueue: List<Music>, state: PlaybackQueueBottomSheetUiState) {
@@ -154,7 +154,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
             .takeIf { it >= 0 }
             ?: state.currentIndex.coerceIn(0, updatedQueue.lastIndex)
 
-        replaceQueueUseCase(appContext, updatedQueue, nextIndex)
+        replaceQueueUseCase(updatedQueue, nextIndex)
     }
 
     fun shuffleQueueKeepingCurrentTrack(state: PlaybackQueueBottomSheetUiState) {
@@ -171,7 +171,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
             }
         }
 
-        replaceQueueUseCase(appContext, shuffledQueue, 0)
+        replaceQueueUseCase(shuffledQueue, 0)
         emitEvent(PlaybackQueueBottomSheetEvent.ShowToast(R.string.shuffle))
     }
 

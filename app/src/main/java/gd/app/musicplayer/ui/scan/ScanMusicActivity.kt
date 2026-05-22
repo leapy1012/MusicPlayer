@@ -22,6 +22,9 @@ import gd.app.musicplayer.core.common.extension.readLongOrNull
 import gd.app.musicplayer.core.common.extension.setTextIfDifferent
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityScanMusicBinding
+import gd.app.musicplayer.domain.model.scan.ScanLibraryInfo
+import gd.app.musicplayer.domain.model.scan.ScanOptions
+import gd.app.musicplayer.domain.model.scan.ScanResultSummary
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.feature.library.deleted.DeletedMusicActivity
 import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity

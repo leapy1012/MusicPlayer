@@ -106,7 +106,6 @@ class ThemeViewModel @Inject constructor(
             val persistedPath = persistCustomThemeImage(imagePath)
             addThemeImageNameUseCase(persistedPath)
             applyPictureThemeUseCase(
-                context = appContext,
                 imageName = persistedPath,
                 overlayColor = DEFAULT_THEME_OVERLAY_COLOR,
                 blur = 0
@@ -121,7 +120,6 @@ class ThemeViewModel @Inject constructor(
     fun onThemeSelected(fileName: String, tabIndex: Int) {
         viewModelScope.launch {
             applyPictureThemeUseCase(
-                context = appContext,
                 imageName = fileName,
                 overlayColor = DEFAULT_THEME_OVERLAY_COLOR,
                 blur = 0

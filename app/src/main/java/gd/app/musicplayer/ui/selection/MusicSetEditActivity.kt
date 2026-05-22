@@ -315,10 +315,10 @@ class MusicSetEditActivity : BaseActivity() {
 
             when (action) {
                 ACTION_ADD_TO -> PlaylistSelectActivity.start(this@MusicSetEditActivity, tracks)
-                ACTION_PLAY -> playTracksUseCase(this@MusicSetEditActivity, tracks, 0)
+                ACTION_PLAY -> playTracksUseCase(tracks, 0)
 
                 ACTION_ENQUEUE -> {
-                    enqueueTracksUseCase(this@MusicSetEditActivity, tracks)
+                    enqueueTracksUseCase(tracks)
                     Toast.makeText(
                         this@MusicSetEditActivity,
                         getString(R.string.enqueue_msg_count, tracks.size),

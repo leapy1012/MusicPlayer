@@ -1,18 +1,15 @@
 package gd.app.musicplayer.domain.usecase.scan
 
-import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.core.database.entity.MusicEntity
+import gd.app.musicplayer.domain.model.scan.ScanLibraryInfo
+import gd.app.musicplayer.domain.model.scan.ScanOptions
+import gd.app.musicplayer.domain.model.scan.ScanResultSummary
 import gd.app.musicplayer.domain.repository.ScanRepo
 import gd.app.musicplayer.domain.usecase.playback.PrunePlaybackQueueTracksUseCase
-import gd.app.musicplayer.ui.scan.ScanLibraryInfo
-import gd.app.musicplayer.ui.scan.ScanOptions
-import gd.app.musicplayer.ui.scan.ScanResultSummary
 import javax.inject.Inject
 import kotlin.math.max
 
 class SyncMediaStoreLibraryUseCase @Inject constructor(
-    @ApplicationContext private val appContext: Context,
     private val queryMediaStoreTracksUseCase: QueryMediaStoreTracksUseCase,
     private val scanRepo: ScanRepo,
     private val prunePlaybackQueueTracksUseCase: PrunePlaybackQueueTracksUseCase
@@ -26,7 +23,7 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
     ): ScanResultSummary {
         val existingIds = scanRepo.getAllTrackIds()
         val mediaStoreIds = if (markMissingTracks) {
-            queryMediaStoreTracksUseCase.queryIds(appContext)
+            queryMediaStoreTracksUseCase.queryIds()
         } else {
             emptySet()
         }
@@ -35,10 +32,7 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
         } else {
             null
         }
-        val importedTracks = queryMediaStoreTracksUseCase(
-            context = appContext,
-            modifiedSinceMs = modifiedSinceMs
-        )
+        val importedTracks = queryMediaStoreTracksUseCase(modifiedSinceMs = modifiedSinceMs)
         val selectedScanPaths = options.selectedScanPaths
             .map(String::normalizedScanPath)
             .filter(String::isNotBlank)
@@ -79,7 +73,7 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
         }
 
         if (missingIds.isNotEmpty()) {
-            prunePlaybackQueueTracksUseCase(appContext, missingIds)
+            prunePlaybackQueueTracksUseCase(missingIds)
             scanRepo.markSourceDeleted(missingIds)
         }
 

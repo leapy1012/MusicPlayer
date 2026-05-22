@@ -82,7 +82,7 @@ class MusicOptionsViewModel @Inject constructor(
     fun playNext() {
         val music = _uiState.value.music ?: return
         viewModelScope.launch {
-            playNextTracksUseCase(appContext, listOf(music))
+            playNextTracksUseCase(listOf(music))
             eventsChannel.send(MusicOptionsEvent.ShowToast(R.string.enqueue_msg_count, listOf(1)))
         }
     }
@@ -90,7 +90,7 @@ class MusicOptionsViewModel @Inject constructor(
     fun enqueue() {
         val music = _uiState.value.music ?: return
         viewModelScope.launch {
-            enqueueTracksUseCase(appContext, listOf(music))
+            enqueueTracksUseCase(listOf(music))
             eventsChannel.send(MusicOptionsEvent.ShowToast(R.string.enqueue_msg_count, listOf(1)))
         }
     }
@@ -136,7 +136,7 @@ class MusicOptionsViewModel @Inject constructor(
                             state.currentIndex >= newQueue.size -> newQueue.lastIndex
                             else -> state.currentIndex
                         }
-                        replaceQueueUseCase(appContext, newQueue, newIndex)
+                        replaceQueueUseCase(newQueue, newIndex)
                         eventsChannel.send(MusicOptionsEvent.ShowToast(R.string.succeed))
                     }
                 }

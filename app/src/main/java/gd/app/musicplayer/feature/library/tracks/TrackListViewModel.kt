@@ -188,10 +188,7 @@ class TrackListViewModel @Inject constructor(
         viewModelScope.launch {
             val tracks = currentTracksOrShowEmptyMessage() ?: return@launch
 
-            shuffleTracksUseCase(
-                context = appContext,
-                tracks = tracks
-            )
+            shuffleTracksUseCase(tracks)
         }
     }
 
@@ -199,10 +196,7 @@ class TrackListViewModel @Inject constructor(
         viewModelScope.launch {
             val tracks = currentTracksOrShowEmptyMessage() ?: return@launch
 
-            playNextTracksUseCase(
-                context = appContext,
-                tracks = tracks
-            )
+            playNextTracksUseCase(tracks)
 
             _events.emit(
                 TrackListEvent.ShowEnqueuedMessage(tracks.size)
@@ -214,10 +208,7 @@ class TrackListViewModel @Inject constructor(
         viewModelScope.launch {
             val tracks = currentTracksOrShowEmptyMessage() ?: return@launch
 
-            enqueueTracksUseCase(
-                context = appContext,
-                tracks = tracks
-            )
+            enqueueTracksUseCase(tracks)
 
             _events.emit(
                 TrackListEvent.ShowEnqueuedMessage(tracks.size)

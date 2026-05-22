@@ -3,25 +3,27 @@ package gd.app.musicplayer.feature.widget
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.ActivityWidgetConfigStyleItemBinding
+import kotlin.math.roundToInt
 
 internal class WidgetStyleAdapter(
     private val applyTheme: (View) -> Unit,
     private val onSelected: (WidgetStyleOption) -> Unit
-) : RecyclerView.Adapter<WidgetStyleAdapter.ViewHolder>() {
+) : ListAdapter<WidgetStyleOption, WidgetStyleAdapter.ViewHolder>(DiffCallback) {
 
-    private var items: List<WidgetStyleOption> = emptyList()
-    private var classify: String = "4*1"
-    private var selected: WidgetStyleOption? = null
+    private var classify: String = DEFAULT_CLASSIFY
+    private var selectedStyleKey: String? = null
 
     init {
         setHasStableIds(true)
     }
 
     override fun getItemId(position: Int): Long {
-        return items[position].styleKey.hashCode().toLong()
+        return getItem(position).styleKey.hashCode().toLong()
     }
 
     override fun onCreateViewHolder(
@@ -33,41 +35,61 @@ internal class WidgetStyleAdapter(
             parent,
             false
         )
+
         applyTheme(binding.root)
-        return ViewHolder(binding, onSelected)
+
+        return ViewHolder(
+            binding = binding,
+            onSelected = onSelected
+        )
     }
 
     override fun onBindViewHolder(
         holder: ViewHolder,
         position: Int
     ) {
-        val item = items[position]
-        holder.bind(item, item == selected, classify)
+        val item = getItem(position)
+
+        holder.bind(
+            item = item,
+            isSelected = item.styleKey == selectedStyleKey,
+            classify = classify
+        )
     }
 
-    override fun getItemCount(): Int = items.size
-
-    fun setItems(
+    fun submitItems(
         items: List<WidgetStyleOption>,
         classify: String
     ) {
-        this.items = items
         this.classify = classify
-        notifyDataSetChanged()
+        submitList(items)
     }
 
     fun submitSelection(value: WidgetStyleOption?) {
-        if (selected == value) return
+        val oldStyleKey = selectedStyleKey
+        val newStyleKey = value?.styleKey
 
-        val oldIndex = items.indexOf(selected)
-        val newIndex = items.indexOf(value)
-        selected = value
+        if (oldStyleKey == newStyleKey) return
 
-        if (oldIndex >= 0) notifyItemChanged(oldIndex)
-        if (newIndex >= 0) notifyItemChanged(newIndex)
+        selectedStyleKey = newStyleKey
+
+        notifyStyleChanged(oldStyleKey)
+        notifyStyleChanged(newStyleKey)
     }
 
-    class ViewHolder(
+    private fun notifyStyleChanged(styleKey: String?) {
+        if (styleKey == null) return
+
+        val index = currentList.indexOfFirst { item ->
+            item.styleKey == styleKey
+        }
+
+        if (index >= 0) {
+            notifyItemChanged(index)
+        }
+    }
+
+    internal class ViewHolder(
         private val binding: ActivityWidgetConfigStyleItemBinding,
         private val onSelected: (WidgetStyleOption) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
@@ -76,48 +98,103 @@ internal class WidgetStyleAdapter(
             item: WidgetStyleOption,
             isSelected: Boolean,
             classify: String
-        ) {
-            binding.itemImage.setImageResource(item.previewRes)
-            binding.itemSelect.visibility = if (isSelected) View.VISIBLE else View.GONE
-            applyPreviewSize(classify)
-            binding.root.setOnClickListener { onSelected(item) }
+        ) = with(binding) {
+            itemImage.setImageResource(item.previewRes)
+            itemSelect.visibility = if (isSelected) View.VISIBLE else View.GONE
+
+            itemContent.applyPreviewSize(classify)
+
+            root.setOnClickListener {
+                onSelected(item)
+            }
         }
 
-        private fun applyPreviewSize(classify: String) {
-            val resources = binding.root.resources
-            val params = binding.itemContent.layoutParams as ViewGroup.MarginLayoutParams
-
-            val height = when (classify) {
-                "2*1" -> resources.getDimensionPixelSize(R.dimen.widget_config_style_h_2x1)
-                "3*2" -> resources.getDimensionPixelSize(R.dimen.widget_config_style_h_3x2)
-                "4*1" -> resources.getDimensionPixelSize(R.dimen.widget_config_style_h_4x1)
-                "4*2" -> resources.getDimensionPixelSize(R.dimen.widget_config_style_h_4x2)
-                "4*3" -> resources.getDimensionPixelSize(R.dimen.widget_config_style_h_4x3)
-                else -> resources.getDimensionPixelSize(R.dimen.widget_config_style_h_4x4)
-            }
-
-            val width = when (classify) {
-                "2*1" -> height * 2
-                "3*2" -> (height * 1.38f).toInt()
-                "4*1" -> (height * 4.286f).toInt()
-                "4*2" -> (height * 2.26f).toInt()
-                "4*3" -> (height * 1.38f).toInt()
-                else -> height
-            }
-
-            val margin = if (classify == "4*1") {
+        private fun View.applyPreviewSize(classify: String) {
+            val sizeSpec = WidgetStylePreviewSize.from(classify)
+            val height = resources.getDimensionPixelSize(sizeSpec.heightRes)
+            val width = (height * sizeSpec.widthRatio).roundToInt()
+            val margin = if (sizeSpec.hasOuterMargin) {
                 resources.getDimensionPixelSize(R.dimen.widget_config_content_margin_start)
             } else {
                 0
             }
 
-            params.width = width
-            params.height = height
-            params.leftMargin = margin
-            params.topMargin = margin
-            params.rightMargin = margin
-            params.bottomMargin = margin
-            binding.itemContent.layoutParams = params
+            updateMarginLayoutParams {
+                this.width = width
+                this.height = height
+                setMargins(margin, margin, margin, margin)
+            }
         }
+
+        private inline fun View.updateMarginLayoutParams(
+            block: ViewGroup.MarginLayoutParams.() -> Unit
+        ) {
+            val params = layoutParams as? ViewGroup.MarginLayoutParams ?: return
+            params.block()
+            layoutParams = params
+        }
+    }
+
+    private data class WidgetStylePreviewSize(
+        val heightRes: Int,
+        val widthRatio: Float,
+        val hasOuterMargin: Boolean = false
+    ) {
+        companion object {
+            fun from(classify: String): WidgetStylePreviewSize {
+                return when (classify) {
+                    "2*1" -> WidgetStylePreviewSize(
+                        heightRes = R.dimen.widget_config_style_h_2x1,
+                        widthRatio = 2f
+                    )
+
+                    "3*2" -> WidgetStylePreviewSize(
+                        heightRes = R.dimen.widget_config_style_h_3x2,
+                        widthRatio = 1.38f
+                    )
+
+                    "4*1" -> WidgetStylePreviewSize(
+                        heightRes = R.dimen.widget_config_style_h_4x1,
+                        widthRatio = 4.286f,
+                        hasOuterMargin = true
+                    )
+
+                    "4*2" -> WidgetStylePreviewSize(
+                        heightRes = R.dimen.widget_config_style_h_4x2,
+                        widthRatio = 2.26f
+                    )
+
+                    "4*3" -> WidgetStylePreviewSize(
+                        heightRes = R.dimen.widget_config_style_h_4x3,
+                        widthRatio = 1.38f
+                    )
+
+                    else -> WidgetStylePreviewSize(
+                        heightRes = R.dimen.widget_config_style_h_4x4,
+                        widthRatio = 1f
+                    )
+                }
+            }
+        }
+    }
+
+    private object DiffCallback : DiffUtil.ItemCallback<WidgetStyleOption>() {
+        override fun areItemsTheSame(
+            oldItem: WidgetStyleOption,
+            newItem: WidgetStyleOption
+        ): Boolean {
+            return oldItem.styleKey == newItem.styleKey
+        }
+
+        override fun areContentsTheSame(
+            oldItem: WidgetStyleOption,
+            newItem: WidgetStyleOption
+        ): Boolean {
+            return oldItem == newItem
+        }
+    }
+
+    private companion object {
+        const val DEFAULT_CLASSIFY = "4*1"
     }
 }

@@ -64,12 +64,12 @@
             android:configChanges="keyboardHidden|keyboard" />
 
         <activity
-            android:name=".ui.library.albums.AlbumActivity"
+            android:name=".feature.library.albums.AlbumActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.library.albums.AlbumMusicActivity"
+            android:name=".feature.library.albums.AlbumMusicActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -91,7 +91,7 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.playlist.PlaylistSelectActivity"
+            android:name=".feature.playlist.PlaylistSelectActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -101,7 +101,7 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.search.SearchActivity"
+            android:name=".feature.search.SearchActivity"
             android:configChanges="screenSize|orientation|keyboardHidden|keyboard"
             android:windowSoftInputMode="adjustPan" />
 
@@ -114,7 +114,7 @@
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.library.deleted.DeletedMusicActivity"
+            android:name=".feature.library.deleted.DeletedMusicActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
@@ -123,11 +123,11 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.equalizer.EqualizerActivity"
+            android:name=".feature.equalizer.EqualizerActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.equalizer.EffectGroupActivity"
+            android:name=".feature.equalizer.EffectGroupActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
@@ -136,19 +136,19 @@
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".ui.lyrics.LyricEditActivity"
+            android:name=".feature.lyrics.LyricEditActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.lyrics.LyricListActivity"
+            android:name=".feature.lyrics.LyricListActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.lyrics.LrcBrowserActivity"
+            android:name=".feature.lyrics.LrcBrowserActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.library.artwork.ArtworkCropActivity"
+            android:name=".feature.library.artwork.ArtworkCropActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
@@ -157,11 +157,11 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.widget.WidgetActivity"
+            android:name=".feature.widget.WidgetActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.widget.WidgetConfigActivity"
+            android:name=".feature.widget.WidgetConfigActivity"
             android:theme="@style/AppTheme.WidgetConfig"
             android:exported="true"
             android:excludeFromRecents="true"
@@ -186,16 +186,16 @@
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.setting.SettingActivity"
+            android:name=".feature.setting.SettingActivity"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
-            android:name=".ui.lyrics.StatusBarLyricsActivity"
+            android:name=".feature.lyrics.StatusBarLyricsActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.lock.LockActivity"
+            android:name=".feature.lock.LockActivity"
             android:theme="@style/AppTheme.Lock"
             android:taskAffinity="${applicationId}.LOCK"
             android:launchMode="singleInstance"
@@ -204,7 +204,7 @@
             tools:targetApi="27" />
 
         <activity
-            android:name=".ui.player.full.MusicPlayActivity"
+            android:name=".feature.player.full.MusicPlayActivity"
             android:theme="@style/AppTheme.Transparent"
             android:label="@string/music_player"
             android:exported="false"
@@ -213,17 +213,17 @@
             android:configChanges="keyboardHidden|keyboard" />
 
         <activity
-            android:name=".ui.player.queue.PlayQueueActivity"
+            android:name=".feature.player.queue.PlayQueueActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.library.hidden.HiddenFoldersActivity"
+            android:name=".feature.library.hidden.HiddenFoldersActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.library.hidden.HiddenFoldersAddActivity"
+            android:name=".feature.library.hidden.HiddenFoldersAddActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -239,7 +239,7 @@
             </intent-filter>
         </service>
         <service
-            android:name=".ui.widget.WidgetQueueService"
+            android:name=".feature.widget.WidgetQueueService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
@@ -253,7 +253,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget2x2Transparent"
+            android:name=".feature.widget.provider.Widget2x2Transparent"
             android:enabled="true"
             android:exported="true"
             android:label="@string/widget_2x1">
@@ -267,7 +267,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x2"
+            android:name=".feature.widget.provider.Widget4x2"
             android:enabled="true"
             android:exported="true"
             android:label="@string/widget_3x2">
@@ -281,7 +281,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x1Transparent"
+            android:name=".feature.widget.provider.Widget4x1Transparent"
             android:enabled="true"
             android:exported="true"
             android:label="@string/widget_4x1">
@@ -295,7 +295,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x1White"
+            android:name=".feature.widget.provider.Widget4x1White"
             android:enabled="true"
             android:exported="true"
             android:label="@string/widget_4x2">
@@ -309,7 +309,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x2Large"
+            android:name=".feature.widget.provider.Widget4x2Large"
             android:enabled="true"
             android:exported="true"
             android:label="@string/widget_4x3">
@@ -323,7 +323,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.Widget4x4"
+            android:name=".feature.widget.provider.Widget4x4"
             android:enabled="true"
             android:exported="true"
             android:label="@string/widget_4x4">
@@ -337,7 +337,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.provider.WidgetList"
+            android:name=".feature.widget.provider.WidgetList"
             android:enabled="true"
             android:exported="true"
             android:label="@string/widget_list">

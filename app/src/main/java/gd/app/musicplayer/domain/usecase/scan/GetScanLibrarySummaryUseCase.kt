@@ -1,7 +1,7 @@
 package gd.app.musicplayer.domain.usecase.scan
 
 import gd.app.musicplayer.domain.repository.ScanRepo
-import gd.app.musicplayer.ui.scan.ScanLibraryInfo
+import gd.app.musicplayer.domain.model.scan.ScanLibraryInfo
 import javax.inject.Inject
 
 class GetScanLibrarySummaryUseCase @Inject constructor(

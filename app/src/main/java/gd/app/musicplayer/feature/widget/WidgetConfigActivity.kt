@@ -141,7 +141,7 @@ class WidgetConfigActivity : BaseActivity() {
         selectedThemeAlpha = currentConfig.alpha.coerceIn(0f, 1f)
 
         themeAdapter.submitSelection(selectedThemeOption)
-        styleAdapter.setItems(
+        styleAdapter.submitItems(
             items = spec.styles,
             classify = spec.classify
         )

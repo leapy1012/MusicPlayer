@@ -53,7 +53,7 @@ class QueueTrackOptionsViewModel @Inject constructor(
             if (index >= 0) {
                 playbackController.playIndex(index)
             } else {
-                playTracksUseCase(appContext, listOf(music), 0)
+                playTracksUseCase(listOf(music), 0)
             }
 
             emit(QueueTrackOptionsEvent.Dismiss)
@@ -123,7 +123,7 @@ class QueueTrackOptionsViewModel @Inject constructor(
                 state.currentIndex >= newQueue.size -> newQueue.lastIndex
                 else -> state.currentIndex
             }
-            replaceQueueUseCase(appContext, newQueue, newIndex)
+            replaceQueueUseCase(newQueue, newIndex)
             emit(QueueTrackOptionsEvent.ShowToast(R.string.succeed))
             emit(QueueTrackOptionsEvent.Dismiss)
         }

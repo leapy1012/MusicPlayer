@@ -212,7 +212,7 @@ class ScanSettingViewModel @Inject constructor(
             }
 
         val fromMediaStore = runCatching {
-            queryMediaStoreTracksUseCase(appContext)
+            queryMediaStoreTracksUseCase()
                 .groupingBy { track -> normalizeSelectedPath(track.folderPath) }
                 .eachCount()
                 .filterKeys(String::isNotBlank)

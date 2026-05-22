@@ -151,12 +151,12 @@ class EditBottomMenuController(
             R.string.operation_play -> {
                 val songsToPlay = buildTargetMusicList(selectedSongs, true)
                 ToastUtil.show(activity, activity.getString(R.string.edit_play_tips, songsToPlay.size))
-                playTracksUseCase(activity, songsToPlay, 0)
+                playTracksUseCase(songsToPlay, 0)
             }
 
             R.string.play_next_2 -> {
                 val songsToPlayNext = buildTargetMusicList(selectedSongs, true)
-                playNextTracksUseCase(activity, songsToPlayNext)
+                playNextTracksUseCase(songsToPlayNext)
                 ToastUtil.show(activity, activity.getString(R.string.enqueue_msg_count, songsToPlayNext.size))
             }
 
@@ -170,7 +170,7 @@ class EditBottomMenuController(
                     activity,
                     activity.getString(R.string.enqueue_msg_count, songsToEnqueue.size)
                 )
-                enqueueTracksUseCase(activity, songsToEnqueue)
+                enqueueTracksUseCase(songsToEnqueue)
             }
 
             R.string.add_to_favourite_2 -> {
@@ -210,11 +210,7 @@ class EditBottomMenuController(
                             .takeIf { it >= 0 }
                             ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
                     }
-                    replaceQueueUseCase(
-                        activity,
-                        newQueue,
-                        newIndex
-                    )
+                    replaceQueueUseCase(newQueue, newIndex)
                     ToastUtil.show(activity, R.string.succeed)
                 }
 
@@ -287,5 +283,4 @@ class EditBottomMenuController(
         }
     }
 }
-
 

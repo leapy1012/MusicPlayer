@@ -131,7 +131,7 @@ class RemoveTrackFromSetConfirmDialogFragment : BaseDialogFragment(), View.OnCli
             state.currentIndex >= newQueue.size -> newQueue.lastIndex
             else -> state.currentIndex
         }
-        replaceQueueUseCase(appContext, newQueue, newIndex)
+        replaceQueueUseCase(newQueue, newIndex)
         return true
     }
 

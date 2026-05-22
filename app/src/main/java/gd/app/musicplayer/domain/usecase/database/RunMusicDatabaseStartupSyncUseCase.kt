@@ -1,23 +1,16 @@
 package gd.app.musicplayer.domain.usecase.database
 
-import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
-import dagger.hilt.android.qualifiers.ApplicationContext
-import gd.app.musicplayer.core.mediastore.MediaStoreMusicImporter
-import gd.app.musicplayer.core.database.MusicDatabase
-import gd.app.musicplayer.core.database.MusicDatabaseSeedProvider
-import gd.app.musicplayer.core.database.MusicDatabaseSeeder
 import gd.app.musicplayer.core.datastore.AppStartupPreferenceDataStore
+import gd.app.musicplayer.domain.repository.DatabaseStartupGateway
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class RunMusicDatabaseStartupSyncUseCase @Inject constructor(
-    @param:ApplicationContext private val context: Context,
-    private val database: MusicDatabase,
-    private val seedProvider: MusicDatabaseSeedProvider,
-    private val appStartupPreferenceDataStore: AppStartupPreferenceDataStore
+    private val appStartupPreferenceDataStore: AppStartupPreferenceDataStore,
+    private val databaseStartupGateway: DatabaseStartupGateway
 ) {
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -34,8 +27,7 @@ class RunMusicDatabaseStartupSyncUseCase @Inject constructor(
             return
         }
 
-        MusicDatabaseSeeder(context, seedProvider)
-            .reseedEffectPresets(database.openHelper.writableDatabase)
+        databaseStartupGateway.reseedEffectPresets()
 
         appStartupPreferenceDataStore.setEffectPresetSchemaVersion(
             EFFECT_PRESET_SCHEMA_VERSION
@@ -48,9 +40,7 @@ class RunMusicDatabaseStartupSyncUseCase @Inject constructor(
             return
         }
 
-        val music = MediaStoreMusicImporter().queryMusic(context)
-        database.musicDao().upsertAll(music)
-
+        databaseStartupGateway.importAllMusic()
         appStartupPreferenceDataStore.setFirstStart(false)
     }
 

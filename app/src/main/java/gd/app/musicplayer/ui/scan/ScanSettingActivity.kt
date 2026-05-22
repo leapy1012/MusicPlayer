@@ -9,7 +9,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,9 +26,6 @@ import gd.app.musicplayer.databinding.ActivityScanSettingListItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import kotlinx.coroutines.launch
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 
 @AndroidEntryPoint
 class ScanSettingActivity : BaseActivity() {
@@ -31,30 +33,41 @@ class ScanSettingActivity : BaseActivity() {
     private val viewModel: ScanSettingViewModel by viewModels()
 
     private lateinit var binding: ActivityScanSettingBinding
-    private lateinit var adapter: ScanFolderAdapter
-    private lateinit var layoutManager: LinearLayoutManager
+
+    private val folderAdapter by lazy {
+        ScanFolderAdapter(
+            applyTheme = themeEngine::apply,
+            onFolderClick = ::openFolder,
+            onSelectionChanged = ::onFolderSelectionChanged
+        )
+    }
+
+    private val folderLayoutManager by lazy {
+        LinearLayoutManager(this)
+    }
 
     private val backCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
-            if (!viewModel.navigateUp()) {
-                isEnabled = false
-                onBackPressedDispatcher.onBackPressed()
-            }
+            if (viewModel.navigateUp()) return
+
+            isEnabled = false
+            onBackPressedDispatcher.onBackPressed()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         binding = ActivityScanSettingBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         onBackPressedDispatcher.addCallback(this, backCallback)
 
         setupToolbar()
-        setupRecyclerView()
+        setupFolderList()
         setupStartButton()
-        observeUiState()
-        observeEvents()
+        collectUiState()
+        collectEvents()
 
         viewModel.load(intent.selectedScanPaths())
     }
@@ -69,47 +82,21 @@ class ScanSettingActivity : BaseActivity() {
         )
     }
 
-    private fun setupRecyclerView() {
-        adapter = ScanFolderAdapter(
-            applyTheme = { view -> themeEngine.apply(view) },
-            onFolderClick = { item ->
-                viewModel.openFolder(
-                    itemPath = item.path,
-                    scrollPosition = layoutManager.findFirstVisibleItemPosition().coerceAtLeast(0),
-                    scrollOffset = layoutManager.findViewByPosition(
-                        layoutManager.findFirstVisibleItemPosition().coerceAtLeast(0)
-                    )?.top ?: 0
-                )
-            },
-            onSelectionChanged = { item, selected ->
-                viewModel.setSelected(item.path, selected)
-            }
-        )
+    private fun setupFolderList() = with(binding.recyclerView.recyclerview) {
+        layoutManager = folderLayoutManager
+        adapter = folderAdapter
+        setHasFixedSize(true)
 
-        layoutManager = LinearLayoutManager(this)
-
-        binding.root.findViewById<RecyclerView>(R.id.recyclerview).apply {
-            layoutManager = this@ScanSettingActivity.layoutManager
-            adapter = this@ScanSettingActivity.adapter
-            setHasFixedSize(true)
-
-            (itemAnimator as? SimpleItemAnimator)
-                ?.supportsChangeAnimations = false
-        }
+        (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
     }
 
     private fun setupStartButton() {
         binding.scanSettingPathStart.setOnClickListener {
-            val selectedPaths = ArrayList(viewModel.uiState.value.selectedPaths)
-            setResult(
-                Activity.RESULT_OK,
-                Intent().putStringArrayListExtra(EXTRA_SELECT_PATHS, selectedPaths)
-            )
-            finish()
+            finishWithSelectedPaths()
         }
     }
 
-    private fun observeUiState() {
+    private fun collectUiState() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect(::render)
@@ -117,53 +104,120 @@ class ScanSettingActivity : BaseActivity() {
         }
     }
 
-    private fun observeEvents() {
+    private fun collectEvents() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.events.collect { event ->
-                    when (event) {
-                        ScanSettingEvent.NoSubfolders -> {
-                            ToastUtil.show(this@ScanSettingActivity, R.string.no_subfolders)
-                            viewModel.consumeEvent()
-                        }
-
-                        null -> Unit
-                    }
-                }
+                viewModel.events.collect(::handleEvent)
             }
         }
     }
 
     private fun render(state: ScanSettingUiState) {
+        renderToolbar(state)
+        renderFolders(state)
+        restoreScrollIfNeeded(state)
+    }
+
+    private fun renderToolbar(state: ScanSettingUiState) = with(binding.toolbar) {
         if (state.currentPath == ROOT_PATH) {
-            binding.toolbar.setTitle(R.string.scan_specified_folder)
-            binding.toolbar.subtitle = null
+            setTitle(R.string.scan_specified_folder)
+            subtitle = null
         } else {
-            binding.toolbar.title = state.currentName
-            binding.toolbar.subtitle = state.currentPath
-        }
-
-        adapter.submitFolders(
-            items = state.items,
-            selectedPaths = state.selectedPaths
-        )
-
-        if (state.restoreScroll) {
-            binding.root.findViewById<RecyclerView>(R.id.recyclerview).post {
-                layoutManager.scrollToPositionWithOffset(
-                    state.scrollPosition,
-                    state.scrollOffset
-                )
-            }
+            title = state.currentName
+            subtitle = state.currentPath
         }
     }
+
+    private fun renderFolders(state: ScanSettingUiState) {
+        folderAdapter.submitFolders(
+            folders = state.items,
+            selectedPaths = state.selectedPaths
+        )
+    }
+
+    private fun restoreScrollIfNeeded(state: ScanSettingUiState) {
+        if (!state.restoreScroll) return
+
+        binding.recyclerView.recyclerview.post {
+            folderLayoutManager.scrollToPositionWithOffset(
+                state.scrollPosition,
+                state.scrollOffset
+            )
+        }
+    }
+
+    private fun handleEvent(event: ScanSettingEvent?) {
+        when (event) {
+            ScanSettingEvent.NoSubfolders -> {
+                ToastUtil.show(this, R.string.no_subfolders)
+                viewModel.consumeEvent()
+            }
+
+            null -> Unit
+        }
+    }
+
+    private fun openFolder(item: ScanFolderItem) {
+        val scroll = currentScrollPosition()
+
+        viewModel.openFolder(
+            itemPath = item.path,
+            scrollPosition = scroll.position,
+            scrollOffset = scroll.offset
+        )
+    }
+
+    private fun onFolderSelectionChanged(
+        item: ScanFolderItem,
+        selected: Boolean
+    ) {
+        viewModel.setSelected(item.path, selected)
+    }
+
+    private fun currentScrollPosition(): FolderListScrollPosition {
+        val position = folderLayoutManager
+            .findFirstVisibleItemPosition()
+            .coerceAtLeast(0)
+
+        val offset = folderLayoutManager
+            .findViewByPosition(position)
+            ?.top
+            ?: 0
+
+        return FolderListScrollPosition(
+            position = position,
+            offset = offset
+        )
+    }
+
+    private fun finishWithSelectedPaths() {
+        val selectedPaths = ArrayList(viewModel.uiState.value.selectedPaths)
+
+        setResult(
+            RESULT_OK,
+            Intent().putStringArrayListExtra(EXTRA_SELECT_PATHS, selectedPaths)
+        )
+
+        finish()
+    }
+
+    private data class FolderListScrollPosition(
+        val position: Int,
+        val offset: Int
+    )
 
     companion object {
         const val EXTRA_SELECT_PATHS = "selectPaths"
 
-        fun intent(context: Context, selectedPaths: Collection<String>): Intent {
+        fun intent(
+            context: Context,
+            selectedPaths: Collection<String>
+        ): Intent {
             return Intent(context, ScanSettingActivity::class.java)
-                .putStringArrayListExtra(EXTRA_SELECT_PATHS, ArrayList(selectedPaths))
+                .putStringArrayListExtra(
+                    EXTRA_SELECT_PATHS,
+                    ArrayList(selectedPaths)
+                )
         }
     }
 }
@@ -172,24 +226,20 @@ private class ScanFolderAdapter(
     private val applyTheme: (View) -> Unit,
     private val onFolderClick: (ScanFolderItem) -> Unit,
     private val onSelectionChanged: (ScanFolderItem, Boolean) -> Unit
-) : RecyclerView.Adapter<ScanFolderAdapter.ViewHolder>() {
-
-    private var items: List<ScanFolderItem> = emptyList()
-    private var selectedPaths: Set<String> = emptySet()
+) : ListAdapter<ScanFolderRow, ScanFolderAdapter.ViewHolder>(DiffCallback) {
 
     init {
         setHasStableIds(true)
     }
 
-    override fun getItemCount(): Int {
-        return items.size
-    }
-
     override fun getItemId(position: Int): Long {
-        return items[position].path.hashCode().toLong()
+        return getItem(position).stableId
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): ViewHolder {
         val binding = ActivityScanSettingListItemBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
@@ -205,49 +255,57 @@ private class ScanFolderAdapter(
         )
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        applyTheme(holder.itemView)
-        val item = items[position]
-        holder.bind(item, selectedPaths.contains(normalizeSelectedPath(item.path)))
+    override fun onBindViewHolder(
+        holder: ViewHolder,
+        position: Int
+    ) {
+        holder.bind(getItem(position))
     }
 
     fun submitFolders(
-        items: List<ScanFolderItem>,
+        folders: List<ScanFolderItem>,
         selectedPaths: Set<String>
     ) {
-        this.items = items
-        this.selectedPaths = selectedPaths
-        notifyDataSetChanged()
+        val rows = folders.map { folder ->
+            ScanFolderRow(
+                item = folder,
+                selected = normalizeSelectedPath(folder.path) in selectedPaths
+            )
+        }
+
+        submitList(rows)
     }
 
     class ViewHolder(
         private val binding: ActivityScanSettingListItemBinding,
         private val onFolderClick: (ScanFolderItem) -> Unit,
         private val onSelectionChanged: (ScanFolderItem, Boolean) -> Unit
-    ) : RecyclerView.ViewHolder(binding.root), SelectBox.OnSelectChangedListener {
+    ) : RecyclerView.ViewHolder(binding.root),
+        SelectBox.OnSelectChangedListener {
 
-        private var boundItem: ScanFolderItem? = null
+        private var boundRow: ScanFolderRow? = null
 
         init {
             binding.root.setOnClickListener {
-                boundItem?.let(onFolderClick)
+                boundRow?.item?.let(onFolderClick)
             }
+
             binding.scanSettingItemCheckbox.setOnSelectChangedListener(this)
         }
 
-        fun bind(item: ScanFolderItem, selected: Boolean) {
-            boundItem = item
-            binding.scanSettingItemTitle.text = item.name
-            binding.scanSettingItemExtra.text =
-                binding.root.resources.getQuantityString(
-                    R.plurals.plurals_track,
-                    item.trackCount,
-                    item.trackCount
-                )
+        fun bind(row: ScanFolderRow) = with(binding) {
+            boundRow = row
 
-            binding.scanSettingItemImage.setImageResource(item.iconRes)
+            scanSettingItemTitle.text = row.item.name
 
-            binding.scanSettingItemCheckbox.isSelected = selected
+            scanSettingItemExtra.text = root.resources.getQuantityString(
+                R.plurals.plurals_track,
+                row.item.trackCount,
+                row.item.trackCount
+            )
+
+            scanSettingItemImage.setImageResource(row.item.iconRes)
+            scanSettingItemCheckbox.isSelected = row.selected
         }
 
         override fun onSelectChanged(
@@ -256,9 +314,36 @@ private class ScanFolderAdapter(
             isSelected: Boolean
         ) {
             if (!fromUser) return
-            boundItem?.let { item -> onSelectionChanged(item, isSelected) }
+
+            boundRow?.item?.let { item ->
+                onSelectionChanged(item, isSelected)
+            }
         }
     }
+
+    private object DiffCallback : DiffUtil.ItemCallback<ScanFolderRow>() {
+        override fun areItemsTheSame(
+            oldItem: ScanFolderRow,
+            newItem: ScanFolderRow
+        ): Boolean {
+            return oldItem.item.path == newItem.item.path
+        }
+
+        override fun areContentsTheSame(
+            oldItem: ScanFolderRow,
+            newItem: ScanFolderRow
+        ): Boolean {
+            return oldItem == newItem
+        }
+    }
+}
+
+private data class ScanFolderRow(
+    val item: ScanFolderItem,
+    val selected: Boolean
+) {
+    val stableId: Long
+        get() = item.path.hashCode().toLong()
 }
 
 private fun Intent.selectedScanPaths(): List<String> {

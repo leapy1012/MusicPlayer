@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
+import gd.app.musicplayer.domain.model.scan.ScanLibraryInfo
+import gd.app.musicplayer.domain.model.scan.ScanOptions
+import gd.app.musicplayer.domain.model.scan.ScanResultSummary
 import gd.app.musicplayer.domain.usecase.scan.GetScanLibrarySummaryUseCase
 import gd.app.musicplayer.domain.usecase.scan.LoadScanOptionsUseCase
 import gd.app.musicplayer.domain.usecase.scan.ScanAudioFilesUseCase
@@ -29,30 +32,6 @@ enum class ScanStep {
     ParsingFiles,
     WritingDatabase
 }
-
-data class ScanOptions(
-    val excludeBySeconds: Boolean = false,
-    val excludeBySize: Boolean = false,
-    val excludeRingtone: Boolean = false,
-    val excludeSeconds: Long = 60L,
-    val excludeSizeKb: Long = 50L,
-    val selectedScanPaths: List<String> = emptyList()
-)
-
-data class ScanResultSummary(
-    val importedCount: Int,
-    val filteredOutCount: Int,
-    val addedCount: Int,
-    val deletedCount: Int,
-    val hiddenCount: Int = 0,
-    val libraryInfo: ScanLibraryInfo = ScanLibraryInfo()
-)
-
-data class ScanLibraryInfo(
-    val songs: Int = 0,
-    val albums: Int = 0,
-    val artists: Int = 0
-)
 
 data class ScanUiState(
     val phase: ScanPhase = ScanPhase.Idle,

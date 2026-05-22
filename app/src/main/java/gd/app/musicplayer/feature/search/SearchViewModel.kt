@@ -116,7 +116,7 @@ class SearchViewModel @Inject constructor(
             getReplaySongEnabledUseCase() && isCurrentTrack && playbackState.isPlaying
 
         if (shouldReplayCurrent) {
-            restartCurrentTrackUseCase(appContext)
+            restartCurrentTrackUseCase()
             if (isTrackClickOperationEnabledUseCase()) {
                 _events.emit(SearchEvent.OpenNowPlaying)
             }
@@ -140,7 +140,7 @@ class SearchViewModel @Inject constructor(
         }
 
         val (queue, startIndex) = resolvePlaybackQueue(song)
-        playTracksUseCase(appContext, queue, startIndex)
+        playTracksUseCase(queue, startIndex)
         if (isTrackClickOperationEnabledUseCase()) {
             _events.emit(SearchEvent.OpenNowPlaying)
         }

@@ -1,17 +1,12 @@
 package gd.app.musicplayer.domain.usecase.playback
 
-import android.content.Context
-import gd.app.musicplayer.domain.model.Music
 import javax.inject.Inject
 
 class PrunePlaybackQueueTracksUseCase @Inject constructor(
     private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase
 ) {
-    operator fun invoke(
-        context: Context,
-        trackIds: Collection<Long>
-    ) {
+    operator fun invoke(trackIds: Collection<Long>) {
         val ids = trackIds.distinct().toHashSet()
         if (ids.isEmpty()) return
 
@@ -33,6 +28,6 @@ class PrunePlaybackQueueTracksUseCase @Inject constructor(
                 ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
         }
 
-        replaceQueueUseCase(context, newQueue, newIndex)
+        replaceQueueUseCase(newQueue, newIndex)
     }
 }
