@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="@dimen/item_recycler_height"
     android:minHeight="@dimen/item_recycler_height">
-    <androidx.appcompat.widget.AppCompatImageView
+    <gd.app.lib.view.UniformRadiusImageView
         android:id="@+id/music_item_album"
         android:layout_width="52dp"
         android:layout_height="52dp"
@@ -13,7 +13,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/vector_playlist_add"/>
+        app:srcCompat="@drawable/vector_playlist_add"
+        app:urivCornerRadius="@dimen/item_image_corner_radius"/>
     <androidx.appcompat.widget.AppCompatTextView
         android:textSize="16sp"
         android:textColor="@color/item_title_color"

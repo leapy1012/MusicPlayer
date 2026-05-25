@@ -5,12 +5,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.annotation.DrawableRes
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.theme.contentColor
+import gd.app.musicplayer.core.designsystem.theme.headerOverlayColor
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentPlaylistAddHeaderBinding
 import gd.app.musicplayer.databinding.FragmentPlaylistAddItemBinding
@@ -25,7 +26,6 @@ class PlaylistSelectAdapter(
 ) : ListAdapter<PlaylistRow, RecyclerView.ViewHolder>(RowDiffCallback) {
 
     private val selectedPlaylistIds = linkedSetOf<Long>()
-    private val lockedPlaylistIds = linkedSetOf<Long>()
     private var selectionCountListener: OnSelectionCountChangedListener? = null
     private var createPlaylistClickListener: (() -> Unit)? = null
     private var selectionChangedListener: ((Set<MusicSet>) -> Unit)? = null
@@ -66,7 +66,7 @@ class PlaylistSelectAdapter(
                 holder.bind(
                     item = item,
                     selected = isChecked(item.id),
-                    locked = isLocked(item.id)
+                    locked = item.disabled
                 )
             }
         }
@@ -86,7 +86,7 @@ class PlaylistSelectAdapter(
             val item = (getItem(position) as PlaylistRow.Item).playlist
             holder.bindSelection(
                 selected = isChecked(item.id),
-                locked = isLocked(item.id)
+                locked = item.disabled
             )
             return
         }
@@ -108,11 +108,6 @@ class PlaylistSelectAdapter(
         val selectedIds = selectedItems.mapNotNullTo(linkedSetOf()) { set ->
             (set as? MusicSet.Playlist)?.id
         }
-        val lockedIds = rows.mapNotNullTo(linkedSetOf()) { row ->
-            val playlist = (row as? PlaylistRow.Item)?.playlist ?: return@mapNotNullTo null
-            playlist.id.takeIf { playlist.disabled }
-        }
-
         val availableIds = rows.mapNotNullTo(hashSetOf()) {
             (it as? PlaylistRow.Item)?.playlist?.id
         }
@@ -120,10 +115,6 @@ class PlaylistSelectAdapter(
         selectedPlaylistIds.clear()
         selectedPlaylistIds.addAll(selectedIds)
         selectedPlaylistIds.retainAll(availableIds)
-        selectedPlaylistIds.removeAll(lockedIds)
-
-        lockedPlaylistIds.clear()
-        lockedPlaylistIds.addAll(lockedIds)
 
         submitList(rows) {
             notifySelectionStateChanged(fullRefresh = true)
@@ -135,7 +126,6 @@ class PlaylistSelectAdapter(
         items.forEach { set ->
             (set as? MusicSet.Playlist)?.id?.let(selectedPlaylistIds::add)
         }
-        selectedPlaylistIds.removeAll(lockedPlaylistIds)
         currentList
             .mapNotNullTo(hashSetOf()) { (it as? PlaylistRow.Item)?.playlist?.id }
             .also(selectedPlaylistIds::retainAll)
@@ -144,7 +134,7 @@ class PlaylistSelectAdapter(
 
     fun selectPlaylist(playlist: MusicSet) {
         val id = (playlist as? MusicSet.Playlist)?.id ?: return
-        if (id in lockedPlaylistIds) return
+        if (playlist.disabled) return
         if (selectedPlaylistIds.add(id)) {
             notifySelectionStateChanged(changedIds = setOf(id))
         }
@@ -191,7 +181,7 @@ class PlaylistSelectAdapter(
     }
 
     private fun togglePlaylistSelection(playlist: MusicSet.Playlist) {
-        if (playlist.id in lockedPlaylistIds) return
+        if (playlist.disabled) return
         if (playlist.id !in selectedPlaylistIds) {
             selectedPlaylistIds.add(playlist.id)
         } else {
@@ -208,6 +198,7 @@ class PlaylistSelectAdapter(
 
         init {
             itemView.setOnClickListener(this)
+            (binding.root.context as? BaseActivity)?.applyThemeTo(binding.root)
         }
 
         fun bind(item: MusicSet.Playlist, selected: Boolean, locked: Boolean) {
@@ -227,14 +218,8 @@ class PlaylistSelectAdapter(
         }
 
         fun bindSelection(selected: Boolean, locked: Boolean) {
-            val context = binding.root.context
             binding.musicItemMenu.isSelected = selected
-            binding.musicItemMenu.setImageResource(
-                if (selected) R.drawable.vector_multi_checked else R.drawable.vector_multi_unchecked
-            )
-            binding.musicItemMenu.setColorFilter(
-                if (selected && !locked) accentColor else ContextCompat.getColor(context, R.color.white)
-            )
+            binding.musicItemMenu.isEnabled = !locked
         }
 
         override fun onClick(v: View) {
@@ -247,6 +232,15 @@ class PlaylistSelectAdapter(
         RecyclerView.ViewHolder(binding.root), View.OnClickListener {
 
         init {
+            binding.musicItemAlbum.setImageResource(R.drawable.vector_playlist_add)
+            binding.musicItemAlbum.setBackgroundColor(
+                (binding.root.context as? BaseActivity)
+                    ?.themeEngine
+                    ?.currentTheme()
+                    ?.headerOverlayColor
+                    ?: 0
+            )
+            (binding.root.context as? BaseActivity)?.applyThemeTo(binding.root)
             itemView.setOnClickListener(this)
         }
 
@@ -265,10 +259,7 @@ class PlaylistSelectAdapter(
         const val PAYLOAD_SELECTION = "selection"
     }
 
-    private fun isChecked(playlistId: Long): Boolean =
-        playlistId in selectedPlaylistIds || playlistId in lockedPlaylistIds
-
-    private fun isLocked(playlistId: Long): Boolean = playlistId in lockedPlaylistIds
+    private fun isChecked(playlistId: Long): Boolean = playlistId in selectedPlaylistIds
 }
 
 sealed class PlaylistRow {
