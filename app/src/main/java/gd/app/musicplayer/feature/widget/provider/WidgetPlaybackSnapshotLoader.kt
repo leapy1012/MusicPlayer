@@ -5,6 +5,7 @@ import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.PlaybackMode
 import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
+import gd.app.musicplayer.playback.service.MusicPlaybackService
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,10 +19,17 @@ class WidgetPlaybackSnapshotLoader @Inject constructor(
 
     suspend fun load(): WidgetPlaybackSnapshot {
         val runtimeState = playbackRuntimeStateStore.state.value
-        val queue = runtimeState.queue.ifEmpty {
+        val serviceRunning = MusicPlaybackService.isRunning
+
+        val queue = if (serviceRunning) {
+            runtimeState.queue.ifEmpty {
+                playbackQueueRepo.getQueue()
+            }
+        } else {
             playbackQueueRepo.getQueue()
         }
-        val restoredProgress = if (runtimeState.currentTrack == null) {
+
+        val restoredProgress = if (!serviceRunning || runtimeState.currentTrack == null) {
             playbackStatePreferenceStore.getMusicProgress()
         } else {
             null
@@ -42,8 +50,13 @@ class WidgetPlaybackSnapshotLoader @Inject constructor(
                 index in queue.indices
             }
 
-        val currentTrack = runtimeTrack
-            ?: restoredIndex?.let { index -> queue[index] }
+        val currentTrack = if (serviceRunning) {
+            runtimeTrack
+                ?: restoredIndex?.let { index -> queue[index] }
+        } else {
+            restoredIndex?.let { index -> queue[index] }
+                ?: runtimeTrack
+        }
 
         val currentIndex = currentTrack
             ?.let { track ->
@@ -57,14 +70,14 @@ class WidgetPlaybackSnapshotLoader @Inject constructor(
             queue = queue,
             currentTrack = currentTrack,
             currentIndex = currentIndex,
-            positionMs = if (runtimeTrack != null) {
+            positionMs = if (serviceRunning && runtimeTrack != null) {
                 runtimeState.positionMs
             } else if (restoredIndexByTrackId != null) {
                 restoredProgress?.progressMs?.toLong()?.coerceAtLeast(0L) ?: 0L
             } else {
                 0L
             },
-            isPlaying = runtimeState.isPlaying,
+            isPlaying = serviceRunning && runtimeState.isPlaying,
             playMode = playMode
         )
     }

@@ -443,6 +443,9 @@ class MusicPlaybackService : MediaSessionService() {
             return
         }
 
+        // Mark as not running before shutdown publishes widget updates so loaders
+        // prefer persisted playback snapshot and avoid transient stale runtime state.
+        isRunning = false
         shutdownPlayback(ShutdownOptions.TaskRemovedWhenPaused)
     }
 
