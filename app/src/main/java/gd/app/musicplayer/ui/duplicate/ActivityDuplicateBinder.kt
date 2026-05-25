@@ -168,6 +168,7 @@ class ActivityDuplicateBinder(
             val firstTrack = group.tracks.first()
             binding.musicItemTitle.text = firstTrack.title
             binding.musicItemArtist.text = buildHeaderSubtitle(binding.root.context, firstTrack)
+            binding.musicItemMenu.isSelected = group.expanded
             binding.musicItemAlbum.setImageResource(R.drawable.default_album_identify)
             binding.musicItemAlbum.loadMusicArtwork(firstTrack.albumArtSource())
             binding.root.setOnClickListener {

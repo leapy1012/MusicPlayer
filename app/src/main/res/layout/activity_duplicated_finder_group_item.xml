@@ -60,7 +60,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/vector_arrow_down"/>
+        app:srcCompat="@drawable/vector_arrow_selector"/>
     <View
         android:id="@+id/music_item_divider"
         android:tag="recyclerDividerColor"

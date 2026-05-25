@@ -36,7 +36,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ActivityDuplicateViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
     private val observeTracksUseCase: ObserveTracksUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
     private val deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase,
@@ -222,7 +222,7 @@ class ActivityDuplicateViewModel @Inject constructor(
             DuplicateGroup(
                 key = "${hash}_${index}_${groupTracks.first().id}",
                 tracks = groupTracks,
-                expanded = false
+                expanded = true
             )
         }
     }

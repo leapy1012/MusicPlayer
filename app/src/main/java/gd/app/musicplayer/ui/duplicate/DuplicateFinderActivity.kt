@@ -23,6 +23,7 @@ import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderBinding
+import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -223,12 +224,20 @@ class DuplicateFinderActivity : BaseActivity() {
     }
 
     private fun confirmDelete() {
-        val selectedCount = viewModel.uiState.value.selectedIds.size
+        val state = viewModel.uiState.value
+        val selectedTracks = state.groups
+            .asSequence()
+            .flatMap { it.tracks.asSequence() }
+            .filter { it.id in state.selectedIds }
+            .distinctBy(Music::id)
+            .toList()
+        val selectedCount = selectedTracks.size
         if (selectedCount <= 0) return
 
         DeleteConfirmDialogFragment.forTracksDelete(
             resultKey = DELETE_SELECTED_RESULT_KEY,
-            trackCount = selectedCount
+            trackCount = selectedCount,
+            tracks = selectedTracks
         ).show(supportFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
     }
 

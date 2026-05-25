@@ -197,6 +197,7 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
                 TYPE_TRACK_DELETE -> deleteTrack(deleteSourceFile)
                 TYPE_SET_DELETE_PLAYLIST,
                 TYPE_SET_DELETE_TRACKS -> deleteSet(deleteSourceFile)
+                TYPE_TRACKS_DELETE -> deleteTracks(deleteSourceFile)
                 else -> false
             }
 
@@ -251,6 +252,25 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         return deletedCount > 0
     }
 
+    private suspend fun deleteTracks(deleteSourceFile: Boolean): Boolean {
+        val tracks = requireArguments()
+            .getParcelableArrayList<Music>(ARG_TRACKS)
+            ?.distinctBy(Music::id)
+            .orEmpty()
+        if (tracks.isEmpty()) return false
+
+        val deletedCount = if (deleteSourceFile) {
+            deleteTracksUseCase(tracks)
+        } else {
+            deleteTracksFromLibraryUseCase(tracks.map(Music::id))
+            tracks.size
+        }
+        if (deleteSourceFile && deletedCount < tracks.size && requestSystemMediaDelete(tracks)) {
+            return true
+        }
+        return deletedCount > 0
+    }
+
     private fun requestSystemMediaDelete(tracks: List<Music>): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || tracks.isEmpty()) {
             return false
@@ -291,6 +311,7 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         private const val ARG_EXECUTION_MODE = "execution_mode"
         private const val ARG_MUSIC = "music"
         private const val ARG_MUSIC_SET = "music_set"
+        private const val ARG_TRACKS = "tracks"
 
         private const val EXECUTION_RESULT_ONLY = 0
         private const val EXECUTION_INTERNAL = 1
@@ -317,7 +338,8 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
             itemCount: Int = 0,
             executionMode: Int = EXECUTION_RESULT_ONLY,
             music: Music? = null,
-            musicSet: MusicSet? = null
+            musicSet: MusicSet? = null,
+            tracks: List<Music>? = null
         ): DeleteConfirmDialogFragment {
             return DeleteConfirmDialogFragment().apply {
                 arguments = bundleOf(
@@ -329,6 +351,9 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
                 ).apply {
                     music?.let { putParcelable(ARG_MUSIC, it) }
                     musicSet?.let { putParcelable(ARG_MUSIC_SET, it) }
+                    tracks?.takeIf { it.isNotEmpty() }?.let {
+                        putParcelableArrayList(ARG_TRACKS, ArrayList(it))
+                    }
                 }
             }
         }
@@ -360,12 +385,18 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
             )
         }
 
-        fun forTracksDelete(resultKey: String, trackCount: Int): DeleteConfirmDialogFragment {
+        fun forTracksDelete(
+            resultKey: String,
+            trackCount: Int,
+            tracks: List<Music>? = null
+        ): DeleteConfirmDialogFragment {
             return create(
                 resultKey = resultKey,
                 itemName = "",
                 type = TYPE_TRACKS_DELETE,
-                itemCount = trackCount
+                itemCount = trackCount,
+                executionMode = if (tracks.isNullOrEmpty()) EXECUTION_RESULT_ONLY else EXECUTION_INTERNAL,
+                tracks = tracks
             )
         }
 
