@@ -7,6 +7,7 @@ import android.graphics.drawable.Drawable
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toDrawable
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.util.FastBlur
 import gd.app.musicplayer.core.designsystem.drawable.DialogBackgroundFactory
 import gd.app.musicplayer.core.designsystem.drawable.OverlayCenterCropDrawable
 import gd.app.musicplayer.core.designsystem.drawable.RoundedMaskDrawable
@@ -41,7 +42,21 @@ open class PictureThemePalette : BaseThemePalette() {
             )
         }
 
-        return backgroundBitmap != null
+        if (blurredBitmap == null && backgroundBitmap != null) {
+            val source = backgroundBitmap ?: return false
+            val copied = runCatching {
+                source.copy(source.config ?: Bitmap.Config.ARGB_8888, true)
+            }.getOrNull()
+            blurredBitmap = copied?.let {
+                FastBlur.blur(it, 80, true)
+            }
+        }
+
+        if (backgroundBitmap == null && blurredBitmap != null) {
+            backgroundBitmap = blurredBitmap
+        }
+
+        return backgroundBitmap != null || blurredBitmap != null
     }
 
     override fun getActivityBackgroundDrawable(context: Context): Drawable =
@@ -97,7 +112,16 @@ open class PictureThemePalette : BaseThemePalette() {
     override fun getAccentColor(): Int = themeAccentColor
 
     override fun getBlurredBackgroundDrawable(context: Context): Drawable {
-        return blurredBitmap?.toDrawable(context.resources) ?: 0xFFF9F9F9.toInt().toDrawable()
+        val source = blurredBitmap ?: backgroundBitmap
+        if (source == null) {
+            return 0xFFF9F9F9.toInt().toDrawable()
+        }
+
+        return OverlayCenterCropDrawable(
+            context.resources,
+            source,
+            if (isContentSurfaceLight()) 0 else themeBackgroundOverlayColor
+        )
     }
 
     open fun getBottomDialogSurfaceDrawable(context: Context): Drawable =

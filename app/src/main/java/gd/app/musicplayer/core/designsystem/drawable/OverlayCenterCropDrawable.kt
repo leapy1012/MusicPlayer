@@ -1,72 +1,92 @@
 package gd.app.musicplayer.core.designsystem.drawable
 
+import android.content.res.ColorStateList
 import android.content.res.Resources
-import android.graphics.Canvas
-import android.graphics.Rect
 import android.graphics.Bitmap
-import android.graphics.Matrix
-import android.graphics.Paint
-import android.graphics.RectF
+import android.graphics.Canvas
+import android.graphics.ColorFilter
+import android.graphics.PixelFormat
+import android.graphics.PorterDuff
+import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
-import androidx.core.graphics.withClip
+import android.graphics.drawable.Drawable
+import android.widget.ImageView
 
 class OverlayCenterCropDrawable(
     resources: Resources,
     bitmap: Bitmap?,
     private var overlayColor: Int = 0,
-) : BitmapDrawable(resources, bitmap) {
+) : Drawable() {
 
-    private val drawMatrix = Matrix()
-    private val overlayPaint = Paint().apply {
-        style = Paint.Style.FILL
+    private val contentDrawable: Drawable? = bitmap?.let { BitmapDrawable(resources, it) }
+    private val scaleType = ImageView.ScaleType.CENTER_CROP
+
+    override fun draw(canvas: Canvas) {
+        val clip = bounds
+        canvas.save()
+        canvas.clipRect(clip)
+        try {
+            contentDrawable?.draw(canvas)
+        } catch (_: Exception) {
+        }
+        if (overlayColor != 0) {
+            canvas.drawColor(overlayColor)
+        }
+        canvas.restore()
     }
 
     override fun onBoundsChange(bounds: Rect) {
-        super.onBoundsChange(bounds)
-
-        val bitmap = bitmap ?: return
-        if (bitmap.isRecycled || bounds.width() <= 0 || bounds.height() <= 0) return
-        val src = RectF(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
-
-        val drawableWidth = src.width()
-        val drawableHeight = src.height()
-        val viewWidth = bounds.width().toFloat()
-        val viewHeight = bounds.height().toFloat()
-
-        val scale: Float
-        var dx = 0f
-        var dy = 0f
-
-        if (drawableWidth * viewHeight > viewWidth * drawableHeight) {
-            scale = viewHeight / drawableHeight
-            dx = (viewWidth - drawableWidth * scale) * 0.5f
-        } else {
-            scale = viewWidth / drawableWidth
-            dy = (viewHeight - drawableHeight * scale) * 0.5f
-        }
-
-        drawMatrix.setScale(scale, scale)
-        drawMatrix.postTranslate(dx, dy)
-    }
-
-    override fun draw(canvas: Canvas) {
-        val srcBitmap = bitmap
-        if (srcBitmap == null || srcBitmap.isRecycled) {
-            if (overlayColor != 0) {
-                overlayPaint.color = overlayColor
-                canvas.drawRect(bounds, overlayPaint)
-            }
+        val drawable = contentDrawable ?: return
+        if (scaleType != ImageView.ScaleType.CENTER_CROP && scaleType != ImageView.ScaleType.FIT_CENTER) {
+            drawable.bounds = bounds
             return
         }
 
-        canvas.withClip(bounds) {
-            drawBitmap(srcBitmap, drawMatrix, null)
+        val intrinsicWidth = drawable.intrinsicWidth
+        val intrinsicHeight = drawable.intrinsicHeight
+        val viewWidth = bounds.width()
+        val viewHeight = bounds.height()
+        if (intrinsicWidth <= 0 || intrinsicHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) {
+            drawable.bounds = bounds
+            return
+        }
 
-            if (overlayColor != 0) {
-                overlayPaint.color = overlayColor
-                drawRect(bounds, overlayPaint)
-            }
+        val widthScale = intrinsicWidth.toFloat() / viewWidth.toFloat()
+        val heightScale = intrinsicHeight.toFloat() / viewHeight.toFloat()
+        val divider = if (scaleType == ImageView.ScaleType.CENTER_CROP) {
+            minOf(widthScale, heightScale)
+        } else {
+            maxOf(widthScale, heightScale)
+        }
 
+        val outWidth = (intrinsicWidth.toFloat() / divider + 0.5f).toInt()
+        val outHeight = (intrinsicHeight.toFloat() / divider + 0.5f).toInt()
+        val left = (bounds.centerX() - (outWidth / 2f)).toInt()
+        val top = (bounds.centerY() - (outHeight / 2f)).toInt()
+        drawable.setBounds(left, top, left + outWidth, top + outHeight)
+    }
+
+    override fun setAlpha(alpha: Int) {
+        contentDrawable?.alpha = alpha
+    }
+
+    override fun setColorFilter(colorFilter: ColorFilter?) {
+        contentDrawable?.colorFilter = colorFilter
+    }
+
+    override fun getOpacity(): Int = contentDrawable?.opacity ?: PixelFormat.TRANSLUCENT
+
+    override fun setTint(tintColor: Int) {
+        contentDrawable?.setTint(tintColor)
+    }
+
+    override fun setTintList(tint: ColorStateList?) {
+        contentDrawable?.setTintList(tint)
+    }
+
+    override fun setTintMode(tintMode: PorterDuff.Mode?) {
+        if (tintMode != null) {
+            contentDrawable?.setTintMode(tintMode)
         }
     }
 }

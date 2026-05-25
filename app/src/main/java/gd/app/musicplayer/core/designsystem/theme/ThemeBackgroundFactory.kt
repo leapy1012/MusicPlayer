@@ -16,19 +16,19 @@ class ThemeBackgroundFactory @Inject constructor(
     private val themeBitmapLoader: ThemeBitmapLoader
 ) {
 
-    suspend fun createActivityBackground(): BitmapDrawable {
-        val settings = themeSettingPreferenceStore.getSettingsSnapshot()
-
-        return OverlayCenterCropDrawable(
-            appContext.resources,
-            themeBitmapLoader.loadBitmap(
-                context = appContext,
-                imageName = settings.imageName,
-                blurRadius = settings.blur
-            ),
-            settings.overlayColor
-        )
-    }
+//    suspend fun createActivityBackground(): BitmapDrawable {
+//        val settings = themeSettingPreferenceStore.getSettingsSnapshot()
+//
+//        return OverlayCenterCropDrawable(
+//            appContext.resources,
+//            themeBitmapLoader.loadBitmap(
+//                context = appContext,
+//                imageName = settings.imageName,
+//                blurRadius = settings.blur
+//            ),
+//            settings.overlayColor
+//        )
+//    }
 
     suspend fun createBlurBackground(): BitmapDrawable? {
         val settings = themeSettingPreferenceStore.getSettingsSnapshot()

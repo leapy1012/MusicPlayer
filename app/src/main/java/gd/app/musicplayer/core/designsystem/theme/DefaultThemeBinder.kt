@@ -66,7 +66,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             }
 
             ThemeTags.SCROLL_CONTENT -> {
-                view.setBackgroundColor(if (usesDarkForegroundPalette(palette)) Color.TRANSPARENT else 0x1A000000)
+                view.setBackgroundColor(if (palette.isNightTheme()) Color.TRANSPARENT else 0x1A000000)
                 return true
             }
 
@@ -863,7 +863,7 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.BANNER_IMAGE && view is ImageView) {
             view.imageTintList =
-                ColorStateList.valueOf(if (usesDarkForegroundPalette(palette)) 1711276032 else Color.WHITE)
+                ColorStateList.valueOf(if (palette.isNightTheme()) 1711276032 else Color.WHITE)
             return true
         }
 
@@ -942,9 +942,9 @@ class DefaultThemeBinder : ThemeViewBinder {
 
         if (tag == ThemeTags.BANNER_IMAGE_BACKGROUND) {
             if (view is MaskImageView) {
-                view.setMaskColor(if (usesDarkForegroundPalette(palette)) 855638016 else 1291845632)
+                view.setMaskColor(if (palette.isNightTheme()) 855638016 else 1291845632)
                 view.imageTintList =
-                    if (usesDarkForegroundPalette(palette)) ColorStateList.valueOf(436207616) else null
+                    if (palette.isNightTheme()) ColorStateList.valueOf(436207616) else null
             }
             return true
         }

@@ -1,7 +1,6 @@
 package gd.app.musicplayer.core.designsystem.theme
 
 import android.content.Context
-import gd.app.musicplayer.core.common.extension.isDarkTheme
 import gd.app.musicplayer.core.datastore.ThemeSettings
 import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import gd.app.musicplayer.di.ApplicationScope
@@ -140,10 +139,10 @@ class ThemeManager @Inject constructor(
         context: Context,
         preferredType: Int
     ): Int {
-        return when {
-            preferredType == THEME_TYPE_DARK -> THEME_TYPE_DARK
-            context.isDarkTheme() -> THEME_TYPE_DARK
-            else -> THEME_TYPE_PICTURE
+        return if (preferredType == THEME_TYPE_DARK) {
+            THEME_TYPE_DARK
+        } else {
+            THEME_TYPE_PICTURE
         }
     }
 

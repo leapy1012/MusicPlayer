@@ -19,6 +19,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
+import gd.app.lib.view.translucent.NavigationBarColorHost
 import gd.app.musicplayer.databinding.FragmentMoreBinding
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
@@ -95,12 +96,18 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
         }
 
         observeDrawerState()
+        updateNavigationBarOverlay()
     }
 
 
     override fun onDestroyBinding(binding: FragmentMoreBinding) {
         drawerLayout?.removeDrawerListener(this)
         drawerLayout = null
+    }
+
+    override fun onThemeChanged(palette: gd.app.musicplayer.core.designsystem.theme.ThemePalette?) {
+        super.onThemeChanged(palette)
+        updateNavigationBarOverlay()
     }
 
     override fun onDrawerSlide(drawerView: View, slideOffset: Float) = Unit
@@ -149,6 +156,12 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
             }
 
         MessageDialog.show(activity, config)
+    }
+
+    private fun updateNavigationBarOverlay() {
+        val palette = themeEngine.currentTheme()
+        val overlayColor = if (palette.isContentSurfaceLight()) 0 else 0x1A000000
+        (binding?.mainMoreContent as? NavigationBarColorHost)?.setNavigationBarColor(overlayColor)
     }
 
     private fun quitApplication() {
