@@ -180,9 +180,6 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
     private fun handleEvent(event: PlaybackQueueBottomSheetEvent) {
         when (event) {
             PlaybackQueueBottomSheetEvent.Dismiss -> dismissAllowingStateLoss()
-            is PlaybackQueueBottomSheetEvent.FavoriteChanged -> {
-                adapter.updateFavorite(event.trackId, event.favorited)
-            }
             is PlaybackQueueBottomSheetEvent.ShowToast -> Unit
         }
     }
@@ -338,13 +335,10 @@ private class LockQueueAdapter(
 ) : RecyclerView.Adapter<LockQueueAdapter.LockQueueViewHolder>() {
 
     private companion object {
-        const val PAYLOAD_FAVORITE = "payload_favorite"
         const val PAYLOAD_CURRENT = "payload_current"
-        const val FAVORITES_PLAYLIST_ID = 1L
     }
 
     private val queue = mutableListOf<Music>()
-    private val favoriteOverrides = mutableMapOf<Long, Boolean>()
     private var currentTrackId: Long? = null
 
     init {
@@ -354,13 +348,7 @@ private class LockQueueAdapter(
     fun submitQueue(items: List<Music>, currentTrackId: Long?) {
         val oldCurrentIndex = currentIndex()
         queue.clear()
-        queue.addAll(
-            items.map { music ->
-                val overriddenFavorite = favoriteOverrides[music.id] ?: return@map music
-                music.copy(playlistId = if (overriddenFavorite) FAVORITES_PLAYLIST_ID else 0L)
-            }
-        )
-        favoriteOverrides.keys.retainAll(queue.mapTo(hashSetOf()) { it.id })
+        queue.addAll(items)
 
         val currentChanged = this.currentTrackId != currentTrackId
         this.currentTrackId = currentTrackId
@@ -371,17 +359,6 @@ private class LockQueueAdapter(
             notifyCurrentChanged(oldCurrentIndex)
             notifyCurrentChanged(currentIndex())
         }
-    }
-
-    fun updateFavorite(trackId: Long, favorited: Boolean) {
-        val index = queue.indexOfFirst { it.id == trackId }
-        if (index < 0) return
-
-        favoriteOverrides[trackId] = favorited
-        queue[index] = queue[index].copy(
-            playlistId = if (favorited) FAVORITES_PLAYLIST_ID else 0L
-        )
-        notifyItemChanged(index, PAYLOAD_FAVORITE)
     }
 
     override fun getItemId(position: Int): Long = queue[position].id
@@ -424,7 +401,6 @@ private class LockQueueAdapter(
         payloads: MutableList<Any>
     ) {
         when {
-            payloads.contains(PAYLOAD_FAVORITE) -> holder.bindFavorite(queue[position])
             payloads.contains(PAYLOAD_CURRENT) -> {
                 holder.bindCurrentState(isCurrent = queue[position].id == currentTrackId)
             }

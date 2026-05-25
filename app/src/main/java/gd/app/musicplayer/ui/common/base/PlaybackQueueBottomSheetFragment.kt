@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
@@ -160,9 +161,6 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
     private fun handleEvent(event: PlaybackQueueBottomSheetEvent) {
         when (event) {
             PlaybackQueueBottomSheetEvent.Dismiss -> dismissAllowingStateLoss()
-            is PlaybackQueueBottomSheetEvent.FavoriteChanged -> {
-                adapter.updateFavorite(event.trackId, event.favorited)
-            }
             is PlaybackQueueBottomSheetEvent.ShowToast -> {
                 ToastUtil.show(requireContext(), event.messageRes)
             }
@@ -200,13 +198,10 @@ private class QueueAdapter(
     private val onToggleFavorite: (Music) -> Unit
 ) : RecyclerView.Adapter<QueueAdapter.QueueViewHolder>(), ItemMoveListener {
     private companion object {
-        const val PAYLOAD_FAVORITE = "payload_favorite"
         const val PAYLOAD_CURRENT = "payload_current"
-        const val FAVORITES_PLAYLIST_ID = 1L
     }
 
     private val queue = mutableListOf<Music>()
-    private val favoriteOverrides = mutableMapOf<Long, Boolean>()
     private var currentTrackId: Long? = null
     private var currentIndex: Int = RecyclerView.NO_POSITION
     private var isDragging = false
@@ -227,35 +222,57 @@ private class QueueAdapter(
             return
         }
 
+        val previousQueue = queue.toList()
         val previousCurrentIndex = currentIndex()
-        queue.clear()
-        queue.addAll(
-            items.map { music ->
-                val overriddenFavorite = favoriteOverrides[music.id] ?: return@map music
-                music.copy(playlistId = if (overriddenFavorite) FAVORITES_PLAYLIST_ID else 0L)
-            }
-        )
-        favoriteOverrides.keys.retainAll(queue.mapTo(hashSetOf()) { it.id })
+        val resolvedQueue = items
 
         val currentChanged = this.currentTrackId != currentTrackId ||
             this.currentIndex != currentIndex
         this.currentTrackId = currentTrackId
         this.currentIndex = currentIndex
 
-        notifyDataSetChanged()
+        val sameOrder = previousQueue.size == resolvedQueue.size &&
+            previousQueue.indices.all { index ->
+                previousQueue[index].id == resolvedQueue[index].id
+            }
+
+        if (sameOrder) {
+            queue.clear()
+            queue.addAll(resolvedQueue)
+            previousQueue.indices.forEach { index ->
+                if (previousQueue[index] != queue[index]) {
+                    notifyItemChanged(index)
+                }
+            }
+        } else {
+            val diff = DiffUtil.calculateDiff(
+                object : DiffUtil.Callback() {
+                    override fun getOldListSize(): Int = previousQueue.size
+
+                    override fun getNewListSize(): Int = resolvedQueue.size
+
+                    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                        return previousQueue[oldItemPosition].id == resolvedQueue[newItemPosition].id
+                    }
+
+                    override fun areContentsTheSame(
+                        oldItemPosition: Int,
+                        newItemPosition: Int
+                    ): Boolean {
+                        return previousQueue[oldItemPosition] == resolvedQueue[newItemPosition]
+                    }
+                }
+            )
+
+            queue.clear()
+            queue.addAll(resolvedQueue)
+            diff.dispatchUpdatesTo(this)
+        }
 
         if (currentChanged) {
             notifyCurrentChanged(previousCurrentIndex)
             notifyCurrentChanged(currentIndex())
         }
-    }
-
-    fun updateFavorite(trackId: Long, isFavorite: Boolean) {
-        val index = queue.indexOfFirst { it.id == trackId }
-        if (index < 0) return
-        favoriteOverrides[trackId] = isFavorite
-        queue[index] = queue[index].copy(playlistId = if (isFavorite) FAVORITES_PLAYLIST_ID else 0L)
-        notifyItemChanged(index, PAYLOAD_FAVORITE)
     }
 
     fun refreshTheme() {
@@ -325,14 +342,6 @@ private class QueueAdapter(
         payloads: MutableList<Any>
     ) {
         when {
-            payloads.contains(PAYLOAD_FAVORITE) -> {
-                holder.bindFavorite(
-                    music = queue[position],
-                    palette = themeProvider(),
-                    accentColor = accentColorProvider(),
-                    applyTheme = applyTheme
-                )
-            }
             payloads.contains(PAYLOAD_CURRENT) -> {
                 holder.bindCurrentState(
                     isCurrent = isCurrentPosition(position),
@@ -356,16 +365,20 @@ private class QueueAdapter(
     }
 
     private fun currentIndex(): Int {
-        if (currentIndex in queue.indices) return currentIndex
-        val trackId = currentTrackId ?: return RecyclerView.NO_POSITION
-        return queue.indexOfFirst { it.id == trackId }
+        val trackId = currentTrackId
+        if (trackId != null) {
+            val byTrackId = queue.indexOfFirst { it.id == trackId }
+            if (byTrackId >= 0) return byTrackId
+        }
+        return if (currentIndex in queue.indices) currentIndex else RecyclerView.NO_POSITION
     }
 
     private fun isCurrentPosition(position: Int): Boolean {
-        return if (currentIndex in queue.indices) {
-            position == currentIndex
+        val trackId = currentTrackId
+        return if (trackId != null) {
+            queue.getOrNull(position)?.id == trackId
         } else {
-            queue.getOrNull(position)?.id == currentTrackId
+            position == currentIndex
         }
     }
 
