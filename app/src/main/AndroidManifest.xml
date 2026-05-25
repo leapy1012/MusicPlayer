@@ -99,6 +99,10 @@
             android:name=".ui.selection.MusicSetEditActivity"
             android:exported="false"
             android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.selection.PlaylistEditActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.search.SearchActivity"

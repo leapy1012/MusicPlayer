@@ -252,44 +252,22 @@
     </style>
 
     <!-- App widget shared styles -->
-    <style name="WidgetClickable">
-        <item name="android:focusable">true</item>
-        <item name="android:clickable">true</item>
+    <style name="WidgetAlbumDishImage" parent="">
+        <item name="android:src">@drawable/widget_dish</item>
+        <item name="android:scaleType">centerCrop</item>
     </style>
 
-    <style name="WidgetImageButton" parent="@style/WidgetClickable">
-        <item name="android:background">@drawable/widget_click_bg_btn</item>
-        <item name="android:scaleType">fitCenter</item>
+    <style name="WidgetAlbumImage" parent="">
+        <item name="android:id">@id/widget_album_image</item>
+        <item name="android:src">@drawable/widget_preview_album</item>
+        <item name="android:scaleType">centerCrop</item>
     </style>
 
-    <style name="WidgetStaticImage">
-        <item name="android:scaleType">fitCenter</item>
-    </style>
-
-    <style name="WidgetFlipper" parent="@style/WidgetClickable">
-        <item name="android:inAnimation">@null</item>
-        <item name="android:outAnimation">@null</item>
-    </style>
-
-    <style name="WidgetSingleLineText">
+    <style name="WidgetArtist" parent="">
+        <item name="android:textColor">@color/i_white_m</item>
+        <item name="android:id">@id/widget_artist</item>
+        <item name="android:text">@string/artist</item>
         <item name="android:singleLine">true</item>
-    </style>
-
-    <style name="WidgetWhiteText" parent="@style/WidgetSingleLineText">
-        <item name="android:textColor">@android:color/white</item>
-    </style>
-
-    <style name="WidgetRoot">
-        <item name="android:id">@android:id/background</item>
-        <item name="android:background">@drawable/widget_root_background</item>
-    </style>
-
-    <style name="WidgetContent">
-        <item name="android:id">@id/widget_content</item>
-    </style>
-
-    <style name="WidgetControlLayout" parent="@style/WidgetClickable">
-        <item name="android:layoutDirection">ltr</item>
     </style>
 
     <style name="WidgetBackgroundImage" parent="@style/WidgetClickable">
@@ -299,100 +277,77 @@
         <item name="android:scaleType">centerCrop</item>
     </style>
 
-    <style name="WidgetAlbumDishImage">
-        <item name="android:src">@drawable/widget_dish</item>
-        <item name="android:scaleType">centerCrop</item>
-    </style>
-
-    <style name="WidgetAlbumImage">
-        <item name="android:id">@id/widget_album_image</item>
-        <item name="android:src">@drawable/widget_preview_album</item>
-        <item name="android:scaleType">centerCrop</item>
-    </style>
-
-    <style name="WidgetBannerOverlay">
+    <style name="WidgetBannerOverlay" parent="">
         <item name="android:id">@id/widget_banner_overlay</item>
     </style>
 
-    <style name="WidgetTitle" parent="@style/WidgetWhiteText">
-        <item name="android:id">@id/widget_title</item>
-        <item name="android:text">@string/music</item>
+    <style name="WidgetClickable" parent="">
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
     </style>
 
-    <style name="WidgetArtist" parent="@style/WidgetSingleLineText">
-        <item name="android:id">@id/widget_artist</item>
-        <item name="android:textColor">@color/i_white_m</item>
-        <item name="android:text">@string/artist</item>
+    <style name="WidgetContent" parent="">
+        <item name="android:id">@id/widget_content</item>
     </style>
 
-    <style name="WidgetQueueInfo" parent="@style/WidgetSingleLineText">
-        <item name="android:id">@id/widget_queue_info</item>
-        <item name="android:textColor">@color/i_white_m</item>
-        <item name="android:text">@string/widget_queue_info</item>
+    <style name="WidgetControlLayout" parent="@style/WidgetClickable">
+        <item name="android:layoutDirection">ltr</item>
     </style>
 
-    <style name="WidgetMode" parent="@style/WidgetImageButton">
-        <item name="android:id">@id/widget_mode</item>
-        <item name="android:src">@drawable/widget_ic_mode_loop</item>
-    </style>
-
-    <style name="WidgetPrevious" parent="@style/WidgetImageButton">
-        <item name="android:id">@id/widget_previous</item>
-        <item name="android:src">@drawable/widget_ic_previous</item>
-    </style>
-
-    <style name="WidgetNext" parent="@style/WidgetImageButton">
-        <item name="android:id">@id/widget_next</item>
-        <item name="android:src">@drawable/widget_ic_next</item>
-    </style>
-
-    <style name="WidgetSetting" parent="@style/WidgetImageButton">
-        <item name="android:id">@id/widget_setting</item>
-        <item name="android:background">@drawable/widget_click_bg_setting</item>
-        <item name="android:src">@drawable/widget_ic_setting</item>
-        <item name="android:alpha">0.6</item>
-    </style>
-
-    <style name="WidgetPlay" parent="@style/WidgetStaticImage">
-        <item name="android:id">@id/widget_play</item>
-        <item name="android:src">@drawable/widget_ic_play</item>
-    </style>
-
-    <style name="WidgetPause" parent="@style/WidgetStaticImage">
-        <item name="android:id">@id/widget_pause</item>
-        <item name="android:src">@drawable/widget_ic_pause</item>
-    </style>
-
-    <style name="WidgetFavorite" parent="@style/WidgetStaticImage">
+    <style name="WidgetFavorite" parent="">
         <item name="android:id">@id/widget_favorite_selected</item>
         <item name="android:src">@drawable/widget_ic_favorite</item>
+        <item name="android:scaleType">fitCenter</item>
     </style>
 
-    <style name="WidgetUnfavorite" parent="@style/WidgetStaticImage">
-        <item name="android:id">@id/widget_favorite_unselected</item>
-        <item name="android:src">@drawable/widget_ic_unfavorite</item>
-    </style>
-
-    <style name="WidgetVisualizer" parent="@style/WidgetStaticImage">
-        <item name="android:id">@id/widget_visualizer</item>
-        <item name="android:src">@drawable/widget_ic_visualizer</item>
-    </style>
-
-    <style name="WidgetPlayPauseFlipper" parent="@style/WidgetFlipper">
-        <item name="android:id">@id/widget_flipper_play_pause</item>
-        <item name="android:background">@drawable/widget_click_bg_btn</item>
-    </style>
-
-    <style name="WidgetFavoriteFlipper" parent="@style/WidgetFlipper">
+    <style name="WidgetFavoriteFlipper" parent="@style/WidgetClickable">
         <item name="android:id">@id/widget_flipper_favorite</item>
         <item name="android:background">@drawable/widget_click_bg_btn</item>
+        <item name="android:inAnimation">@null</item>
+        <item name="android:outAnimation">@null</item>
     </style>
 
-    <style name="WidgetProgressFlipper" parent="@style/WidgetFlipper">
-        <item name="android:id">@id/widget_progress_flipper</item>
+    <style name="WidgetMode" parent="@style/WidgetClickable">
+        <item name="android:id">@id/widget_mode</item>
+        <item name="android:background">@drawable/widget_click_bg_btn</item>
+        <item name="android:src">@drawable/widget_ic_mode_loop</item>
+        <item name="android:scaleType">fitCenter</item>
     </style>
 
-    <style name="WidgetProgress">
+    <style name="WidgetNext" parent="@style/WidgetClickable">
+        <item name="android:id">@id/widget_next</item>
+        <item name="android:background">@drawable/widget_click_bg_btn</item>
+        <item name="android:src">@drawable/widget_ic_next</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
+    <style name="WidgetPause" parent="">
+        <item name="android:id">@id/widget_pause</item>
+        <item name="android:src">@drawable/widget_ic_pause</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
+    <style name="WidgetPlay" parent="">
+        <item name="android:id">@id/widget_play</item>
+        <item name="android:src">@drawable/widget_ic_play</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
+    <style name="WidgetPlayPauseFlipper" parent="@style/WidgetClickable">
+        <item name="android:id">@id/widget_flipper_play_pause</item>
+        <item name="android:background">@drawable/widget_click_bg_btn</item>
+        <item name="android:inAnimation">@null</item>
+        <item name="android:outAnimation">@null</item>
+    </style>
+
+    <style name="WidgetPrevious" parent="@style/WidgetClickable">
+        <item name="android:id">@id/widget_previous</item>
+        <item name="android:background">@drawable/widget_click_bg_btn</item>
+        <item name="android:src">@drawable/widget_ic_previous</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
+    <style name="WidgetProgress" parent="">
         <item name="android:id">@id/widget_progress</item>
         <item name="android:max">100</item>
         <item name="android:indeterminateOnly">false</item>
@@ -405,22 +360,38 @@
         <item name="android:progressDrawable">@drawable/widget_progress_drawable_black</item>
     </style>
 
-    <!-- Queue styles -->
+    <style name="WidgetProgressFlipper" parent="@style/WidgetClickable">
+        <item name="android:id">@id/widget_progress_flipper</item>
+        <item name="android:inAnimation">@null</item>
+        <item name="android:outAnimation">@null</item>
+    </style>
+
     <style name="WidgetQueue" parent="@style/WidgetClickable">
         <item name="android:id">@id/widget_queue</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
         <item name="android:divider">@android:color/transparent</item>
         <item name="android:dividerHeight">0dp</item>
     </style>
 
-    <style name="WidgetQueueEmpty" parent="@style/WidgetClickable">
+    <style name="WidgetQueueEmpty" parent="">
         <item name="android:id">@id/widget_queue_empty</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
         <item name="android:scaleType">centerInside</item>
     </style>
 
+    <style name="WidgetQueueInfo" parent="">
+        <item name="android:textColor">@color/i_white_m</item>
+        <item name="android:id">@id/widget_queue_info</item>
+        <item name="android:text">@string/widget_queue_info</item>
+        <item name="android:singleLine">true</item>
+    </style>
+
     <style name="WidgetQueueItem" parent="@style/WidgetClickable">
-        <item name="android:id">@id/widget_queue_item</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:orientation">horizontal</item>
+        <item name="android:id">@id/widget_queue_item</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">@dimen/widget_queue_item_height</item>
         <item name="android:minHeight">56dp</item>
@@ -428,38 +399,76 @@
         <item name="android:paddingEnd">16dp</item>
     </style>
 
-    <style name="WidgetQueueItemText" parent="@style/WidgetWhiteText">
-        <item name="android:layout_height">wrap_content</item>
-    </style>
-
-    <style name="WidgetQueueItemTitle" parent="@style/WidgetQueueItemText">
-        <item name="android:id">@id/widget_queue_item_title</item>
-        <item name="android:textSize">@dimen/widget_queue_item_title_text_size</item>
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:textAlignment">viewStart</item>
-    </style>
-
-    <style name="WidgetQueueItemArtist" parent="@style/WidgetQueueItemText">
-        <item name="android:id">@id/widget_queue_item_artist</item>
+    <style name="WidgetQueueItemArtist" parent="">
         <item name="android:textSize">@dimen/widget_queue_item_artist_text_size</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:id">@id/widget_queue_item_artist</item>
         <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">@dimen/widget_queue_item_artist_margin_top</item>
-        <item name="android:textAlignment">viewStart</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAlignment">5</item>
     </style>
 
-    <style name="WidgetQueueItemPosition" parent="@style/WidgetQueueItemText">
-        <item name="android:id">@id/widget_queue_item_position</item>
-        <item name="android:textSize">@dimen/widget_queue_item_title_position_size</item>
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_marginEnd">16dp</item>
-    </style>
-
-    <style name="WidgetQueueItemDivider">
+    <style name="WidgetQueueItemDivider" parent="">
         <item name="android:id">@id/widget_queue_item_divider</item>
         <item name="android:background">@color/i_white_0D</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">1px</item>
     </style>
+
+    <style name="WidgetQueueItemPosition" parent="">
+        <item name="android:textSize">@dimen/widget_queue_item_title_position_size</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:id">@id/widget_queue_item_position</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:layout_marginEnd">16dp</item>
+    </style>
+
+    <style name="WidgetQueueItemTitle" parent="">
+        <item name="android:textSize">@dimen/widget_queue_item_title_text_size</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:id">@id/widget_queue_item_title</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAlignment">5</item>
+    </style>
+
+    <style name="WidgetRoot" parent="">
+        <item name="android:id">@android:id/background</item>
+        <item name="android:background">@drawable/widget_root_background</item>
+    </style>
+
+    <style name="WidgetSetting" parent="@style/WidgetClickable">
+        <item name="android:id">@id/widget_setting</item>
+        <item name="android:background">@drawable/widget_click_bg_setting</item>
+        <item name="android:src">@drawable/widget_ic_setting</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:alpha">0.6</item>
+    </style>
+
+    <style name="WidgetTitle" parent="">
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:id">@id/widget_title</item>
+        <item name="android:text">@string/music</item>
+        <item name="android:singleLine">true</item>
+    </style>
+
+    <style name="WidgetUnfavorite" parent="">
+        <item name="android:id">@id/widget_favorite_unselected</item>
+        <item name="android:src">@drawable/widget_ic_unfavorite</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
+    <style name="WidgetVisualizer" parent="">
+        <item name="android:id">@id/widget_visualizer</item>
+        <item name="android:src">@drawable/widget_ic_visualizer</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
 
     <!-- Bottom sheet -->
     <style name="ThemeOverlay_MyApp_BottomSheetDialog" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
@@ -538,10 +547,16 @@
         <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
-        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@android:color/transparent</item>
-        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">
+            @android:color/transparent
+        </item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">
+            @android:color/transparent
+        </item>
         <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">0</item>
-        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">@android:color/transparent</item>
+        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">
+            @android:color/transparent
+        </item>
     </style>
 
 </resources>

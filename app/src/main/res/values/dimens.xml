@@ -35,7 +35,7 @@
     <dimen name="equalizer_toggle_height">18dp</dimen>
     <dimen name="equalizer_toggle_width">36dp</dimen>
     <dimen name="widget_1_min_height">44dp</dimen>
-    <dimen name="widget_2_min_height">115dp</dimen>
+    <dimen name="widget_2_min_height">110dp</dimen>
     <dimen name="widget_2_min_width">109dp</dimen>
     <dimen name="widget_2x1_1_icon_padding">5dp</dimen>
     <dimen name="widget_2x1_1_icon_size">20dp</dimen>
@@ -62,8 +62,8 @@
     <dimen name="widget_2x1_2_title_margin_start">56dp</dimen>
     <dimen name="widget_2x1_2_title_size">12sp</dimen>
     <dimen name="widget_2x1_height">60dp</dimen>
-    <dimen name="widget_3_min_height">185dp</dimen>
-    <dimen name="widget_3_min_width">165dp</dimen>
+    <dimen name="widget_3_min_height">150dp</dimen>
+    <dimen name="widget_3_min_width">180dp</dimen>
     <dimen name="widget_3x2_1_artist_margin_top">2dp</dimen>
     <dimen name="widget_3x2_1_artist_size">12sp</dimen>
     <dimen name="widget_3x2_1_container_margin_h">16dp</dimen>
@@ -90,8 +90,8 @@
     <dimen name="widget_3x2_2_setting_size">36dp</dimen>
     <dimen name="widget_3x2_2_title_size">15sp</dimen>
     <dimen name="widget_3x2_height">128dp</dimen>
-    <dimen name="widget_4_min_height">257dp</dimen>
-    <dimen name="widget_4_min_width">245dp</dimen>
+    <dimen name="widget_4_min_height">200dp</dimen>
+    <dimen name="widget_4_min_width">270dp</dimen>
     <dimen name="widget_4x1_1_container_margin_end">8dp</dimen>
     <dimen name="widget_4x1_1_container_margin_start">8dp</dimen>
     <dimen name="widget_4x1_1_favorite_margin">0dp</dimen>

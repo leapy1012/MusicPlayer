@@ -4,6 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.lifecycleScope
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.isFavorite
@@ -13,6 +14,7 @@ import gd.app.musicplayer.domain.model.MenuItemModel
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
+import gd.app.musicplayer.domain.usecase.library.RemoveTrackFromGeneratedMusicSetUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
@@ -21,9 +23,12 @@ import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
 import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
+import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
+import gd.app.musicplayer.feature.library.options.DeleteConfirmDialogFragment
 import gd.app.musicplayer.ui.selection.MusicEditActivity
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import kotlinx.coroutines.launch
@@ -45,6 +50,8 @@ class EditBottomMenuController(
     private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase,
     private val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase,
+    private val removeTrackFromGeneratedMusicSetUseCase: RemoveTrackFromGeneratedMusicSetUseCase,
+    private val deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
     private val hideSelectionUseCase: HideSelectionUseCase,
     private val addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase
@@ -57,32 +64,56 @@ class EditBottomMenuController(
         val items = ArrayList<MenuItemModel>()
 
         if (musicSet is MusicSet.Favorites) {
-            items.add(MenuItemModel.create(R.string.operation_play).setIcon(R.drawable.vector_edit_play))
+            items.add(
+                MenuItemModel.create(R.string.operation_play).setIcon(R.drawable.vector_edit_play)
+            )
             items.add(MenuItemModel.create(R.string.add_to).setIcon(R.drawable.vector_editor_add))
-            items.add(MenuItemModel.create(R.string.operation_enqueue).setIcon(R.drawable.vector_editor_enqueue))
-            items.add(MenuItemModel.create(R.string.remove).setIcon(R.drawable.vector_editor_remove))
+            items.add(
+                MenuItemModel.create(R.string.operation_enqueue)
+                    .setIcon(R.drawable.vector_editor_enqueue)
+            )
+            items.add(
+                MenuItemModel.create(R.string.remove).setIcon(R.drawable.vector_editor_remove)
+            )
             items.add(MenuItemModel.create(R.string.share).setIcon(R.drawable.vector_editor_share))
             return items
         }
 
         if (musicSet is MusicSet.Playlists) {
-            items.add(MenuItemModel.create(R.string.play_next_2).setIcon(R.drawable.vector_editor_play_next))
+            items.add(
+                MenuItemModel.create(R.string.play_next_2)
+                    .setIcon(R.drawable.vector_editor_play_next)
+            )
             items.add(MenuItemModel.create(R.string.add_to).setIcon(R.drawable.vector_editor_add))
-            items.add(MenuItemModel.create(R.string.remove).setIcon(R.drawable.vector_editor_remove))
-            items.add(MenuItemModel.create(R.string.add_to_favourite_2).setIcon(R.drawable.vector_editor_favorite))
+            items.add(
+                MenuItemModel.create(R.string.remove).setIcon(R.drawable.vector_editor_remove)
+            )
+            items.add(
+                MenuItemModel.create(R.string.add_to_favourite_2)
+                    .setIcon(R.drawable.vector_editor_favorite)
+            )
             items.add(MenuItemModel.create(R.string.more).setIcon(R.drawable.vector_more))
             items.add(MenuItemModel.create(R.string.hide_music))
             items.add(MenuItemModel.create(R.string.delete))
             return items
         }
 
-        items.add(MenuItemModel.create(R.string.operation_play).setIcon(R.drawable.vector_edit_play))
+
+        items.add(
+            MenuItemModel.create(R.string.operation_play).setIcon(R.drawable.vector_edit_play)
+        )
         items.add(MenuItemModel.create(R.string.add_to).setIcon(R.drawable.vector_editor_add))
-        items.add(MenuItemModel.create(R.string.operation_enqueue).setIcon(R.drawable.vector_editor_enqueue))
-        items.add(MenuItemModel.create(R.string.add_to_favourite_2).setIcon(R.drawable.vector_editor_favorite))
+        items.add(
+            MenuItemModel.create(R.string.operation_enqueue)
+                .setIcon(R.drawable.vector_editor_enqueue)
+        )
+        items.add(
+            MenuItemModel.create(R.string.add_to_favourite_2)
+                .setIcon(R.drawable.vector_editor_favorite)
+        )
         items.add(MenuItemModel.create(R.string.more).setIcon(R.drawable.vector_more))
 
-        if (musicSet is MusicSet.Queue || musicSet is MusicSet.RecentlyPlayed || musicSet.id > 0) {
+        if (musicSet is MusicSet.Queue || musicSet is MusicSet.RecentlyPlayed || musicSet is MusicSet.Playlist || musicSet is MusicSet.MostPlayed) {
             items.add(MenuItemModel.create(R.string.remove_from_list))
         } else {
             items.add(MenuItemModel.create(R.string.delete))
@@ -94,7 +125,10 @@ class EditBottomMenuController(
     }
 
     // original: i
-    private fun buildTargetMusicList(selectedSongs: List<Music>, keepDuplicates: Boolean): List<Music> {
+    private fun buildTargetMusicList(
+        selectedSongs: List<Music>,
+        keepDuplicates: Boolean
+    ): List<Music> {
         val result = ArrayList<Music>()
 
         if (musicSet !is MusicSet.Playlists) {
@@ -120,13 +154,16 @@ class EditBottomMenuController(
                 items = extraItems,
                 theme = activity.themeRepo.getCorePalette(),
                 itemClickListener = this
-            ).show(clickedView)
+            ).show(
+                anchor = clickedView,
+                yOff = -calculateMorePopupOffsetPx(extraItems.size)
+            )
             return
         }
 
         val selectedSongs = activity.getSelectedItems()
         if (selectedSongs.isEmpty()) {
-            ToastUtil.show (activity, R.string.select_musics_empty)
+            ToastUtil.show(activity, R.string.select_musics_empty)
             return
         }
 
@@ -150,14 +187,20 @@ class EditBottomMenuController(
 
             R.string.operation_play -> {
                 val songsToPlay = buildTargetMusicList(selectedSongs, true)
-                ToastUtil.show(activity, activity.getString(R.string.edit_play_tips, songsToPlay.size))
+                ToastUtil.show(
+                    activity,
+                    activity.getString(R.string.edit_play_tips, songsToPlay.size)
+                )
                 playTracksUseCase(songsToPlay, 0)
             }
 
             R.string.play_next_2 -> {
                 val songsToPlayNext = buildTargetMusicList(selectedSongs, true)
                 playNextTracksUseCase(songsToPlayNext)
-                ToastUtil.show(activity, activity.getString(R.string.enqueue_msg_count, songsToPlayNext.size))
+                ToastUtil.show(
+                    activity,
+                    activity.getString(R.string.enqueue_msg_count, songsToPlayNext.size)
+                )
             }
 
             R.string.add_to -> {
@@ -180,64 +223,109 @@ class EditBottomMenuController(
     }
 
     private fun removeSelectedSongs(songs: List<Music>) {
-        activity.lifecycleScope.launch {
-            when (musicSet) {
-                is MusicSet.Playlist -> {
-                    removeTracksFromPlaylistUseCase(
-                        musicSet.id,
-                        songs.map(Music::id)
-                    )
-                    ToastUtil.show(activity, R.string.succeed)
+        if (musicSet is MusicSet.Queue) {
+            activity.lifecycleScope.launch {
+                val selectedIds = songs.mapTo(hashSetOf(), Music::id)
+                val state = observePlaybackStateUseCase().value
+                val queue = getPlaybackQueueUseCase()
+                val newQueue = queue.filterNot { it.id in selectedIds }
+                val newIndex = when {
+                    newQueue.isEmpty() -> -1
+                    state.currentTrack?.id in selectedIds -> 0
+                    else -> newQueue.indexOfFirst { it.id == state.currentTrack?.id }
+                        .takeIf { it >= 0 }
+                        ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
                 }
-
-                is MusicSet.Favorites -> {
-                    removeTracksFromPlaylistUseCase(
-                        MusicSet.FAVORITES,
-                        songs.map(Music::id)
-                    )
-                    ToastUtil.show(activity, R.string.succeed)
-                }
-
-                is MusicSet.Queue -> {
-                    val selectedIds = songs.mapTo(hashSetOf(), Music::id)
-                    val state = observePlaybackStateUseCase().value
-                    val queue = getPlaybackQueueUseCase()
-                    val newQueue = queue.filterNot { it.id in selectedIds }
-                    val newIndex = when {
-                        newQueue.isEmpty() -> -1
-                        state.currentTrack?.id in selectedIds -> 0
-                        else -> newQueue.indexOfFirst { it.id == state.currentTrack?.id }
-                            .takeIf { it >= 0 }
-                            ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
-                    }
-                    replaceQueueUseCase(newQueue, newIndex)
-                    ToastUtil.show(activity, R.string.succeed)
-                }
-
-                else -> {
-                    confirmDeleteSelectedSongs(songs)
-                }
+                replaceQueueUseCase(newQueue, newIndex)
+                ToastUtil.show(activity, R.string.succeed)
             }
+            return
         }
-    }
 
-    private fun confirmDeleteSelectedSongs(songs: List<Music>) {
+        val message = if (songs.size == 1) {
+            activity.getString(R.string.remove_song_from_list_msg, songs.first().title)
+        } else {
+            activity.getString(R.string.remove_songs_from_list_msg, songs.size.toString())
+        }
+
         activity.showMessageDialog(
             activity.createMessageDialogConfig(
-                title = activity.getString(R.string.delete),
-                message = activity.resources.getQuantityString(R.plurals.plurals_select_music, songs.size, songs.size),
-                negativeText = activity.getString(android.R.string.cancel),
-                positiveText = activity.getString(R.string.delete),
+                title = activity.getString(R.string.remove),
+                message = message,
+                negativeText = activity.getString(R.string.cancel),
+                positiveText = activity.getString(R.string.remove),
                 positiveClickListener = { _, _ ->
                     activity.lifecycleScope.launch {
-                        val deletedCount = deleteTracksUseCase(songs)
-                        ToastUtil.show(
-                            activity,
-                            if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
-                        )
+                        when (musicSet) {
+                            is MusicSet.Playlist -> {
+                                removeTracksFromPlaylistUseCase(musicSet.id, songs.map(Music::id))
+                            }
+
+                            is MusicSet.Favorites -> {
+                                removeTracksFromPlaylistUseCase(MusicSet.FAVORITES, songs.map(Music::id))
+                            }
+
+                            is MusicSet.RecentlyPlayed,
+                            is MusicSet.MostPlayed -> {
+                                songs
+                                    .asSequence()
+                                    .map(Music::id)
+                                    .distinct()
+                                    .forEach { trackId ->
+                                        removeTrackFromGeneratedMusicSetUseCase(musicSet, trackId)
+                                    }
+                            }
+
+                            else -> return@launch
+                        }
+                        ToastUtil.show(activity, R.string.succeed)
                     }
                 }
             )
+        )
+    }
+
+    private fun confirmDeleteSelectedSongs(songs: List<Music>) {
+        val resultKey = "music_edit_delete_confirm_result"
+        activity.supportFragmentManager.setFragmentResultListener(
+            resultKey,
+            activity
+        ) { _, bundle ->
+            if (!bundle.getBoolean(
+                    DeleteConfirmDialogFragment.RESULT_CONFIRMED,
+                    false
+                )
+            ) return@setFragmentResultListener
+            val deleteFromDevice =
+                bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_EXTRA_CHECKED, true)
+            activity.lifecycleScope.launch {
+                val deletedCount = if (deleteFromDevice) {
+                    deleteTracksUseCase(songs)
+                } else {
+                    deleteTracksFromLibraryUseCase(songs.map(Music::id))
+                    songs.size
+                }
+                ToastUtil.show(
+                    activity,
+                    if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
+                )
+            }
+        }
+
+        val dialog = if (songs.size == 1) {
+            DeleteConfirmDialogFragment.forTrackDelete(
+                resultKey = resultKey,
+                trackTitle = songs.first().title
+            )
+        } else {
+            DeleteConfirmDialogFragment.forTracksDelete(
+                resultKey = resultKey,
+                trackCount = songs.size
+            )
+        }
+        dialog.show(
+            activity.supportFragmentManager,
+            DeleteConfirmDialogFragment::class.java.simpleName
         )
     }
 
@@ -270,7 +358,8 @@ class EditBottomMenuController(
         menuItems = buildMenuItems()
 
         val childCount = menuContainer.childCount
-        for (index in 0 until childCount) {
+        val bindCount = minOf(childCount, menuItems.size)
+        for (index in 0 until bindCount) {
             val itemView = menuContainer.getChildAt(index) as ViewGroup
             val menuItem = menuItems[index]
 
@@ -282,5 +371,9 @@ class EditBottomMenuController(
             }
         }
     }
-}
 
+    private fun calculateMorePopupOffsetPx(itemCount: Int): Int {
+        val itemHeightPx = activity.dpToPx(48f)
+        return (itemHeightPx * itemCount) + 10
+    }
+}

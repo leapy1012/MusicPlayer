@@ -12,6 +12,8 @@ import gd.app.musicplayer.domain.usecase.playlist.CreatePlaylistUseCase
 import gd.app.musicplayer.domain.usecase.playlist.GetAllPlaylistNamesUseCase
 import gd.app.musicplayer.domain.usecase.playlist.PlaylistNameExistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RenamePlaylistUseCase
+import gd.app.musicplayer.domain.repository.MusicSetMetadataRepo
+import gd.app.musicplayer.domain.repository.EditableAlbumMetadata
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +31,7 @@ data class PlaylistInputUiState(
 sealed interface PlaylistInputEvent {
     data class ShowToast(@StringRes val messageRes: Int) : PlaylistInputEvent
     data class ReturnCreatedPlaylist(val playlistId: Long, val playlistName: String) : PlaylistInputEvent
+    data class ReturnRenamedSet(val musicSet: MusicSet) : PlaylistInputEvent
     data object Dismiss : PlaylistInputEvent
 }
 
@@ -38,7 +41,8 @@ class PlaylistInputViewModel @Inject constructor(
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
     private val addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase,
     private val playlistNameExistsUseCase: PlaylistNameExistsUseCase,
-    private val getAllPlaylistNamesUseCase: GetAllPlaylistNamesUseCase
+    private val getAllPlaylistNamesUseCase: GetAllPlaylistNamesUseCase,
+    private val musicSetMetadataRepo: MusicSetMetadataRepo
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlaylistInputUiState())
@@ -60,7 +64,7 @@ class PlaylistInputViewModel @Inject constructor(
         this.pendingTracks = pendingTracks
 
         viewModelScope.launch {
-            val renameName = (targetSet as? MusicSet.Playlist)?.name.orEmpty()
+            val renameName = targetSet?.name.orEmpty()
             val suggestedName = if (mode == PlaylistInputDialog.MODE_RENAME_SET) {
                 renameName
             } else {
@@ -81,10 +85,12 @@ class PlaylistInputViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val currentPlaylistId = (targetSet as? MusicSet.Playlist)?.id ?: -1L
-            if (playlistNameExistsUseCase(input, currentPlaylistId)) {
-                eventsChannel.send(PlaylistInputEvent.ShowToast(R.string.name_exist))
-                return@launch
+            if (mode != PlaylistInputDialog.MODE_RENAME_SET || targetSet is MusicSet.Playlist) {
+                val currentPlaylistId = (targetSet as? MusicSet.Playlist)?.id ?: -1L
+                if (playlistNameExistsUseCase(input, currentPlaylistId)) {
+                    eventsChannel.send(PlaylistInputEvent.ShowToast(R.string.name_exist))
+                    return@launch
+                }
             }
 
             when (mode) {
@@ -96,13 +102,59 @@ class PlaylistInputViewModel @Inject constructor(
     }
 
     private suspend fun renameSet(newName: String) {
-        val playlist = targetSet as? MusicSet.Playlist ?: run {
-            eventsChannel.send(PlaylistInputEvent.ShowToast(R.string.feature_not_implemented))
+        val set = targetSet ?: run {
+            eventsChannel.send(PlaylistInputEvent.ShowToast(R.string.equalizer_edit_input_error))
             return
         }
-        renamePlaylistUseCase(playlist.id, newName)
-        eventsChannel.send(PlaylistInputEvent.ShowToast(R.string.rename_success))
-        eventsChannel.send(PlaylistInputEvent.Dismiss)
+
+        val renamedSet: MusicSet? = when (set) {
+            is MusicSet.Playlist -> {
+                renamePlaylistUseCase(set.id, newName)
+                set.copy(name = newName)
+            }
+
+            is MusicSet.Album -> {
+                val success = musicSetMetadataRepo.updateAlbumMetadata(
+                    set = set,
+                    metadata = EditableAlbumMetadata(
+                        album = newName,
+                        artist = set.artist,
+                        genre = set.genres,
+                        year = set.year
+                    ),
+                    artworkPath = set.albumArt
+                )
+                if (success) set.copy(name = newName) else null
+            }
+
+            is MusicSet.Artist -> {
+                val success = musicSetMetadataRepo.updateArtistMetadata(
+                    set = set,
+                    newName = newName,
+                    artworkPath = set.albumArt
+                )
+                if (success) set.copy(name = newName) else null
+            }
+
+            is MusicSet.Genre -> {
+                val success = musicSetMetadataRepo.updateGenreMetadata(
+                    set = set,
+                    newName = newName,
+                    artworkPath = set.albumArt
+                )
+                if (success) set.copy(name = newName) else null
+            }
+
+            else -> null
+        }
+
+        if (renamedSet != null) {
+            eventsChannel.send(PlaylistInputEvent.ShowToast(R.string.rename_success))
+            eventsChannel.send(PlaylistInputEvent.ReturnRenamedSet(renamedSet))
+            eventsChannel.send(PlaylistInputEvent.Dismiss)
+        } else {
+            eventsChannel.send(PlaylistInputEvent.ShowToast(R.string.feature_not_implemented))
+        }
     }
 
     private suspend fun addTracksToPlaylist(playlistName: String) {

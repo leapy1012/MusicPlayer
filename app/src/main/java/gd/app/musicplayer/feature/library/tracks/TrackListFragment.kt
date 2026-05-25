@@ -37,7 +37,9 @@ import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
 import gd.app.musicplayer.feature.library.albums.AlbumMusicActivity
 import gd.app.musicplayer.feature.library.BaseListFragment
 import gd.app.musicplayer.feature.library.artwork.ManageArtworkDialogFragment
+import gd.app.musicplayer.feature.library.options.DeleteConfirmDialogFragment
 import gd.app.musicplayer.feature.library.options.MusicOptionsDialog
+import gd.app.musicplayer.domain.usecase.playlist.DeletePlaylistUseCase
 
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +53,7 @@ class TrackListFragment : BaseListFragment() {
     @Inject lateinit var themeRepo: ThemeRepo
     @Inject lateinit var getReplaySongEnabledUseCase: GetReplaySongEnabledUseCase
     @Inject lateinit var isTrackClickOperationEnabledUseCase: IsTrackClickOperationEnabledUseCase
+    @Inject lateinit var deletePlaylistUseCase: DeletePlaylistUseCase
 
     private lateinit var trackAdapter: TrackAdapter
     private lateinit var concatAdapter: ConcatAdapter
@@ -62,8 +65,16 @@ class TrackListFragment : BaseListFragment() {
     private val clearDialogResultKey: String by lazy {
         "clear_music_set_confirm_${hashCode()}"
     }
+    private val deletePlaylistResultKey: String by lazy {
+        "delete_playlist_confirm_${hashCode()}"
+    }
 
     fun currentSortState(): TrackListSortState = currentSortState
+
+    fun onMusicSetRenamed(newSet: MusicSet) {
+        updateMusicSet(newSet)
+        viewModel.bind(newSet)
+    }
 
     override fun onBindingCreated(
         binding: LayoutRecyclerviewBinding,
@@ -81,6 +92,7 @@ class TrackListFragment : BaseListFragment() {
         observeEvents()
         observeCurrentTrack()
         observeClearDialogResult()
+        observeDeletePlaylistDialogResult()
 
         viewModel.bind(musicSet)
     }
@@ -314,6 +326,8 @@ class TrackListFragment : BaseListFragment() {
             ContextMenuAction.ClearRecentlyPlayed,
             ContextMenuAction.ClearMostPlayed -> showClearMusicSetDialog(action)
 
+            ContextMenuAction.DeletePlaylist -> showDeletePlaylistDialog()
+
             ContextMenuAction.Rename -> showRenameDialog()
 
             ContextMenuAction.ManageArtwork -> showManageArtworkDialog()
@@ -347,6 +361,11 @@ class TrackListFragment : BaseListFragment() {
     }
 
     private fun showClearMusicSetDialog(action: ContextMenuAction) {
+        if (currentTracks.isEmpty()) {
+            ToastUtil.show(requireContext(), R.string.list_is_empty)
+            return
+        }
+
         pendingClearAction = action
         ClearMusicSetConfirmDialogFragment
             .newInstance(
@@ -387,9 +406,30 @@ class TrackListFragment : BaseListFragment() {
         }
     }
 
-    private fun showRenameDialog() {
+    private fun observeDeletePlaylistDialogResult() {
+        parentFragmentManager.setFragmentResultListener(
+            deletePlaylistResultKey,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            if (!bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) {
+                return@setFragmentResultListener
+            }
+            val playlist = musicSet as? MusicSet.Playlist ?: return@setFragmentResultListener
+            viewLifecycleOwner.lifecycleScope.launch {
+                deletePlaylistUseCase(playlist.id)
+                ToastUtil.show(requireContext(), R.string.succeed)
+                requireActivity().onBackPressedDispatcher.onBackPressed()
+            }
+        }
+    }
 
-        if (musicSet is MusicSet.Playlist) {
+    private fun showRenameDialog() {
+        if (
+            musicSet is MusicSet.Playlist ||
+            musicSet is MusicSet.Album ||
+            musicSet is MusicSet.Artist ||
+            musicSet is MusicSet.Genre
+        ) {
             PlaylistInputDialog
                 .forSet(
                     set = musicSet,
@@ -411,6 +451,18 @@ class TrackListFragment : BaseListFragment() {
                 parentFragmentManager,
                 ManageArtworkDialogFragment::class.java.simpleName
             )
+    }
+
+    private fun showDeletePlaylistDialog() {
+        val playlist = musicSet as? MusicSet.Playlist ?: return
+        DeleteConfirmDialogFragment.forSetDelete(
+            resultKey = deletePlaylistResultKey,
+            setName = playlist.displayName(requireContext()),
+            isPlaylist = true
+        ).show(
+            parentFragmentManager,
+            DeleteConfirmDialogFragment::class.java.simpleName
+        )
     }
 
     private fun supportsTrackReorder(): Boolean {

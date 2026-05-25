@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.commit
+import androidx.fragment.app.setFragmentResultListener
 import com.bumptech.glide.Glide
 import com.google.android.material.appbar.AppBarLayout
 import dagger.hilt.android.AndroidEntryPoint
@@ -79,6 +80,7 @@ class AlbumMusicFragment :
         applyInsets(binding)
         setupToolbar(binding)
         setupHeader(binding)
+        registerRenameResultListener()
         registerArtworkResultListener()
         setupChildFragment()
     }
@@ -324,13 +326,53 @@ class AlbumMusicFragment :
             is MusicSet.Album,
             is MusicSet.Artist,
             is MusicSet.Genre -> {
-                ToastUtil.show(requireContext(), R.string.feature_not_implemented)
+                PlaylistInputDialog
+                    .forSet(
+                        set = set,
+                        mode = PlaylistInputDialog.MODE_RENAME_SET
+                    )
+                    .show(
+                        parentFragmentManager,
+                        TAG_RENAME_PLAYLIST_DIALOG
+                    )
             }
 
-            else -> {
-                ToastUtil.show(requireContext(), R.string.feature_not_implemented)
-            }
+            else -> ToastUtil.show(requireContext(), R.string.feature_not_implemented)
         }
+    }
+
+    private fun registerRenameResultListener() {
+        parentFragmentManager.setFragmentResultListener(
+            PlaylistInputDialog.RESULT_REQUEST_KEY,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            val renamedSet = bundle.parcelable<MusicSet>(PlaylistInputDialog.RESULT_RENAMED_SET)
+                ?: return@setFragmentResultListener
+            if (renamedSet.id != musicSet.id) return@setFragmentResultListener
+            updateMusicSetTitle(renamedSet)
+        }
+    }
+
+    private fun updateMusicSetTitle(newSet: MusicSet) {
+        val previousSet = musicSet
+        musicSet = newSet
+        val binding = requireBinding()
+        binding.toolbar.title = musicSet.toolbarTitle
+        if (!isCompactHeader) {
+            binding.collapsingToolbar.title = musicSet.name
+        }
+        if (shouldRecreateTrackListForRename(previousSet, newSet)) {
+            childTrackListFragment?.onMusicSetRenamed(newSet)
+        }
+    }
+
+    private fun shouldRecreateTrackListForRename(oldSet: MusicSet, newSet: MusicSet): Boolean {
+        if (oldSet::class != newSet::class) return false
+        if (oldSet.name == newSet.name) return false
+
+        return newSet is MusicSet.Album ||
+            newSet is MusicSet.Artist ||
+            newSet is MusicSet.Genre
     }
 
     private fun showManageArtworkDialog() {

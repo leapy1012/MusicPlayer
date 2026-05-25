@@ -22,6 +22,7 @@ import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.datastore.LyricSettingPreferenceStore
 import gd.app.musicplayer.core.datastore.LyricsSettingPreference
+import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.lib.model.visualizer.AudioVisualizerManager
 import gd.app.musicplayer.R
@@ -39,6 +40,7 @@ import gd.app.musicplayer.databinding.MusicPlayFragmentInfoBinding
 import gd.app.musicplayer.databinding.MusicPlayFragmentLrcBinding
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
+import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
 import gd.app.musicplayer.feature.equalizer.EffectGroupActivity
 import gd.app.musicplayer.feature.equalizer.EqualizerActivity
 import gd.app.musicplayer.feature.library.albums.AlbumMusicActivity
@@ -57,6 +59,8 @@ import gd.app.musicplayer.util.TrackLyricsStore
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
+import android.content.res.ColorStateList
 
 @AndroidEntryPoint
 class MusicPlayerFragment :
@@ -69,6 +73,10 @@ class MusicPlayerFragment :
     lateinit var lyricSettingPreferenceStore: LyricSettingPreferenceStore
     @Inject
     lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
+    @Inject
+    lateinit var playbackStatePreferenceStore: PlaybackStatePreferenceStore
+    @Inject
+    lateinit var loadAudioEffectSettingsUseCase: LoadAudioEffectSettingsUseCase
 
     private val playerViewModel: PlayerViewModel by activityViewModels()
     private val playModeViewModel: PlayModeViewModel by viewModels()
@@ -119,6 +127,7 @@ class MusicPlayerFragment :
         observePlayMode()
         observeLyricPreferenceChanges()
         observePlayerPreferences()
+        observeTempoState()
     }
 
     private fun setupUi(binding: FragmentPlayContentBinding) {
@@ -152,6 +161,7 @@ class MusicPlayerFragment :
         }
 
         musicPlayProgress.musicPlayTempo.setOnClickListener(this@MusicPlayerFragment)
+        musicPlayProgress.musicPlayTempo.imageTintList = playerActionTintList()
 
         musicPlayController.apply {
             controlPlayPause.setOnClickListener(this@MusicPlayerFragment)
@@ -405,6 +415,49 @@ class MusicPlayerFragment :
                 }
             }
         }
+    }
+
+    private fun observeTempoState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    playbackStatePreferenceStore.playSpeed,
+                    playbackStatePreferenceStore.playPitch
+                ) { speed, pitch ->
+                    speed to pitch
+                }.collect { (speed, pitch) ->
+                    val active = kotlin.math.abs(speed - 1f) > 0.001f ||
+                        kotlin.math.abs(pitch - 1f) > 0.001f
+                    binding?.musicPlayProgress?.musicPlayTempo?.isSelected = active
+                }
+            }
+        }
+    }
+
+    private fun refreshSoundEffectState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val settings = runCatching { loadAudioEffectSettingsUseCase() }.getOrNull() ?: return@launch
+            val active = settings.effectGroupEnabled && settings.effectGroupPresetId >= 0
+            val tint = if (active) playerHighlightColor() else 0xFFFFFFFF.toInt()
+            binding?.musicPlaySoundEffect?.apply {
+                isSelected = active
+                imageTintList = ColorStateList.valueOf(tint)
+            }
+        }
+    }
+
+    private fun playerActionTintList(): ColorStateList {
+        return ColorStateList(
+            arrayOf(
+                intArrayOf(android.R.attr.state_selected),
+                intArrayOf()
+            ),
+            intArrayOf(playerHighlightColor(), 0xFFFFFFFF.toInt())
+        )
+    }
+
+    private fun playerHighlightColor(): Int {
+        return themeEngine.currentTheme().getAccentColor()
     }
 
     private fun updateVisualizerState() {
@@ -683,6 +736,7 @@ class MusicPlayerFragment :
         hasVisualizerPermission = hasVisualizerPermission()
         applyLyricPreferences()
         updateForwardBackwardVisibility()
+        refreshSoundEffectState()
         updateLyricAutoScroll()
         updateVisualizerState()
     }

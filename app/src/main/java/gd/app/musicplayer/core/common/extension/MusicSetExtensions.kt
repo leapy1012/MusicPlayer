@@ -1,8 +1,6 @@
 package gd.app.musicplayer.core.common.extension
 
-import android.net.Uri
 import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.domain.model.isConcreteCollection
 import gd.app.musicplayer.domain.model.isTrackCollection
 import androidx.core.net.toUri
 
@@ -33,6 +31,10 @@ internal val MusicSet.supportsArtworkMenu: Boolean
             this is MusicSet.Album ||
             this is MusicSet.Genre
 
+internal val MusicSet.supportsManualOrdering: Boolean
+    get() =
+        id > 0L && (this is MusicSet.Playlist || this is MusicSet.Favorites)
+
 internal fun MusicSet.albumArtSource(): String? = when {
     !albumArt.isNullOrEmpty() -> albumArt
 
@@ -48,3 +50,24 @@ internal fun MusicSet.albumArtSource(): String? = when {
 
     else -> ""
 }
+
+internal val MusicSet.stableId: String
+    get() =
+        when (this) {
+            is MusicSet.Artist -> "artist:${id}"
+            is MusicSet.Album -> "album:${id}"
+            is MusicSet.Genre -> "genre:${id}:${name}"
+            is MusicSet.Folder -> "folder:${folderPath}"
+            is MusicSet.Playlist -> "playlist:${id}"
+            is MusicSet.Tracks -> "tracks:${id}"
+            is MusicSet.Artists -> "artists:${id}"
+            is MusicSet.Albums -> "albums:${id}"
+            is MusicSet.Genres -> "genres:${id}"
+            is MusicSet.Folders -> "folders:${id}"
+            is MusicSet.Playlists -> "playlists"
+            is MusicSet.RecentlyAdded -> "recently_added:${id}"
+            is MusicSet.RecentlyPlayed -> "recently_played:${id}"
+            is MusicSet.MostPlayed -> "most_played"
+            is MusicSet.Favorites -> "favorites"
+            is MusicSet.Queue -> "queue"
+        }

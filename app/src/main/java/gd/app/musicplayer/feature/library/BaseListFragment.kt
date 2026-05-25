@@ -57,6 +57,10 @@ abstract class BaseListFragment :
         )
     }
 
+    protected fun updateMusicSet(newSet: MusicSet) {
+        musicSet = newSet
+    }
+
     protected fun setupRecyclerView(
         adapter: RecyclerView.Adapter<*>
     ) {

@@ -1,6 +1,5 @@
 package gd.app.musicplayer.feature.library.deleted
 
-import android.app.Activity
 import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
@@ -41,29 +40,21 @@ class DeletedMusicActivity : BaseActivity() {
     private lateinit var adapter: DeletedMusicAdapter
     private lateinit var emptyStateController: RecyclerEmptyStateController
     private lateinit var selectAllView: ImageView
+
     private var pendingDeleteSourceFiles: List<Music> = emptyList()
-    private var waitingForSystemDeleteResult = false
+
+    private val recyclerView: RecyclerView
+        get() = binding.layoutRecyclerview.recyclerview
 
     private val mediaDeleteLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
-        val tracks = pendingDeleteSourceFiles
-        pendingDeleteSourceFiles = emptyList()
-        waitingForSystemDeleteResult = false
-
-        lifecycleScope.launch {
-            if (result.resultCode == RESULT_OK && tracks.isNotEmpty()) {
-                viewModel.markDeletedSourceFilesRemoved(tracks)
-                ToastUtil.show(this@DeletedMusicActivity, R.string.succeed)
-                adapter.clearSelection()
-            } else {
-                ToastUtil.show(this@DeletedMusicActivity, R.string.feature_not_implemented)
-            }
-        }
+        handleSystemDeleteResult(result.resultCode)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         binding = ActivityDeletedMusicBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -88,23 +79,23 @@ class DeletedMusicActivity : BaseActivity() {
         }
     }
 
-    private fun setupRecyclerView() {
+    private fun setupRecyclerView() = with(recyclerView) {
         adapter = DeletedMusicAdapter(
             accentColor = themeRepo.getAccentColor(),
             onSelectionCountChanged = ::renderSelection
-        )
-
-        val recyclerView = binding.root.findViewById<RecyclerView>(R.id.recyclerview)
-        recyclerView.apply {
-            layoutManager = LinearLayoutManager(this@DeletedMusicActivity)
-            adapter = this@DeletedMusicActivity.adapter
-            setHasFixedSize(true)
-            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+        ).also {
+            this@DeletedMusicActivity.adapter = it
         }
 
+        layoutManager = LinearLayoutManager(this@DeletedMusicActivity)
+        adapter = this@DeletedMusicActivity.adapter
+        setHasFixedSize(true)
+
+        (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+
         emptyStateController = RecyclerEmptyStateController(
-            recyclerView = recyclerView,
-            emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
+            recyclerView = this,
+            emptyViewStub = binding.layoutRecyclerview.layoutListEmpty
         ).apply {
             setEmptyMessage(getString(R.string.music_empty))
         }
@@ -125,7 +116,11 @@ class DeletedMusicActivity : BaseActivity() {
             DeletedMusicDeleteConfirmDialogFragment.RESULT_KEY,
             this
         ) { _, bundle ->
-            if (bundle.getBoolean(DeletedMusicDeleteConfirmDialogFragment.RESULT_CONFIRMED)) {
+            val confirmed = bundle.getBoolean(
+                DeletedMusicDeleteConfirmDialogFragment.RESULT_CONFIRMED
+            )
+
+            if (confirmed) {
                 deletePendingSourceFiles()
             }
         }
@@ -134,26 +129,30 @@ class DeletedMusicActivity : BaseActivity() {
     private fun observeTracks() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.tracks.collect { tracks ->
-                    adapter.submitList(tracks)
-                    emptyStateController.setVisible(tracks.isEmpty())
-                    renderSelection(adapter.getSelectedItems().size)
-                }
+                viewModel.tracks.collect(::renderTracks)
             }
         }
     }
 
+    private fun renderTracks(tracks: List<Music>) {
+        adapter.submitList(tracks)
+        emptyStateController.setVisible(tracks.isEmpty())
+        renderSelection(adapter.getSelectedItems().size)
+    }
+
     private fun toggleSelectAll() {
         if (adapter.itemCount == 0) return
-        adapter.setAllSelected(!adapter.areAllItemsSelected())
+
+        adapter.setAllSelected(
+            selected = !adapter.areAllItemsSelected()
+        )
     }
 
     private fun renderSelection(selectedCount: Int) {
         selectAllView.renderSelectAllState(
             SelectionUiState(
                 selectedCount = selectedCount,
-                hasSelectableItems = adapter.itemCount > 0,
-                allSelectableItemsSelected = adapter.areAllItemsSelected()
+                selectableCount = adapter.itemCount
             )
         )
 
@@ -164,32 +163,21 @@ class DeletedMusicActivity : BaseActivity() {
     }
 
     private fun restoreSelected() {
-        val selected = adapter.getSelectedItems()
-        if (selected.isEmpty()) {
-            ToastUtil.show(this, R.string.select_musics_empty)
-            return
-        }
+        val selected = selectedOrShowEmptyToast() ?: return
 
         lifecycleScope.launch {
             viewModel.restore(selected)
-            adapter.clearSelection()
-            ToastUtil.show(this@DeletedMusicActivity, R.string.succeed)
+            onSelectionActionSucceeded()
         }
     }
 
     private fun confirmDeleteSourceFiles() {
-        val selected = adapter.getSelectedItems()
-        if (selected.isEmpty()) {
-            ToastUtil.show(this, R.string.select_musics_empty)
-            return
-        }
+        pendingDeleteSourceFiles = selectedOrShowEmptyToast() ?: return
 
-        pendingDeleteSourceFiles = selected
-        DeletedMusicDeleteConfirmDialogFragment()
-            .show(
-                supportFragmentManager,
-                DeletedMusicDeleteConfirmDialogFragment::class.java.simpleName
-            )
+        DeletedMusicDeleteConfirmDialogFragment().show(
+            supportFragmentManager,
+            DeletedMusicDeleteConfirmDialogFragment::class.java.simpleName
+        )
     }
 
     private fun deletePendingSourceFiles() {
@@ -198,18 +186,50 @@ class DeletedMusicActivity : BaseActivity() {
 
         lifecycleScope.launch {
             val deletedCount = viewModel.deleteSourceFiles(selected)
-            if (deletedCount == selected.distinctBy(Music::id).size) {
-                pendingDeleteSourceFiles = emptyList()
-                ToastUtil.show(this@DeletedMusicActivity, R.string.succeed)
-                adapter.clearSelection()
-            } else if (requestSystemMediaDelete(selected)) {
-                return@launch
-            } else if (deletedCount > 0) {
-                pendingDeleteSourceFiles = emptyList()
-                ToastUtil.show(this@DeletedMusicActivity, R.string.succeed)
-                adapter.clearSelection()
+            handleDirectDeleteResult(
+                selected = selected,
+                deletedCount = deletedCount
+            )
+        }
+    }
+
+    private fun handleDirectDeleteResult(
+        selected: List<Music>,
+        deletedCount: Int
+    ) {
+        val expectedCount = selected.distinctBy(Music::id).size
+
+        when {
+            deletedCount == expectedCount -> {
+                clearPendingDelete()
+                onSelectionActionSucceeded()
+            }
+
+            requestSystemMediaDelete(selected) -> {
+                // Wait for system picker result.
+            }
+
+            deletedCount > 0 -> {
+                clearPendingDelete()
+                onSelectionActionSucceeded()
+            }
+
+            else -> {
+                clearPendingDelete()
+                ToastUtil.show(this, R.string.feature_not_implemented)
+            }
+        }
+    }
+
+    private fun handleSystemDeleteResult(resultCode: Int) {
+        val tracks = pendingDeleteSourceFiles
+        clearPendingDelete()
+
+        lifecycleScope.launch {
+            if (resultCode == RESULT_OK && tracks.isNotEmpty()) {
+                viewModel.markDeletedSourceFilesRemoved(tracks)
+                onSelectionActionSucceeded()
             } else {
-                pendingDeleteSourceFiles = emptyList()
                 ToastUtil.show(this@DeletedMusicActivity, R.string.feature_not_implemented)
             }
         }
@@ -222,7 +242,7 @@ class DeletedMusicActivity : BaseActivity() {
 
         val uris = tracks
             .distinctBy(Music::id)
-            .filter { it.id > 0L }
+            .filter { track -> track.id > 0L }
             .map { track ->
                 ContentUris.withAppendedId(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -236,16 +256,39 @@ class DeletedMusicActivity : BaseActivity() {
             MediaStore.createDeleteRequest(contentResolver, uris)
         }.getOrNull() ?: return false
 
-        waitingForSystemDeleteResult = true
         mediaDeleteLauncher.launch(
             IntentSenderRequest.Builder(pendingIntent.intentSender).build()
         )
+
         return true
+    }
+
+    private fun selectedOrShowEmptyToast(): List<Music>? {
+        val selected = adapter.getSelectedItems()
+
+        if (selected.isNotEmpty()) {
+            return selected
+        }
+
+        ToastUtil.show(this, R.string.select_musics_empty)
+        return null
+    }
+
+    private fun onSelectionActionSucceeded() {
+        ToastUtil.show(this, R.string.succeed)
+        adapter.clearSelection()
+        renderSelection(selectedCount = 0)
+    }
+
+    private fun clearPendingDelete() {
+        pendingDeleteSourceFiles = emptyList()
     }
 
     companion object {
         fun start(context: Context) {
-            context.startActivityCompat(Intent(context, DeletedMusicActivity::class.java))
+            context.startActivityCompat(
+                Intent(context, DeletedMusicActivity::class.java)
+            )
         }
     }
 }

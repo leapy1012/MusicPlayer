@@ -22,8 +22,6 @@ import gd.app.musicplayer.core.common.extension.applyLengthFilter
 import gd.app.musicplayer.core.common.extension.hideKeyboard
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
-import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
 import gd.app.musicplayer.databinding.ActivityMusicSelectBinding
@@ -32,29 +30,27 @@ import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.menu.SortByContextMenu
+import gd.app.musicplayer.util.SimpleTextWatcher
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class MusicSelectActivity :
-    BaseActivity(),
-    View.OnClickListener,
-    TextWatcher,
-    AdapterView.OnItemClickListener {
+class MusicSelectActivity : BaseActivity() {
 
     private val viewModel: MusicSelectViewModel by viewModels()
 
     private lateinit var binding: ActivityMusicSelectBinding
     private lateinit var emptyStateController: RecyclerEmptyStateController
-    private lateinit var recyclerView: MusicRecyclerView
-    private lateinit var recyclerIndexBar: RecyclerIndexBar
 
     private lateinit var musicAdapter: MusicSelectAdapter
     private lateinit var folderAdapter: FolderSelectAdapter
     private lateinit var concatAdapter: ConcatAdapter
 
-    private val indexPositions = mutableListOf<Pair<String, Int>>()
-
+    private var indexEntries: List<IndexEntry> = emptyList()
     private var renderingSpinner = false
+
+    private val searchWatcher = SimpleTextWatcher { query ->
+        viewModel.onQueryChanged(query)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,13 +65,31 @@ class MusicSelectActivity :
         binding = ActivityMusicSelectBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        initViews()
+        setupToolbar()
+        setupRecyclerView()
+        setupSearch()
+        setupActions()
+        setupBackPress()
         observeViewModel()
 
         viewModel.initialize(target)
     }
 
-    private fun initViews() {
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+
+        if (!hasFocus) {
+            binding.searchEditText.hideKeyboard()
+        }
+    }
+
+    override fun onDestroy() {
+        binding.searchEditText.removeTextChangedListener(searchWatcher)
+        binding.layoutRecyclerview.recyclerviewIndex.submitLabels(emptyList())
+        super.onDestroy()
+    }
+
+    private fun setupToolbar() {
         setupEdgeToEdgeToolbar(
             root = binding.root,
             statusBarView = binding.statusBarSpace,
@@ -86,12 +100,11 @@ class MusicSelectActivity :
 
         binding.toolbar.inflateMenu(R.menu.menu_activity_music_select)
         binding.toolbar.setOnMenuItemClickListener(::onToolbarMenuItemClicked)
+    }
 
-        recyclerView = binding.root.findViewById(R.id.recyclerview)
-        recyclerIndexBar = binding.root.findViewById(R.id.recyclerview_index)
-
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.itemAnimator = null
+    private fun setupRecyclerView() = with(binding.layoutRecyclerview.recyclerview) {
+        layoutManager = LinearLayoutManager(this@MusicSelectActivity)
+        itemAnimator = null
 
         musicAdapter = MusicSelectAdapter(
             accentColor = themeRepo.getAccentColor(),
@@ -111,34 +124,44 @@ class MusicSelectActivity :
             musicAdapter
         )
 
-        recyclerView.adapter = concatAdapter
+        adapter = concatAdapter
 
         emptyStateController = RecyclerEmptyStateController(
-            recyclerView = recyclerView,
-            emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
+            recyclerView = this,
+            emptyViewStub = binding.layoutRecyclerview.layoutListEmpty
         )
+    }
 
-        binding.searchEditText.applyLengthFilter(120)
-        binding.searchEditText.addTextChangedListener(this)
-        binding.searchEditText.setOnEditorActionListener { _, _, _ ->
-            binding.searchEditText.hideKeyboard()
+    private fun setupSearch() = with(binding) {
+        searchEditText.applyLengthFilter(MAX_SEARCH_LENGTH)
+        searchEditText.addTextChangedListener(searchWatcher)
+        searchEditText.setOnEditorActionListener { _, _, _ ->
+            searchEditText.hideKeyboard()
             false
         }
 
-        binding.searchEditClear.setOnClickListener(this)
-        binding.selectAllGroup.setOnClickListener(this)
-        binding.buttonConfirm.setOnClickListener(this)
-        binding.mainInfoSpinner.setOnItemClickListener(this)
+        searchEditClear.setOnClickListener {
+            searchEditText.text = null
+        }
+    }
 
-        recyclerIndexBar.onLabelSelected = { label ->
-            val targetIndex = indexPositions.firstOrNull { it.first == label }?.second
-
-            if (targetIndex != null) {
-                (recyclerView.layoutManager as? LinearLayoutManager)
-                    ?.scrollToPositionWithOffset(targetIndex, 0)
-            }
+    private fun setupActions() = with(binding) {
+        selectAllGroup.setOnClickListener {
+            viewModel.onSelectAllClicked()
         }
 
+        buttonConfirm.setOnClickListener {
+            viewModel.confirmSelection()
+        }
+
+        mainInfoSpinner.setOnItemClickListener { _: AdapterView<*>?, _: View?, position: Int, _: Long ->
+            onSpinnerItemClicked(position)
+        }
+
+        layoutRecyclerview.recyclerviewIndex.onLabelSelected = ::scrollToIndexLabel
+    }
+
+    private fun setupBackPress() {
         onBackPressedDispatcher.addCallback(this) {
             if (!viewModel.onBackPressedInSelection()) {
                 finish()
@@ -167,69 +190,87 @@ class MusicSelectActivity :
         renderToolbar(state)
         renderSpinner(state)
         renderSelectAll(state)
-        updateIndexBar(state)
+        renderIndexBar(state)
     }
 
     private fun renderList(state: MusicSelectUiState) {
         if (state.header.isBrowsingFolders) {
-            folderAdapter.submitFolders(state.content.folderItems,state.header.query)
-
-            musicAdapter.submitMusicList(
-                items = emptyList(),
-                selectedIds = emptySet(),
-                lockedIds = emptySet(),
-                highlightQuery = state.header.query
-            )
-
-            emptyStateController.setEmptyImage(R.drawable.folder_empty_image)
-            emptyStateController.setEmptyMessage(getString(R.string.folder_is_empty))
+            renderFolderMode(state)
         } else {
-            folderAdapter.submitFolders(emptyList(),highlightQuery = state.header.query)
-
-            musicAdapter.submitMusicList(
-                items = state.content.songItems,
-                selectedIds = state.actions.selectedSongIds,
-                lockedIds = state.actions.lockedSongIds,
-                highlightQuery = state.header.query
-            )
-
-            emptyStateController.setEmptyImage(R.drawable.music_empty_image)
-            emptyStateController.setEmptyMessage(getString(R.string.music_empty))
+            renderSongMode(state)
         }
 
         emptyStateController.setVisible(state.content.isEmpty)
+    }
+
+    private fun renderFolderMode(state: MusicSelectUiState) {
+        folderAdapter.submitFolders(
+            items = state.content.folderItems,
+            highlightQuery = state.header.query
+        )
+
+        musicAdapter.submitMusicList(
+            items = emptyList(),
+            selectedIds = emptySet(),
+            lockedIds = emptySet(),
+            highlightQuery = state.header.query
+        )
+
+        emptyStateController.setEmptyImage(R.drawable.folder_empty_image)
+        emptyStateController.setEmptyMessage(getString(R.string.folder_is_empty))
+    }
+
+    private fun renderSongMode(state: MusicSelectUiState) {
+        folderAdapter.submitFolders(
+            items = emptyList(),
+            highlightQuery = state.header.query
+        )
+
+        musicAdapter.submitMusicList(
+            items = state.content.songItems,
+            selectedIds = state.actions.selectedSongIds,
+            lockedIds = state.actions.lockedSongIds,
+            highlightQuery = state.header.query
+        )
+
+        emptyStateController.setEmptyImage(R.drawable.music_empty_image)
+        emptyStateController.setEmptyMessage(getString(R.string.music_empty))
     }
 
     private fun renderSearch(state: MusicSelectUiState) {
         binding.searchEditClear.isVisible = state.header.query.isNotEmpty()
     }
 
-    private fun renderActions(state: MusicSelectUiState) {
+    private fun renderActions(state: MusicSelectUiState) = with(binding) {
         val isSongMode = !state.header.isBrowsingFolders
+        val hasSongs = state.content.songItems.isNotEmpty()
+        val hasSelection = state.actions.selectedSongIds.isNotEmpty()
 
-        binding.selectAllBanner.isVisible = isSongMode
-        binding.selectAllGroup.isVisible = isSongMode && state.content.songItems.isNotEmpty()
-        binding.buttonConfirm.isVisible = isSongMode && state.actions.selectedSongIds.isNotEmpty()
-        binding.buttonConfirm.isEnabled = state.actions.isConfirmEnabled
+        selectAllBanner.isVisible = isSongMode
+        selectAllGroup.isVisible = isSongMode && hasSongs
+        buttonConfirm.isVisible = isSongMode && hasSelection
+        buttonConfirm.isEnabled = state.actions.isConfirmEnabled
     }
 
-    private fun renderToolbar(state: MusicSelectUiState) {
-        binding.toolbar.title = if (state.header.isBrowsingFolders) {
+    private fun renderToolbar(state: MusicSelectUiState) = with(binding.toolbar) {
+        title = if (state.header.isBrowsingFolders) {
             getString(R.string.add_songs)
         } else {
-            musicSelectionTitle(state.actions.selectedSongIds.size)
+            musicSelectionTitle(
+                selectedCount = state.actions.selectedSongIds.size,
+                emptyTitleRes = R.string.add_songs
+            )
         }
 
-        binding.toolbar.menu.findItem(R.id.menu_switch)?.setIcon(
-            if (state.header.isBrowsingFolders || state.header.selectedMusicSet is MusicSet.Folder) {
+        menu.findItem(R.id.menu_switch)?.setIcon(
+            if (state.shouldShowMusicSwitchIcon()) {
                 R.drawable.vector_menu_switch_music
             } else {
                 R.drawable.vector_menu_switch_folder
             }
         )
 
-        binding.toolbar.menu.findItem(R.id.menu_sort)?.isVisible =
-            state.header.isBrowsingFolders || state.header.selectedMusicSet !is MusicSet.Folder
+        menu.findItem(R.id.menu_sort)?.isVisible = state.shouldShowSortMenu()
     }
 
     private fun renderSpinner(state: MusicSelectUiState) {
@@ -237,8 +278,8 @@ class MusicSelectActivity :
             .map(::labelForSet)
             .toTypedArray()
 
-        val selectedIndex = state.header.spinnerItems.indexOfFirst {
-            sameMusicSet(it, state.header.selectedMusicSet)
+        val selectedIndex = state.header.spinnerItems.indexOfFirst { item ->
+            item.sameIdentityAs(state.header.selectedMusicSet)
         }
 
         renderingSpinner = true
@@ -256,22 +297,29 @@ class MusicSelectActivity :
         binding.mainInfoSelectall.renderSelectAllState(
             SelectionUiState(
                 selectedCount = state.actions.selectedSongIds.size,
-                hasSelectableItems = state.hasSelectableVisibleSongs(),
-                allSelectableItemsSelected = state.areAllSelectableVisibleSongsSelected()
+                selectableCount = state.selectableVisibleSongCount()
             )
+        )
+    }
+
+    private fun renderIndexBar(state: MusicSelectUiState) {
+        indexEntries = state.indexEntries()
+        binding.layoutRecyclerview.recyclerviewIndex.submitLabels(
+            indexEntries.map(IndexEntry::label)
         )
     }
 
     private fun handleEvent(event: MusicSelectEvent) {
         when (event) {
             is MusicSelectEvent.ConfirmCompleted -> {
-                val messageRes = if (event.insertedCount > 0) {
-                    R.string.succeed
-                } else {
-                    R.string.list_contains_music
-                }
-
-                ToastUtil.show(this, messageRes)
+                ToastUtil.show(
+                    this,
+                    if (event.insertedCount > 0) {
+                        R.string.succeed
+                    } else {
+                        R.string.list_contains_music
+                    }
+                )
 
                 viewModel.uiState.value.targetPlaylist?.let { target ->
                     setResult(
@@ -294,30 +342,7 @@ class MusicSelectActivity :
             }
 
             R.id.menu_sort -> {
-                binding.searchEditText.hideKeyboard()
-
-                val state = viewModel.uiState.value
-
-                val palette = themeRepo.getCorePalette()
-
-                SortByContextMenu(
-                    context = this,
-                    musicSet = if (state.header.isBrowsingFolders) {
-                        MusicSet.Folders
-                    } else {
-                        state.header.selectedMusicSet
-                    },
-                    selectionMode = true,
-                    currentSortStyle = state.header.currentSortStyle,
-                    currentSortDescending = state.header.currentSortDescending,
-                    onSortChanged = viewModel::onSortChanged,
-                    accentColor = palette.accentColor,
-                    popupTextColor = palette.popupTitleColor,
-                    popupBackgroundProvider = { menuContext ->
-                        palette.getPopupBackgroundDrawable(menuContext)
-                    }
-                ).show(binding.toolbar.findViewById(item.itemId) ?: binding.toolbar)
-
+                showSortMenu(item)
                 true
             }
 
@@ -325,71 +350,49 @@ class MusicSelectActivity :
         }
     }
 
-    override fun onClick(view: View) {
-        when (view.id) {
-            R.id.search_edit_clear -> binding.searchEditText.setText("")
-            R.id.main_info_selectall -> viewModel.onSelectAllClicked()
-            R.id.button_confirm -> viewModel.confirmSelection()
-        }
+    private fun showSortMenu(item: MenuItem) {
+        binding.searchEditText.hideKeyboard()
+
+        val state = viewModel.uiState.value
+        val palette = themeRepo.getCorePalette()
+
+        SortByContextMenu(
+            context = this,
+            musicSet = if (state.header.isBrowsingFolders) {
+                MusicSet.Folders
+            } else {
+                state.header.selectedMusicSet
+            },
+            selectionMode = true,
+            currentSortStyle = state.header.currentSortStyle,
+            currentSortDescending = state.header.currentSortDescending,
+            onSortChanged = viewModel::onSortChanged,
+            accentColor = palette.accentColor,
+            popupTextColor = palette.popupTitleColor,
+            popupBackgroundProvider = { menuContext ->
+                palette.getPopupBackgroundDrawable(menuContext)
+            }
+        ).show(binding.toolbar.findViewById(item.itemId) ?: binding.toolbar)
     }
 
-    override fun afterTextChanged(editable: Editable) {
-        viewModel.onQueryChanged(editable.toString())
-    }
-
-    override fun beforeTextChanged(
-        s: CharSequence?,
-        start: Int,
-        count: Int,
-        after: Int
-    ) = Unit
-
-    override fun onTextChanged(
-        s: CharSequence?,
-        start: Int,
-        before: Int,
-        count: Int
-    ) = Unit
-
-    override fun onItemClick(
-        parent: AdapterView<*>?,
-        view: View?,
-        position: Int,
-        id: Long
-    ) {
+    private fun onSpinnerItemClicked(position: Int) {
         if (renderingSpinner) return
 
-        val selected = viewModel.uiState.value.header.spinnerItems.getOrNull(position) ?: return
+        val selected = viewModel.uiState.value.header.spinnerItems
+            .getOrNull(position)
+            ?: return
+
         viewModel.onSpinnerMusicSetSelected(selected)
     }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
+    private fun scrollToIndexLabel(label: String) {
+        val position = indexEntries
+            .firstOrNull { entry -> entry.label == label }
+            ?.position
+            ?: return
 
-        if (!hasFocus) {
-            binding.searchEditText.hideKeyboard()
-        }
-    }
-
-    private fun updateIndexBar(state: MusicSelectUiState) {
-        indexPositions.clear()
-
-        val labelsSource = if (state.header.isBrowsingFolders) {
-            state.content.folderItems.map { it.name }
-        } else {
-            state.content.songItems.map { it.title }
-        }
-
-        labelsSource.forEachIndexed { index, value ->
-            val first = value.trim().firstOrNull()?.uppercaseChar() ?: return@forEachIndexed
-            val label = if (first.isLetter()) first.toString() else "#"
-
-            if (indexPositions.none { it.first == label }) {
-                indexPositions += label to index
-            }
-        }
-
-        recyclerIndexBar.submitLabels(indexPositions.map { it.first })
+        (binding.layoutRecyclerview.recyclerview.layoutManager as? LinearLayoutManager)
+            ?.scrollToPositionWithOffset(position, 0)
     }
 
     private fun labelForSet(set: MusicSet): String {
@@ -403,49 +406,66 @@ class MusicSelectActivity :
         }
     }
 
-    private fun MusicSelectUiState.hasSelectableVisibleSongs(): Boolean {
-        return content.songItems.any { music ->
+    private fun MusicSelectUiState.shouldShowMusicSwitchIcon(): Boolean {
+        return header.isBrowsingFolders || header.selectedMusicSet is MusicSet.Folder
+    }
+
+    private fun MusicSelectUiState.shouldShowSortMenu(): Boolean {
+        return header.isBrowsingFolders || header.selectedMusicSet !is MusicSet.Folder
+    }
+
+    private fun MusicSelectUiState.selectableVisibleSongCount(): Int {
+        return content.songItems.count { music ->
             music.id !in actions.lockedSongIds
         }
     }
 
-    private fun MusicSelectUiState.areAllSelectableVisibleSongsSelected(): Boolean {
-        val selectableVisibleIds = content.songItems
-            .asSequence()
-            .map { music -> music.id }
-            .filterNot { id -> id in actions.lockedSongIds }
-            .toSet()
+    private fun MusicSelectUiState.indexEntries(): List<IndexEntry> {
+        val source = if (header.isBrowsingFolders) {
+            content.folderItems.map { item -> item.name }
+        } else {
+            content.songItems.map { item -> item.title }
+        }
 
-        return selectableVisibleIds.isNotEmpty() &&
-                actions.selectedSongIds.containsAll(selectableVisibleIds)
-    }
+        val entries = linkedMapOf<String, Int>()
 
-    private fun sameMusicSet(
-        first: MusicSet,
-        second: MusicSet
-    ): Boolean {
-        if (first::class != second::class) return false
+        source.forEachIndexed { index, value ->
+            val label = value.toIndexLabel() ?: return@forEachIndexed
+            entries.putIfAbsent(label, index)
+        }
 
-        return when {
-            first is MusicSet.Folder && second is MusicSet.Folder -> {
-                first.folderPath == second.folderPath
-            }
-
-            first is MusicSet.Playlist && second is MusicSet.Playlist -> {
-                first.id == second.id
-            }
-
-            else -> first.id == second.id
+        return entries.map { (label, position) ->
+            IndexEntry(
+                label = label,
+                position = position
+            )
         }
     }
 
-    override fun onDestroy() {
-        recyclerIndexBar.submitLabels(emptyList())
-        super.onDestroy()
+    private fun String.toIndexLabel(): String? {
+        val first = trim().firstOrNull()?.uppercaseChar() ?: return null
+        return if (first.isLetter()) first.toString() else "#"
+    }
+
+    private fun MusicSet.sameIdentityAs(other: MusicSet): Boolean {
+        if (this::class != other::class) return false
+
+        return when {
+            this is MusicSet.Folder && other is MusicSet.Folder -> {
+                folderPath == other.folderPath
+            }
+
+            this is MusicSet.Playlist && other is MusicSet.Playlist -> {
+                id == other.id
+            }
+
+            else -> id == other.id
+        }
     }
 
     companion object {
         private const val EXTRA_MUSIC_SET = "KEY_MUSIC_SET"
+        private const val MAX_SEARCH_LENGTH = 120
 
         @JvmStatic
         fun start(
@@ -469,3 +489,8 @@ class MusicSelectActivity :
         }
     }
 }
+
+private data class IndexEntry(
+    val label: String,
+    val position: Int
+)

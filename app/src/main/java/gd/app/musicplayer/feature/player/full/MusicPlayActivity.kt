@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
+class MusicPlayActivity : BaseActivity() {
 
     private val playbackViewModel: PlayerViewModel by viewModels()
 
@@ -72,8 +72,11 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
 
     private fun setupDragDismiss() {
         binding.dragDismissLayout.apply {
-            setAllowedDirections(DragDismissLayout.Direction.DOWN)
-            setOnDismissListener(this@MusicPlayActivity)
+            setAllowedDragDirections(DragDismissLayout.DIRECTION_DOWN)
+            setOnDismissListener {
+                finish()
+                overridePendingTransition(0, 0)
+            }
             setOnDragStateListener(
                 object : DragDismissLayout.OnDragStateListener {
                     override fun onDragStarted() {
@@ -84,9 +87,7 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
 
                     override fun onDragFinished(dismissed: Boolean) {
                         dragDismissInProgress = false
-                        binding.dragDismissLayout.setDisallowInterceptTouchEvent(
-                            dismissInterceptionBlocked
-                        )
+                        setDisallowDragIntercept(dismissInterceptionBlocked)
                         if (!dismissed) {
                             pendingArtworkPath?.let(::applyArtworkIfChanged)
                             pendingArtworkPath = null
@@ -179,9 +180,7 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
 
     fun setDismissInterceptionBlocked(blocked: Boolean) {
         dismissInterceptionBlocked = blocked
-        if (!dragDismissInProgress) {
-            binding.dragDismissLayout.setDisallowInterceptTouchEvent(blocked)
-        }
+        binding.dragDismissLayout.setDisallowDragIntercept(blocked)
     }
 
     fun ensureRecordAudioPermission(): Boolean {
@@ -199,10 +198,6 @@ class MusicPlayActivity : BaseActivity(), DragDismissLayout.OnDismissListener {
             this,
             Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    override fun onDismissed(view: View) {
-        finish()
     }
 
     @Deprecated("Deprecated in Java")

@@ -1,5 +1,6 @@
 package gd.app.musicplayer.ui.selection
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -9,6 +10,8 @@ import android.view.ViewStub
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.os.bundleOf
+import androidx.fragment.app.setFragmentResultListener
 import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -18,26 +21,25 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
-import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
-import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.databinding.ActivityMusicSetEditBinding
-import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
-import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
-import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
-import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
-
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.isTablet
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.smallestScreenWidthDp
+import gd.app.musicplayer.core.common.extension.stableId
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.databinding.ActivityMusicSetEditBinding
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
+import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
+import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
+import gd.app.musicplayer.feature.library.options.DeleteConfirmDialogFragment
+import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
+import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
+import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -48,25 +50,31 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MusicSetEditActivity : BaseActivity() {
 
+    @Inject
+    lateinit var playTracksUseCase: PlayTracksUseCase
+
+    @Inject
+    lateinit var enqueueTracksUseCase: EnqueueTracksUseCase
+
     private val viewModel: EditViewModel by viewModels()
 
     private lateinit var binding: ActivityMusicSetEditBinding
     private lateinit var adapter: MusicSetEditAdapter
-    private lateinit var recyclerView: RecyclerView
     private lateinit var rootMusicSet: MusicSet
     private lateinit var sessionId: String
+
     private var emptyView: View? = null
     private var selectAllView: ImageView? = null
+
     private var currentItems: List<MusicSet> = emptyList()
-    private var pendingRestoreScroll: ScrollState? = null
     private val selectedKeys = linkedSetOf<String>()
+
     private var viewMode: Int = MUSIC_SET_VIEW_MODE_LIST
     private var useProvidedItems = false
-    @Inject
-    lateinit var playTracksUseCase: PlayTracksUseCase
+    private var pendingRestoreScroll: ScrollState? = null
 
-    @Inject lateinit var enqueueTracksUseCase: EnqueueTracksUseCase
-
+    private val recyclerView: RecyclerView
+        get() = binding.layoutRecyclerview.recyclerview
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,14 +84,11 @@ class MusicSetEditActivity : BaseActivity() {
             return
         }
 
-        sessionId = savedInstanceState?.getString(STATE_SESSION_ID)
-            ?: intent.getStringExtra(EXTRA_SESSION_ID)
-                    ?: UUID.randomUUID().toString()
+        sessionId = resolveSessionId(savedInstanceState)
 
         binding = ActivityMusicSetEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        recyclerView = findViewById(R.id.recyclerview)
         emptyView = inflateEmptyView()
 
         setupToolbar()
@@ -92,12 +97,7 @@ class MusicSetEditActivity : BaseActivity() {
         lifecycleScope.launch {
             viewMode = resolveViewMode(rootMusicSet)
 
-            adapter = MusicSetEditAdapter(
-                viewMode = viewMode,
-                accentColor = themeEngine.currentTheme().accentColor,
-                onToggleSelection = ::toggleSelection
-            )
-
+            setupAdapter()
             restoreState(savedInstanceState)
             setupRecyclerView()
             observeItems()
@@ -107,18 +107,24 @@ class MusicSetEditActivity : BaseActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+
+        val scrollState = captureScrollState()
+
         setupRecyclerView()
-        restoreScrollState(pendingRestoreScroll ?: captureScrollState())
+        restoreScrollState(pendingRestoreScroll ?: scrollState)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         persistTemporaryState()
+
         outState.putString(STATE_SESSION_ID, sessionId)
         outState.putStringArrayList(STATE_SELECTED_KEYS, ArrayList(selectedKeys))
+
         captureScrollState()?.let { scrollState ->
             outState.putInt(STATE_SCROLL_POSITION, scrollState.position)
             outState.putInt(STATE_SCROLL_OFFSET, scrollState.offset)
         }
+
         super.onSaveInstanceState(outState)
     }
 
@@ -128,10 +134,17 @@ class MusicSetEditActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         if (isFinishing) {
             TemporaryMusicSetSelectionStore.remove(sessionId)
         }
+
+        super.onDestroy()
+    }
+
+    private fun resolveSessionId(savedInstanceState: Bundle?): String {
+        return savedInstanceState?.getString(STATE_SESSION_ID)
+            ?: intent.getStringExtra(EXTRA_SESSION_ID)
+            ?: UUID.randomUUID().toString()
     }
 
     private fun setupToolbar() {
@@ -141,43 +154,71 @@ class MusicSetEditActivity : BaseActivity() {
             bottomPaddingView = binding.musicEditLayout,
             toolbar = binding.toolbar
         )
+
         selectAllView = binding.toolbar.installSelectAllAction(layoutInflater) {
             toggleSelectAll()
         }
     }
 
-    private fun setupRecyclerView() {
+    private fun setupAdapter() {
+        adapter = MusicSetEditAdapter(
+            viewMode = viewMode,
+            accentColor = themeEngine.currentTheme().accentColor,
+            onToggleSelection = ::toggleSelection
+        )
+    }
+
+    private fun setupRecyclerView() = with(recyclerView) {
         clearItemDecorations()
-        recyclerView.adapter = adapter
-        recyclerView.clipToPadding = false
+
+        adapter = this@MusicSetEditActivity.adapter
+        clipToPadding = false
 
         if (viewMode == MUSIC_SET_VIEW_MODE_GRID) {
-            val spacing = dpToPx(if (smallestScreenWidthDp >= 600) 16f else 2f)
-            recyclerView.layoutManager = GridLayoutManager(this, resolveSpanCount())
-            recyclerView.setPadding(spacing, spacing, spacing, spacing)
-            recyclerView.addItemDecoration(SpacingItemDecoration.all(spacing))
+            setupGridRecycler()
         } else {
-            recyclerView.layoutManager = LinearLayoutManager(this)
-            recyclerView.setPadding(0, 0, 0, 0)
+            setupListRecycler()
         }
     }
 
+    private fun RecyclerView.setupGridRecycler() {
+        val spacing = dpToPx(
+            if (smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP) {
+                GRID_SPACING_TABLET_DP
+            } else {
+                GRID_SPACING_PHONE_DP
+            }
+        )
+
+        layoutManager = GridLayoutManager(
+            this@MusicSetEditActivity,
+            resolveSpanCount()
+        )
+
+        setPadding(spacing, spacing, spacing, spacing)
+        addItemDecoration(SpacingItemDecoration.all(spacing))
+    }
+
+    private fun RecyclerView.setupListRecycler() {
+        layoutManager = LinearLayoutManager(this@MusicSetEditActivity)
+        setPadding(0, 0, 0, 0)
+    }
+
     private fun setupBottomMenu() {
-        binding.musicEditLayout.bindBulkActionClicks { child ->
-            when (child.id) {
-                R.id.main_info_play -> handleAction(ACTION_PLAY)
-                R.id.main_info_add -> handleAction(ACTION_ADD_TO)
-                R.id.main_info_enqueue -> handleAction(ACTION_ENQUEUE)
-                R.id.main_info_share -> handleAction(ACTION_SHARE)
-                R.id.main_info_delete -> handleAction(ACTION_DELETE)
+        binding.musicEditLayout.bindBulkActionClicks { view ->
+            when (view.id) {
+                R.id.main_info_play -> handleAction(EditAction.Play)
+                R.id.main_info_add -> handleAction(EditAction.AddToPlaylist)
+                R.id.main_info_enqueue -> handleAction(EditAction.Enqueue)
+                R.id.main_info_share -> handleAction(EditAction.Share)
+                R.id.main_info_delete -> handleAction(EditAction.Delete)
             }
         }
+
         binding.musicEditLayout.updateBulkActionEnabled(false)
     }
 
     private fun observeItems() {
-        if (useProvidedItems) return
-
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 observeMusicSetItems().collect(::showItems)
@@ -185,49 +226,87 @@ class MusicSetEditActivity : BaseActivity() {
         }
     }
 
-    private fun showItems(items: List<MusicSet>) {
-        currentItems = items
-        syncSelectionWithCurrentItems()
-        adapter.submitMusicSets(currentItems, selectedItems())
-        refreshUi()
-        restorePendingStateIfNeeded()
-    }
-
     private fun observeMusicSetItems(): Flow<List<MusicSet>> {
         return when (rootMusicSet) {
-            is MusicSet.Playlists -> viewModel.playlists.map { items -> items.map { it as MusicSet } }
+            is MusicSet.Playlists -> {
+                viewModel.playlists.map { playlists ->
+                    playlists.map { playlist -> playlist as MusicSet }
+                }
+            }
+
             else -> viewModel.observeMusicSets(rootMusicSet)
         }
     }
 
+    private fun showItems(items: List<MusicSet>) {
+        currentItems = items
+
+        syncSelectionWithCurrentItems()
+        submitRows()
+        refreshUi()
+        restorePendingStateIfNeeded()
+    }
+
+    private fun submitRows() {
+        adapter.submitMusicSets(
+            items = currentItems,
+            selectedKeys = selectedKeys
+        )
+    }
+
     private fun restoreState(savedInstanceState: Bundle?) {
-        TemporaryMusicSetSelectionStore.get(sessionId)?.let { state ->
-            useProvidedItems = state.allItems.isNotEmpty()
-            currentItems = state.allItems
-            selectedKeys.clear()
-            selectedKeys.addAll(state.selectedItems.map(::musicSetKey))
-            pendingRestoreScroll = state.scrollState
-            adapter.submitMusicSets(currentItems, selectedItems())
+        val temporaryState = TemporaryMusicSetSelectionStore.get(sessionId)
+
+        if (temporaryState != null) {
+            restoreTemporaryState(temporaryState)
             return
         }
 
-        savedInstanceState?.getStringArrayList(STATE_SELECTED_KEYS)?.let { restored ->
-            selectedKeys.clear()
-            selectedKeys.addAll(restored)
-        }
+        savedInstanceState
+            ?.getStringArrayList(STATE_SELECTED_KEYS)
+            ?.let(::restoreSelectedKeys)
 
-        val scrollPosition = savedInstanceState?.getInt(STATE_SCROLL_POSITION, RecyclerView.NO_POSITION)
-            ?: RecyclerView.NO_POSITION
-        if (scrollPosition != RecyclerView.NO_POSITION) {
-            pendingRestoreScroll = ScrollState(
-                position = scrollPosition,
-                offset = savedInstanceState?.getInt(STATE_SCROLL_OFFSET, 0) ?: 0
-            )
-        }
+        restoreScrollFromBundle(savedInstanceState)
+        restorePreselectedItem()
+    }
 
-        readPreselectedMusicSetFromIntent()?.let { preselected ->
-            selectedKeys.add(musicSetKey(preselected))
-        }
+    private fun restoreTemporaryState(state: TemporaryMusicSetSelectionStore.State) {
+        useProvidedItems = state.allItems.isNotEmpty()
+        currentItems = state.allItems
+
+        selectedKeys.clear()
+        selectedKeys.addAll(state.selectedItems.map { it.stableId })
+
+        pendingRestoreScroll = state.scrollState
+
+        submitRows()
+    }
+
+    private fun restoreSelectedKeys(keys: List<String>) {
+        selectedKeys.clear()
+        selectedKeys.addAll(keys)
+    }
+
+    private fun restoreScrollFromBundle(savedInstanceState: Bundle?) {
+        val position = savedInstanceState?.getInt(
+            STATE_SCROLL_POSITION,
+            RecyclerView.NO_POSITION
+        ) ?: RecyclerView.NO_POSITION
+
+        if (position == RecyclerView.NO_POSITION) return
+
+        pendingRestoreScroll = ScrollState(
+            position = position,
+            offset = savedInstanceState?.getInt(STATE_SCROLL_OFFSET, 0) ?: 0
+        )
+    }
+
+    private fun restorePreselectedItem() {
+        readPreselectedMusicSetFromIntent()
+            ?.takeUnless(MusicSet::isHiddenFoldersEntry)
+            ?.let { item ->
+                selectedKeys.add(item.stableId)
+            }
     }
 
     private fun restorePendingStateIfNeeded() {
@@ -239,8 +318,17 @@ class MusicSetEditActivity : BaseActivity() {
             return
         }
 
+        scrollToPreselectedItem()
+    }
+
+    private fun scrollToPreselectedItem() {
         val preselected = readPreselectedMusicSetFromIntent() ?: return
-        val index = currentItems.indexOfFirst { musicSetKey(it) == musicSetKey(preselected) }
+        val preselectedKey = preselected.stableId
+
+        val index = currentItems.indexOfFirst { item ->
+            item.stableId == preselectedKey
+        }
+
         if (index >= 0) {
             recyclerView.layoutManager?.scrollToPosition(index)
         }
@@ -249,133 +337,179 @@ class MusicSetEditActivity : BaseActivity() {
     private fun toggleSelection(item: MusicSet) {
         if (item.isHiddenFoldersEntry()) return
 
-        val key = musicSetKey(item)
+        val key = item.stableId
+
         if (!selectedKeys.add(key)) {
             selectedKeys.remove(key)
         }
-        adapter.updateSelection(selectedItems())
+
+        submitRows()
         refreshUi()
     }
 
     private fun toggleSelectAll() {
-        val selectableItems = currentItems.filterNot(MusicSet::isHiddenFoldersEntry)
-        val allKeys = selectableItems.mapTo(linkedSetOf(), ::musicSetKey)
-        if (allKeys.isNotEmpty() && selectedKeys.containsAll(allKeys)) {
-            selectedKeys.removeAll(allKeys)
+        val selectableKeys = selectableItems()
+            .mapTo(linkedSetOf()) { it.stableId }
+
+        if (selectableKeys.isEmpty()) return
+
+        if (selectedKeys.containsAll(selectableKeys)) {
+            selectedKeys.removeAll(selectableKeys)
         } else {
-            selectedKeys.addAll(allKeys)
+            selectedKeys.addAll(selectableKeys)
         }
-        adapter.updateSelection(selectedItems())
+
+        submitRows()
         refreshUi()
     }
 
-    private fun selectedItems(): List<MusicSet> =
-        currentItems.filter { musicSetKey(it) in selectedKeys }
+    private fun selectedItems(): List<MusicSet> {
+        return currentItems.filter { item ->
+            item.stableId in selectedKeys
+        }
+    }
+
+    private fun selectableItems(): List<MusicSet> {
+        return currentItems.filterNot(MusicSet::isHiddenFoldersEntry)
+    }
 
     private fun syncSelectionWithCurrentItems() {
-        val validKeys = currentItems.mapTo(hashSetOf(), ::musicSetKey)
+        val validKeys = currentItems.mapTo(hashSetOf()) { it.stableId }
         selectedKeys.retainAll(validKeys)
     }
 
     private fun refreshUi() {
         val selectedCount = selectedKeys.size
+        val selectableCount = selectableItems().size
+
         binding.toolbar.title = musicSelectionTitle(
             selectedCount = selectedCount,
             emptyTitleRes = R.string.batch_edit
         )
 
-        val selectableItems = currentItems.filterNot(MusicSet::isHiddenFoldersEntry)
-        selectAllView?.let { selectAll ->
-            selectAll.renderSelectAllState(
-                SelectionUiState(
-                    selectedCount = selectedCount,
-                    hasSelectableItems = selectableItems.isNotEmpty(),
-                    allSelectableItemsSelected = selectableItems.isNotEmpty() &&
-                        selectableItems.all { musicSetKey(it) in selectedKeys }
-                )
+        selectAllView?.renderSelectAllState(
+            SelectionUiState(
+                selectedCount = selectedCount,
+                selectableCount = selectableCount
             )
-        }
+        )
 
-        binding.musicEditLayout.updateBulkActionEnabled(hasSelection())
+        binding.musicEditLayout.updateBulkActionEnabled(selectedCount > 0)
 
         val isEmpty = currentItems.isEmpty()
         recyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
         emptyView?.visibility = if (isEmpty) View.VISIBLE else View.GONE
     }
 
-    private fun handleAction(action: String) {
-        if (!hasSelection()) return
+    private fun handleAction(action: EditAction) {
+        if (selectedKeys.isEmpty()) return
 
         lifecycleScope.launch {
             val tracks = resolveSelectedTracks()
+
             if (tracks.isEmpty()) {
-                Toast.makeText(this@MusicSetEditActivity, R.string.music_empty, Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@MusicSetEditActivity,
+                    R.string.music_empty,
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@launch
             }
 
             when (action) {
-                ACTION_ADD_TO -> PlaylistSelectActivity.start(this@MusicSetEditActivity, tracks)
-                ACTION_PLAY -> playTracksUseCase(tracks, 0)
+                EditAction.Play -> {
+                    playTracksUseCase(tracks, 0)
+                    clearSelection()
+                }
 
-                ACTION_ENQUEUE -> {
+                EditAction.AddToPlaylist -> {
+                    PlaylistSelectActivity.start(this@MusicSetEditActivity, tracks)
+                    clearSelection()
+                }
+
+                EditAction.Enqueue -> {
                     enqueueTracksUseCase(tracks)
                     Toast.makeText(
                         this@MusicSetEditActivity,
                         getString(R.string.enqueue_msg_count, tracks.size),
                         Toast.LENGTH_SHORT
                     ).show()
+                    clearSelection()
                 }
-                ACTION_SHARE -> MusicShareSupport.share(this@MusicSetEditActivity, tracks)
-                ACTION_DELETE -> confirmDeleteTracks(tracks)
-            }
 
-            if (action != ACTION_DELETE) {
-                clearSelection()
+                EditAction.Share -> {
+                    MusicShareSupport.share(this@MusicSetEditActivity, tracks)
+                    clearSelection()
+                }
+
+                EditAction.Delete -> {
+                    confirmDeleteTracks(tracks)
+                }
             }
         }
     }
 
     private suspend fun resolveSelectedTracks(): List<Music> {
         return selectedItems()
-            .flatMap { item -> viewModel.observeTracks(item).first() }
+            .flatMap { item ->
+                viewModel.observeTracks(item).first()
+            }
             .distinctBy(Music::id)
     }
 
     private fun confirmDeleteTracks(tracks: List<Music>) {
-        val message = if (tracks.size == 1) {
-            tracks.first().title
-        } else {
-            getString(R.string.remove_songs_from_list_msg, tracks.size.toString())
+        val resultKey = "music_set_edit_delete_confirm_result"
+        supportFragmentManager.setFragmentResultListener(
+            resultKey,
+            this
+        ) { _, bundle ->
+            if (!bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_CONFIRMED, false)) return@setFragmentResultListener
+            val deleteFromDevice = bundle.getBoolean(DeleteConfirmDialogFragment.RESULT_EXTRA_CHECKED, true)
+            deleteTracks(tracks, deleteFromDevice)
         }
 
-        showMessageDialog(
-            createMessageDialogConfig(
-                title = getString(R.string.delete),
-                message = message,
-                negativeText = getString(android.R.string.cancel),
-                positiveText = getString(R.string.delete),
-                positiveClickListener = { _, _ ->
-                    lifecycleScope.launch {
-                        val deletedCount = viewModel.deleteTracks(tracks)
-                        Toast.makeText(
-                            this@MusicSetEditActivity,
-                            if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        clearSelection()
-                    }
-                }
+        val dialog = if (tracks.size == 1) {
+            DeleteConfirmDialogFragment.forTrackDelete(
+                resultKey = resultKey,
+                trackTitle = tracks.first().title
             )
-        )
+        } else {
+            DeleteConfirmDialogFragment.forTracksDelete(
+                resultKey = resultKey,
+                trackCount = tracks.size
+            )
+        }
+        dialog.show(supportFragmentManager, DeleteConfirmDialogFragment::class.java.simpleName)
+    }
+
+    private fun deleteTracks(tracks: List<Music>, deleteFromDevice: Boolean) {
+        lifecycleScope.launch {
+            val deletedCount = if (deleteFromDevice) {
+                viewModel.deleteTracks(tracks)
+            } else {
+                viewModel.deleteTracksFromLibrary(tracks)
+                tracks.size
+            }
+
+            Toast.makeText(
+                this@MusicSetEditActivity,
+                if (deletedCount > 0) {
+                    R.string.succeed
+                } else {
+                    R.string.feature_not_implemented
+                },
+                Toast.LENGTH_SHORT
+            ).show()
+
+            clearSelection()
+        }
     }
 
     private fun clearSelection() {
         selectedKeys.clear()
-        adapter.updateSelection(emptyList())
+        submitRows()
         refreshUi()
     }
-
-    private fun hasSelection(): Boolean = selectedKeys.isNotEmpty()
 
     private fun clearItemDecorations() {
         while (recyclerView.itemDecorationCount > 0) {
@@ -385,71 +519,91 @@ class MusicSetEditActivity : BaseActivity() {
 
     private fun inflateEmptyView(): View? {
         val stub = findViewById<ViewStub>(R.id.layout_list_empty) ?: return null
+
         return stub.inflate().also { view ->
             view.visibility = View.GONE
-            view.findViewById<TextView>(R.id.empty_text).setText(R.string.music_empty)
+            view.findViewById<TextView>(R.id.empty_text)
+                .setText(R.string.music_empty)
         }
     }
 
     private fun restoreScrollState(scrollState: ScrollState?) {
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
         val state = scrollState ?: return
-        layoutManager.scrollToPositionWithOffset(state.position, state.offset)
+
+        layoutManager.scrollToPositionWithOffset(
+            state.position,
+            state.offset
+        )
     }
 
     private fun captureScrollState(): ScrollState? {
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return null
         val position = layoutManager.findFirstVisibleItemPosition()
+
         if (position == RecyclerView.NO_POSITION) return null
+
         val child = layoutManager.findViewByPosition(position) ?: return null
-        return ScrollState(position, child.top - recyclerView.paddingTop)
+
+        return ScrollState(
+            position = position,
+            offset = child.top - recyclerView.paddingTop
+        )
     }
 
     private fun persistTemporaryState() {
         TemporaryMusicSetSelectionStore.put(
-            sessionId,
-            TemporaryMusicSetSelectionStore.State(
-                allItems = ArrayList(currentItems.filterNot(MusicSet::isHiddenFoldersEntry)),
+            sessionId = sessionId,
+            state = TemporaryMusicSetSelectionStore.State(
+                allItems = ArrayList(selectableItems()),
                 selectedItems = ArrayList(selectedItems()),
                 scrollState = captureScrollState()
             )
         )
     }
 
-    private suspend fun resolveViewMode(musicSet: MusicSet): Int =
-        if (musicSet is MusicSet.Folders) {
+    private suspend fun resolveViewMode(musicSet: MusicSet): Int {
+        return if (musicSet is MusicSet.Folders) {
             MUSIC_SET_VIEW_MODE_LIST
         } else {
             viewModel.getViewMode(musicSet)
         }
+    }
 
     private fun resolveSpanCount(): Int {
-        val isTablet = isTablet()
-        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val tablet = isTablet()
+        val landscape =
+            resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
         return when {
-            !isTablet && !landscape -> 2
-            !isTablet && landscape -> 3
-            isTablet && !landscape -> 3
+            !tablet && !landscape -> 2
+            !tablet && landscape -> 3
+            tablet && !landscape -> 3
             else -> 4
         }
     }
 
-    private fun readMusicSetFromIntent(): MusicSet? = intent.parcelable(ARG_MUSIC_SET)
+    private fun readMusicSetFromIntent(): MusicSet? {
+        return intent.parcelable(ARG_MUSIC_SET)
+    }
 
-    private fun readPreselectedMusicSetFromIntent(): MusicSet? = intent.parcelable(EXTRA_PRESELECTED_SET)
+    private fun readPreselectedMusicSetFromIntent(): MusicSet? {
+        return intent.parcelable(EXTRA_PRESELECTED_SET)
+    }
 
     companion object {
         private const val EXTRA_PRESELECTED_SET = "preselected_set"
         private const val EXTRA_SESSION_ID = "session_id"
+
         private const val STATE_SESSION_ID = "state_session_id"
         private const val STATE_SELECTED_KEYS = "state_selected_keys"
         private const val STATE_SCROLL_POSITION = "state_scroll_position"
         private const val STATE_SCROLL_OFFSET = "state_scroll_offset"
-        private const val ACTION_PLAY = "play"
-        private const val ACTION_ADD_TO = "add_to"
-        private const val ACTION_ENQUEUE = "enqueue"
-        private const val ACTION_SHARE = "share"
-        private const val ACTION_DELETE = "delete"
+
+        private const val TABLET_SMALLEST_WIDTH_DP = 600
+        private const val GRID_SPACING_PHONE_DP = 2f
+        private const val GRID_SPACING_TABLET_DP = 16f
+
         fun start(
             context: Context,
             musicSet: MusicSet,
@@ -458,25 +612,41 @@ class MusicSetEditActivity : BaseActivity() {
         ) {
             val sessionId = UUID.randomUUID().toString()
             val sanitizedItems = visibleItems.filterNot(MusicSet::isHiddenFoldersEntry)
+
             val selectedItems = buildList {
-                preselectedSet?.takeUnless(MusicSet::isHiddenFoldersEntry)?.let(::add)
+                preselectedSet
+                    ?.takeUnless(MusicSet::isHiddenFoldersEntry)
+                    ?.let(::add)
             }
+
             TemporaryMusicSetSelectionStore.put(
-                sessionId,
-                TemporaryMusicSetSelectionStore.State(
+                sessionId = sessionId,
+                state = TemporaryMusicSetSelectionStore.State(
                     allItems = ArrayList(sanitizedItems),
                     selectedItems = ArrayList(selectedItems),
                     scrollState = null
                 )
             )
-            context.startActivityCompat(Intent(context, MusicSetEditActivity::class.java).apply {
-                putExtra(ARG_MUSIC_SET, musicSet)
-                putExtra(EXTRA_SESSION_ID, sessionId)
-                preselectedSet?.let { putExtra(EXTRA_PRESELECTED_SET, it) }
-            })
+
+            context.startActivityCompat(
+                Intent(context, MusicSetEditActivity::class.java).apply {
+                    putExtra(ARG_MUSIC_SET, musicSet)
+                    putExtra(EXTRA_SESSION_ID, sessionId)
+                    preselectedSet?.let {
+                        putExtra(EXTRA_PRESELECTED_SET, it)
+                    }
+                }
+            )
         }
     }
+}
 
+private enum class EditAction {
+    Play,
+    AddToPlaylist,
+    Enqueue,
+    Share,
+    Delete
 }
 
 private data class ScrollState(
@@ -485,6 +655,7 @@ private data class ScrollState(
 )
 
 private object TemporaryMusicSetSelectionStore {
+
     data class State(
         val allItems: ArrayList<MusicSet>,
         val selectedItems: ArrayList<MusicSet>,
@@ -493,9 +664,14 @@ private object TemporaryMusicSetSelectionStore {
 
     private val states = mutableMapOf<String, State>()
 
-    fun get(sessionId: String): State? = states[sessionId]
+    fun get(sessionId: String): State? {
+        return states[sessionId]
+    }
 
-    fun put(sessionId: String, state: State) {
+    fun put(
+        sessionId: String,
+        state: State
+    ) {
         states[sessionId] = state
     }
 

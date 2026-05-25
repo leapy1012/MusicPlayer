@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.setFragmentResultListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -86,6 +87,7 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         binding.currentListMode.setOnClickListener {
             viewModel.cyclePlayMode()
         }
+        setupDialogResults()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -105,13 +107,22 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
 
     private fun showClearQueueDialog() {
         if (parentFragmentManager.findFragmentByTag(QueueClearConfirmDialogFragment.TAG) != null) {
-            dismissAllowingStateLoss()
             return
         }
 
         QueueClearConfirmDialogFragment()
             .show(parentFragmentManager, QueueClearConfirmDialogFragment.TAG)
-        dismissAllowingStateLoss()
+    }
+
+    private fun setupDialogResults() {
+        parentFragmentManager.setFragmentResultListener(
+            QueueClearConfirmDialogFragment.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            if (bundle.getBoolean(QueueClearConfirmDialogFragment.RESULT_CONFIRMED)) {
+                viewModel.clearQueueOrDismiss(playbackState)
+            }
+        }
     }
 
     override fun onResume() {
@@ -152,7 +163,11 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         binding.currentListSave.isEnabled = state.queue.isNotEmpty()
         binding.currentListDelete.isEnabled = state.queue.isNotEmpty()
         binding.currentListRecycler.isVisible = true
-        adapter.submitQueue(state.queue, state.currentTrackId)
+        adapter.submitQueue(
+            items = state.queue,
+            currentTrackId = state.currentTrackId,
+            currentIndex = state.currentIndex
+        )
     }
 
     private fun handleEvent(event: PlaybackQueueBottomSheetEvent) {
@@ -206,20 +221,22 @@ private class QueueAdapter(
     private val queue = mutableListOf<Music>()
     private val favoriteOverrides = mutableMapOf<Long, Boolean>()
     private var currentTrackId: Long? = null
+    private var currentIndex: Int = RecyclerView.NO_POSITION
     private var isDragging = false
     private lateinit var recyclerView: RecyclerView
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var dragChanged = false
 
-    init {
-        setHasStableIds(true)
-    }
-
-    fun submitQueue(items: List<Music>, currentTrackId: Long?) {
+    fun submitQueue(
+        items: List<Music>,
+        currentTrackId: Long?,
+        currentIndex: Int
+    ) {
         // Do not let a stale playback emission overwrite the user's local drag order.
         // The final order is committed in onDragFinishedListener.
         if (isDragging) {
             this.currentTrackId = currentTrackId
+            this.currentIndex = currentIndex
             return
         }
 
@@ -233,8 +250,10 @@ private class QueueAdapter(
         )
         favoriteOverrides.keys.retainAll(queue.mapTo(hashSetOf()) { it.id })
 
-        val currentChanged = this.currentTrackId != currentTrackId
+        val currentChanged = this.currentTrackId != currentTrackId ||
+            this.currentIndex != currentIndex
         this.currentTrackId = currentTrackId
+        this.currentIndex = currentIndex
 
         notifyDataSetChanged()
 
@@ -278,8 +297,6 @@ private class QueueAdapter(
         itemTouchHelper.attachToRecyclerView(recyclerView)
     }
 
-    override fun getItemId(position: Int): Long = queue[position].id
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QueueViewHolder {
         val binding = DialogQueueListItemBinding.inflate(
             LayoutInflater.from(parent.context),
@@ -295,7 +312,7 @@ private class QueueAdapter(
     override fun onBindViewHolder(holder: QueueViewHolder, position: Int) {
         holder.bind(
             music = queue[position],
-            isCurrent = queue[position].id == currentTrackId,
+            isCurrent = isCurrentPosition(position),
             onClick = {
                 holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
                     ?.let(onTrackClicked)
@@ -331,7 +348,7 @@ private class QueueAdapter(
             }
             payloads.contains(PAYLOAD_CURRENT) -> {
                 holder.bindCurrentState(
-                    isCurrent = queue[position].id == currentTrackId,
+                    isCurrent = isCurrentPosition(position),
                     palette = themeProvider(),
                     accentColor = accentColorProvider()
                 )
@@ -351,7 +368,19 @@ private class QueueAdapter(
         notifyCurrentChanged(currentIndex())
     }
 
-    private fun currentIndex(): Int = queue.indexOfFirst { it.id == currentTrackId }
+    private fun currentIndex(): Int {
+        if (currentIndex in queue.indices) return currentIndex
+        val trackId = currentTrackId ?: return RecyclerView.NO_POSITION
+        return queue.indexOfFirst { it.id == trackId }
+    }
+
+    private fun isCurrentPosition(position: Int): Boolean {
+        return if (currentIndex in queue.indices) {
+            position == currentIndex
+        } else {
+            queue.getOrNull(position)?.id == currentTrackId
+        }
+    }
 
     private fun notifyCurrentChanged(position: Int) {
         if (position in queue.indices) {

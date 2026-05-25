@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.core.common.extension.highlight
 import gd.app.musicplayer.core.common.extension.isRtl
 import gd.app.musicplayer.core.common.extension.isRtlLayoutSupported
@@ -180,6 +181,8 @@ class MusicEditAdapter(
             parent,
             false
         )
+
+        binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
         return MusicEditViewHolder(binding)
     }

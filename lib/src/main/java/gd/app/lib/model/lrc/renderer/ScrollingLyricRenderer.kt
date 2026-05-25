@@ -383,12 +383,12 @@ class ScrollingLyricRenderer(
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                dragDismissLayout?.setDisallowInterceptTouchEvent(true)
+                dragDismissLayout?.setDisallowDragIntercept(true)
             }
 
             MotionEvent.ACTION_UP,
             MotionEvent.ACTION_CANCEL -> {
-                dragDismissLayout?.setDisallowInterceptTouchEvent(false)
+                dragDismissLayout?.setDisallowDragIntercept(false)
                 this.view?.parent?.requestDisallowInterceptTouchEvent(false)
             }
         }

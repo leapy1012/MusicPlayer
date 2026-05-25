@@ -92,15 +92,8 @@ class LibraryFragment :
             visibleTabs == state.visibleTabs &&
             binding.viewPager.adapter != null
         ) {
-            val targetIndex = state.initialTabIndex.coerceIn(
-                0,
-                state.visibleTabs.lastIndex
-            )
-
-            if (binding.viewPager.currentItem != targetIndex) {
-                binding.viewPager.setCurrentItem(targetIndex, false)
-            }
-
+            // Keep current pager position when returning to this fragment.
+            // Re-applying the initial index here causes unexpected tab resets.
             return
         }
 

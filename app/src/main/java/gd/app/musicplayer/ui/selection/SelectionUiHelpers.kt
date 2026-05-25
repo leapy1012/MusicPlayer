@@ -12,54 +12,63 @@ import gd.app.musicplayer.R
 
 internal data class SelectionUiState(
     val selectedCount: Int,
-    val hasSelectableItems: Boolean,
-    val allSelectableItemsSelected: Boolean
-)
+    val selectableCount: Int
+) {
+    val hasSelection: Boolean
+        get() = selectedCount > 0
+
+    val hasSelectableItems: Boolean
+        get() = selectableCount > 0
+
+    val allSelected: Boolean
+        get() = hasSelectableItems && selectedCount == selectableCount
+}
 
 internal fun Toolbar.installSelectAllAction(
     inflater: LayoutInflater,
-    onClick: (ImageView) -> Unit
+    onClick: () -> Unit
 ): ImageView {
-    val selectAllButton = inflater.inflate(R.layout.layout_select_all, this, false)
-    val selectAllImage = selectAllButton.findViewById<ImageView>(R.id.main_info_selectall)
-    selectAllImage.setOnClickListener { onClick(selectAllImage) }
-    val layoutParams = Toolbar.LayoutParams(
-        Toolbar.LayoutParams.WRAP_CONTENT,
-        Toolbar.LayoutParams.MATCH_PARENT
-    ).apply {
-        gravity = Gravity.END or Gravity.CENTER_VERTICAL
+    val actionView = inflater.inflate(R.layout.layout_select_all, this, false)
+    val imageView = actionView.findViewById<ImageView>(R.id.main_info_selectall)
+
+    imageView.setOnClickListener {
+        onClick()
     }
-    addView(selectAllButton, layoutParams)
-    return selectAllImage
+
+    addView(
+        actionView,
+        Toolbar.LayoutParams(
+            Toolbar.LayoutParams.WRAP_CONTENT,
+            Toolbar.LayoutParams.MATCH_PARENT
+        ).apply {
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+        }
+    )
+
+    return imageView
 }
 
 internal fun Context.musicSelectionTitle(
     selectedCount: Int,
-    emptyTitleRes: Int? = null
+    emptyTitleRes: Int
 ): String {
-    if (selectedCount <= 0 && emptyTitleRes != null) {
-        return getString(emptyTitleRes)
-    }
-    return if (selectedCount == 1) {
-        getString(R.string.select_music, selectedCount)
-    } else {
-        getString(R.string.select_musics, selectedCount)
+    return when {
+        selectedCount <= 0 -> getString(emptyTitleRes)
+        selectedCount == 1 -> getString(R.string.item_selected, selectedCount)
+        else -> getString(R.string.items_selected, selectedCount)
     }
 }
 
 internal fun ImageView.renderSelectAllState(state: SelectionUiState) {
-    isSelected = state.hasSelectableItems && state.allSelectableItemsSelected
-    alpha = if (state.hasSelectableItems) 1f else 0.4f
-}
-
-internal fun View.renderSelectionVisibility(selectedCount: Int) {
-    visibility = if (selectedCount > 0) View.VISIBLE else View.GONE
+    isSelected = state.allSelected
+    isEnabled = state.hasSelectableItems
+    alpha = if (state.hasSelectableItems) ENABLED_ALPHA else DISABLED_ALPHA
 }
 
 internal fun ViewGroup.updateBulkActionEnabled(enabled: Boolean) {
     children.forEach { child ->
         child.isEnabled = enabled
-        child.alpha = if (enabled) 1f else 0.4f
+        child.alpha = if (enabled) ENABLED_ALPHA else DISABLED_ALPHA
     }
 }
 
@@ -68,3 +77,6 @@ internal fun ViewGroup.bindBulkActionClicks(onClick: (View) -> Unit) {
         child.setOnClickListener(onClick)
     }
 }
+
+private const val ENABLED_ALPHA = 1f
+private const val DISABLED_ALPHA = 0.4f

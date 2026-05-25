@@ -29,7 +29,7 @@ fun ImageView.loadCircularArtwork(
 }
 
 fun ImageView.loadMusicArtwork(
-    artworkSource: Any
+    artworkSource: Any?
 ) {
     val activity = context as? Activity
     if (activity?.isDestroyed == true || activity?.isFinishing == true) return

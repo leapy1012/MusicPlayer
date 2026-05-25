@@ -25,7 +25,7 @@ import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.databinding.FragmentAlbumListItemBinding
 import gd.app.musicplayer.databinding.FragmentPlaylistBinding
 import gd.app.musicplayer.feature.search.SearchActivity
-import gd.app.musicplayer.ui.selection.MusicSetEditActivity
+import gd.app.musicplayer.ui.selection.PlaylistEditActivity
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
 import gd.app.musicplayer.ui.common.guide.DragGuideDialogFragment
@@ -232,10 +232,9 @@ class PlaylistFragment :
     }
 
     private fun openPlaylistSelection() {
-        MusicSetEditActivity.start(
+        PlaylistEditActivity.start(
             context = requireContext(),
-            musicSet = MusicSet.Playlists,
-            visibleItems = playlistAdapter.currentItems()
+            playlists = playlistAdapter.currentItems().filterIsInstance<MusicSet.Playlist>()
         )
     }
 

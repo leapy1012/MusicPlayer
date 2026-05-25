@@ -34,6 +34,12 @@ class LibraryScreenViewModel @Inject constructor(
     }
 
     fun onTabSelected(tabId: Int) {
+        val currentState = _uiState.value
+        val selectedIndex = currentState.visibleTabs.indexOfFirst { it.id == tabId }
+        if (selectedIndex >= 0 && currentState.initialTabIndex != selectedIndex) {
+            _uiState.value = currentState.copy(initialTabIndex = selectedIndex)
+        }
+
         viewModelScope.launch {
             setLibraryLastTabUseCase(tabId)
         }
@@ -65,4 +71,3 @@ class LibraryScreenViewModel @Inject constructor(
             ?: 0
     }
 }
-

@@ -414,14 +414,6 @@ class WidgetConfigActivity : BaseActivity() {
             }
         }
 
-        root.findViewById<ImageView?>(R.id.widget_favorite_selected)
-            ?.setColorFilter(
-                ContextCompat.getColor(
-                    this,
-                    R.color.color_theme
-                )
-            )
-
         val useDarkForeground = theme.shouldUseDarkForeground()
 
         val buttonBackground = if (useDarkForeground) {

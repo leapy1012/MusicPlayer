@@ -169,15 +169,15 @@ class LockActivity : BaseActivity(),
 
     override fun onStartTrackingTouch(seekBar: SeekBar) {
         userSeeking = true
-        dragDismissLayout.setDisallowInterceptTouchEvent(true)
+        dragDismissLayout.setDisallowDragIntercept(true)
     }
 
     override fun onStopTrackingTouch(seekBar: SeekBar) {
         userSeeking = false
-        dragDismissLayout.setDisallowInterceptTouchEvent(false)
+        dragDismissLayout.setDisallowDragIntercept(false)
     }
 
-    override fun onDismissed(view: View) {
+    override fun onDismissed(view: View?) {
         /*
          * Do not hide the view before finish.
          * Hiding the content exposes the Activity/window background and causes
@@ -257,10 +257,10 @@ class LockActivity : BaseActivity(),
     private fun configureDragDismiss() {
         dragDismissLayout.setOnDismissListener(this)
 
-        dragDismissLayout.setAllowedDirections(
-            DragDismissLayout.Direction.LEFT or
-                    DragDismissLayout.Direction.RIGHT or
-                    DragDismissLayout.Direction.UP
+        dragDismissLayout.setAllowedDragDirections(
+            DragDismissLayout.DIRECTION_LEFT or
+                    DragDismissLayout.DIRECTION_RIGHT or
+                    DragDismissLayout.DIRECTION_UP
         )
 
         dragDismissLayout.setOnDragStateListener(
@@ -308,10 +308,6 @@ class LockActivity : BaseActivity(),
                         return@collect
                     }
 
-                    /*
-                     * During drag dismiss, avoid rebinding heavy UI.
-                     * This prevents image/layout invalidation fighting ViewDragHelper.
-                     */
                     if (dragDismissing) return@collect
 
                     renderPlaybackState(
@@ -500,7 +496,6 @@ class LockActivity : BaseActivity(),
                 if (!dragDismissing) {
                     renderClockNow()
                 }
-
                 delay(CLOCK_TICK_MS)
             }
         }

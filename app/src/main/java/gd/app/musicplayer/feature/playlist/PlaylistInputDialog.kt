@@ -72,6 +72,9 @@ class PlaylistInputDialog : BaseDialogFragment() {
             pendingTracks = pendingTracks,
             newListLabel = getString(R.string.new_list)
         )
+        binding.newPlaylistTitle.setText(
+            if (actionMode == MODE_RENAME_SET) R.string.list_rename else R.string.create_playlist
+        )
 
         applyDialogWidth(0.88f)
         applyDialogBackground(view)
@@ -107,6 +110,14 @@ class PlaylistInputDialog : BaseDialogFragment() {
                                     }
                                 )
                             }
+                            is PlaylistInputEvent.ReturnRenamedSet -> {
+                                setFragmentResult(
+                                    RESULT_REQUEST_KEY,
+                                    Bundle().apply {
+                                        putParcelable(RESULT_RENAMED_SET, event.musicSet)
+                                    }
+                                )
+                            }
                             PlaylistInputEvent.Dismiss -> dismissAllowingStateLoss()
                         }
                     }
@@ -127,6 +138,7 @@ class PlaylistInputDialog : BaseDialogFragment() {
         const val RESULT_REQUEST_KEY = "playlist_input_result"
         const val RESULT_PLAYLIST_ID = "playlist_id"
         const val RESULT_PLAYLIST_NAME = "playlist_name"
+        const val RESULT_RENAMED_SET = "renamed_set"
 
         fun forMode(mode: Int): PlaylistInputDialog {
             return PlaylistInputDialog().apply {

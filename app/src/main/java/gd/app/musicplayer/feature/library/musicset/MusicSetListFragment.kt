@@ -18,6 +18,7 @@ import gd.app.musicplayer.ui.common.menu.ContextMenu
 import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import gd.app.musicplayer.ui.scan.ScanMusicActivity
 import gd.app.musicplayer.ui.selection.MusicSetEditActivity
+import gd.app.musicplayer.ui.selection.PlaylistEditActivity
 import gd.app.musicplayer.feature.library.folder.FolderFooterAdapter
 import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
 import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity
@@ -228,6 +229,7 @@ class MusicSetListFragment : BaseListFragment() {
     }
 
     private fun openSelection() {
+
         MusicSetEditActivity.start(
             context = requireContext(),
             musicSet = musicSet,

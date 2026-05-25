@@ -285,10 +285,6 @@ private class QueueListAdapter(
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var hasPendingReorder = false
 
-    init {
-        setHasStableIds(true)
-    }
-
     fun submitQueue(items: List<Music>, currentIndex: Int) {
         queue.clear()
         queue.addAll(
@@ -327,8 +323,6 @@ private class QueueListAdapter(
         itemTouchHelper = ItemTouchHelper(callback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
     }
-
-    override fun getItemId(position: Int): Long = queue[position].id
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QueueViewHolder {
         val binding = MusicPlayFragmentListItemBinding.inflate(

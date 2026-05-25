@@ -194,12 +194,6 @@ internal object WidgetRenderer {
         tintControl(remoteViews, R.id.widget_play, textColor)
         tintControl(remoteViews, R.id.widget_pause, textColor)
         tintControl(remoteViews, R.id.widget_setting, textColor)
-        tintControl(
-            remoteViews,
-            R.id.widget_favorite_selected,
-            ContextCompat.getColor(context, R.color.color_theme)
-        )
-        tintControl(remoteViews, R.id.widget_favorite_unselected, textColor)
         bindControlBackgrounds(
             remoteViews = remoteViews,
             useDarkForeground = useDarkForeground
