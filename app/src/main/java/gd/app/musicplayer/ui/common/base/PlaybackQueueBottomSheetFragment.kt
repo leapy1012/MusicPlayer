@@ -10,7 +10,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.setFragmentResultListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -82,13 +81,12 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         binding.currentListDelete.setOnClickListener {
             if (playbackState.queue.isEmpty()) return@setOnClickListener
             showClearQueueDialog()
+            dismissAllowingStateLoss()
         }
 
         binding.currentListMode.setOnClickListener {
             viewModel.cyclePlayMode()
         }
-        setupDialogResults()
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.uiState.collect(::render) }
@@ -112,17 +110,6 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
 
         QueueClearConfirmDialogFragment()
             .show(parentFragmentManager, QueueClearConfirmDialogFragment.TAG)
-    }
-
-    private fun setupDialogResults() {
-        parentFragmentManager.setFragmentResultListener(
-            QueueClearConfirmDialogFragment.RESULT_KEY,
-            viewLifecycleOwner
-        ) { _, bundle ->
-            if (bundle.getBoolean(QueueClearConfirmDialogFragment.RESULT_CONFIRMED)) {
-                viewModel.clearQueueOrDismiss(playbackState)
-            }
-        }
     }
 
     override fun onResume() {

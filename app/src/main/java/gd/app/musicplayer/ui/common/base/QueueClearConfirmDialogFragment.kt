@@ -4,14 +4,17 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.os.bundleOf
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
 import gd.app.musicplayer.databinding.DialogCommonBinding
+import gd.app.musicplayer.domain.usecase.playback.ClearQueueUseCase
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class QueueClearConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
+    @Inject
+    lateinit var clearQueueUseCase: ClearQueueUseCase
 
     private var _binding: DialogCommonBinding? = null
     private val binding: DialogCommonBinding
@@ -51,10 +54,7 @@ class QueueClearConfirmDialogFragment : BaseDialogFragment(), View.OnClickListen
     override fun onClick(view: View) {
         when (view.id) {
             R.id.dialog_button_ok -> {
-                parentFragmentManager.setFragmentResult(
-                    RESULT_KEY,
-                    bundleOf(RESULT_CONFIRMED to true)
-                )
+                clearQueueUseCase()
                 dismiss()
             }
 
@@ -64,7 +64,5 @@ class QueueClearConfirmDialogFragment : BaseDialogFragment(), View.OnClickListen
 
     companion object {
         const val TAG = "QueueClearConfirmDialogFragment"
-        const val RESULT_KEY = "queue_clear_confirm_result"
-        const val RESULT_CONFIRMED = "result_confirmed"
     }
 }

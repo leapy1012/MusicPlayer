@@ -11,7 +11,6 @@ import android.view.ViewStub
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.isGone
 import androidx.core.view.updateLayoutParams
-import androidx.fragment.app.setFragmentResultListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -83,7 +82,6 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
 
         applyInsets(binding)
-        setupDialogResults()
         setupToolbar(binding)
         adapter = buildAdapter()
 
@@ -115,17 +113,6 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                 ToastUtil.show(requireContext(), R.string.list_is_empty)
             } else {
                 showClearQueueDialog()
-            }
-        }
-    }
-
-    private fun setupDialogResults() {
-        parentFragmentManager.setFragmentResultListener(
-            QueueClearConfirmDialogFragment.RESULT_KEY,
-            viewLifecycleOwner
-        ) { _, bundle ->
-            if (bundle.getBoolean(QueueClearConfirmDialogFragment.RESULT_CONFIRMED)) {
-                viewModel.clearQueue(requireContext())
             }
         }
     }
