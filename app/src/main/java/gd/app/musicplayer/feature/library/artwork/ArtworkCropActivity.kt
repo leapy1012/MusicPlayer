@@ -23,6 +23,10 @@ class ArtworkCropActivity : BaseActivity() {
     private lateinit var binding: ActivityCropPhotoboxBinding
     private lateinit var outputUri: Uri
     private var cropCommitted = false
+    private var aspectRatioX: Float = DEFAULT_ASPECT_RATIO
+    private var aspectRatioY: Float = DEFAULT_ASPECT_RATIO
+    private var maxResultSizeX: Int = DEFAULT_MAX_RESULT_IMAGE_SIZE
+    private var maxResultSizeY: Int = DEFAULT_MAX_RESULT_IMAGE_SIZE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +41,16 @@ class ArtworkCropActivity : BaseActivity() {
             finishWithError(null)
             return
         }
+
+        aspectRatioX = intent.getFloatExtra(EXTRA_ASPECT_RATIO_X, DEFAULT_ASPECT_RATIO)
+            .takeIf { it > 0f } ?: DEFAULT_ASPECT_RATIO
+        aspectRatioY = intent.getFloatExtra(EXTRA_ASPECT_RATIO_Y, DEFAULT_ASPECT_RATIO)
+            .takeIf { it > 0f } ?: DEFAULT_ASPECT_RATIO
+        maxResultSizeX = intent.getIntExtra(EXTRA_MAX_RESULT_SIZE_X, DEFAULT_MAX_RESULT_IMAGE_SIZE)
+            .coerceAtLeast(10)
+        maxResultSizeY = intent.getIntExtra(EXTRA_MAX_RESULT_SIZE_Y, DEFAULT_MAX_RESULT_IMAGE_SIZE)
+            .coerceAtLeast(10)
+
         outputUri = Uri.fromFile(File(outputPath))
 
         configureCropView()
@@ -45,19 +59,18 @@ class ArtworkCropActivity : BaseActivity() {
     }
 
     private fun configureCropView() {
+        val targetAspectRatio = aspectRatioX / aspectRatioY
+
         binding.cropView.cropImageView.apply {
-            targetAspectRatio = 1f
+            this.targetAspectRatio = targetAspectRatio
             setMaxScaleMultiplier(10f)
             setImageToWrapCropBoundsAnimDuration(300L)
-
-            // Theme backgrounds do not need very large output. Keeping the crop result smaller
-            // reduces stutter with high-resolution camera images.
-            setMaxResultImageSizeX(MAX_RESULT_IMAGE_SIZE)
-            setMaxResultImageSizeY(MAX_RESULT_IMAGE_SIZE)
+            setMaxResultImageSizeX(maxResultSizeX)
+            setMaxResultImageSizeY(maxResultSizeY)
         }
 
         binding.cropView.overlayView.apply {
-            setTargetAspectRatio(1f)
+            setTargetAspectRatio(targetAspectRatio)
             setFreestyleCropEnabled(false)
             setShowCropGrid(false)
             setShowCropFrame(true)
@@ -156,13 +169,34 @@ class ArtworkCropActivity : BaseActivity() {
         const val RESULT_ARTWORK_PATH = "result_artwork_path"
         private const val EXTRA_SOURCE_URI = "source_uri"
         private const val EXTRA_OUTPUT_PATH = "output_path"
+        private const val EXTRA_ASPECT_RATIO_X = "aspect_ratio_x"
+        private const val EXTRA_ASPECT_RATIO_Y = "aspect_ratio_y"
+        private const val EXTRA_MAX_RESULT_SIZE_X = "max_result_size_x"
+        private const val EXTRA_MAX_RESULT_SIZE_Y = "max_result_size_y"
         private const val EXTRA_ERROR_MESSAGE = "error_message"
-        private const val MAX_RESULT_IMAGE_SIZE = 1440
+        private const val DEFAULT_ASPECT_RATIO = 1f
+        private const val DEFAULT_MAX_RESULT_IMAGE_SIZE = 1440
 
         fun intent(context: Context, sourceUri: Uri, outputPath: String): Intent {
             return Intent(context, ArtworkCropActivity::class.java)
                 .putExtra(EXTRA_SOURCE_URI, sourceUri)
                 .putExtra(EXTRA_OUTPUT_PATH, outputPath)
+        }
+
+        fun intent(
+            context: Context,
+            sourceUri: Uri,
+            outputPath: String,
+            aspectRatioX: Float,
+            aspectRatioY: Float,
+            maxResultSizeX: Int,
+            maxResultSizeY: Int
+        ): Intent {
+            return intent(context, sourceUri, outputPath)
+                .putExtra(EXTRA_ASPECT_RATIO_X, aspectRatioX)
+                .putExtra(EXTRA_ASPECT_RATIO_Y, aspectRatioY)
+                .putExtra(EXTRA_MAX_RESULT_SIZE_X, maxResultSizeX)
+                .putExtra(EXTRA_MAX_RESULT_SIZE_Y, maxResultSizeY)
         }
     }
 }

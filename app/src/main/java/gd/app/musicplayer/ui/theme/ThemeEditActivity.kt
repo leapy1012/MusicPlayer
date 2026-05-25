@@ -12,6 +12,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.core.common.extension.screenHeight
+import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.theme.ThemeBitmapLoader
 import gd.app.musicplayer.core.designsystem.view.SeekBar
@@ -63,12 +65,18 @@ class ThemeEditActivity : BaseActivity() {
 
             val outputFile =
                 ThemeBackgroundStore.createDraftBackgroundFile(this)
+            val cropWidth = screenWidth
+            val cropHeight = screenHeight
 
             cropImageLauncher.launch(
                 ArtworkCropActivity.intent(
                     this,
                     uri,
-                    outputFile.absolutePath
+                    outputFile.absolutePath,
+                    aspectRatioX = cropWidth.toFloat(),
+                    aspectRatioY = cropHeight.toFloat(),
+                    maxResultSizeX = cropWidth,
+                    maxResultSizeY = cropHeight
                 )
             )
         }

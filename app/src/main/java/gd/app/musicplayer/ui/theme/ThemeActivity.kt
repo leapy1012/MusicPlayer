@@ -13,6 +13,8 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.core.common.extension.screenHeight
+import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityThemeBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -127,11 +129,17 @@ class ThemeActivity : BaseActivity() {
                         }
 
                         is ThemeEffect.OpenCropper -> {
+                            val cropWidth = screenWidth
+                            val cropHeight = screenHeight
                             cropImageLauncher.launch(
                                 ArtworkCropActivity.intent(
                                     this@ThemeActivity,
                                     effect.sourceUri,
-                                    effect.outputPath
+                                    effect.outputPath,
+                                    aspectRatioX = cropWidth.toFloat(),
+                                    aspectRatioY = cropHeight.toFloat(),
+                                    maxResultSizeX = cropWidth,
+                                    maxResultSizeY = cropHeight
                                 )
                             )
                         }
