@@ -6,6 +6,7 @@ import gd.app.musicplayer.playback.service.MusicPlaybackService
 
 class PlaybackServiceCommandHandler(
     private val service: MusicPlaybackService,
+    private val payloadStore: PlaybackCommandPayloadStore,
     private val callbacks: Callbacks,
 ) {
     interface Callbacks {
@@ -98,23 +99,23 @@ class PlaybackServiceCommandHandler(
             MusicPlaybackService.ACTION_DESK_LRC_LOCK -> callbacks.setDesktopLyricsLocked(false)
 
             MusicPlaybackService.ACTION_PLAY_FROM_QUEUE -> {
-                val queue = intent.musicListExtraCompat(MusicPlaybackService.EXTRA_QUEUE_ITEMS)
+                val queue = resolveQueuePayload(intent)
                 val index = intent?.getIntExtra(MusicPlaybackService.EXTRA_INDEX, 0) ?: 0
                 if (queue.isNotEmpty()) callbacks.playFromQueue(queue, index)
             }
 
             MusicPlaybackService.ACTION_ENQUEUE -> {
-                val queue = intent.musicListExtraCompat(MusicPlaybackService.EXTRA_QUEUE_ITEMS)
+                val queue = resolveQueuePayload(intent)
                 if (queue.isNotEmpty()) callbacks.enqueue(queue)
             }
 
             MusicPlaybackService.ACTION_PLAY_NEXT -> {
-                val queue = intent.musicListExtraCompat(MusicPlaybackService.EXTRA_QUEUE_ITEMS)
+                val queue = resolveQueuePayload(intent)
                 if (queue.isNotEmpty()) callbacks.playNextQueue(queue)
             }
 
             MusicPlaybackService.ACTION_REPLACE_QUEUE -> {
-                val queue = intent.musicListExtraCompat(MusicPlaybackService.EXTRA_QUEUE_ITEMS)
+                val queue = resolveQueuePayload(intent)
                 val index = intent?.getIntExtra(MusicPlaybackService.EXTRA_INDEX, 0) ?: 0
                 callbacks.replaceQueue(queue, index)
             }
@@ -138,6 +139,13 @@ class PlaybackServiceCommandHandler(
         val extraIndex = intent?.getIntExtra(MusicPlaybackService.EXTRA_INDEX, -1) ?: -1
         val index = parcelIndex ?: extraIndex
         if (index >= 0) callbacks.playIndex(index)
+    }
+
+    private fun resolveQueuePayload(intent: Intent?): List<Music> {
+        val token = intent?.getStringExtra(MusicPlaybackService.EXTRA_QUEUE_TOKEN)
+        val stored = payloadStore.consumeQueue(token)
+        if (stored.isNotEmpty()) return stored
+        return intent.musicListExtraCompat(MusicPlaybackService.EXTRA_QUEUE_ITEMS)
     }
 
 }

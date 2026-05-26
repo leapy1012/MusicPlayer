@@ -35,7 +35,11 @@ class PlaylistSelectActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        songs = intent.extras?.parcelableArrayList<Music>(ARG_SONGS) ?: arrayListOf()
+        songs = PlaylistSelectPayloadStore.consumeSongs(
+            intent.getStringExtra(ARG_SONGS_TOKEN)
+        ).ifEmpty {
+            intent.extras?.parcelableArrayList<Music>(ARG_SONGS).orEmpty()
+        }
         if (songs.isEmpty()) {
             finish()
             return
@@ -133,11 +137,13 @@ class PlaylistSelectActivity : BaseActivity() {
 
     companion object {
         private const val ARG_SONGS = "songs"
+        private const val ARG_SONGS_TOKEN = "songs_token"
         private const val TAG_CREATE_PLAYLIST_DIALOG = "create_playlist_dialog"
 
         fun start(context: Context, songs: List<Music>) {
+            val token = PlaylistSelectPayloadStore.putSongs(songs)
             context.startActivityCompat(Intent(context, PlaylistSelectActivity::class.java).apply {
-                putParcelableArrayListExtra(ARG_SONGS, ArrayList(songs))
+                putExtra(ARG_SONGS_TOKEN, token)
             })
         }
     }

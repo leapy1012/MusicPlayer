@@ -226,7 +226,7 @@ class PlayerViewModel @Inject constructor(
         }
 
         if (playbackState.currentTrack == null) {
-            playAllTracks(context)
+            play(context)
             return
         }
 

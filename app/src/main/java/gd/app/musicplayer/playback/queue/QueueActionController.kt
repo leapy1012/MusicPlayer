@@ -87,6 +87,7 @@ class QueueActionController(
         }
 
         queueManager.updateCurrentIndex(index)
+        callbacks.persistCurrentTrackProgress(0)
 
         callbacks.resetPlaybackStatistics()
         callbacks.applyVolumeForPlaybackStart(playWhenReady)
@@ -161,7 +162,7 @@ class QueueActionController(
 
         playerQueueController.seekTo(target.toLong())
 
-        callbacks.persistSessionFromCurrentStateAsync()
+        callbacks.persistCurrentTrackProgress(target)
         callbacks.publishPlayerEvent(forceNotification = true)
     }
 
@@ -283,6 +284,7 @@ class QueueActionController(
             startPositionMs = 0L,
             playWhenReady = true
         )
+        callbacks.persistCurrentTrackProgress(0)
 
         callbacks.refreshArtworkAndSession(force = true)
         callbacks.publishPlayerEvent(forceNotification = true)
@@ -446,6 +448,7 @@ class QueueActionController(
             startPositionMs = 0L,
             playWhenReady = true
         )
+        callbacks.persistCurrentTrackProgress(0)
 
         callbacks.refreshArtworkAndSession(force = true)
         callbacks.publishPlayerEvent(forceNotification = true)
@@ -475,6 +478,7 @@ class QueueActionController(
         callbacks.resetTimedTransition()
 
         playerQueueController.seekTo(0L)
+        callbacks.persistCurrentTrackProgress(0)
 
         if (!callbacks.isEffectivelyPlaying()) {
             callbacks.resumePlaybackInternal()

@@ -53,6 +53,7 @@ import gd.app.musicplayer.playback.IndexActionData
 import gd.app.musicplayer.playback.NotificationMediaSessionBridge
 import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.PlaybackNotificationController
+import gd.app.musicplayer.playback.PlaybackCommandPayloadStore
 import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.PlaybackServiceCommandHandler
 import gd.app.musicplayer.playback.PlaybackStatePublisher
@@ -185,6 +186,9 @@ class MusicPlaybackService : MediaSessionService() {
     @Inject
     lateinit var widgetUpdateCoordinator: WidgetUpdateCoordinator
 
+    @Inject
+    lateinit var commandPayloadStore: PlaybackCommandPayloadStore
+
     private lateinit var player: ExoPlayer
     private lateinit var crossfadePlayer: ExoPlayer
     private lateinit var serviceScope: CoroutineScope
@@ -209,6 +213,9 @@ class MusicPlaybackService : MediaSessionService() {
     private lateinit var progressTicker: PlaybackProgressTicker
 
     private var resumeJob: Job? = null
+    private var defaultQueueRestoreJob: Job? = null
+    @Volatile
+    private var pendingResumeAfterDefaultQueue = false
     private var screenReceiverRegistered = false
 
     private val queue: List<Music>
@@ -347,6 +354,9 @@ class MusicPlaybackService : MediaSessionService() {
 
         resumeJob?.cancel()
         resumeJob = null
+        defaultQueueRestoreJob?.cancel()
+        defaultQueueRestoreJob = null
+        pendingResumeAfterDefaultQueue = false
         if (::artworkController.isInitialized) {
             artworkController.stopObserving()
         }
@@ -1034,6 +1044,10 @@ class MusicPlaybackService : MediaSessionService() {
                     this@MusicPlaybackService.persistSessionFromCurrentStateAsync()
                 }
 
+                override fun persistCurrentTrackProgress(positionMs: Int) {
+                    this@MusicPlaybackService.persistCurrentTrackProgressAsync(positionMs)
+                }
+
                 override fun resumePlaybackInternal() {
                     this@MusicPlaybackService.resumePlaybackInternal()
                 }
@@ -1139,6 +1153,7 @@ class MusicPlaybackService : MediaSessionService() {
 
         commandHandler = PlaybackServiceCommandHandler(
             service = this,
+            payloadStore = commandPayloadStore,
             callbacks = object : PlaybackServiceCommandHandler.Callbacks {
 
                 override fun refreshNotificationStyle() {
@@ -1874,7 +1889,9 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     private fun resumeWithDefaultQueue() {
-        serviceScope.launch {
+        if (defaultQueueRestoreJob?.isActive == true) return
+
+        defaultQueueRestoreJob = serviceScope.launch {
             val tracks = withContext(dispatchers.io) {
                 runCatching {
                     observeTracksUseCase(MusicSet.Tracks).first()
@@ -1882,6 +1899,7 @@ class MusicPlaybackService : MediaSessionService() {
             }
 
             if (tracks.isEmpty()) {
+                pendingResumeAfterDefaultQueue = false
                 playbackRuntimeStateStore.initializeIfNeeded()
                 publishPlaybackState(
                     reason = PublishReason.Restore,
@@ -1893,6 +1911,7 @@ class MusicPlaybackService : MediaSessionService() {
             val playableTracks = filterPlayableQueue(tracks)
 
             if (playableTracks.isEmpty()) {
+                pendingResumeAfterDefaultQueue = false
                 playbackRuntimeStateStore.initializeIfNeeded()
                 publishPlaybackState(
                     reason = PublishReason.Restore,
@@ -1919,6 +1938,9 @@ class MusicPlaybackService : MediaSessionService() {
 
             notificationSessionBridge.updateQueue()
 
+            val shouldAutoResume = pendingResumeAfterDefaultQueue
+            pendingResumeAfterDefaultQueue = false
+
             if (!audioFocusController.request()) {
                 return@launch
             }
@@ -1927,9 +1949,10 @@ class MusicPlaybackService : MediaSessionService() {
                 queue = queue,
                 startIndex = 0,
                 startPositionMs = 0L,
-                playWhenReady = true
+                playWhenReady = shouldAutoResume
             )
 
+            applyVolumeForPlaybackStart(playWhenReady = shouldAutoResume)
             refreshArtworkAndSession(force = true)
             publishAllRuntimeState(forceNotification = true)
         }
@@ -2094,6 +2117,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     private fun resumePlaybackInternal() {
         if (queue.isEmpty()) {
+            pendingResumeAfterDefaultQueue = true
             resumeWithDefaultQueue()
             return
         }
@@ -2173,6 +2197,7 @@ class MusicPlaybackService : MediaSessionService() {
                 // Restore normal volume while paused so the next play starts from a clean state.
                 volumeFader.resetToFullVolume()
 
+                persistCurrentTrackProgressFromPlayerAsync()
                 persistSessionFromCurrentStateAsync()
                 updateMedia3CommandButtons()
                 publishAllRuntimeState(forceNotification = true)
@@ -2181,6 +2206,7 @@ class MusicPlaybackService : MediaSessionService() {
         }
 
         player.pause()
+        persistCurrentTrackProgressFromPlayerAsync()
         persistSessionFromCurrentStateAsync()
         updateMedia3CommandButtons()
         publishAllRuntimeState(forceNotification = true)
@@ -2288,6 +2314,12 @@ class MusicPlaybackService : MediaSessionService() {
         }
 
         queueManager.updateCurrentIndex(nextIndex)
+        persistCurrentTrackProgressAsync(
+            positionMs = positionMs
+                .coerceAtLeast(0L)
+                .coerceAtMost(Int.MAX_VALUE.toLong())
+                .toInt()
+        )
         playbackStatsTracker.reset()
         playbackTuningController.applyPlaybackTuning()
 
@@ -2348,6 +2380,11 @@ class MusicPlaybackService : MediaSessionService() {
             volumeFader.cancel()
         }
 
+        persistCurrentTrackProgressBlocking(
+            track = snapshot.currentTrack,
+            positionMs = snapshot.positionMs,
+            currentIndex = snapshot.currentIndex
+        )
         persistPlaybackSnapshotBlocking(
             snapshot = snapshot,
             persistQueue = false
@@ -2414,6 +2451,7 @@ class MusicPlaybackService : MediaSessionService() {
             snapshot = capturePlaybackSnapshot(),
             persistQueue = true
         )
+        persistCurrentTrackProgressAsync(0)
 
         refreshArtworkAndSession(force = true)
         publishAllRuntimeState(forceNotification = true)
@@ -2819,6 +2857,48 @@ class MusicPlaybackService : MediaSessionService() {
         )
     }
 
+    private fun persistCurrentTrackProgressAsync(positionMs: Int) {
+        val track = queueManager.currentTrack ?: return
+
+        serviceScope.launch {
+            snapshotManager.persistProgress(
+                track = track,
+                positionMs = positionMs.toLong().coerceAtLeast(0L),
+                currentIndex = queueManager.currentIndex
+            )
+        }
+    }
+
+    private fun persistCurrentTrackProgressFromPlayerAsync() {
+        val track = queueManager.currentTrack ?: return
+        val positionMs = resolveCurrentSnapshotPositionMs()
+        val currentIndex = queueManager.currentIndex
+
+        serviceScope.launch {
+            snapshotManager.persistProgress(
+                track = track,
+                positionMs = positionMs,
+                currentIndex = currentIndex
+            )
+        }
+    }
+
+    private fun persistCurrentTrackProgressBlocking(
+        track: Music?,
+        positionMs: Long,
+        currentIndex: Int
+    ) {
+        if (track == null) return
+
+        runBlocking {
+            snapshotManager.persistProgress(
+                track = track,
+                positionMs = positionMs,
+                currentIndex = currentIndex
+            )
+        }
+    }
+
     private fun persistSessionFromCurrentState() {
         persistPlaybackSnapshotBlocking(
             snapshot = capturePlaybackSnapshot(),
@@ -2909,6 +2989,7 @@ class MusicPlaybackService : MediaSessionService() {
         const val ACTION_CUSTOM_STOP = "gd.app.musicplayer.action.STOP_CUSTOM"
 
         const val EXTRA_QUEUE_ITEMS = "queue_items"
+        const val EXTRA_QUEUE_TOKEN = "queue_token"
         const val EXTRA_INDEX = "index"
         const val EXTRA_FROM_INDEX = "from_index"
         const val EXTRA_TO_INDEX = "to_index"

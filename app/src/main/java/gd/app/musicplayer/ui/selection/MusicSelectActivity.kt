@@ -311,23 +311,11 @@ class MusicSelectActivity : BaseActivity() {
 
     private fun handleEvent(event: MusicSelectEvent) {
         when (event) {
-            is MusicSelectEvent.ConfirmCompleted -> {
-                ToastUtil.show(
-                    this,
-                    if (event.insertedCount > 0) {
-                        R.string.succeed
-                    } else {
-                        R.string.list_contains_music
-                    }
+            is MusicSelectEvent.ConfirmSubmitted -> {
+                setResult(
+                    RESULT_OK,
+                    Intent().putExtra(EXTRA_MUSIC_SET, event.targetPlaylist)
                 )
-
-                viewModel.uiState.value.targetPlaylist?.let { target ->
-                    setResult(
-                        RESULT_OK,
-                        Intent().putExtra(EXTRA_MUSIC_SET, target)
-                    )
-                }
-
                 finish()
             }
         }

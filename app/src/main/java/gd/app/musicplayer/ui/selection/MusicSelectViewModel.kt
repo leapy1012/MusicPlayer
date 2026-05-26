@@ -3,18 +3,24 @@ package gd.app.musicplayer.ui.selection
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.di.ApplicationScope
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.ObserveMusicSetsUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
+import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.library.UpdateLibrarySortUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ObserveSelectablePlaylistsUseCase
-import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.domain.usecase.selection.AddSelectedTracksToPlaylistRequest
 import gd.app.musicplayer.domain.usecase.selection.AddSelectedTracksToPlaylistUseCase
+import android.content.Context
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -56,8 +62,8 @@ data class MusicSelectActionState(
 )
 
 sealed interface MusicSelectEvent {
-    data class ConfirmCompleted(
-        val insertedCount: Int
+    data class ConfirmSubmitted(
+        val targetPlaylist: MusicSet
     ) : MusicSelectEvent
 }
 
@@ -89,13 +95,15 @@ private data class ContentInput(
 
 @HiltViewModel
 class MusicSelectViewModel @Inject constructor(
+    @param:ApplicationContext private val appContext: Context,
+    @param:ApplicationScope private val applicationScope: CoroutineScope,
     observeTracksUseCase: ObserveTracksUseCase,
     observeMusicSetsUseCase: ObserveMusicSetsUseCase,
     observeSortUseCase: ObserveSortUseCase,
     private val updateLibrarySortUseCase: UpdateLibrarySortUseCase,
     observeSelectablePlaylistsUseCase: ObserveSelectablePlaylistsUseCase,
     private val addSelectedTracksToPlaylistUseCase: AddSelectedTracksToPlaylistUseCase,
-    private val toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
+    private val addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase
 ) : ViewModel() {
 
     private val targetPlaylist = MutableStateFlow<MusicSet?>(null)
@@ -420,6 +428,14 @@ class MusicSelectViewModel @Inject constructor(
         if (selectedSongs.isEmpty()) return
 
         viewModelScope.launch {
+            _events.send(
+                MusicSelectEvent.ConfirmSubmitted(
+                    targetPlaylist = target
+                )
+            )
+        }
+
+        applicationScope.launch {
             val insertedCount = when (target) {
                 is MusicSet.Playlist -> {
                     addSelectedTracksToPlaylistUseCase(
@@ -437,10 +453,13 @@ class MusicSelectViewModel @Inject constructor(
                 else -> 0
             }
 
-            _events.send(
-                MusicSelectEvent.ConfirmCompleted(
-                    insertedCount = insertedCount
-                )
+            ToastUtil.show(
+                appContext,
+                if (insertedCount > 0) {
+                    R.string.succeed
+                } else {
+                    R.string.list_contains_music
+                }
             )
         }
     }
@@ -448,17 +467,10 @@ class MusicSelectViewModel @Inject constructor(
     private suspend fun addSelectedTracksToFavorites(
         selectedSongs: List<Music>
     ): Int {
-        var insertedCount = 0
-
-        selectedSongs.forEach { music ->
-            val favorited = toggleFavoriteTrackUseCase(music.id)
-
-            if (favorited) {
-                insertedCount++
-            }
-        }
-
-        return insertedCount
+        return addTracksToPlaylistsUseCase(
+            playlistIds = listOf(MusicSet.FAVORITES),
+            tracks = selectedSongs
+        )
     }
 
     private fun buildUiState(

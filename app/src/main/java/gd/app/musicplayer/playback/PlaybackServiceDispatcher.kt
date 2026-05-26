@@ -8,7 +8,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class PlaybackServiceDispatcher @Inject constructor() {
+class PlaybackServiceDispatcher @Inject constructor(
+    private val payloadStore: PlaybackCommandPayloadStore
+) {
 
     fun dispatch(context: Context, command: PlaybackCommand) {
         val appContext = context.applicationContext
@@ -26,34 +28,34 @@ class PlaybackServiceDispatcher @Inject constructor() {
             when (val command = this@toIntent) {
                 is PlaybackCommand.PlayFromQueue -> {
                     action = MusicPlaybackService.ACTION_PLAY_FROM_QUEUE
-                    putParcelableArrayListExtra(
-                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
-                        ArrayList(command.queue)
+                    putExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_TOKEN,
+                        payloadStore.putQueue(command.queue)
                     )
                     putExtra(MusicPlaybackService.EXTRA_INDEX, command.index)
                 }
 
                 is PlaybackCommand.Enqueue -> {
                     action = MusicPlaybackService.ACTION_ENQUEUE
-                    putParcelableArrayListExtra(
-                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
-                        ArrayList(command.queue)
+                    putExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_TOKEN,
+                        payloadStore.putQueue(command.queue)
                     )
                 }
 
                 is PlaybackCommand.PlayNextItems -> {
                     action = MusicPlaybackService.ACTION_PLAY_NEXT
-                    putParcelableArrayListExtra(
-                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
-                        ArrayList(command.queue)
+                    putExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_TOKEN,
+                        payloadStore.putQueue(command.queue)
                     )
                 }
 
                 is PlaybackCommand.ReplaceQueue -> {
                     action = MusicPlaybackService.ACTION_REPLACE_QUEUE
-                    putParcelableArrayListExtra(
-                        MusicPlaybackService.EXTRA_QUEUE_ITEMS,
-                        ArrayList(command.queue)
+                    putExtra(
+                        MusicPlaybackService.EXTRA_QUEUE_TOKEN,
+                        payloadStore.putQueue(command.queue)
                     )
                     putExtra(MusicPlaybackService.EXTRA_INDEX, command.index)
                 }

@@ -50,6 +50,8 @@ interface QueueMutationCallbacks {
 
     fun currentTrackDurationMs(): Int
 
+    fun persistCurrentTrackProgress(positionMs: Int)
+
     fun persistSessionFromCurrentStateAsync()
 
     fun resumePlaybackInternal()

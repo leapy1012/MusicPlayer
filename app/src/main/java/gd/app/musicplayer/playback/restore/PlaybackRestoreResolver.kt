@@ -18,16 +18,9 @@ object PlaybackRestoreResolver {
             .takeIf { index -> index >= 0 }
 
         val index = indexByTrackId
-            ?: progress.currentIndex.takeIf { currentIndex ->
-                currentIndex in queue.indices
-            }
             ?: return null
 
-        val positionMs = if (indexByTrackId != null) {
-            progress.progressMs.toLong().coerceAtLeast(0L)
-        } else {
-            0L
-        }
+        val positionMs = progress.progressMs.toLong().coerceAtLeast(0L)
 
         return RestoredPlayback(
             queue = queue,
