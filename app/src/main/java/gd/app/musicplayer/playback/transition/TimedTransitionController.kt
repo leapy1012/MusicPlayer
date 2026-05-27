@@ -8,7 +8,7 @@ import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.core.datastore.SettingPreferences
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.PlaybackModeResolver
-import gd.app.musicplayer.playback.VolumeFader
+import gd.app.musicplayer.playback.effects.VolumeFader
 import kotlin.math.min
 
 class TimedTransitionController(

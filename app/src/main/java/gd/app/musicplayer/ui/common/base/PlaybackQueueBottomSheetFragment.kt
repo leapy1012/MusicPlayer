@@ -18,7 +18,6 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.DiffUtil
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
@@ -63,7 +62,13 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
             },
             onTrackClicked = { position -> viewModel.playQueueAt(position)},
             onTrackRemoved = { position -> viewModel.removeQueueItem(position, playbackState) },
-            onTrackMoved = { queue -> viewModel.replaceQueuePreservingCurrentTrack(queue, playbackState) },
+            onTrackMoved = { queue, currentIndex ->
+                viewModel.replaceQueuePreservingCurrentTrack(
+                    updatedQueue = queue,
+                    state = playbackState,
+                    preferredIndex = currentIndex
+                )
+            },
             onToggleFavorite = viewModel::toggleFavorite
         )
 
@@ -153,7 +158,6 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         binding.currentListRecycler.isVisible = true
         adapter.submitQueue(
             items = state.queue,
-            currentTrackId = state.currentTrackId,
             currentIndex = state.currentIndex
         )
     }
@@ -194,7 +198,7 @@ private class QueueAdapter(
     private val applyTheme: (View) -> Unit,
     private val onTrackClicked: (Int) -> Unit,
     private val onTrackRemoved: (Int) -> Unit,
-    private val onTrackMoved: (List<Music>) -> Unit,
+    private val onTrackMoved: (List<Music>, Int) -> Unit,
     private val onToggleFavorite: (Music) -> Unit
 ) : RecyclerView.Adapter<QueueAdapter.QueueViewHolder>(), ItemMoveListener {
     private companion object {
@@ -202,7 +206,6 @@ private class QueueAdapter(
     }
 
     private val queue = mutableListOf<Music>()
-    private var currentTrackId: Long? = null
     private var currentIndex: Int = RecyclerView.NO_POSITION
     private var isDragging = false
     private lateinit var recyclerView: RecyclerView
@@ -211,62 +214,33 @@ private class QueueAdapter(
 
     fun submitQueue(
         items: List<Music>,
-        currentTrackId: Long?,
         currentIndex: Int
     ) {
         // Do not let a stale playback emission overwrite the user's local drag order.
         // The final order is committed in onDragFinishedListener.
         if (isDragging) {
-            this.currentTrackId = currentTrackId
-            this.currentIndex = currentIndex
             return
         }
 
         val previousQueue = queue.toList()
         val previousCurrentIndex = currentIndex()
-        val resolvedQueue = items
-
-        val currentChanged = this.currentTrackId != currentTrackId ||
-            this.currentIndex != currentIndex
-        this.currentTrackId = currentTrackId
+        val currentChanged = this.currentIndex != currentIndex
         this.currentIndex = currentIndex
 
-        val sameOrder = previousQueue.size == resolvedQueue.size &&
-            previousQueue.indices.all { index ->
-                previousQueue[index].id == resolvedQueue[index].id
-            }
+        val sameOrder = previousQueue == items
 
         if (sameOrder) {
             queue.clear()
-            queue.addAll(resolvedQueue)
+            queue.addAll(items)
             previousQueue.indices.forEach { index ->
                 if (previousQueue[index] != queue[index]) {
                     notifyItemChanged(index)
                 }
             }
         } else {
-            val diff = DiffUtil.calculateDiff(
-                object : DiffUtil.Callback() {
-                    override fun getOldListSize(): Int = previousQueue.size
-
-                    override fun getNewListSize(): Int = resolvedQueue.size
-
-                    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                        return previousQueue[oldItemPosition].id == resolvedQueue[newItemPosition].id
-                    }
-
-                    override fun areContentsTheSame(
-                        oldItemPosition: Int,
-                        newItemPosition: Int
-                    ): Boolean {
-                        return previousQueue[oldItemPosition] == resolvedQueue[newItemPosition]
-                    }
-                }
-            )
-
             queue.clear()
-            queue.addAll(resolvedQueue)
-            diff.dispatchUpdatesTo(this)
+            queue.addAll(items)
+            notifyDataSetChanged()
         }
 
         if (currentChanged) {
@@ -292,8 +266,9 @@ private class QueueAdapter(
                 isDragging = false
                 if (dragChanged) {
                     dragChanged = false
-                    notifyCurrentChanged(currentIndex())
-                    onTrackMoved(queue.toList())
+                    val resolvedCurrentIndex = currentIndex()
+                    notifyCurrentChanged(resolvedCurrentIndex)
+                    onTrackMoved(queue.toList(), resolvedCurrentIndex)
                 }
             }
             .build()
@@ -356,6 +331,14 @@ private class QueueAdapter(
     override fun onItemMove(fromPosition: Int, toPosition: Int) {
         if (fromPosition !in queue.indices || toPosition !in queue.indices) return
         Collections.swap(queue, fromPosition, toPosition)
+        if (currentIndex in queue.indices) {
+            currentIndex = when {
+                fromPosition == currentIndex -> toPosition
+                fromPosition < currentIndex && toPosition >= currentIndex -> currentIndex - 1
+                fromPosition > currentIndex && toPosition <= currentIndex -> currentIndex + 1
+                else -> currentIndex
+            }.coerceIn(0, queue.lastIndex)
+        }
         isDragging = true
         dragChanged = true
         notifyItemMoved(fromPosition, toPosition)
@@ -365,21 +348,11 @@ private class QueueAdapter(
     }
 
     private fun currentIndex(): Int {
-        val trackId = currentTrackId
-        if (trackId != null) {
-            val byTrackId = queue.indexOfFirst { it.id == trackId }
-            if (byTrackId >= 0) return byTrackId
-        }
         return if (currentIndex in queue.indices) currentIndex else RecyclerView.NO_POSITION
     }
 
     private fun isCurrentPosition(position: Int): Boolean {
-        val trackId = currentTrackId
-        return if (trackId != null) {
-            queue.getOrNull(position)?.id == trackId
-        } else {
-            position == currentIndex
-        }
+        return position == currentIndex()
     }
 
     private fun notifyCurrentChanged(position: Int) {

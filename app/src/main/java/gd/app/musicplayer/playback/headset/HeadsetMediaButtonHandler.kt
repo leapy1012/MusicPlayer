@@ -1,5 +1,4 @@
-package gd.app.musicplayer.playback
-
+package gd.app.musicplayer.playback.headset
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -7,6 +6,7 @@ import android.view.KeyEvent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.di.ApplicationScope
+import gd.app.musicplayer.playback.PlaybackController
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope

@@ -2,7 +2,7 @@ package gd.app.musicplayer.core.database
 
 import android.content.Context
 import gd.app.musicplayer.R
-import gd.app.musicplayer.playback.EqualizerPresetCatalog
+import gd.app.musicplayer.playback.effects.EqualizerPresetCatalog
 
 class ResourceMusicDatabaseSeedProvider(
     private val context: Context

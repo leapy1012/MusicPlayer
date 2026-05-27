@@ -1,5 +1,4 @@
-package gd.app.musicplayer.playback
-
+package gd.app.musicplayer.playback.command
 import android.content.Intent
 import android.os.Build
 import android.os.Parcelable

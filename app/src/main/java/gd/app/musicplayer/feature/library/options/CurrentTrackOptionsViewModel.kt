@@ -11,8 +11,8 @@ import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.domain.usecase.track.HideTracksUseCase
-import gd.app.musicplayer.playback.SleepTimerManager
-import gd.app.musicplayer.playback.SleepTimerState
+import gd.app.musicplayer.playback.timer.SleepTimerManager
+import gd.app.musicplayer.playback.timer.SleepTimerState
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

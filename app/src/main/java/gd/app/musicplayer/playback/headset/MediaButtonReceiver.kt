@@ -1,5 +1,4 @@
-package gd.app.musicplayer.playback
-
+package gd.app.musicplayer.playback.headset
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent

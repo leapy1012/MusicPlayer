@@ -2,7 +2,7 @@ package gd.app.musicplayer.feature.equalizer
 
 import android.content.Context
 import gd.app.musicplayer.R
-import gd.app.musicplayer.playback.EqualizerPresetCatalog
+import gd.app.musicplayer.playback.effects.EqualizerPresetCatalog
 import kotlin.math.roundToInt
 
 internal object EqualizerPresets {

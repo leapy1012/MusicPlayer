@@ -8,7 +8,7 @@ import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
 import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
-import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
+import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.queue.QueueState
 import kotlinx.coroutines.withContext
 
@@ -234,6 +234,10 @@ class PlaybackSnapshotManager(
             return index
         }
 
+        if (currentIndex in snapshotQueue.indices) {
+            return currentIndex
+        }
+
         val fallbackTrackIndex = fallbackTrack
             ?.let { track ->
                 snapshotQueue.indexOfFirst { music ->
@@ -244,10 +248,6 @@ class PlaybackSnapshotManager(
 
         if (fallbackTrackIndex != null) {
             return fallbackTrackIndex
-        }
-
-        if (currentIndex in snapshotQueue.indices) {
-            return currentIndex
         }
 
         return if (fallbackIndex in snapshotQueue.indices) {
@@ -262,6 +262,17 @@ class PlaybackSnapshotManager(
         snapshotQueue: List<Music>
     ): Int? {
         if (player == null || snapshotQueue.isEmpty()) return null
+
+        val playerIndex = runCatching {
+            player.currentMediaItemIndex
+        }.getOrDefault(QueueState.NO_INDEX)
+
+        if (
+            playerIndex in snapshotQueue.indices &&
+            player.mediaItemCount == snapshotQueue.size
+        ) {
+            return playerIndex
+        }
 
         val playerMediaId = runCatching {
             player.currentMediaItem?.mediaId
@@ -280,13 +291,6 @@ class PlaybackSnapshotManager(
             return indexByMediaId
         }
 
-        val playerIndex = runCatching {
-            player.currentMediaItemIndex
-        }.getOrDefault(QueueState.NO_INDEX)
-
-        return playerIndex.takeIf { index ->
-            index in snapshotQueue.indices &&
-                    player.mediaItemCount == snapshotQueue.size
-        }
+        return null
     }
 }

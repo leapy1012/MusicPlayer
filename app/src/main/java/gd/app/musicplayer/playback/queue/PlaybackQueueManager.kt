@@ -103,7 +103,7 @@ class PlaybackQueueManager @Inject constructor(
             return _state
         }
 
-        val currentTrackId = _state.currentTrack?.id
+        val oldCurrentIndex = _state.currentIndex
 
         val nextQueue = _state.queue
             .toMutableList()
@@ -111,12 +111,12 @@ class PlaybackQueueManager @Inject constructor(
                 add(toIndex, removeAt(fromIndex))
             }
 
-        val nextIndex = currentTrackId
-            ?.let { trackId ->
-                nextQueue.indexOfFirst { music -> music.id == trackId }
-            }
-            ?.takeIf { index -> index >= 0 }
-            ?: _state.currentIndex.coerceIn(0, nextQueue.lastIndex)
+        val nextIndex = when {
+            fromIndex == oldCurrentIndex -> toIndex
+            fromIndex < oldCurrentIndex && toIndex >= oldCurrentIndex -> oldCurrentIndex - 1
+            fromIndex > oldCurrentIndex && toIndex <= oldCurrentIndex -> oldCurrentIndex + 1
+            else -> oldCurrentIndex
+        }.coerceIn(0, nextQueue.lastIndex)
 
         _state = QueueState(
             queue = nextQueue,

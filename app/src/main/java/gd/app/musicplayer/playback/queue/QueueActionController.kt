@@ -180,8 +180,7 @@ class QueueActionController(
             return
         }
 
-        val movedTrackId = currentState.queue[fromIndex].id
-        val currentTrackId = currentState.currentTrack?.id
+        val movedCurrentTrack = fromIndex == currentState.currentIndex
 
         queueManager.move(
             fromIndex = fromIndex,
@@ -205,7 +204,7 @@ class QueueActionController(
             )
         }
 
-        if (movedTrackId == currentTrackId) {
+        if (movedCurrentTrack) {
             callbacks.refreshArtworkAndSession(force = true)
         }
 
@@ -354,17 +353,7 @@ class QueueActionController(
         val wasPlaying = callbacks.isEffectivelyPlaying()
         val wasPlayerQueueSynced = playerQueueController.isPlayerPlaylistSynced()
 
-        val preservedIndex = previousTrackId
-            ?.let { trackId ->
-                playableNewQueue.indexOfFirst { music ->
-                    music.id == trackId
-                }
-            }
-            ?.takeIf { index ->
-                index >= 0
-            }
-
-        val targetIndex = preservedIndex ?: remapRequestedIndex(
+        val targetIndex = remapRequestedIndex(
             originalQueue = newQueue,
             playableQueue = playableNewQueue,
             requestedIndex = requestedIndex
@@ -496,15 +485,33 @@ class QueueActionController(
         playableQueue: List<Music>,
         requestedIndex: Int
     ): Int {
+        if (playableQueue.isEmpty()) return 0
+
+        if (requestedIndex in playableQueue.indices) {
+            val originalAtIndex = originalQueue.getOrNull(requestedIndex)
+            val playableAtIndex = playableQueue[requestedIndex]
+            if (originalAtIndex == playableAtIndex) return requestedIndex
+        }
+
         val requestedTrackId = originalQueue.getOrNull(requestedIndex)?.id
+        if (requestedTrackId != null) {
+            val targetOccurrence = originalQueue
+                .asSequence()
+                .take(requestedIndex + 1)
+                .count { music -> music.id == requestedTrackId }
 
-        val requestedPlayableIndex = requestedTrackId
-            ?.let { trackId ->
-                playableQueue.indexOfFirst { music -> music.id == trackId }
+            if (targetOccurrence > 0) {
+                var seen = 0
+                playableQueue.forEachIndexed { index, music ->
+                    if (music.id == requestedTrackId) {
+                        seen += 1
+                        if (seen == targetOccurrence) {
+                            return index
+                        }
+                    }
+                }
             }
-            ?.takeIf { index -> index >= 0 }
-
-        if (requestedPlayableIndex != null) return requestedPlayableIndex
+        }
 
         return requestedIndex.coerceIn(
             0,

@@ -6,7 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import dagger.hilt.android.EntryPointAccessors
-import gd.app.musicplayer.playback.PlaybackStatePublisher
+import gd.app.musicplayer.playback.state.PlaybackStatePublisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

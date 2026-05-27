@@ -35,8 +35,10 @@ data class PlaybackQueueBottomSheetUiState(
     val currentMusic: Music? = null,
     val isPlaying: Boolean = false
 ) {
-    val currentTrackId: Long?
-        get() = currentMusic?.id ?: queue.getOrNull(currentIndex)?.id
+    fun currentQueuePosition(): Int? {
+        if (currentIndex in queue.indices) return currentIndex
+        return null
+    }
 }
 
 sealed interface PlaybackQueueBottomSheetEvent {
@@ -147,16 +149,22 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         replaceQueueUseCase(updatedQueue, nextIndex)
     }
 
-    fun replaceQueuePreservingCurrentTrack(updatedQueue: List<Music>, state: PlaybackQueueBottomSheetUiState) {
+    fun replaceQueuePreservingCurrentTrack(
+        updatedQueue: List<Music>,
+        state: PlaybackQueueBottomSheetUiState,
+        preferredIndex: Int? = null
+    ) {
         if (updatedQueue.isEmpty()) {
             clearQueueUseCase()
             emitEvent(PlaybackQueueBottomSheetEvent.Dismiss)
             return
         }
 
-        val currentTrackId = state.currentTrackId
-        val nextIndex = updatedQueue.indexOfFirst { it.id == currentTrackId }
-            .takeIf { it >= 0 }
+        val preferredPosition = preferredIndex
+            ?.takeIf { it in updatedQueue.indices }
+            ?: state.currentQueuePosition()
+        val nextIndex = preferredPosition
+            ?.coerceIn(0, updatedQueue.lastIndex)
             ?: state.currentIndex.coerceIn(0, updatedQueue.lastIndex)
 
         replaceQueueUseCase(updatedQueue, nextIndex)

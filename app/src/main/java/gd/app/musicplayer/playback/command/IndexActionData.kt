@@ -1,5 +1,4 @@
-package gd.app.musicplayer.playback
-
+package gd.app.musicplayer.playback.command
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 

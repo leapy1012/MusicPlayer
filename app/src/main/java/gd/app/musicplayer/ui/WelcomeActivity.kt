@@ -5,6 +5,7 @@ import android.os.SystemClock
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.core.datastore.AppStartupPreferenceDataStore
 import gd.app.musicplayer.databinding.ActivityWelcomeBinding
 import gd.app.musicplayer.domain.usecase.database.RunMusicDatabaseStartupSyncUseCase
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -25,6 +26,7 @@ class WelcomeActivity : BaseActivity() {
     private lateinit var binding: ActivityWelcomeBinding
 
     @Inject lateinit var runMusicDatabaseStartupSyncUseCase: RunMusicDatabaseStartupSyncUseCase
+    @Inject lateinit var appStartupPreferenceDataStore: AppStartupPreferenceDataStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +39,13 @@ class WelcomeActivity : BaseActivity() {
             isAppearanceLightNavigationBars = true
         }
 
-        checkPermissions()
+        lifecycleScope.launch {
+            if (shouldBypassStartupForIncomingIntent()) {
+                openMainAndFinish()
+            } else {
+                checkPermissions()
+            }
+        }
     }
 
     private fun checkPermissions() {
@@ -79,7 +87,30 @@ class WelcomeActivity : BaseActivity() {
     }
 
     private fun onDataReady() {
-        MainActivity.start(this)
+        openMainAndFinish()
+    }
+
+    private fun openMainAndFinish() {
+        MainActivity.start(
+            context = this,
+            sourceIntent = intent
+        )
         finish()
+    }
+
+    private suspend fun shouldBypassStartupForIncomingIntent(): Boolean {
+        val startupInitialized = !appStartupPreferenceDataStore.isFirstStart()
+        return startupInitialized && intent.isIncomingMediaOpenIntent()
+    }
+
+    private fun android.content.Intent?.isIncomingMediaOpenIntent(): Boolean {
+        if (this == null) return false
+        if ((flags and android.content.Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return false
+        return when (action) {
+            android.content.Intent.ACTION_SEND,
+            android.content.Intent.ACTION_VIEW,
+            "android.intent.action.MUSIC_PLAYER" -> true
+            else -> false
+        }
     }
 }

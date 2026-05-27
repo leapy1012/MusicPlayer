@@ -10,7 +10,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
-import gd.app.musicplayer.playback.StereoBalanceAudioProcessor
+import gd.app.musicplayer.playback.effects.StereoBalanceAudioProcessor
 import javax.inject.Inject
 import javax.inject.Singleton
 

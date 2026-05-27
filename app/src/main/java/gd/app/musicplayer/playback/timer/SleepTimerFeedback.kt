@@ -1,5 +1,4 @@
-package gd.app.musicplayer.playback
-
+package gd.app.musicplayer.playback.timer
 import android.content.Context
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.ToastUtil

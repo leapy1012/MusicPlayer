@@ -4,7 +4,7 @@ import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 import gd.app.musicplayer.core.common.AppForegroundTracker
 import gd.app.musicplayer.core.mediastore.MediaStoreLibraryObserver
-import gd.app.musicplayer.playback.HeadsetAutomationManager
+import gd.app.musicplayer.playback.headset.HeadsetAutomationManager
 import javax.inject.Inject
 
 @HiltAndroidApp

@@ -26,8 +26,8 @@ import gd.app.musicplayer.domain.model.AudioEffectSettings
 import gd.app.musicplayer.databinding.ActivityEffectGroupBinding
 import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.SaveAudioEffectSettingsUseCase
-import gd.app.musicplayer.playback.EffectGroupPreset
-import gd.app.musicplayer.playback.EffectGroupPresets
+import gd.app.musicplayer.playback.effects.EffectGroupPreset
+import gd.app.musicplayer.playback.effects.EffectGroupPresets
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.designsystem.view.SelectBox

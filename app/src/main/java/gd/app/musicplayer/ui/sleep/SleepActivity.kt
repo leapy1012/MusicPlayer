@@ -26,8 +26,8 @@ import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
 import gd.app.musicplayer.core.datastore.SleepPreferenceStore
 import gd.app.musicplayer.databinding.ActivitySleepBinding
-import gd.app.musicplayer.playback.SleepTimerManager
-import gd.app.musicplayer.playback.SleepTimerState
+import gd.app.musicplayer.playback.timer.SleepTimerManager
+import gd.app.musicplayer.playback.timer.SleepTimerState
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.feature.player.full.PlayerViewModel

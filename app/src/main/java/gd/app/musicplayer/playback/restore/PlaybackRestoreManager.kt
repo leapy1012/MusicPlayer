@@ -3,7 +3,7 @@ package gd.app.musicplayer.playback.restore
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
 import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
-import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
+import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext

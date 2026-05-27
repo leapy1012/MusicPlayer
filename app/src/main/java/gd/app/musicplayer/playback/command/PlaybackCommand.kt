@@ -1,5 +1,4 @@
-package gd.app.musicplayer.playback
-
+package gd.app.musicplayer.playback.command
 import gd.app.musicplayer.domain.model.Music
 
 sealed interface PlaybackCommand {

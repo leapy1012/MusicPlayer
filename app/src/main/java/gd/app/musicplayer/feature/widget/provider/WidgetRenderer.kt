@@ -36,6 +36,7 @@ import kotlin.math.roundToInt
 import androidx.core.net.toUri
 import androidx.core.graphics.withTranslation
 import androidx.core.graphics.createBitmap
+import gd.app.musicplayer.playback.command.PlaybackServiceActions
 
 internal object WidgetRenderer {
 
@@ -373,7 +374,7 @@ internal object WidgetRenderer {
             R.id.widget_previous,
             serviceAction(
                 context = context,
-                action = MusicPlaybackService.ACTION_PREVIOUS,
+                action = PlaybackServiceActions.ACTION_PREVIOUS,
                 requestCode = appWidgetId * REQUEST_MULTIPLIER + REQUEST_PREVIOUS
             )
         )
@@ -382,7 +383,7 @@ internal object WidgetRenderer {
             R.id.widget_next,
             serviceAction(
                 context = context,
-                action = MusicPlaybackService.ACTION_NEXT,
+                action = PlaybackServiceActions.ACTION_NEXT,
                 requestCode = appWidgetId * REQUEST_MULTIPLIER + REQUEST_NEXT
             )
         )
@@ -391,7 +392,7 @@ internal object WidgetRenderer {
             R.id.widget_play,
             serviceAction(
                 context = context,
-                action = MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE,
+                action = PlaybackServiceActions.ACTION_TOGGLE_PLAY_PAUSE,
                 requestCode = appWidgetId * REQUEST_MULTIPLIER + REQUEST_PLAY
             )
         )
@@ -400,7 +401,7 @@ internal object WidgetRenderer {
             R.id.widget_pause,
             serviceAction(
                 context = context,
-                action = MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE,
+                action = PlaybackServiceActions.ACTION_TOGGLE_PLAY_PAUSE,
                 requestCode = appWidgetId * REQUEST_MULTIPLIER + REQUEST_PAUSE
             )
         )
@@ -409,7 +410,7 @@ internal object WidgetRenderer {
             R.id.widget_flipper_play_pause,
             serviceAction(
                 context = context,
-                action = MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE,
+                action = PlaybackServiceActions.ACTION_TOGGLE_PLAY_PAUSE,
                 requestCode = appWidgetId * REQUEST_MULTIPLIER + REQUEST_FLIPPER_PLAY_PAUSE
             )
         )

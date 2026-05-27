@@ -126,7 +126,7 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
     }
 
     private fun render(state: PlaybackQueueBottomSheetUiState) {
-        val previousTrackId = latestState.currentMusic?.id
+        val previousCurrentIndex = latestState.currentIndex
         latestState = state
 
         renderCount(state)
@@ -135,10 +135,10 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
 
         adapter.submitQueue(
             items = state.queue,
-            currentTrackId = state.currentTrackId
+            currentIndex = state.currentIndex
         )
 
-        if (previousTrackId != state.currentMusic?.id) {
+        if (previousCurrentIndex != state.currentIndex) {
             scrollToCurrent(state)
         }
     }
@@ -339,19 +339,19 @@ private class LockQueueAdapter(
     }
 
     private val queue = mutableListOf<Music>()
-    private var currentTrackId: Long? = null
+    private var currentIndex: Int = RecyclerView.NO_POSITION
 
     init {
         setHasStableIds(true)
     }
 
-    fun submitQueue(items: List<Music>, currentTrackId: Long?) {
+    fun submitQueue(items: List<Music>, currentIndex: Int) {
         val oldCurrentIndex = currentIndex()
         queue.clear()
         queue.addAll(items)
 
-        val currentChanged = this.currentTrackId != currentTrackId
-        this.currentTrackId = currentTrackId
+        val currentChanged = this.currentIndex != currentIndex
+        this.currentIndex = currentIndex
 
         notifyDataSetChanged()
 
@@ -379,7 +379,7 @@ private class LockQueueAdapter(
         holder.bind(
             music = queue[position],
             position = position,
-            isCurrent = queue[position].id == currentTrackId,
+            isCurrent = position == currentIndex(),
             onClick = {
                 holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
                     ?.let(onTrackClicked)
@@ -402,13 +402,15 @@ private class LockQueueAdapter(
     ) {
         when {
             payloads.contains(PAYLOAD_CURRENT) -> {
-                holder.bindCurrentState(isCurrent = queue[position].id == currentTrackId)
+                holder.bindCurrentState(isCurrent = position == currentIndex())
             }
             else -> super.onBindViewHolder(holder, position, payloads)
         }
     }
 
-    private fun currentIndex(): Int = queue.indexOfFirst { it.id == currentTrackId }
+    private fun currentIndex(): Int {
+        return if (currentIndex in queue.indices) currentIndex else RecyclerView.NO_POSITION
+    }
 
     private fun notifyCurrentChanged(position: Int) {
         if (position in queue.indices) {

@@ -11,8 +11,8 @@ import gd.app.musicplayer.domain.usecase.playmode.ObservePlayModeUseCase
 import gd.app.musicplayer.domain.usecase.preferences.ObserveEqualizerPresetNameUseCase
 import gd.app.musicplayer.domain.usecase.preferences.ObserveShowHiddenFoldersUseCase
 import gd.app.musicplayer.playback.PlaybackMode
-import gd.app.musicplayer.playback.SleepTimerManager
-import gd.app.musicplayer.playback.SleepTimerState
+import gd.app.musicplayer.playback.timer.SleepTimerManager
+import gd.app.musicplayer.playback.timer.SleepTimerState
 import gd.app.musicplayer.ui.common.playback.PlayModeUiMapper
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted

@@ -31,6 +31,7 @@ import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity
 import gd.app.musicplayer.ui.sleep.SleepActivity
 import gd.app.musicplayer.ui.theme.ThemeActivity
 import gd.app.musicplayer.feature.widget.WidgetActivity
+import gd.app.musicplayer.playback.command.PlaybackServiceActions
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -168,7 +169,7 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
         val activity = requireActivity()
         val appContext = activity.applicationContext
         val serviceIntent = Intent(appContext, MusicPlaybackService::class.java).apply {
-            action = MusicPlaybackService.ACTION_EXIT
+            action = PlaybackServiceActions.ACTION_EXIT
         }
 
         appContext.startService(serviceIntent)

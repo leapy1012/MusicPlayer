@@ -339,6 +339,7 @@ class MusicPlayerFragment :
         }
 
         if (track == null) {
+            pendingSeekPositionMs = null
             lyricPage?.let { renderEmptyTrackMetadata(binding, it) }
         } else {
             maybeLoadLyrics(track)
@@ -370,14 +371,25 @@ class MusicPlayerFragment :
 
         val duration = state.durationMs.coerceAtLeast(1L)
         val position = state.positionMs.coerceIn(0L, duration)
+        val pendingSeek = pendingSeekPositionMs?.toLong()?.coerceIn(0L, duration)
+
+        val displayedPosition = if (!userSeeking && pendingSeek != null) {
+            pendingSeek
+        } else {
+            position
+        }
 
         binding.musicPlayController.controlPlayPause.isSelected = state.isPlaying
         binding.musicPlayProgress.musicPlayTotalTime.text = duration.toDurationString()
-        binding.musicPlayProgress.musicPlayCurrTime.text = position.toDurationString()
+        binding.musicPlayProgress.musicPlayCurrTime.text = displayedPosition.toDurationString()
         binding.musicPlayProgress.musicPlayProgress.setMax(duration.toInt())
 
         if (!userSeeking) {
-            binding.musicPlayProgress.musicPlayProgress.setProgress(position.toInt())
+            binding.musicPlayProgress.musicPlayProgress.setProgress(displayedPosition.toInt())
+        }
+
+        if (pendingSeek != null && kotlin.math.abs(position - pendingSeek) <= 750L) {
+            pendingSeekPositionMs = null
         }
 
         lyricBinding?.musicPlayLrc?.setCurrentTime(position)
@@ -692,7 +704,6 @@ class MusicPlayerFragment :
     override fun onStopTrackingTouch(seekBar: SeekBar) {
         userSeeking = false
         val target = pendingSeekPositionMs ?: return
-        pendingSeekPositionMs = null
         playerViewModel.seekTo(requireContext(), target)
     }
 

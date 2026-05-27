@@ -1,8 +1,9 @@
-package gd.app.musicplayer.playback
-
+package gd.app.musicplayer.playback.timer
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import gd.app.musicplayer.playback.command.PlaybackServiceActions
+import gd.app.musicplayer.playback.command.PlaybackServiceExtras
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -160,9 +161,9 @@ object SleepTimerManager {
             SleepTimerState.ACTION_EXIT_PLAYER -> {
                 val intent = android.content.Intent(context, MusicPlaybackService::class.java).apply {
                     action = if (timerAction == SleepTimerState.ACTION_EXIT_PLAYER) {
-                        MusicPlaybackService.ACTION_EXIT
+                        PlaybackServiceActions.ACTION_EXIT
                     } else {
-                        MusicPlaybackService.ACTION_PAUSE
+                        PlaybackServiceActions.ACTION_PAUSE
                     }
                 }
                 context.startService(intent)
@@ -173,8 +174,8 @@ object SleepTimerManager {
     private fun setStopAfterCurrentTrack(context: Context, enabled: Boolean) {
         val appContext = context.applicationContext
         val intent = android.content.Intent(appContext, MusicPlaybackService::class.java).apply {
-            action = MusicPlaybackService.ACTION_SET_STOP_AFTER_CURRENT_TRACK
-            putExtra(MusicPlaybackService.EXTRA_STOP_AFTER_CURRENT_TRACK, enabled)
+            action = PlaybackServiceActions.ACTION_SET_STOP_AFTER_CURRENT_TRACK
+            putExtra(PlaybackServiceExtras.EXTRA_STOP_AFTER_CURRENT_TRACK, enabled)
         }
         appContext.startService(intent)
     }

@@ -4,7 +4,7 @@ import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.repository.PlaylistRepo
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
-import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
+import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.queue.PlaybackQueueManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi

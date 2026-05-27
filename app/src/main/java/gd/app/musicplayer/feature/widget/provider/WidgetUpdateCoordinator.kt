@@ -11,6 +11,8 @@ import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.feature.widget.WidgetCatalog
 import gd.app.musicplayer.feature.widget.WidgetConfig
 import gd.app.musicplayer.core.datastore.WidgetConfigStore
+import gd.app.musicplayer.playback.command.PlaybackServiceActions
+import gd.app.musicplayer.playback.command.PlaybackServiceStarter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -79,9 +81,9 @@ class WidgetUpdateCoordinator @Inject constructor(
         val track = snapshot.currentTrack ?: return
 
         if (MusicPlaybackService.isRunning) {
-            MusicPlaybackService.startAction(
+            PlaybackServiceStarter.startAction(
                 context = appContext,
-                action = MusicPlaybackService.ACTION_TOGGLE_FAVORITE
+                action = PlaybackServiceActions.ACTION_TOGGLE_FAVORITE
             )
         } else {
             toggleFavoriteTrackUseCase(track.id)
@@ -92,9 +94,9 @@ class WidgetUpdateCoordinator @Inject constructor(
     suspend fun playQueueIndex(index: Int) {
         if (index < 0) return
 
-        MusicPlaybackService.startActionWithIndex(
+        PlaybackServiceStarter.startActionWithIndex(
             context = appContext,
-            action = MusicPlaybackService.ACTION_CHANGE_MUSIC_BY_INDEX,
+            action = PlaybackServiceActions.ACTION_CHANGE_MUSIC_BY_INDEX,
             index = index
         )
 

@@ -32,3 +32,8 @@ internal fun String.highlight(
 
     return spannable
 }
+
+
+fun String?.normalizePath(): String {
+    return this.orEmpty().replace('\\', '/')
+}

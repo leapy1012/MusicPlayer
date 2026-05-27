@@ -7,8 +7,8 @@ import android.widget.TextView
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
-import gd.app.musicplayer.playback.EffectGroupPreset
-import gd.app.musicplayer.playback.EffectGroupPresets
+import gd.app.musicplayer.playback.effects.EffectGroupPreset
+import gd.app.musicplayer.playback.effects.EffectGroupPresets
 
 internal class EffectGroupAdapter(
     private val layoutInflater: LayoutInflater,

@@ -49,6 +49,7 @@ import gd.app.musicplayer.ui.common.menu.BaseContextMenu
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
 import gd.app.musicplayer.feature.lyrics.setLyricText
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
+import gd.app.musicplayer.playback.command.PlaybackServiceActions
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.TrackLyricsStore
 import java.text.SimpleDateFormat
@@ -569,7 +570,7 @@ class LockActivity : BaseActivity(),
         val appContext = applicationContext
         appContext.startService(
             Intent(appContext, MusicPlaybackService::class.java).apply {
-                action = MusicPlaybackService.ACTION_EXIT
+                action = PlaybackServiceActions.ACTION_EXIT
             }
         )
         finishAffinity()

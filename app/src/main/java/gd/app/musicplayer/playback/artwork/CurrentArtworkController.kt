@@ -3,9 +3,9 @@ package gd.app.musicplayer.playback.artwork
 import android.graphics.Bitmap
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
-import gd.app.musicplayer.playback.ArtworkLoader
-import gd.app.musicplayer.playback.NotificationMediaSessionBridge
-import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
+import gd.app.musicplayer.playback.artwork.ArtworkLoader
+import gd.app.musicplayer.playback.notification.NotificationMediaSessionBridge
+import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.queue.PlaybackQueueManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi

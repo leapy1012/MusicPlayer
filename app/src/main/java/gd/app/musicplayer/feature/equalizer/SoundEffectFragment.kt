@@ -24,7 +24,7 @@ import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.designsystem.view.SelectBox
 import gd.app.musicplayer.core.datastore.SoundEffectSettings
 import gd.app.musicplayer.databinding.FragmentSoundEffectBinding
-import gd.app.musicplayer.playback.AudioEffectsManager
+import gd.app.musicplayer.playback.effects.AudioEffectsManager
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import kotlin.math.roundToInt

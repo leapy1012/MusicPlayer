@@ -11,19 +11,20 @@
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE"
         tools:ignore="ForegroundServicesPolicy" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.BLUETOOTH"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
-    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
-    <uses-permission android:name="android.permission.DISABLE_KEYGUARD"/>
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".MusicPlayerApp"
@@ -51,9 +52,24 @@
 
         <activity
             android:name=".ui.shell.MainActivity"
+            android:configChanges="uiMode|screenSize|orientation|keyboardHidden|keyboard"
             android:exported="true"
-            android:configChanges="uiMode"
-            android:launchMode="singleTop" />
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MUSIC_PLAYER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".ui.theme.ThemeActivity"
@@ -75,10 +91,10 @@
 
         <activity
             android:name=".ui.shortcut.MusicSetShortcutActivity"
-            android:theme="@style/AppTheme.Empty"
+            android:excludeFromRecents="true"
             android:exported="true"
             android:launchMode="singleTop"
-            android:excludeFromRecents="true" />
+            android:theme="@style/AppTheme.Empty" />
 
         <activity
             android:name=".ui.selection.MusicEditActivity"
@@ -166,11 +182,11 @@
             android:launchMode="singleTop" />
         <activity
             android:name=".feature.widget.WidgetConfigActivity"
-            android:theme="@style/AppTheme.WidgetConfig"
-            android:exported="true"
             android:excludeFromRecents="true"
+            android:exported="true"
             android:launchMode="singleTop"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.WidgetConfig">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
@@ -183,7 +199,7 @@
 
         <activity
             android:name=".ui.drivemode.DriveModeActivity"
-            android:theme="@style/AppTheme.Transparent"/>
+            android:theme="@style/AppTheme.Transparent" />
         <activity
             android:name=".ui.drivemode.DriveRemindActivity"
             android:exported="false"
@@ -200,21 +216,19 @@
 
         <activity
             android:name=".feature.lock.LockActivity"
-            android:theme="@style/AppTheme.Lock"
-            android:taskAffinity="${applicationId}.LOCK"
             android:launchMode="singleInstance"
             android:showOnLockScreen="true"
             android:showWhenLocked="true"
-            tools:targetApi="27" />
+            android:taskAffinity="${applicationId}.LOCK"
+            android:theme="@style/AppTheme.Lock" />
 
         <activity
             android:name=".feature.player.full.MusicPlayActivity"
-            android:theme="@style/AppTheme.Transparent"
-            android:label="@string/music_player"
+            android:configChanges="keyboardHidden|keyboard"
+            android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleTop"
-            android:excludeFromRecents="true"
-            android:configChanges="keyboardHidden|keyboard" />
+            android:theme="@style/AppTheme.Transparent" />
 
         <activity
             android:name=".feature.player.queue.PlayQueueActivity"
@@ -232,11 +246,11 @@
             android:launchMode="singleTop" />
 
         <service
-            android:label="@string/music_player"
             android:name=".playback.service.MusicPlaybackService"
             android:exported="true"
-            android:stopWithTask="false"
-            android:foregroundServiceType="mediaPlayback">
+            android:foregroundServiceType="mediaPlayback"
+            android:label="@string/music_player"
+            android:stopWithTask="false">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
                 <action android:name="android.intent.category.DEFAULT" />
@@ -248,7 +262,7 @@
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
         <receiver
-            android:name=".playback.MediaButtonReceiver"
+            android:name=".playback.headset.MediaButtonReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

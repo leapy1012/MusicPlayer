@@ -4,7 +4,7 @@ import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.PlaybackMode
-import gd.app.musicplayer.playback.PlaybackRuntimeStateStore
+import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import javax.inject.Inject
 import javax.inject.Singleton

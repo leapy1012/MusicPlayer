@@ -6,6 +6,7 @@ import android.media.session.MediaSession
 import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.playback.command.PlaybackServiceActions
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 
 class DefaultMusicNotificationContent(
@@ -23,10 +24,10 @@ class DefaultMusicNotificationContent(
     override fun isPlaying(): Boolean = playing
 
     override fun createNextIntent(context: Context): PendingIntent =
-        actionIntentFactory(MusicPlaybackService.ACTION_NEXT, REQUEST_NEXT)
+        actionIntentFactory(PlaybackServiceActions.ACTION_NEXT, REQUEST_NEXT)
 
     override fun createPreviousIntent(context: Context): PendingIntent =
-        actionIntentFactory(MusicPlaybackService.ACTION_PREVIOUS, REQUEST_PREVIOUS)
+        actionIntentFactory(PlaybackServiceActions.ACTION_PREVIOUS, REQUEST_PREVIOUS)
 
     override fun isDesktopLyricsEnabled(): Boolean = desktopLyricsEnabled
 
@@ -38,24 +39,24 @@ class DefaultMusicNotificationContent(
     override fun getArtistName(): String = music?.artist?.takeIf { it.isNotBlank() } ?: contextArtistFallback
 
     override fun createFavoriteIntent(context: Context): PendingIntent =
-        actionIntentFactory(MusicPlaybackService.ACTION_TOGGLE_FAVORITE, REQUEST_FAVORITE)
+        actionIntentFactory(PlaybackServiceActions.ACTION_TOGGLE_FAVORITE, REQUEST_FAVORITE)
 
     override fun createPlayPauseIntent(context: Context): PendingIntent =
-        actionIntentFactory(MusicPlaybackService.ACTION_TOGGLE_PLAY_PAUSE, REQUEST_PLAY_PAUSE)
+        actionIntentFactory(PlaybackServiceActions.ACTION_TOGGLE_PLAY_PAUSE, REQUEST_PLAY_PAUSE)
 
     override fun getAlbumName(): String = music?.album.orEmpty()
 
     override fun createContentIntent(context: Context): PendingIntent = contentIntent
 
     override fun createDesktopLyricsIntent(context: Context): PendingIntent =
-        actionIntentFactory(MusicPlaybackService.ACTION_DESK_LRC_LOCK, REQUEST_DESK_LRC_LOCK)
+        actionIntentFactory(PlaybackServiceActions.ACTION_DESK_LRC_LOCK, REQUEST_DESK_LRC_LOCK)
 
     override fun isFavorite(): Boolean = music?.playlistId == MusicSet.FAVORITES
 
     override fun getAlbumArt(viewType: Int): NotificationAlbumArtwork = albumArt
 
     override fun createStopIntent(context: Context): PendingIntent =
-        actionIntentFactory(MusicPlaybackService.ACTION_QUIT, REQUEST_STOP)
+        actionIntentFactory(PlaybackServiceActions.ACTION_QUIT, REQUEST_STOP)
 
     override fun getMediaSessionToken(): MediaSession.Token? = mediaSessionToken
 
