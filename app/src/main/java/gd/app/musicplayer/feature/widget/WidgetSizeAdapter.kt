@@ -16,13 +16,15 @@ import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.contentSurfaceLight
 import gd.app.musicplayer.core.designsystem.theme.rippleColor
 import gd.app.musicplayer.databinding.ActivityWidgetItemBinding
 import androidx.core.graphics.withClip
+import gd.app.musicplayer.core.designsystem.drawable.outlinedRoundedRippleDrawable
+import gd.app.musicplayer.core.designsystem.drawable.roundedRippleDrawable
 
 internal class WidgetSizeAdapter(
     private val items: List<WidgetProviderSpec>,
@@ -136,10 +138,10 @@ private fun ActivityWidgetItemBinding.applyReferenceItemTheme(theme: ThemePalett
         0x0DFFFFFF
     }
 
-    root.background = DrawableUtil.roundedRipple(
+    root.background = roundedRippleDrawable(
         fillColor = fillColor,
         rippleColor = theme.rippleColor,
-        radius = context.dpToPx(12f).toFloat()
+        cornerRadius = context.dpToPx(12f).toFloat()
     )
 
     itemAdd.applyReferenceAddTheme(theme)
@@ -148,7 +150,7 @@ private fun ActivityWidgetItemBinding.applyReferenceItemTheme(theme: ThemePalett
 private fun TextView.applyReferenceAddTheme(theme: ThemePalette) {
     val context = this.context
     setTextColor(theme.accentColor)
-    background = DrawableUtil.outlinedRoundedRipple(
+    background = outlinedRoundedRippleDrawable(
         cornerRadius = context.dpToPx(50f),
         strokeWidth = context.dpToPx(1.5f).coerceAtLeast(1),
         strokeColor = theme.accentColor,

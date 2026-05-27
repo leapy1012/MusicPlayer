@@ -8,11 +8,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.domain.usecase.playback.ClearQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
-import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
-import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.RemovePlaybackQueueItemUseCase
+import gd.app.musicplayer.domain.usecase.playback.ResolvePlaybackQueueIndexUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -35,20 +34,23 @@ class QueueTrackOptionsViewModel @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val playTracksUseCase: PlayTracksUseCase,
     private val deleteTracksUseCase: DeleteTracksUseCase,
-    private val clearQueueUseCase: ClearQueueUseCase,
-    private val replaceQueueUseCase: ReplaceQueueUseCase,
+    private val removePlaybackQueueItemUseCase: RemovePlaybackQueueItemUseCase,
+    private val resolvePlaybackQueueIndexUseCase: ResolvePlaybackQueueIndexUseCase,
     private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
-    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val playbackController: PlaybackController
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<QueueTrackOptionsEvent>()
     val events: SharedFlow<QueueTrackOptionsEvent> = _events.asSharedFlow()
 
-    fun onPlay(music: Music) {
+    fun onPlay(music: Music, queueIndex: Int?) {
         viewModelScope.launch {
             val queue = getPlaybackQueueUseCase()
-            val index = queue.indexOfFirst { it.id == music.id }
+            val index = resolvePlaybackQueueIndexUseCase(
+                queue = queue,
+                music = music,
+                preferredQueueIndex = queueIndex
+            )
 
             if (index >= 0) {
                 playbackController.playIndex(index)
@@ -103,29 +105,13 @@ class QueueTrackOptionsViewModel @Inject constructor(
         emit(QueueTrackOptionsEvent.Dismiss)
     }
 
-    fun onRemoveFromQueue(music: Music) {
+    fun onRemoveFromQueue(music: Music, queueIndex: Int?) {
         viewModelScope.launch {
-            val queue = getPlaybackQueueUseCase()
-            val state = observePlaybackStateUseCase().value
-            val index = queue.indexOfFirst { it.id == music.id }
-            if (index < 0) return@launch
-
-            val newQueue = queue.toMutableList().apply { removeAt(index) }
-            if (newQueue.isEmpty()) {
-                clearQueueUseCase()
+            val removed = removePlaybackQueueItemUseCase(music, queueIndex)
+            if (removed) {
                 emit(QueueTrackOptionsEvent.ShowToast(R.string.succeed))
                 emit(QueueTrackOptionsEvent.Dismiss)
-                return@launch
             }
-
-            val newIndex = when {
-                index < state.currentIndex -> state.currentIndex - 1
-                state.currentIndex >= newQueue.size -> newQueue.lastIndex
-                else -> state.currentIndex
-            }
-            replaceQueueUseCase(newQueue, newIndex)
-            emit(QueueTrackOptionsEvent.ShowToast(R.string.succeed))
-            emit(QueueTrackOptionsEvent.Dismiss)
         }
     }
 

@@ -45,24 +45,6 @@ data class AudioEffectSettings(
             FIVE_BAND_COUNT
         }
 
-    /**
-     * Kept for compatibility with existing call sites.
-     * New code can use [selectedPresetIndex].
-     */
-    fun selectedPresetIndex(): Int = selectedPresetIndex
-
-    /**
-     * Kept for compatibility with existing call sites.
-     * New code can use [activeCustomLevels].
-     */
-    fun customLevels(): List<Int> = activeCustomLevels
-
-    /**
-     * Kept for compatibility with existing call sites.
-     * New code can use [activeBandCount].
-     */
-    fun bandCount(): Int = activeBandCount
-
     companion object {
         const val FIVE_BAND_COUNT = 5
         const val TEN_BAND_COUNT = 10

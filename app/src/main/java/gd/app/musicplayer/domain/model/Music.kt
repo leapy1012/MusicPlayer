@@ -2,15 +2,10 @@ package gd.app.musicplayer.domain.model
 
 import android.os.Parcelable
 import androidx.room.ColumnInfo
+import androidx.room.Ignore
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
-/**
- * Immutable domain representation of a track in the local music library.
- *
- * This model is still annotated for Room/Parcelable compatibility with the current app.
- * In a stricter clean-architecture module, Room annotations would move to a data-layer entity
- * and this class would become a pure Kotlin model.
- */
 @Parcelize
 data class Music(
     @ColumnInfo("_id")
@@ -42,8 +37,12 @@ data class Music(
     @ColumnInfo(name = "bit_rate", defaultValue = "-1")
     val bitRate: Int = UNKNOWN_NUMBER,
     @ColumnInfo(name = "sample_rate", defaultValue = "-1")
-    val sampleRate: Int = UNKNOWN_NUMBER
+    val sampleRate: Int = UNKNOWN_NUMBER,
 ) : Parcelable {
+
+    @Ignore
+    @IgnoredOnParcel
+    var queueToken: Int = 0
 
     val hasValidFilePath: Boolean
         get() = !data.isNullOrBlank()

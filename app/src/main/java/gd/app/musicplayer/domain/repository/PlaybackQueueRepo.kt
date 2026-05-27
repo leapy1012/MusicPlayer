@@ -56,9 +56,11 @@ class PlaybackQueueRepo @Inject constructor(
         if (items.isEmpty()) return null
 
         val progress = playbackStatePreferenceStore.getMusicProgress()
-        val targetTrackId = progress.trackId
+        val index = items
+            .indexOfFirst { music -> music.id == progress.trackId }
+            .takeIf { it >= 0 }
+            ?: return null
         val positionMs = progress.progressMs
-        val index = items.indexOfFirst { it.id == targetTrackId }.takeIf { it >= 0 } ?: 0
 
         return PersistedQueueSnapshot(
             queue = items,

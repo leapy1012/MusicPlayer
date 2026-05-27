@@ -162,7 +162,7 @@ sealed class MusicSet : Parcelable {
         const val GENRES = -8L
         const val PLAYING_QUEUE = -9L
         const val MOST_PLAYED = -11L
-        const val USER_PLAYLIST = -9L
+        const val USER_PLAYLIST = -7L
         const val HIDDEN_FOLDERS = -14L
         const val DELETED_TRACKS = -15L
         const val HIDDEN_TRACKS = -18L

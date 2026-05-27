@@ -10,9 +10,10 @@ import android.widget.Space
 import androidx.core.widget.ImageViewCompat
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
-import gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables
 import gd.app.musicplayer.core.common.util.ColorBrightnessUtils
+import gd.app.musicplayer.core.designsystem.drawable.createOutlinedRoundedRippleDrawable
+import gd.app.musicplayer.core.designsystem.drawable.roundedRippleDrawable
+import gd.app.musicplayer.core.designsystem.drawable.selectedDefaultDrawableFromRes
 
 class ColorSelectView @JvmOverloads constructor(
     context: Context,
@@ -78,7 +79,7 @@ class ColorSelectView @JvmOverloads constructor(
             val colorView = ImageView(context).apply {
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 setImageDrawable(
-                    ViewStateDrawables.selectedDefaultDrawableFromRes(context, intArrayOf(
+                    selectedDefaultDrawableFromRes(context, intArrayOf(
                         R.drawable.vector_color_unselect,
                         R.drawable.vector_color_select
                     ))
@@ -124,7 +125,7 @@ class ColorSelectView @JvmOverloads constructor(
         cornerRadius: Int,
         borderWidth: Int
     ) = if (color == WHITE_COLOR) {
-        DrawableUtil.outlinedRoundedRipple(
+        createOutlinedRoundedRippleDrawable(
             cornerRadius,
             borderWidth,
             WHITE_BORDER_COLOR,
@@ -132,7 +133,7 @@ class ColorSelectView @JvmOverloads constructor(
             WHITE_BORDER_COLOR
         )
     } else {
-        DrawableUtil.roundedRipple(color, PRESSED_OVERLAY_COLOR, cornerRadius.toFloat())
+        roundedRippleDrawable(color, PRESSED_OVERLAY_COLOR, cornerRadius.toFloat())
     }
 
     companion object {

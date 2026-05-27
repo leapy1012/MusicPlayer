@@ -17,9 +17,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.drawable.roundedProgressDrawable
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
@@ -150,7 +151,7 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
             setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC))
             val accentColor = themeEngine.currentTheme().accentColor
             setProgressDrawable(
-                DrawableUtil.roundedProgress(
+                roundedProgressDrawable(
                     backgroundColor = 0x33FFFFFF,
                     progressColor = accentColor,
                     cornerRadius = context.dp(8f)

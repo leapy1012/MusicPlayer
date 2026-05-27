@@ -16,11 +16,9 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
 import gd.app.musicplayer.domain.usecase.library.RemoveTrackFromGeneratedMusicSetUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
-import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
-import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
-import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.RemoveFromPlayingQueueUseCase
 import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
@@ -46,9 +44,7 @@ class EditBottomMenuController(
     private val playTracksUseCase: PlayTracksUseCase,
     private val playNextTracksUseCase: PlayNextTracksUseCase,
     private val enqueueTracksUseCase: EnqueueTracksUseCase,
-    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase,
-    private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
-    private val replaceQueueUseCase: ReplaceQueueUseCase,
+    private val removeFromPlayingQueueUseCase: RemoveFromPlayingQueueUseCase,
     private val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase,
     private val removeTrackFromGeneratedMusicSetUseCase: RemoveTrackFromGeneratedMusicSetUseCase,
     private val deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase,
@@ -225,18 +221,7 @@ class EditBottomMenuController(
     private fun removeSelectedSongs(songs: List<Music>) {
         if (musicSet is MusicSet.Queue) {
             activity.lifecycleScope.launch {
-                val selectedIds = songs.mapTo(hashSetOf(), Music::id)
-                val state = observePlaybackStateUseCase().value
-                val queue = getPlaybackQueueUseCase()
-                val newQueue = queue.filterNot { it.id in selectedIds }
-                val newIndex = when {
-                    newQueue.isEmpty() -> -1
-                    state.currentTrack?.id in selectedIds -> 0
-                    else -> newQueue.indexOfFirst { it.id == state.currentTrack?.id }
-                        .takeIf { it >= 0 }
-                        ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
-                }
-                replaceQueueUseCase(newQueue, newIndex)
+                removeFromPlayingQueueUseCase(songs)
                 ToastUtil.show(activity, R.string.succeed)
             }
             return

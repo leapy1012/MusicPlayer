@@ -29,6 +29,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.AppForegroundTracker
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
 import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
+import gd.app.musicplayer.core.common.extension.parseTrackIdFromQueueMediaId
 import gd.app.musicplayer.core.database.dao.MusicDao
 import gd.app.musicplayer.core.datastore.DesktopLyricPreference
 import gd.app.musicplayer.core.datastore.DesktopLyricPreferenceStore
@@ -133,6 +134,7 @@ internal fun MusicPlaybackService.configurePlayer() {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
+                    deferForcedStartupUiUpdates = false
                     applyAudioEffectsFromPreferences()
 
                     playbackStatsTracker.onTrackStarted(
@@ -185,11 +187,16 @@ internal fun MusicPlaybackService.handleMediaItemTransition(reason: Int) {
     if (maybeCorrectExternalMediaItemTransition(reason)) {
         return
     }
+    deferForcedStartupUiUpdates = false
 
     val playerIndex = player.currentMediaItemIndex
 
     if (playerIndex in queue.indices) {
         queueManager.updateCurrentIndex(playerIndex)
+    }
+    if (pendingQueueSessionSyncAfterStartupPlay) {
+        pendingQueueSessionSyncAfterStartupPlay = false
+        notificationSessionBridge.updateQueue()
     }
 
     resetTimedTransitionState()
@@ -474,6 +481,7 @@ internal fun MusicPlaybackService.resumePlaybackInternal() {
     }
 
     if (!isPlayerPlaylistSynced()) {
+        deferForcedStartupUiUpdates = true
         setPlayerQueue(
             queue = queue,
             startIndex = currentIndex,
@@ -482,12 +490,15 @@ internal fun MusicPlaybackService.resumePlaybackInternal() {
         )
 
         applyVolumeForPlaybackStart(playWhenReady = true)
-        refreshArtworkAndSession(force = true)
-        publishAllRuntimeState(forceNotification = true)
+        publishPlaybackState(
+            reason = PublishReason.Restore,
+            forceNotification = false
+        )
         return
     }
 
     if (player.playbackState == Player.STATE_IDLE) {
+        deferForcedStartupUiUpdates = true
         playIndex(
             index = currentIndex,
             playWhenReady = true
@@ -496,8 +507,8 @@ internal fun MusicPlaybackService.resumePlaybackInternal() {
     }
 
     if (!player.isPlaying) {
+        deferForcedStartupUiUpdates = true
         playbackTuningController.applyPlaybackTuning()
-        applyAudioEffectsFromPreferences()
 
         if (playbackTuningController.isPlayPauseFadeEnabled()) {
             volumeFader.muteImmediately()
@@ -510,7 +521,10 @@ internal fun MusicPlaybackService.resumePlaybackInternal() {
             player.play()
         }
 
-        publishAllRuntimeState(forceNotification = true)
+        publishPlaybackState(
+            reason = PublishReason.PlayerEvent,
+            forceNotification = false
+        )
     }
 }
 
@@ -787,8 +801,6 @@ internal fun MusicPlaybackService.currentPlayerMediaId(): Long? {
     if (!isPlayerInitialized()) return null
 
     return runCatching {
-        player.currentMediaItem?.mediaId?.toLongOrNull()
+        player.currentMediaItem?.mediaId?.parseTrackIdFromQueueMediaId()
     }.getOrNull()
 }
-
-

@@ -23,8 +23,8 @@ import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.databinding.ActivityDriveModeItemBinding
 import gd.app.musicplayer.databinding.FragmentDriveModeBinding
 import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackQueueUseCase
 import gd.app.musicplayer.playback.PlaybackController
+import gd.app.musicplayer.playback.queue.hasSameQueueIdentity
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
@@ -45,7 +45,6 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     private val playModeViewModel: PlayModeViewModel by viewModels()
 
     @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
-    @Inject lateinit var observePlaybackQueueUseCase: ObservePlaybackQueueUseCase
     @Inject lateinit var playbackController: PlaybackController
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentDriveModeBinding =
@@ -65,7 +64,9 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
                 if (pagerSyncFromState) return
 
                 val selectedTrack = pagerAdapter.getItemOrNull(position) ?: return
-                val actualIndex = currentQueue.indexOfFirst { it.id == selectedTrack.id }
+                val actualIndex = currentQueue.indexOfFirst { it.hasSameQueueIdentity(selectedTrack) }
+                    .takeIf { it >= 0 }
+                    ?: currentQueue.indexOfFirst { it.id == selectedTrack.id }
 
                 if (currentQueue.isNotEmpty() && actualIndex in currentQueue.indices) {
                     viewModel.playQueue(requireContext(), currentQueue, actualIndex)
@@ -136,12 +137,12 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     viewModel.playbackState,
-                    viewModel.trackUiState,
-                    observePlaybackQueueUseCase()
-                ) { playbackState, trackState, queue ->
-                    Triple(playbackState, trackState, queue)
-                }.collect { (state, trackState, queue) ->
+                    viewModel.trackUiState
+                ) { playbackState, trackState ->
+                    playbackState to trackState
+                }.collect { (state, trackState) ->
                     val binding = requireBinding()
+                    val queue = state.queue
 
                     currentQueue = queue
                     binding.driveModePlayPause.isSelected = state.isPlaying
@@ -161,10 +162,14 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
                     }
                     pagerAdapter.submitQueue(displayQueue)
 
-                    val targetTrackId = state.currentTrack?.id
-                    val targetIndex = displayQueue.indexOfFirst { it.id == targetTrackId }
-                        .takeIf { it >= 0 }
-                        ?: 0
+                    val targetTrack = state.currentTrack
+                    val targetIndex = when {
+                        targetTrack != null -> displayQueue.indexOfFirst {
+                            it.hasSameQueueIdentity(targetTrack)
+                        }.takeIf { it >= 0 }
+                            ?: displayQueue.indexOfFirst { it.id == targetTrack.id }
+                    else -> -1
+                    }.takeIf { it >= 0 } ?: 0
 
                     if (binding.musicInfoPager.currentItem != targetIndex) {
                         pagerSyncFromState = true

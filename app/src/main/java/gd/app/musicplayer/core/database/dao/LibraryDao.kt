@@ -33,6 +33,24 @@ interface LibraryDao {
     @Query("SELECT _id FROM musictbl")
     suspend fun getAllTrackIdsForSync(): List<Long>
 
+    @Query(
+        """
+        SELECT music.*, list.p_id AS p_id
+        FROM musictbl AS music
+        LEFT JOIN (
+          SELECT DISTINCT([m_id]), [p_id]
+          FROM music_playlist
+          WHERE music_playlist.p_id = 1
+        ) AS list ON music.[_id] = list.[m_id]
+        WHERE music.hide_time = 0
+          AND music.`show` = 1
+          AND music.folder_path NOT IN (SELECT folder_path FROM hide_folder)
+        ORDER BY music.title COLLATE NOCASE ASC, music._id ASC
+        """
+    )
+    @RewriteQueriesToDropUnusedColumns
+    suspend fun getVisibleTracksSnapshotForPlayback(): List<Music>
+
     @Query("SELECT MAX(date_modified) FROM musictbl")
     suspend fun getMaxTrackDateModifiedForSync(): Long?
 

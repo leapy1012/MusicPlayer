@@ -256,7 +256,9 @@ class TrackListFragment : BaseListFragment() {
     }
 
     private fun playTrackFromCurrentList(track: Music) {
-        val startIndex = currentTracks.indexOfFirst { it.id == track.id }
+        val startIndex = currentTracks.indexOf(track)
+            .takeIf { it >= 0 }
+            ?: currentTracks.indexOfFirst { it.id == track.id }
 
         if (startIndex == -1) return
 

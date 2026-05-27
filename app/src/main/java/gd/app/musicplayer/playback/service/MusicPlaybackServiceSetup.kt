@@ -80,6 +80,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.collectLatest
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
@@ -126,6 +127,17 @@ internal fun MusicPlaybackService.prepareServiceBaseState() {
         resources,
         R.drawable.notify_default_album
     )
+
+    // Obfuscated parity (y.n0 + y.S path intent): warm default track set ahead of play action
+    // so empty-queue "play" can resolve queue immediately without waiting for first DB/Flow roundtrip.
+    defaultTracksObserverJob = serviceScope.launch(dispatchers.io) {
+        observeTracksUseCase(MusicSet.Tracks).collectLatest { tracks ->
+            cachedDefaultTracks = tracks
+            cachedPlayableDefaultTracks = tracks.filter { music ->
+                music.toMediaItemOrNull() != null
+            }
+        }
+    }
 }
 
 internal fun MusicPlaybackService.createLifecycleController(): PlaybackLifecycleController {
@@ -606,7 +618,8 @@ internal fun MusicPlaybackService.configureControllers() {
                     forceNotification = forceNotification
                 )
             }
-        }
+        },
+        remapQueueIndex = remapQueueIndexUseCase::invoke
     )
 
     commandHandler = createCommandHandler()
@@ -938,5 +951,3 @@ internal fun MusicPlaybackService.isNightMode(configuration: Configuration): Boo
     return (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
             Configuration.UI_MODE_NIGHT_YES
 }
-
-

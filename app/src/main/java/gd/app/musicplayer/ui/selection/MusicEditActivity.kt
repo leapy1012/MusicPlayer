@@ -25,11 +25,9 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
 import gd.app.musicplayer.domain.usecase.library.RemoveTrackFromGeneratedMusicSetUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
-import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
-import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
-import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.RemoveFromPlayingQueueUseCase
 import gd.app.musicplayer.domain.usecase.playlist.AddTracksToPlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
@@ -51,9 +49,7 @@ class MusicEditActivity : BaseActivity(),
     @Inject lateinit var playTracksUseCase: PlayTracksUseCase
     @Inject lateinit var playNextTracksUseCase: PlayNextTracksUseCase
     @Inject lateinit var enqueueTracksUseCase: EnqueueTracksUseCase
-    @Inject lateinit var observePlaybackStateUseCase: ObservePlaybackStateUseCase
-    @Inject lateinit var getPlaybackQueueUseCase: GetPlaybackQueueUseCase
-    @Inject lateinit var replaceQueueUseCase: ReplaceQueueUseCase
+    @Inject lateinit var removeFromPlayingQueueUseCase: RemoveFromPlayingQueueUseCase
     @Inject lateinit var removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase
     @Inject lateinit var removeTrackFromGeneratedMusicSetUseCase: RemoveTrackFromGeneratedMusicSetUseCase
     @Inject lateinit var deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase
@@ -191,9 +187,7 @@ class MusicEditActivity : BaseActivity(),
             playTracksUseCase = playTracksUseCase,
             playNextTracksUseCase = playNextTracksUseCase,
             enqueueTracksUseCase = enqueueTracksUseCase,
-            observePlaybackStateUseCase = observePlaybackStateUseCase,
-            getPlaybackQueueUseCase = getPlaybackQueueUseCase,
-            replaceQueueUseCase = replaceQueueUseCase,
+            removeFromPlayingQueueUseCase = removeFromPlayingQueueUseCase,
             removeTracksFromPlaylistUseCase = removeTracksFromPlaylistUseCase,
             removeTrackFromGeneratedMusicSetUseCase = removeTrackFromGeneratedMusicSetUseCase,
             deleteTracksFromLibraryUseCase = deleteTracksFromLibraryUseCase,

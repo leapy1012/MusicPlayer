@@ -5,7 +5,14 @@ import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import javax.inject.Inject
 
 class GetPlaybackQueueUseCase @Inject constructor(
-    private val playbackQueueRepo: PlaybackQueueRepo
+    private val playbackQueueRepo: PlaybackQueueRepo,
+    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase
 ) {
-    suspend operator fun invoke(): List<Music> = playbackQueueRepo.getQueue()
+    suspend operator fun invoke(): List<Music> {
+        val runtimeQueue = observePlaybackStateUseCase().value.queue
+        if (runtimeQueue.isNotEmpty()) {
+            return runtimeQueue
+        }
+        return playbackQueueRepo.getQueue()
+    }
 }

@@ -155,7 +155,6 @@ class CurrentArtworkController(
 
         if (!changed) return
 
-        queueManager.save()
         refresh(force = true)
         callbacks.onQueueArtworkChanged()
     }

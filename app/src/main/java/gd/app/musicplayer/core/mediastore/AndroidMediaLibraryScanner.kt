@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 
 @Singleton
 class AndroidMediaLibraryScanner @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
     private val dispatchers: AppDispatchers
 ) : MediaLibraryScanner {
 

@@ -138,12 +138,6 @@ class PlaybackStatePublisher(
             return requestedIndex
         }
 
-        val indexByTrack = requestedTrack
-            ?.let { track -> queue.indexOfFirst { it.id == track.id } }
-            ?.takeIf { it >= 0 }
-
-        if (indexByTrack != null) return indexByTrack
-
         return NO_INDEX
     }
 

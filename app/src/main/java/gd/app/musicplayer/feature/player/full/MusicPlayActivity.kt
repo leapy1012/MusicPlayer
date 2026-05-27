@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
@@ -153,7 +154,7 @@ class MusicPlayActivity : BaseActivity() {
 
         lastArtworkPath = artworkPath
 
-        binding.musicPlaySkin.loadBlurredArtworkBackground(artworkPath)
+        (binding.musicPlaySkin as ImageView).loadBlurredArtworkBackground(artworkPath)
     }
 
     fun showLyrics() {

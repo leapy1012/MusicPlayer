@@ -12,6 +12,7 @@ class PlaybackQueueManager @Inject constructor(
 ) {
 
     private var _state = QueueState()
+    private var nextQueueToken = 1
 
     val state: QueueState
         get() = _state
@@ -32,9 +33,10 @@ class PlaybackQueueManager @Inject constructor(
         _state = if (newQueue.isEmpty()) {
             QueueState()
         } else {
+            val normalizedQueue = normalizeQueueTokens(newQueue)
             QueueState(
-                queue = newQueue,
-                currentIndex = requestedIndex.coerceIn(0, newQueue.lastIndex)
+                queue = normalizedQueue,
+                currentIndex = requestedIndex.coerceIn(0, normalizedQueue.lastIndex)
             )
         }
 
@@ -143,7 +145,9 @@ class PlaybackQueueManager @Inject constructor(
 
             if (music.id == trackId && currentlyFavorite != isFavorite) {
                 changed = true
-                music.copy(playlistId = playlistId)
+                music.copy(playlistId = playlistId).also { updated ->
+                    updated.queueToken = music.queueToken
+                }
             } else {
                 music
             }
@@ -165,7 +169,9 @@ class PlaybackQueueManager @Inject constructor(
         val updatedQueue = _state.queue.map { music ->
             if (music.id == trackId && music.albumPicture != artworkPath) {
                 changed = true
-                music.copy(albumPicture = artworkPath)
+                music.copy(albumPicture = artworkPath).also { updated ->
+                    updated.queueToken = music.queueToken
+                }
             } else {
                 music
             }
@@ -186,7 +192,9 @@ class PlaybackQueueManager @Inject constructor(
         val updatedQueue = _state.queue.map { music ->
             if (music.id == updatedTrack.id && music != updatedTrack) {
                 changed = true
-                updatedTrack
+                updatedTrack.copy().also { updated ->
+                    updated.queueToken = music.queueToken
+                }
             } else {
                 music
             }
@@ -211,7 +219,9 @@ class PlaybackQueueManager @Inject constructor(
             val updated = updatesById[music.id]
             if (updated != null && updated != music) {
                 changed = true
-                updated
+                updated.copy().also { copied ->
+                    copied.queueToken = music.queueToken
+                }
             } else {
                 music
             }
@@ -226,5 +236,20 @@ class PlaybackQueueManager @Inject constructor(
 
     fun save() {
         queuePersistence.save(_state.queue)
+    }
+
+    private fun normalizeQueueTokens(queue: List<Music>): List<Music> {
+        return queue.map { music ->
+            if (music.queueToken != 0) {
+                if (music.queueToken >= nextQueueToken) {
+                    nextQueueToken = music.queueToken + 1
+                }
+                music
+            } else {
+                music.copy().also { copied ->
+                    copied.queueToken = nextQueueToken++
+                }
+            }
+        }
     }
 }

@@ -27,6 +27,7 @@ import javax.inject.Inject
 class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
     private lateinit var music: Music
+    private var queueIndex: Int? = null
     private val viewModel: QueueTrackOptionsViewModel by viewModels()
 
     @Inject
@@ -34,6 +35,7 @@ class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
     override fun onReadArguments(arguments: Bundle) {
         music = arguments.parcelable(ARG_MUSIC) ?: error("Missing music")
+        queueIndex = arguments.getInt(ARG_QUEUE_INDEX, -1).takeIf { it >= 0 }
     }
 
     override fun provideMenuItems(): List<MenuItem> = listOf(
@@ -49,11 +51,11 @@ class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
     override fun onMenuItemClicked(item: MenuItem) {
         when (item.id) {
-            R.string.operation_play -> viewModel.onPlay(music)
+            R.string.operation_play -> viewModel.onPlay(music, queueIndex)
             R.string.add_to -> viewModel.onAddToPlaylist(music)
             R.string.dlg_more_view_album -> viewModel.onOpenAlbum(music)
             R.string.dlg_more_view_artist -> viewModel.onOpenArtist(music)
-            R.string.remove -> viewModel.onRemoveFromQueue(music)
+            R.string.remove -> viewModel.onRemoveFromQueue(music, queueIndex)
             R.string.dlg_ringtone_2 -> {
                 dismissAllowingStateLoss()
                 RingtoneActionHandler.handle(
@@ -120,11 +122,13 @@ class QueueTrackOptionsDialog : BaseBottomGridMenuDialog() {
 
     companion object {
         private const val ARG_MUSIC = "music"
+        private const val ARG_QUEUE_INDEX = "queue_index"
 
-        fun newInstance(music: Music): QueueTrackOptionsDialog {
+        fun newInstance(music: Music, queueIndex: Int? = null): QueueTrackOptionsDialog {
             return QueueTrackOptionsDialog().apply {
                 arguments = Bundle().apply {
                     putParcelable(ARG_MUSIC, music)
+                    putInt(ARG_QUEUE_INDEX, queueIndex ?: -1)
                 }
             }
         }

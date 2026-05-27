@@ -13,7 +13,8 @@ import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+import gd.app.musicplayer.core.designsystem.drawable.rectRippleDrawable
+
 
 abstract class BaseBottomRecyclerMenuDialog : BaseBottomSheetDialogFragment() {
 
@@ -92,7 +93,7 @@ abstract class BaseBottomRecyclerMenuDialog : BaseBottomSheetDialogFragment() {
     }
 
     protected fun applyDialogItemBackground(view: View, pressedColor: Int) {
-        view.background = DrawableUtil.rectRipple(Color.TRANSPARENT, pressedColor)
+        view.background = rectRippleDrawable(Color.TRANSPARENT, pressedColor)
     }
 
     protected open fun onReadArguments(arguments: Bundle) = Unit

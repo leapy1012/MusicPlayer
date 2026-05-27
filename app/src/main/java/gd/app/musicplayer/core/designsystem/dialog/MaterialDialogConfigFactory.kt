@@ -7,12 +7,12 @@ import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import androidx.annotation.ColorInt
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.drawable.disabledSelectedDefaultColors
+import gd.app.musicplayer.core.designsystem.drawable.roundedRippleDrawable
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.itemTextColor
 import gd.app.musicplayer.core.designsystem.theme.messageColor
 import gd.app.musicplayer.core.designsystem.theme.titleColor
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
-import gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables
 import gd.app.musicplayer.ui.theme.ThemeEngine
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,7 +43,7 @@ class MaterialDialogConfigFactory @Inject constructor(
             dimAmount = DEFAULT_DIM_AMOUNT
             cancelable = true
 
-            itemIconTintList = ViewStateDrawables.disabledSelectedDefaultColors(
+            itemIconTintList = disabledSelectedDefaultColors(
                 colors.disabledItemColor,
                 palette.accentColor,
                 colors.disabledItemColor
@@ -99,13 +99,13 @@ class MaterialDialogConfigFactory @Inject constructor(
         positiveButtonTextColor = Color.WHITE
         negativeButtonTextColor = colors.secondaryButtonTextColor
 
-        positiveButtonBackground = DrawableUtil.roundedRipple(
+        positiveButtonBackground = roundedRippleDrawable(
             colors.accentColor,
             colors.primaryRippleColor,
             DEFAULT_CORNER_RADIUS
         )
 
-        negativeButtonBackground = DrawableUtil.roundedRipple(
+        negativeButtonBackground = roundedRippleDrawable(
             colors.secondaryRippleColor,
             colors.secondaryPressedColor,
             DEFAULT_CORNER_RADIUS
@@ -119,13 +119,13 @@ class MaterialDialogConfigFactory @Inject constructor(
         negativeButtonTextColor = colors.secondaryButtonTextColor
         neutralButtonTextColor = colors.secondaryButtonTextColor
 
-        positiveButtonBackground = DrawableUtil.roundedRipple(
+        positiveButtonBackground = roundedRippleDrawable(
             colors.accentColor,
             colors.primaryRippleColor,
             DEFAULT_CORNER_RADIUS
         )
 
-        val secondaryBackground = DrawableUtil.roundedRipple(
+        val secondaryBackground = roundedRippleDrawable(
             colors.secondaryRippleColor,
             colors.secondaryPressedColor,
             DEFAULT_CORNER_RADIUS

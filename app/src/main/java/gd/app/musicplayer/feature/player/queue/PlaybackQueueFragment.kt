@@ -26,6 +26,7 @@ import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.playback.queue.copyWithQueueToken
 import gd.app.musicplayer.core.common.extension.isFavorite
 import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
@@ -146,8 +147,8 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             onTrackMoved = ::onTrackMovedLocally,
             onTrackMoveFinished = ::replaceQueuePreservingCurrentTrack,
             formatDuration = { durationMs -> durationMs.toLong().toDurationString() },
-            onTrackMenu = { track ->
-                QueueTrackOptionsDialog.newInstance(track)
+            onTrackMenu = { track, position ->
+                QueueTrackOptionsDialog.newInstance(track, position)
                     .show(parentFragmentManager, QueueTrackOptionsDialog::class.java.simpleName)
             }
         )
@@ -187,14 +188,16 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         binding.queueInfo.text = "$current/$count"
     }
 
-    private fun replaceQueuePreservingCurrentTrack(updatedQueue: List<Music>) {
+    private fun replaceQueuePreservingCurrentTrack(
+        updatedQueue: List<Music>,
+        preferredIndex: Int
+    ) {
         if (updatedQueue.isEmpty()) {
             viewModel.clearQueue(requireContext())
             return
         }
-        val currentTrackId = currentQueue.getOrNull(currentIndex)?.id
-        val nextIndex = updatedQueue.indexOfFirst { it.id == currentTrackId }
-            .takeIf { it >= 0 }
+        val nextIndex = preferredIndex
+            .takeIf { it in updatedQueue.indices }
             ?: currentIndex.coerceIn(0, updatedQueue.lastIndex)
         viewModel.replaceQueue(requireContext(), updatedQueue, nextIndex)
         localQueueOverride = null
@@ -261,9 +264,9 @@ private class QueueListAdapter(
     private val onTrackClicked: (Int) -> Unit,
     private val onToggleFavorite: (Music) -> Unit,
     private val onTrackMoved: (List<Music>) -> Unit,
-    private val onTrackMoveFinished: (List<Music>) -> Unit,
+    private val onTrackMoveFinished: (List<Music>, Int) -> Unit,
     private val formatDuration: (Int) -> String,
-    private val onTrackMenu: (Music) -> Unit
+    private val onTrackMenu: (Music, Int) -> Unit
 ) : RecyclerView.Adapter<QueueListAdapter.QueueViewHolder>(), ItemMoveListener {
 
     private val queue = mutableListOf<Music>()
@@ -278,6 +281,7 @@ private class QueueListAdapter(
             items.map { music ->
                 val overriddenFavorite = favoriteOverrides[music.id] ?: return@map music
                 music.copy(playlistId = if (overriddenFavorite) 1L else 0L)
+                    .copyWithQueueToken(music)
             }
         )
         favoriteOverrides.keys.retainAll(queue.mapTo(hashSetOf()) { it.id })
@@ -290,6 +294,7 @@ private class QueueListAdapter(
         if (index < 0) return
         favoriteOverrides[trackId] = favorited
         queue[index] = queue[index].copy(playlistId = if (favorited) 1L else 0L)
+            .copyWithQueueToken(queue[index])
         notifyItemChanged(index)
     }
 
@@ -304,7 +309,7 @@ private class QueueListAdapter(
             .onDragFinishedListener {
                 if (!hasPendingReorder) return@onDragFinishedListener
                 hasPendingReorder = false
-                onTrackMoveFinished(queue.toList())
+                onTrackMoveFinished(queue.toList(), currentIndex)
             }
             .build()
         itemTouchHelper = ItemTouchHelper(callback)
@@ -330,6 +335,14 @@ private class QueueListAdapter(
     override fun onItemMove(fromPosition: Int, toPosition: Int) {
         if (fromPosition !in queue.indices || toPosition !in queue.indices) return
         Collections.swap(queue, fromPosition, toPosition)
+        if (currentIndex in queue.indices) {
+            currentIndex = when {
+                fromPosition == currentIndex -> toPosition
+                fromPosition < currentIndex && toPosition >= currentIndex -> currentIndex - 1
+                fromPosition > currentIndex && toPosition <= currentIndex -> currentIndex + 1
+                else -> currentIndex
+            }.coerceIn(0, queue.lastIndex)
+        }
         notifyItemMoved(fromPosition, toPosition)
         onTrackMoved(queue.toList())
         hasPendingReorder = true
@@ -395,7 +408,7 @@ private class QueueListAdapter(
             formatDuration = formatDuration,
             onClick = { onTrackClicked(position) },
             onFavoriteClick = { onToggleFavorite(queue[position]) },
-            onMenuClick = { onTrackMenu(queue[position]) }
+            onMenuClick = { onTrackMenu(queue[position], position) }
         )
     }
 }

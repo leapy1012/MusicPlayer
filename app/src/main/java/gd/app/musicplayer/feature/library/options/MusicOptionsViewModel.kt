@@ -11,8 +11,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
-import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
-import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.RemovePlaybackQueueItemUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
@@ -49,9 +48,8 @@ class MusicOptionsViewModel @Inject constructor(
     private val deleteTracksFromLibraryUseCase: DeleteTracksFromLibraryUseCase,
     private val removeTracksFromPlaylistUseCase: RemoveTracksFromPlaylistUseCase,
     private val removeTrackFromGeneratedMusicSetUseCase: RemoveTrackFromGeneratedMusicSetUseCase,
-    private val replaceQueueUseCase: ReplaceQueueUseCase,
+    private val removePlaybackQueueItemUseCase: RemovePlaybackQueueItemUseCase,
     private val getPlaybackQueueUseCase: GetPlaybackQueueUseCase,
-    private val observePlaybackStateUseCase: ObservePlaybackStateUseCase
 ) : ViewModel() {
 
     private var musicSet: MusicSet? = null
@@ -126,17 +124,9 @@ class MusicOptionsViewModel @Inject constructor(
 
                 is MusicSet.Queue -> {
                     val queue = getPlaybackQueueUseCase()
-                    val state = observePlaybackStateUseCase().value
-                    val index = queue.indexOfFirst { it.id == music.id }
-                    if (index >= 0) {
-                        val newQueue = queue.toMutableList().apply { removeAt(index) }
-                        val newIndex = when {
-                            newQueue.isEmpty() -> -1
-                            index < state.currentIndex -> state.currentIndex - 1
-                            state.currentIndex >= newQueue.size -> newQueue.lastIndex
-                            else -> state.currentIndex
-                        }
-                        replaceQueueUseCase(newQueue, newIndex)
+                    val queueIndex = queue.indexOf(music).takeIf { it >= 0 }
+                    val removed = removePlaybackQueueItemUseCase(music, queueIndex)
+                    if (removed) {
                         eventsChannel.send(MusicOptionsEvent.ShowToast(R.string.succeed))
                     }
                 }

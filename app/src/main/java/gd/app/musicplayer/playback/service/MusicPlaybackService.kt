@@ -37,6 +37,7 @@ import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.domain.repository.PlaylistRepo
 import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.RemapQueueIndexUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.feature.widget.provider.WidgetUpdateCoordinator
 import gd.app.musicplayer.playback.AudioFocusController
@@ -108,6 +109,7 @@ class MusicPlaybackService : MediaSessionService() {
     @Inject lateinit var observeTracksUseCase: ObserveTracksUseCase
     @Inject lateinit var observeAlbumPictureUseCase: ObserveAlbumPictureUseCase
     @Inject lateinit var toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
+    @Inject lateinit var remapQueueIndexUseCase: RemapQueueIndexUseCase
     @Inject lateinit var musicDao: MusicDao
     @Inject lateinit var playbackStatsTracker: PlaybackStatsTracker
     @Inject lateinit var widgetUpdateCoordinator: WidgetUpdateCoordinator
@@ -164,10 +166,19 @@ class MusicPlaybackService : MediaSessionService() {
 
     internal var resumeJob: Job? = null
     internal var defaultQueueRestoreJob: Job? = null
+    internal var defaultTracksObserverJob: Job? = null
     internal var widgetUpdateJob: Job? = null
 
     @Volatile
     internal var pendingResumeAfterDefaultQueue = false
+    @Volatile
+    internal var cachedDefaultTracks: List<Music> = emptyList()
+    @Volatile
+    internal var cachedPlayableDefaultTracks: List<Music> = emptyList()
+    @Volatile
+    internal var deferForcedStartupUiUpdates = false
+    @Volatile
+    internal var pendingQueueSessionSyncAfterStartupPlay = false
 
     internal var screenReceiverRegistered = false
     internal var keepIdleNotification = false

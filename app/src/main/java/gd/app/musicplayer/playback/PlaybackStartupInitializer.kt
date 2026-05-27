@@ -63,16 +63,14 @@ class PlaybackStartupInitializer @Inject constructor(
         queue: List<Music>
     ): RestoredPlaybackStart? {
         val progress = playbackStatePreferenceStore.getMusicProgress()
-        val progressIndex = if (progress.currentIndex in queue.indices) {
-            progress.currentIndex
-        } else {
-            queue.indexOfFirst { it.id == progress.trackId }
-                .takeIf { it >= 0 }
-                ?: return null
+        val resolvedIndex = queue.indexOfFirst { music ->
+            music.id == progress.trackId
         }
+            .takeIf { it >= 0 }
+            ?: return null
 
         return RestoredPlaybackStart(
-            index = progressIndex,
+            index = resolvedIndex,
             positionMs = progress.progressMs.toLong().coerceAtLeast(0L)
         )
     }

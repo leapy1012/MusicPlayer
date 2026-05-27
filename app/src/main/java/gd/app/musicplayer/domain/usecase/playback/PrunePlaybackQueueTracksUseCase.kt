@@ -1,5 +1,6 @@
 package gd.app.musicplayer.domain.usecase.playback
 
+import gd.app.musicplayer.playback.queue.hasSameQueueIdentity
 import javax.inject.Inject
 
 class PrunePlaybackQueueTracksUseCase @Inject constructor(
@@ -17,14 +18,18 @@ class PrunePlaybackQueueTracksUseCase @Inject constructor(
         val newQueue = queue.filterNot { it.id in ids }
         if (newQueue.size == queue.size) return
 
-        val currentTrackId = state.currentTrack?.id
-        val currentRemoved = currentTrackId in ids
+        val currentTrack = state.currentTrack
+        val currentRemoved = currentTrack?.id in ids
 
         val newIndex = when {
             newQueue.isEmpty() -> -1
             currentRemoved -> state.currentIndex.coerceAtMost(newQueue.lastIndex)
-            else -> newQueue.indexOfFirst { music -> music.id == currentTrackId }
-                .takeIf { index -> index >= 0 }
+            currentTrack == null -> state.currentIndex.coerceAtMost(newQueue.lastIndex)
+            else -> newQueue.indexOfFirst { music ->
+                music.hasSameQueueIdentity(currentTrack)
+            }.takeIf { index -> index >= 0 }
+                ?: newQueue.indexOfFirst { music -> music.id == currentTrack.id }
+                    .takeIf { index -> index >= 0 }
                 ?: state.currentIndex.coerceAtMost(newQueue.lastIndex)
         }
 

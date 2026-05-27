@@ -5,11 +5,14 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
+import gd.app.musicplayer.core.common.extension.parseQueueTokenFromQueueMediaId
+import gd.app.musicplayer.core.common.extension.parseTrackIdFromQueueMediaId
 import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.queue.QueueState
+import gd.app.musicplayer.playback.queue.hasSameQueueIdentity
 import kotlinx.coroutines.withContext
 
 class PlaybackSnapshotManager(
@@ -188,9 +191,11 @@ class PlaybackSnapshotManager(
             player.currentMediaItem?.mediaId
         }.getOrNull()
 
-        val playerTrackId = playerMediaId?.toLongOrNull()
+        val playerTrackId = playerMediaId?.parseTrackIdFromQueueMediaId()
         if (playerTrackId != null) {
-            return playerTrackId == snapshotTrack.id
+            val playerQueueToken = playerMediaId.parseQueueTokenFromQueueMediaId()
+            return playerTrackId == snapshotTrack.id &&
+                (playerQueueToken == null || playerQueueToken == snapshotTrack.queueToken)
         }
 
         val playerIndex = runCatching {
@@ -241,9 +246,16 @@ class PlaybackSnapshotManager(
         val fallbackTrackIndex = fallbackTrack
             ?.let { track ->
                 snapshotQueue.indexOfFirst { music ->
-                    music.id == track.id
+                    music.hasSameQueueIdentity(track)
                 }
             }
+            ?.takeIf { index -> index >= 0 }
+            ?: fallbackTrack
+                ?.let { track ->
+                    snapshotQueue.indexOfFirst { music ->
+                        music.id == track.id
+                    }
+                }
             ?.takeIf { index -> index >= 0 }
 
         if (fallbackTrackIndex != null) {
@@ -267,30 +279,23 @@ class PlaybackSnapshotManager(
             player.currentMediaItemIndex
         }.getOrDefault(QueueState.NO_INDEX)
 
-        if (
-            playerIndex in snapshotQueue.indices &&
-            player.mediaItemCount == snapshotQueue.size
-        ) {
+        if (playerIndex in snapshotQueue.indices) {
             return playerIndex
         }
 
-        val playerMediaId = runCatching {
-            player.currentMediaItem?.mediaId
-        }.getOrNull()
+        val mediaId = runCatching { player.currentMediaItem?.mediaId }.getOrNull() ?: return null
+        val mediaTrackId = mediaId.parseTrackIdFromQueueMediaId() ?: return null
+        val mediaQueueToken = mediaId.parseQueueTokenFromQueueMediaId()
 
-        val indexByMediaId = playerMediaId
-            ?.toLongOrNull()
-            ?.let { mediaId ->
-                snapshotQueue.indexOfFirst { music ->
-                    music.id == mediaId
-                }
+        if (mediaQueueToken != null) {
+            val identityIndex = snapshotQueue.indexOfFirst { music ->
+                music.id == mediaTrackId && music.queueToken == mediaQueueToken
             }
-            ?.takeIf { index -> index >= 0 }
-
-        if (indexByMediaId != null) {
-            return indexByMediaId
+            if (identityIndex >= 0) return identityIndex
         }
 
-        return null
+        return snapshotQueue.indexOfFirst { music ->
+            music.id == mediaTrackId
+        }.takeIf { it >= 0 }
     }
 }

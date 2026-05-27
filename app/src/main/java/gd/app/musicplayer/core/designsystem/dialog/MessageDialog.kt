@@ -14,7 +14,8 @@ import android.widget.TextView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.spToPx
-import gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables
+import gd.app.musicplayer.core.designsystem.drawable.pressedDefaultColorDrawable
+
 
 class MessageDialog(
     context: Context,
@@ -80,13 +81,13 @@ class MessageDialog(
 
                     messageTextColor = -10066330
 
-                    negativeButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    negativeButtonBackground = pressedDefaultColorDrawable(0, 437952241)
                     negativeButtonTextColor = -15032591
 
-                    neutralButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    neutralButtonBackground = pressedDefaultColorDrawable(0, 437952241)
                     neutralButtonTextColor = -15032591
 
-                    positiveButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    positiveButtonBackground = pressedDefaultColorDrawable(0, 437952241)
                     positiveButtonTextColor = -15032591
 
                     titleTextColor = -16777216

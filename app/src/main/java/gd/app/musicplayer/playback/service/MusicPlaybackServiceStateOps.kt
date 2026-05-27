@@ -151,16 +151,17 @@ internal fun MusicPlaybackService.publishStateAfterShutdown(
 internal fun MusicPlaybackService.publishAllRuntimeState(
     forceNotification: Boolean = false
 ) {
+    val effectiveForceNotification = forceNotification && !deferForcedStartupUiUpdates
     if (isStateUpdateCoordinatorInitialized()) {
         stateUpdateCoordinator.publishAllRuntimeState(
-            forceNotification = forceNotification
+            forceNotification = effectiveForceNotification
         )
         return
     }
 
     if (isStateOrchestratorInitialized()) {
         stateOrchestrator.publishAllRuntimeState(
-            forceNotification = forceNotification
+            forceNotification = effectiveForceNotification
         )
     }
 
@@ -172,11 +173,13 @@ internal fun MusicPlaybackService.publishPlaybackState(
     forceNotification: Boolean = false,
     forceWidgetUpdate: Boolean = forceNotification
 ) {
+    val effectiveForceNotification = forceNotification && !deferForcedStartupUiUpdates
+    val effectiveForceWidgetUpdate = forceWidgetUpdate && !deferForcedStartupUiUpdates
     if (isStateUpdateCoordinatorInitialized()) {
         stateUpdateCoordinator.publishPlaybackState(
             reason = reason,
-            forceNotification = forceNotification,
-            forceWidgetUpdate = forceWidgetUpdate
+            forceNotification = effectiveForceNotification,
+            forceWidgetUpdate = effectiveForceWidgetUpdate
         )
         return
     }
@@ -184,12 +187,12 @@ internal fun MusicPlaybackService.publishPlaybackState(
     if (isStateOrchestratorInitialized()) {
         stateOrchestrator.publishPlaybackState(
             reason = reason,
-            forceNotification = forceNotification,
-            forceWidgetUpdate = forceWidgetUpdate
+            forceNotification = effectiveForceNotification,
+            forceWidgetUpdate = effectiveForceWidgetUpdate
         )
     }
 
-    if (reason != PublishReason.ProgressTick || forceWidgetUpdate) {
+    if (reason != PublishReason.ProgressTick || effectiveForceWidgetUpdate) {
         updateWidgetsFromRuntimeState()
     }
 }
@@ -291,7 +294,7 @@ internal fun MusicPlaybackService.setQueueState(
 
     queueManager.setQueue(
         newQueue = playableQueue,
-        requestedIndex = remapRequestedIndex(
+        requestedIndex = remapQueueIndexUseCase(
             originalQueue = newQueue,
             playableQueue = playableQueue,
             requestedIndex = requestedIndex
@@ -321,21 +324,7 @@ internal fun MusicPlaybackService.shouldPublishProgressState(): Boolean {
 }
 
 internal fun MusicPlaybackService.maybePersistSessionFromProgressTick() {
-    if (!isPlayerInitialized()) return
-    if (!player.isPlaying) return
-
-    val now = SystemClock.elapsedRealtime()
-
-    if (now - lastSessionAutoSaveElapsedMs < SESSION_AUTO_SAVE_INTERVAL_MS) {
-        return
-    }
-
-    lastSessionAutoSaveElapsedMs = now
-
-    persistPlaybackSnapshotAsync(
-        snapshot = capturePlaybackSnapshot(),
-        persistQueue = false
-    )
+    // Obfuscated parity: do not autosave playback progress on timer ticks.
 }
 
 internal fun MusicPlaybackService.capturePlaybackSnapshot(): PlaybackSnapshot {
@@ -374,10 +363,8 @@ internal fun MusicPlaybackService.persistPlaybackSnapshotAsync(
 }
 
 internal fun MusicPlaybackService.persistSessionFromCurrentStateAsync() {
-    persistPlaybackSnapshotAsync(
-        snapshot = capturePlaybackSnapshot(),
-        persistQueue = false
-    )
+    // Obfuscated parity: avoid broad session-triggered progress persistence.
+    // Progress is persisted explicitly by player-driven operations (seek/pause/stop).
 }
 
 internal fun MusicPlaybackService.persistCurrentTrackProgressAsync(

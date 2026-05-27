@@ -14,7 +14,8 @@ import gd.app.lib.view.RoundedOutlineProvider
 import gd.app.lib.view.square.HeightFromWidthMeasurePolicy
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+import gd.app.musicplayer.core.designsystem.drawable.roundedRippleDrawable
+
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.messageColor
 
@@ -68,7 +69,7 @@ class SimultaneousTipDialog : BaseDialogFragment() {
 
         binding.root.background = themePalette.getDialogBackground(requireContext())
         binding.dialogMessage.setTextColor(themePalette.messageColor)
-        binding.dialogButtonOk.background = DrawableUtil.roundedRipple(
+        binding.dialogButtonOk.background = roundedRippleDrawable(
             themePalette.accentColor,
             452984831,
             requireContext().dpToPx(1000f).toFloat()

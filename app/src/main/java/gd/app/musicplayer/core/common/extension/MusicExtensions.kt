@@ -14,6 +14,7 @@ import java.util.Locale
 
 
 const val URI_SCHEME_SEPARATOR = "://"
+private const val QUEUE_MEDIA_ID_SEPARATOR = "#"
 
 fun Music.isFavorite(): Boolean {
     return playlistId == 1L
@@ -44,7 +45,7 @@ fun Music.toMediaItemOrNull(): MediaItem? {
     val mediaUri = resolveMediaUri() ?: return null
 
     return MediaItem.Builder()
-        .setMediaId(id.toString())
+        .setMediaId(toQueueMediaId())
         .setUri(mediaUri)
         .setMediaMetadata(
             MediaMetadata.Builder()
@@ -54,6 +55,18 @@ fun Music.toMediaItemOrNull(): MediaItem? {
                 .build()
         )
         .build()
+}
+
+fun Music.toQueueMediaId(): String {
+    return "$id$QUEUE_MEDIA_ID_SEPARATOR$queueToken"
+}
+
+fun String.parseTrackIdFromQueueMediaId(): Long? {
+    return substringBefore(QUEUE_MEDIA_ID_SEPARATOR).toLongOrNull()
+}
+
+fun String.parseQueueTokenFromQueueMediaId(): Int? {
+    return substringAfter(QUEUE_MEDIA_ID_SEPARATOR, "").toIntOrNull()
 }
 
 fun Music.formatAddedDate(): String {

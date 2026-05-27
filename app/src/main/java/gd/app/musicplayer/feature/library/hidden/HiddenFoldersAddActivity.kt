@@ -26,7 +26,9 @@ import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.core.common.extension.highlight
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.startActivityCompat
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+import gd.app.musicplayer.core.designsystem.drawable.rectRippleDrawable
+import gd.app.musicplayer.core.designsystem.drawable.roundedRippleDrawable
+
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.rippleColor
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersAddBinding
@@ -136,7 +138,7 @@ class HiddenFoldersAddActivity :
     }
 
     private fun setupConfirmButton() {
-        binding.buttonConfirm.background = DrawableUtil.roundedRipple(
+        binding.buttonConfirm.background = roundedRippleDrawable(
             accentColor,
             getColor(R.color.ripple_material_dark),
             CONFIRM_BUTTON_RADIUS
@@ -531,7 +533,7 @@ private class HiddenFoldersAddAdapter(
         private var boundItem: HiddenSelectionItem? = null
 
         init {
-            binding.root.background = DrawableUtil.rectRipple(
+            binding.root.background = rectRippleDrawable(
                 fillColor = Color.TRANSPARENT,
                 rippleColor = rippleColor
             )

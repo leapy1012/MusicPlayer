@@ -12,7 +12,7 @@ import javax.inject.Singleton
 
 @Singleton
 class AndroidTrackDeletionGateway @Inject constructor(
-    @ApplicationContext private val appContext: Context
+    @param:ApplicationContext private val appContext: Context
 ) : TrackDeletionGateway {
 
     override fun deleteTrackFromStorage(track: Music): Boolean {

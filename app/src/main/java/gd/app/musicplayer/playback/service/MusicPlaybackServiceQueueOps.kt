@@ -123,23 +123,17 @@ internal fun MusicPlaybackService.resumeWithDefaultQueue() {
     if (defaultQueueRestoreJob?.isActive == true) return
 
     defaultQueueRestoreJob = serviceScope.launch {
-        val tracks = withContext(dispatchers.io) {
-            runCatching {
-                observeTracksUseCase(MusicSet.Tracks).first()
-            }.getOrDefault(emptyList())
-        }
-
-        if (tracks.isEmpty()) {
-            pendingResumeAfterDefaultQueue = false
-            playbackRuntimeStateStore.initializeIfNeeded()
-            publishPlaybackState(
-                reason = PublishReason.Restore,
-                forceNotification = true
-            )
-            return@launch
-        }
-
-        val playableTracks = filterPlayableQueue(tracks)
+        val playableTracks = cachedPlayableDefaultTracks.takeIf { it.isNotEmpty() }
+            ?: cachedDefaultTracks
+                .takeIf { it.isNotEmpty() }
+                ?.filter { music -> music.toMediaItemOrNull() != null }
+            ?: withContext(dispatchers.io) {
+                runCatching {
+                    musicDao.getVisibleTracksSnapshotForPlayback()
+                }.getOrDefault(emptyList())
+            }.filter { music ->
+                music.toMediaItemOrNull() != null
+            }
 
         if (playableTracks.isEmpty()) {
             pendingResumeAfterDefaultQueue = false
@@ -151,23 +145,13 @@ internal fun MusicPlaybackService.resumeWithDefaultQueue() {
             return@launch
         }
 
-        withContext(dispatchers.io) {
-            playbackQueueRepo.replaceQueue(playableTracks)
-            playbackStatePreferenceStore.setMusicProgress(
-                trackId = playableTracks.first().id,
-                progressMs = 0,
-                currentIndex = 0
-            )
-        }
-
         setQueueState(
             newQueue = playableTracks,
             requestedIndex = 0
         )
 
         restoreManager.markRestored()
-
-        notificationSessionBridge.updateQueue()
+        pendingQueueSessionSyncAfterStartupPlay = true
 
         val shouldAutoResume = pendingResumeAfterDefaultQueue
         pendingResumeAfterDefaultQueue = false
@@ -176,6 +160,10 @@ internal fun MusicPlaybackService.resumeWithDefaultQueue() {
             return@launch
         }
 
+        deferForcedStartupUiUpdates = true
+
+        // Obfuscated parity: start playback path immediately from in-memory queue,
+        // do not block play on upfront queue/progress persistence writes.
         setPlayerQueue(
             queue = queue,
             startIndex = 0,
@@ -184,8 +172,12 @@ internal fun MusicPlaybackService.resumeWithDefaultQueue() {
         )
 
         applyVolumeForPlaybackStart(playWhenReady = shouldAutoResume)
-        refreshArtworkAndSession(force = true)
-        publishAllRuntimeState(forceNotification = true)
+        // Keep empty-queue play startup thin (obfuscated parity intent):
+        // player callbacks publish/update state right after actual transition.
+        publishPlaybackState(
+            reason = PublishReason.Restore,
+            forceNotification = false
+        )
     }
 }
 
@@ -377,7 +369,6 @@ internal fun MusicPlaybackService.updateEditedTrackMetadata(
     val changed = queueManager.updateTrackMetadata(music)
     if (!changed) return
 
-    queueManager.save()
     notificationSessionBridge.updateQueue()
     refreshArtworkAndSession(force = true)
     persistSessionFromCurrentStateAsync()
@@ -394,7 +385,6 @@ internal fun MusicPlaybackService.updateEditedTracksMetadata(
     val changed = queueManager.updateTracksMetadata(music)
     if (!changed) return
 
-    queueManager.save()
     notificationSessionBridge.updateQueue()
     refreshArtworkAndSession(force = true)
     persistSessionFromCurrentStateAsync()
@@ -411,45 +401,6 @@ internal fun MusicPlaybackService.filterPlayableQueue(queue: List<Music>): List<
     } else {
         queue
     }
-}
-
-internal fun MusicPlaybackService.remapRequestedIndex(
-    originalQueue: List<Music>,
-    playableQueue: List<Music>,
-    requestedIndex: Int
-): Int {
-    if (playableQueue.isEmpty()) return 0
-
-    if (requestedIndex in playableQueue.indices) {
-        val originalAtIndex = originalQueue.getOrNull(requestedIndex)
-        val playableAtIndex = playableQueue[requestedIndex]
-        if (originalAtIndex == playableAtIndex) return requestedIndex
-    }
-
-    val requestedTrackId = originalQueue.getOrNull(requestedIndex)?.id
-    if (requestedTrackId != null) {
-        val targetOccurrence = originalQueue
-            .asSequence()
-            .take(requestedIndex + 1)
-            .count { music -> music.id == requestedTrackId }
-
-        if (targetOccurrence > 0) {
-            var seen = 0
-            playableQueue.forEachIndexed { index, music ->
-                if (music.id == requestedTrackId) {
-                    seen += 1
-                    if (seen == targetOccurrence) {
-                        return index
-                    }
-                }
-            }
-        }
-    }
-
-    return requestedIndex.coerceIn(
-        0,
-        playableQueue.lastIndex
-    )
 }
 
 internal fun MusicPlaybackService.clearArtworkState() {

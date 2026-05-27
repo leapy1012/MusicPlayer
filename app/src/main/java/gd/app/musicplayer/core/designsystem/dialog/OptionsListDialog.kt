@@ -25,7 +25,10 @@ import kotlin.math.roundToInt
 import androidx.core.graphics.drawable.toDrawable
 import gd.app.musicplayer.core.common.extension.isLandscape
 import gd.app.musicplayer.core.common.extension.screenHeight
-import gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables
+import gd.app.musicplayer.core.designsystem.drawable.disabledSelectedDefaultColors
+import gd.app.musicplayer.core.designsystem.drawable.pressedDefaultColorDrawable
+import gd.app.musicplayer.core.designsystem.drawable.selectedDefaultColors
+
 
 class OptionsListDialog(
     context: Context,
@@ -95,10 +98,10 @@ class OptionsListDialog(
                     selectedItemTextColor = -15032591
                     singleLineItems = true
 
-                    negativeButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    negativeButtonBackground = pressedDefaultColorDrawable(0, 437952241)
                     negativeButtonTextColor = -15032591
 
-                    positiveButtonBackground = ViewStateDrawables.pressedDefaultColorDrawable(0, 437952241)
+                    positiveButtonBackground = pressedDefaultColorDrawable(0, 437952241)
                     positiveButtonTextColor = -15032591
 
                     titleTextColor = -16777216
@@ -157,7 +160,7 @@ class OptionsListDialog(
 
                 val tintList = config.itemIconTintList ?: run {
                     val inactiveColor = ColorUtils.setAlphaComponent(config.itemTextColor, 128)
-                    ViewStateDrawables.disabledSelectedDefaultColors(inactiveColor, config.selectedItemTextColor, inactiveColor)
+                    disabledSelectedDefaultColors(inactiveColor, config.selectedItemTextColor, inactiveColor)
                 }
 
                 iconView.setImageResource(config.itemIconRes)
@@ -170,12 +173,13 @@ class OptionsListDialog(
             }
 
             holder.titleView.setTextColor(
-                ViewStateDrawables.selectedEnabledDefaultColors(config.itemTextColor, config.selectedItemTextColor)
+                selectedDefaultColors(config.itemTextColor, config.selectedItemTextColor)
             )
             holder.titleView.setTextSize(0, config.itemTextSizePx.toFloat())
 
-            holder.root.background = ViewStateDrawables.pressedDefaultColorDrawable(Color.TRANSPARENT, pressedOverlayColor)
+            holder.root.background = pressedDefaultColorDrawable(Color.TRANSPARENT, pressedOverlayColor)
         }
+
     }
 
     private class ItemViewHolder(

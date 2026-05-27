@@ -55,8 +55,7 @@ class CurrentFavoriteController(
             .onEach { (musicId, isFavorite) ->
                 syncFavoriteStateForTrack(
                     trackId = musicId,
-                    isFavorite = isFavorite,
-                    persistQueue = false
+                    isFavorite = isFavorite
                 )
             }
             .launchIn(scope)
@@ -84,8 +83,7 @@ class CurrentFavoriteController(
         } else {
             syncFavoriteStateForTrack(
                 trackId = music.id,
-                isFavorite = isFavorite,
-                persistQueue = false
+                isFavorite = isFavorite
             )
 
             isFavorite
@@ -99,8 +97,7 @@ class CurrentFavoriteController(
 
         syncFavoriteStateForTrack(
             trackId = music.id,
-            isFavorite = isFavorite,
-            persistQueue = true
+            isFavorite = isFavorite
         )
 
         return isFavorite
@@ -108,8 +105,7 @@ class CurrentFavoriteController(
 
     private fun syncFavoriteStateForTrack(
         trackId: Long,
-        isFavorite: Boolean,
-        persistQueue: Boolean
+        isFavorite: Boolean
     ) {
         val changed = queueManager.updateFavoriteState(
             trackId = trackId,
@@ -117,10 +113,6 @@ class CurrentFavoriteController(
         )
 
         if (!changed) return
-
-        if (persistQueue) {
-            queueManager.save()
-        }
 
         callbacks.onFavoriteChanged()
     }

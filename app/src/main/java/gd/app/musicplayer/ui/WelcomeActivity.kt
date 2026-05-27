@@ -1,10 +1,12 @@
 package gd.app.musicplayer.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.core.common.extension.isMediaOpenIntent
 import gd.app.musicplayer.core.datastore.AppStartupPreferenceDataStore
 import gd.app.musicplayer.databinding.ActivityWelcomeBinding
 import gd.app.musicplayer.domain.usecase.database.RunMusicDatabaseStartupSyncUseCase
@@ -19,14 +21,10 @@ import kotlinx.coroutines.withContext
 @AndroidEntryPoint
 class WelcomeActivity : BaseActivity() {
 
-    private companion object {
-        const val MIN_SPLASH_DURATION_MS = 250L
-    }
-
-    private lateinit var binding: ActivityWelcomeBinding
-
     @Inject lateinit var runMusicDatabaseStartupSyncUseCase: RunMusicDatabaseStartupSyncUseCase
     @Inject lateinit var appStartupPreferenceDataStore: AppStartupPreferenceDataStore
+
+    private lateinit var binding: ActivityWelcomeBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,22 +32,29 @@ class WelcomeActivity : BaseActivity() {
         binding = ActivityWelcomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        configureSystemBars()
+        handleStartup()
+    }
+
+    private fun configureSystemBars() {
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
         }
+    }
 
+    private fun handleStartup() {
         lifecycleScope.launch {
             if (shouldBypassStartupForIncomingIntent()) {
                 openMainAndFinish()
-            } else {
-                checkPermissions()
+                return@launch
             }
+
+            checkAudioPermission()
         }
     }
 
-    private fun checkPermissions() {
-
+    private fun checkAudioPermission() {
         if (hasAudioPermission()) {
             onAudioPermissionGranted()
         } else {
@@ -58,7 +63,6 @@ class WelcomeActivity : BaseActivity() {
     }
 
     override fun onAudioPermissionGranted() {
-
         super.onAudioPermissionGranted()
         requestNotificationPermission()
     }
@@ -69,25 +73,27 @@ class WelcomeActivity : BaseActivity() {
     }
 
     private fun startLoading() {
-
         lifecycleScope.launch {
-
-            val startTime = SystemClock.elapsedRealtime()
-
-            withContext(Dispatchers.IO) {
-                runMusicDatabaseStartupSyncUseCase()
-            }
-
-            val elapsed = SystemClock.elapsedRealtime() - startTime
-            val delayTime = (MIN_SPLASH_DURATION_MS - elapsed).coerceAtLeast(0)
-            delay(delayTime)
-
-            onDataReady()
+            runStartupSyncWithMinimumSplashDuration()
+            openMainAndFinish()
         }
     }
 
-    private fun onDataReady() {
-        openMainAndFinish()
+    private suspend fun runStartupSyncWithMinimumSplashDuration() {
+        val startTime = SystemClock.elapsedRealtime()
+
+        withContext(Dispatchers.IO) {
+            runMusicDatabaseStartupSyncUseCase()
+        }
+
+        delayRemainingSplashTime(startTime)
+    }
+
+    private suspend fun delayRemainingSplashTime(startTimeMillis: Long) {
+        val elapsedMillis = SystemClock.elapsedRealtime() - startTimeMillis
+        val remainingMillis = (MIN_SPLASH_DURATION_MS - elapsedMillis).coerceAtLeast(0L)
+
+        delay(remainingMillis)
     }
 
     private fun openMainAndFinish() {
@@ -99,18 +105,11 @@ class WelcomeActivity : BaseActivity() {
     }
 
     private suspend fun shouldBypassStartupForIncomingIntent(): Boolean {
-        val startupInitialized = !appStartupPreferenceDataStore.isFirstStart()
-        return startupInitialized && intent.isIncomingMediaOpenIntent()
+        val hasCompletedInitialStartup = !appStartupPreferenceDataStore.isFirstStart()
+        return hasCompletedInitialStartup && intent.isMediaOpenIntent()
     }
 
-    private fun android.content.Intent?.isIncomingMediaOpenIntent(): Boolean {
-        if (this == null) return false
-        if ((flags and android.content.Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return false
-        return when (action) {
-            android.content.Intent.ACTION_SEND,
-            android.content.Intent.ACTION_VIEW,
-            "android.intent.action.MUSIC_PLAYER" -> true
-            else -> false
-        }
+    private companion object {
+        const val MIN_SPLASH_DURATION_MS = 250L
     }
 }

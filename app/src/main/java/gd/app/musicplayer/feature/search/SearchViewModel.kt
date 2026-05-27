@@ -108,7 +108,7 @@ class SearchViewModel @Inject constructor(
         sortVersion.value += 1
     }
 
-    suspend fun onSongClicked(song: Music) {
+    suspend fun onSongClicked(song: Music, preferredIndex: Int? = null) {
         val playbackState = playbackController.state.value
         val currentTrackId = playbackController.state.value.currentTrack?.id
         val isCurrentTrack = currentTrackId == song.id
@@ -139,14 +139,17 @@ class SearchViewModel @Inject constructor(
             return
         }
 
-        val (queue, startIndex) = resolvePlaybackQueue(song)
+        val (queue, startIndex) = resolvePlaybackQueue(song, preferredIndex)
         playTracksUseCase(queue, startIndex)
         if (isTrackClickOperationEnabledUseCase()) {
             _events.emit(SearchEvent.OpenNowPlaying)
         }
     }
 
-    suspend fun resolvePlaybackQueue(clickedTrack: Music): Pair<List<Music>, Int> {
+    suspend fun resolvePlaybackQueue(
+        clickedTrack: Music,
+        preferredIndex: Int? = null
+    ): Pair<List<Music>, Int> {
         val queue = if (query.value.isBlank()) {
             searchSource.value.tracks
         } else {
@@ -156,8 +159,11 @@ class SearchViewModel @Inject constructor(
                 .orEmpty()
         }.ifEmpty { listOf(clickedTrack) }
 
-        val startIndex = queue.indexOfFirst { it.id == clickedTrack.id }
-            .takeIf { it >= 0 }
+        val startIndex = preferredIndex
+            ?.takeIf { it in queue.indices }
+            ?.takeIf { queue[it] == clickedTrack }
+            ?: queue.indexOf(clickedTrack).takeIf { it >= 0 }
+            ?: queue.indexOfFirst { it.id == clickedTrack.id }.takeIf { it >= 0 }
             ?: 0
         return queue to startIndex
     }

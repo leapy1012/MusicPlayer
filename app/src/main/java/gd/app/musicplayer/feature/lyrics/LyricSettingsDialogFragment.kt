@@ -202,7 +202,7 @@ class LyricSettingsDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
 
         bindTaggedButtonGroup(
             container = binding.lyricAlignLayout,
-            tag = ThemeTags.LYRIC_ALIGN_BUTTON,
+            tag = ThemeTags.Lyric.ALIGN_BUTTON,
             selectedIndex = lyricPreference.lyricAlign
         ) { index ->
             lyricPreference = lyricPreference.copy(
@@ -217,7 +217,7 @@ class LyricSettingsDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
 
         bindTaggedButtonGroup(
             container = binding.lyricAlignLayout,
-            tag = ThemeTags.LYRIC_TYPEFACE_BUTTON,
+            tag = ThemeTags.Lyric.TYPEFACE_BUTTON,
             selectedIndex = lyricPreference.lyricStyle
         ) { index ->
             lyricPreference = lyricPreference.copy(

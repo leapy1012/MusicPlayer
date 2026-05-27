@@ -136,9 +136,9 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         return true
     }
 
-    override fun onSongClicked(song: Music) {
+    override fun onSongClicked(song: Music, preferredIndex: Int?) {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.onSongClicked(song)
+            viewModel.onSongClicked(song, preferredIndex)
         }
     }
 

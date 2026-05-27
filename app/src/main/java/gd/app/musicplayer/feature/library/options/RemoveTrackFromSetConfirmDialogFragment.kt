@@ -17,9 +17,7 @@ import gd.app.musicplayer.databinding.DialogCommonBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.RemoveTrackFromGeneratedMusicSetUseCase
-import gd.app.musicplayer.domain.usecase.playback.GetPlaybackQueueUseCase
-import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
-import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.RemovePlaybackQueueItemUseCase
 import gd.app.musicplayer.domain.usecase.playlist.RemoveTracksFromPlaylistUseCase
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,13 +36,7 @@ class RemoveTrackFromSetConfirmDialogFragment : BaseDialogFragment(), View.OnCli
     lateinit var removeTrackFromGeneratedMusicSetUseCase: RemoveTrackFromGeneratedMusicSetUseCase
 
     @Inject
-    lateinit var getPlaybackQueueUseCase: GetPlaybackQueueUseCase
-
-    @Inject
-    lateinit var observePlaybackStateUseCase: ObservePlaybackStateUseCase
-
-    @Inject
-    lateinit var replaceQueueUseCase: ReplaceQueueUseCase
+    lateinit var removePlaybackQueueItemUseCase: RemovePlaybackQueueItemUseCase
 
     private var _binding: DialogCommonBinding? = null
     private val binding: DialogCommonBinding
@@ -119,20 +111,7 @@ class RemoveTrackFromSetConfirmDialogFragment : BaseDialogFragment(), View.OnCli
     }
 
     private suspend fun removeFromQueue(): Boolean {
-        val queue = getPlaybackQueueUseCase()
-        val state = observePlaybackStateUseCase().value
-        val index = queue.indexOfFirst { it.id == music.id }
-        if (index < 0) return false
-
-        val newQueue = queue.toMutableList().apply { removeAt(index) }
-        val newIndex = when {
-            newQueue.isEmpty() -> -1
-            index < state.currentIndex -> state.currentIndex - 1
-            state.currentIndex >= newQueue.size -> newQueue.lastIndex
-            else -> state.currentIndex
-        }
-        replaceQueueUseCase(newQueue, newIndex)
-        return true
+        return removePlaybackQueueItemUseCase(music)
     }
 
     companion object {

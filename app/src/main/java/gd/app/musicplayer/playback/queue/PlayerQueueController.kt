@@ -2,8 +2,11 @@ package gd.app.musicplayer.playback.queue
 
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
+import gd.app.musicplayer.core.common.extension.toQueueMediaId
 import gd.app.musicplayer.domain.model.Music
 import androidx.media3.common.Player
+import gd.app.musicplayer.playback.queue.QueueIdentity
+import gd.app.musicplayer.playback.queue.queueIdentity
 
 class PlayerQueueController(
     private val player: ExoPlayer,
@@ -78,7 +81,7 @@ class PlayerQueueController(
 
         for (index in queue.indices) {
             val playerMediaId = player.getMediaItemAt(index).mediaId
-            val queueMediaId = queue[index].id.toString()
+            val queueMediaId = queue[index].toQueueMediaId()
 
             if (playerMediaId != queueMediaId) {
                 return false
@@ -94,19 +97,21 @@ class PlayerQueueController(
     ): Boolean {
         if (previousQueue.size != newQueue.size) return false
 
-        val counts = HashMap<Long, Int>(previousQueue.size)
+        val counts = HashMap<QueueIdentity, Int>(previousQueue.size)
 
         previousQueue.forEach { music ->
-            counts[music.id] = (counts[music.id] ?: 0) + 1
+            val key = music.queueIdentity()
+            counts[key] = (counts[key] ?: 0) + 1
         }
 
         newQueue.forEach { music ->
-            val count = counts[music.id] ?: return false
+            val key = music.queueIdentity()
+            val count = counts[key] ?: return false
 
             if (count == 1) {
-                counts.remove(music.id)
+                counts.remove(key)
             } else {
-                counts[music.id] = count - 1
+                counts[key] = count - 1
             }
         }
 
@@ -117,20 +122,20 @@ class PlayerQueueController(
         previousQueue: List<Music>,
         newQueue: List<Music>
     ): Boolean {
-        val currentIds = previousQueue
-            .map { music -> music.id }
+        val currentIdentities = previousQueue
+            .map { music -> music.queueIdentity() }
             .toMutableList()
 
-        val targetIds = newQueue.map { music -> music.id }
+        val targetIdentities = newQueue.map { music -> music.queueIdentity() }
 
-        for (targetIndex in targetIds.indices) {
-            val targetId = targetIds[targetIndex]
+        for (targetIndex in targetIdentities.indices) {
+            val targetIdentity = targetIdentities[targetIndex]
 
-            if (currentIds[targetIndex] == targetId) continue
+            if (currentIdentities[targetIndex] == targetIdentity) continue
 
-            val fromIndex = ((targetIndex + 1) until currentIds.size)
+            val fromIndex = ((targetIndex + 1) until currentIdentities.size)
                 .firstOrNull { index ->
-                    currentIds[index] == targetId
+                    currentIdentities[index] == targetIdentity
                 }
                 ?: return false
 
@@ -139,10 +144,10 @@ class PlayerQueueController(
                 targetIndex
             )
 
-            val movedId = currentIds.removeAt(fromIndex)
-            currentIds.add(
+            val movedIdentity = currentIdentities.removeAt(fromIndex)
+            currentIdentities.add(
                 targetIndex,
-                movedId
+                movedIdentity
             )
         }
 

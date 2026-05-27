@@ -341,10 +341,6 @@ private class LockQueueAdapter(
     private val queue = mutableListOf<Music>()
     private var currentIndex: Int = RecyclerView.NO_POSITION
 
-    init {
-        setHasStableIds(true)
-    }
-
     fun submitQueue(items: List<Music>, currentIndex: Int) {
         val oldCurrentIndex = currentIndex()
         queue.clear()
@@ -360,8 +356,6 @@ private class LockQueueAdapter(
             notifyCurrentChanged(currentIndex())
         }
     }
-
-    override fun getItemId(position: Int): Long = queue[position].id
 
     override fun getItemCount(): Int = queue.size
 

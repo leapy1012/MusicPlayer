@@ -10,45 +10,41 @@ import com.bumptech.glide.load.resource.bitmap.BitmapTransformation
 import com.bumptech.glide.load.resource.bitmap.TransformationUtils
 import java.security.MessageDigest
 
-class CircleArtworkTransformation : BitmapTransformation() {
-
-    override fun updateDiskCacheKey(messageDigest: MessageDigest) {
-        messageDigest.update(CACHE_KEY.toByteArray(Charsets.UTF_8))
-    }
+class CircleArtworkTransformation private constructor() : BitmapTransformation() {
 
     override fun transform(
         pool: BitmapPool,
         toTransform: Bitmap,
         outWidth: Int,
-        outHeight: Int
+        outHeight: Int,
     ): Bitmap {
-        val squared = TransformationUtils.centerCrop(pool, toTransform, outWidth, outHeight)
-
-        val result = pool.get(
-            squared.width,
-            squared.height,
-            Bitmap.Config.ARGB_8888
+        val squaredBitmap = TransformationUtils.centerCrop(
+            pool,
+            toTransform,
+            outWidth,
+            outHeight,
         )
 
-        val canvas = Canvas(result)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            isFilterBitmap = true
-            shader = BitmapShader(
-                squared,
-                Shader.TileMode.CLAMP,
-                Shader.TileMode.CLAMP
-            )
-        }
+        val outputBitmap = pool.get(
+            squaredBitmap.width,
+            squaredBitmap.height,
+            Bitmap.Config.ARGB_8888,
+        )
 
-        val radius = squared.width / 2f
-        canvas.drawCircle(
-            squared.width / 2f,
-            squared.height / 2f,
+        val radius = minOf(squaredBitmap.width, squaredBitmap.height) / 2f
+
+        Canvas(outputBitmap).drawCircle(
+            squaredBitmap.width / 2f,
+            squaredBitmap.height / 2f,
             radius,
-            paint
+            createBitmapPaint(squaredBitmap),
         )
 
-        return result
+        return outputBitmap
+    }
+
+    override fun updateDiskCacheKey(messageDigest: MessageDigest) {
+        messageDigest.update(CACHE_KEY_BYTES)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -56,11 +52,27 @@ class CircleArtworkTransformation : BitmapTransformation() {
     }
 
     override fun hashCode(): Int {
-        return CACHE_KEY.hashCode()
+        return HASH_CODE
+    }
+
+    private fun createBitmapPaint(bitmap: Bitmap): Paint {
+        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            isFilterBitmap = true
+            shader = BitmapShader(
+                bitmap,
+                Shader.TileMode.CLAMP,
+                Shader.TileMode.CLAMP,
+            )
+        }
     }
 
     companion object {
-        private const val CACHE_KEY = "circle_artwork_transformation"
+        private const val VERSION = 1
+        private const val ID = "gd.app.musicplayer.core.designsystem.image.CircleArtworkTransformation"
+        private const val CACHE_KEY = "$ID.$VERSION"
+        private val CACHE_KEY_BYTES = CACHE_KEY.toByteArray(Charsets.UTF_8)
+        private val HASH_CODE = CACHE_KEY.hashCode()
+
         val INSTANCE = CircleArtworkTransformation()
     }
 }

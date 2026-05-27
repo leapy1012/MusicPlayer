@@ -1,10 +1,8 @@
 package gd.app.musicplayer.core.common.extension
 
-import android.content.Context
 import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import androidx.activity.ComponentActivity
 import androidx.appcompat.widget.Toolbar
@@ -21,30 +19,40 @@ import jp.wasabeef.glide.transformations.BlurTransformation
 
 fun View.applyStatusBarInsetHeight() {
     ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
+        val statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top
+
         view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            height = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top
+            height = statusBarHeight
         }
+
         insets
     }
+
+    ViewCompat.requestApplyInsets(this)
 }
 
 fun View.applySystemBarInsets(
     statusBarView: View? = null,
-    bottomPaddingView: View? = null
+    bottomPaddingView: View? = null,
 ) {
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
         val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+
         statusBarView?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             height = systemBars.top
         }
+
         bottomPaddingView?.updatePadding(bottom = systemBars.bottom)
+
         insets
     }
+
     ViewCompat.requestApplyInsets(this)
 }
 
 fun View.applyRoundedOutline(radiusRes: Int) {
     val radius = resources.getDimension(radiusRes)
+
     post {
         outlineProvider = RoundedOutlineProvider(radius)
         clipToOutline = true
@@ -64,29 +72,8 @@ fun View.navigateBack(activity: ComponentActivity) {
     }
 }
 
-fun View.loadBlurredArtworkBackground(
-    source: String?
-) {
-
-    val targetWidth = resources.displayMetrics.widthPixels / 7
-    val targetHeight = resources.displayMetrics.heightPixels / 10
-
-    Glide.with(this as ImageView)
-        .load(source)
-        .override(targetWidth, targetHeight)
-        .placeholder(drawable)
-        .error(Color.TRANSPARENT.toDrawable())
-        .transform(BlurTransformation(40, 4))
-        .into(this)
-}
-
 internal fun View.updateWidth(width: Int) {
-    layoutParams?.let { params ->
-        params.width = width
-        layoutParams = params
+    updateLayoutParams {
+        this.width = width
     }
 }
-
-
-
-

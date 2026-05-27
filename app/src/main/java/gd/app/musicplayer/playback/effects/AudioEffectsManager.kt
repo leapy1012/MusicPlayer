@@ -108,7 +108,7 @@ class AudioEffectsManager @Inject constructor(
 
     private fun applyEqualizer(settings: AudioEffectSettings) {
         val eq = equalizer ?: return
-        val levels = settings.customLevels()
+        val levels = settings.activeCustomLevels
 
         val bandRange = runCatching {
             eq.bandLevelRange

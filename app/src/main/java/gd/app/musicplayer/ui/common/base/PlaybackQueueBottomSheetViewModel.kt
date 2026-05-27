@@ -7,14 +7,15 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.isFavorite
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.playback.ClearQueueUseCase
-import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackQueueUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
+import gd.app.musicplayer.domain.usecase.playback.ResolvePlaybackQueueIndexUseCase
 import gd.app.musicplayer.domain.usecase.playback.ReplaceQueueUseCase
 import gd.app.musicplayer.domain.usecase.playmode.CyclePlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playmode.ObservePlayModeUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.playback.PlaybackMode
+import gd.app.musicplayer.playback.queue.copyWithQueueToken
 import gd.app.musicplayer.ui.common.playback.PlayModeUiMapper
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -53,9 +54,9 @@ data class QueuePlayModeUiState(
 
 @HiltViewModel
 class PlaybackQueueBottomSheetViewModel @Inject constructor(
-    observePlaybackQueueUseCase: ObservePlaybackQueueUseCase,
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val playTracksUseCase: PlayTracksUseCase,
+    private val resolvePlaybackQueueIndexUseCase: ResolvePlaybackQueueIndexUseCase,
     private val toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase,
     private val clearQueueUseCase: ClearQueueUseCase,
@@ -66,13 +67,13 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
 
     val uiState: StateFlow<PlaybackQueueBottomSheetUiState> =
         combine(
-            observePlaybackQueueUseCase(),
             observePlaybackStateUseCase(),
             favoriteOverrides
-        ) { queue, playbackState, overrides ->
-            val queueWithOverrides = queue.map { music ->
+        ) { playbackState, overrides ->
+            val queueWithOverrides = playbackState.queue.map { music ->
                 val isFavorite = overrides[music.id] ?: return@map music
                 music.copy(playlistId = if (isFavorite) 1L else 0L)
+                    .copyWithQueueToken(music)
             }
             PlaybackQueueBottomSheetUiState(
                 queue = queueWithOverrides,
@@ -162,9 +163,19 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
 
         val preferredPosition = preferredIndex
             ?.takeIf { it in updatedQueue.indices }
-            ?: state.currentQueuePosition()
-        val nextIndex = preferredPosition
-            ?.coerceIn(0, updatedQueue.lastIndex)
+        val currentTrack = state.currentMusic
+        val resolvedIndex = if (currentTrack != null) {
+            resolvePlaybackQueueIndexUseCase(
+                queue = updatedQueue,
+                music = currentTrack,
+                preferredQueueIndex = preferredPosition ?: state.currentQueuePosition()
+            )
+        } else {
+            -1
+        }
+        val nextIndex = resolvedIndex
+            .takeIf { it in updatedQueue.indices }
+            ?: preferredPosition?.coerceIn(0, updatedQueue.lastIndex)
             ?: state.currentIndex.coerceIn(0, updatedQueue.lastIndex)
 
         replaceQueueUseCase(updatedQueue, nextIndex)
@@ -174,13 +185,15 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         val queue = state.queue
         if (queue.size < 2) return
 
-        val currentTrack = state.currentMusic ?: queue.getOrNull(state.currentIndex)
-        val shuffledQueue = if (currentTrack == null) {
+        val currentIndex = state.currentIndex
+        val shuffledQueue = if (currentIndex !in queue.indices) {
             queue.shuffled()
         } else {
-            buildList(queue.size) {
+            val currentTrack = queue[currentIndex]
+            val rest = queue.toMutableList().apply { removeAt(currentIndex) }.shuffled()
+            buildList {
                 add(currentTrack)
-                addAll(queue.filterNot { it.id == currentTrack.id }.shuffled())
+                addAll(rest)
             }
         }
 

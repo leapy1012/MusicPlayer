@@ -86,21 +86,16 @@ class PlaybackStatePreferenceStore @Inject constructor(
     private fun String.toPlaybackProgress(): PlaybackProgress {
         val parts = split(PROGRESS_SEPARATOR, limit = 2)
         val trackId = parts.getOrNull(0)?.toLongOrNull() ?: NO_TRACK_ID
-        val progressAndIndex = parts.getOrNull(1).orEmpty()
-        val progressMs = progressAndIndex
-            .substringBefore(INDEX_SEPARATOR)
+        val progressMs = parts.getOrNull(1)
+            ?.substringBefore(INDEX_SEPARATOR)
             ?.toIntOrNull()
             ?.coerceAtLeast(0)
             ?: 0
-        val currentIndex = progressAndIndex
-            .substringAfter(INDEX_SEPARATOR, "")
-            .toIntOrNull()
-            ?: NO_INDEX
 
         return PlaybackProgress(
             trackId = trackId,
             progressMs = progressMs,
-            currentIndex = currentIndex
+            currentIndex = NO_INDEX
         )
     }
 
@@ -109,7 +104,7 @@ class PlaybackStatePreferenceStore @Inject constructor(
         progressMs: Int,
         currentIndex: Int
     ): String {
-        return "$trackId$PROGRESS_SEPARATOR$progressMs$INDEX_SEPARATOR$currentIndex"
+        return "$trackId$PROGRESS_SEPARATOR$progressMs"
     }
 
     private companion object {

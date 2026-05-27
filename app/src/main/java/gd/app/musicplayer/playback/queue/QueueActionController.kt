@@ -6,7 +6,8 @@ import gd.app.musicplayer.domain.model.Music
 class QueueActionController(
     private val queueManager: PlaybackQueueManager,
     private val playerQueueController: PlayerQueueController,
-    private val callbacks: QueueMutationCallbacks
+    private val callbacks: QueueMutationCallbacks,
+    private val remapQueueIndex: (List<Music>, List<Music>, Int) -> Int
 ) {
 
     fun playNext(fromAutoTransition: Boolean = false) {
@@ -87,13 +88,13 @@ class QueueActionController(
         }
 
         queueManager.updateCurrentIndex(index)
-        callbacks.persistCurrentTrackProgress(0)
 
         callbacks.resetPlaybackStatistics()
         callbacks.applyVolumeForPlaybackStart(playWhenReady)
 
-        callbacks.refreshArtworkAndSession(force = true)
-        callbacks.publishPlayerEvent(forceNotification = true)
+        // Obfuscated parity intent: keep play-start path thin and let player transition
+        // callbacks perform the heavy artwork/session/notification updates.
+        callbacks.publishPlayerEvent(forceNotification = false)
     }
 
     fun removeQueueItem(index: Int) {
@@ -283,7 +284,6 @@ class QueueActionController(
             startPositionMs = 0L,
             playWhenReady = true
         )
-        callbacks.persistCurrentTrackProgress(0)
 
         callbacks.refreshArtworkAndSession(force = true)
         callbacks.publishPlayerEvent(forceNotification = true)
@@ -348,16 +348,12 @@ class QueueActionController(
         callbacks.markPlaybackRestored()
 
         val previousQueue = queueManager.queue
-        val previousTrackId = queueManager.currentTrack?.id
+        val previousTrackIdentity = queueManager.currentTrack?.queueIdentity()
         val previousPositionMs = callbacks.currentPlayerPositionMs()
         val wasPlaying = callbacks.isEffectivelyPlaying()
         val wasPlayerQueueSynced = playerQueueController.isPlayerPlaylistSynced()
 
-        val targetIndex = remapRequestedIndex(
-            originalQueue = newQueue,
-            playableQueue = playableNewQueue,
-            requestedIndex = requestedIndex
-        )
+        val targetIndex = remapQueueIndex(newQueue, playableNewQueue, requestedIndex)
 
         queueManager.setQueue(
             newQueue = playableNewQueue,
@@ -385,8 +381,8 @@ class QueueActionController(
 
         if (!reorderedInPlace) {
             val shouldPreservePosition =
-                previousTrackId != null &&
-                        queueManager.currentTrack?.id == previousTrackId &&
+                previousTrackIdentity != null &&
+                        queueManager.currentTrack?.queueIdentity() == previousTrackIdentity &&
                         callbacks.playerPlaybackStateIsNotIdle()
 
             playerQueueController.setPlayerQueue(
@@ -416,11 +412,7 @@ class QueueActionController(
 
         queueManager.setQueue(
             newQueue = playableIncomingQueue,
-            requestedIndex = remapRequestedIndex(
-                originalQueue = incomingQueue,
-                playableQueue = playableIncomingQueue,
-                requestedIndex = incomingIndex
-            )
+            requestedIndex = remapQueueIndex(incomingQueue, playableIncomingQueue, incomingIndex)
         )
 
         queueManager.save()
@@ -437,7 +429,6 @@ class QueueActionController(
             startPositionMs = 0L,
             playWhenReady = true
         )
-        callbacks.persistCurrentTrackProgress(0)
 
         callbacks.refreshArtworkAndSession(force = true)
         callbacks.publishPlayerEvent(forceNotification = true)
@@ -467,7 +458,6 @@ class QueueActionController(
         callbacks.resetTimedTransition()
 
         playerQueueController.seekTo(0L)
-        callbacks.persistCurrentTrackProgress(0)
 
         if (!callbacks.isEffectivelyPlaying()) {
             callbacks.resumePlaybackInternal()
@@ -480,42 +470,4 @@ class QueueActionController(
         return playerQueueController.filterPlayable(queue)
     }
 
-    private fun remapRequestedIndex(
-        originalQueue: List<Music>,
-        playableQueue: List<Music>,
-        requestedIndex: Int
-    ): Int {
-        if (playableQueue.isEmpty()) return 0
-
-        if (requestedIndex in playableQueue.indices) {
-            val originalAtIndex = originalQueue.getOrNull(requestedIndex)
-            val playableAtIndex = playableQueue[requestedIndex]
-            if (originalAtIndex == playableAtIndex) return requestedIndex
-        }
-
-        val requestedTrackId = originalQueue.getOrNull(requestedIndex)?.id
-        if (requestedTrackId != null) {
-            val targetOccurrence = originalQueue
-                .asSequence()
-                .take(requestedIndex + 1)
-                .count { music -> music.id == requestedTrackId }
-
-            if (targetOccurrence > 0) {
-                var seen = 0
-                playableQueue.forEachIndexed { index, music ->
-                    if (music.id == requestedTrackId) {
-                        seen += 1
-                        if (seen == targetOccurrence) {
-                            return index
-                        }
-                    }
-                }
-            }
-        }
-
-        return requestedIndex.coerceIn(
-            0,
-            playableQueue.lastIndex
-        )
-    }
 }

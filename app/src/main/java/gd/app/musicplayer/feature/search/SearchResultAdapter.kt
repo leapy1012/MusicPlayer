@@ -27,7 +27,7 @@ class SearchResultAdapter(
 ) : SectionedSearchAdapter() {
 
     interface Listener {
-        fun onSongClicked(song: Music)
+        fun onSongClicked(song: Music, preferredIndex: Int?)
         fun onSongMenuClicked(song: Music)
         fun onMusicSetClicked(musicSet: MusicSet)
 
@@ -74,7 +74,7 @@ class SearchResultAdapter(
                     binding = binding,
                     musicSet = MusicSet.Tracks,
                     theme = theme,
-                    onItemClick = { song -> listener?.onSongClicked(song) },
+                    onItemClick = { song -> listener?.onSongClicked(song, null) },
                     onItemLongClick = null,
                     onMenuClick = { song -> listener?.onSongMenuClicked(song) }
                 )
@@ -104,6 +104,9 @@ class SearchResultAdapter(
 
         when {
             holder is MusicViewHolder && item is ListItem.MusicItem -> {
+                holder.itemView.setOnClickListener {
+                    listener?.onSongClicked(item.music, childIndex)
+                }
                 holder.binding.musicItemTitle.text = highlight(item.music.title)
                 holder.binding.musicItemArtist.text = highlight(item.music.artist)
             }

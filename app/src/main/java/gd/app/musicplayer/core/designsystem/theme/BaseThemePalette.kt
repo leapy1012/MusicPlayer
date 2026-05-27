@@ -6,7 +6,9 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toDrawable
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+import gd.app.musicplayer.core.common.extension.dpToPx
+import gd.app.musicplayer.core.designsystem.drawable.roundedDrawable
+
 
 abstract class BaseThemePalette : ThemePalette {
     override fun getContentColor(): Int = if (getTitleColor() == Color.WHITE) 0x10000000 else 0
@@ -63,7 +65,8 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun getHeaderSecondaryTextColor(): Int = ThemeColorUtils.maskColor(isHeaderSurfaceLight())
 
-    override fun getHeaderBackgroundDrawable(context: Context): Drawable = ColorDrawable(getHeaderOverlayColor())
+    override fun getHeaderBackgroundDrawable(context: Context): Drawable =
+        getHeaderOverlayColor().toDrawable()
 
     override fun isNightTheme(): Boolean = false
 
@@ -113,6 +116,6 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun getEditTextBackground(context: Context): Drawable {
         val fillColor = if (getTitleColor() == Color.WHITE) 352321535 else 335544320
-        return DrawableUtil.gradientDrawable(context.resources.displayMetrics.density * 8f, fillColor)
+        return roundedDrawable(context.dpToPx(8f).toFloat(), fillColor)
     }
 }

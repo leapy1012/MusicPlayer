@@ -15,8 +15,9 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.lib.configuration.ConfigurationLinearLayout
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.designsystem.drawable.DrawableUtil
+
 import gd.app.musicplayer.core.common.extension.dpToPx
+import gd.app.musicplayer.core.designsystem.drawable.outlinedRoundedRippleDrawable
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.rippleColor
@@ -69,7 +70,7 @@ class RecyclerEmptyStateController(
         val usesDarkForegroundPalette = theme.titleColor != Color.WHITE
         button.setTextColor(theme.accentColor)
         tintCompoundDrawables(button, theme.accentColor)
-        button.background = DrawableUtil.outlinedRoundedRipple(
+        button.background = outlinedRoundedRippleDrawable(
             cornerRadius = button.context.dpToPx(100f),
             strokeWidth = button.context.dpToPx(1f),
             strokeColor = if (usesDarkForegroundPalette) 0x1A000000 else 0x33FFFFFF,

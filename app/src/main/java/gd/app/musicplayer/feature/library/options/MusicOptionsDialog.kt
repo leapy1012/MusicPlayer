@@ -17,8 +17,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
-import gd.app.musicplayer.core.designsystem.drawable.ViewStateDrawables
+
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.drawable.selectedDefaultDrawableFromRes
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
@@ -160,7 +161,7 @@ class MusicOptionsDialog : BaseBottomGridMenuDialog() {
 
         favoriteButton = container.findViewById<ImageView>(R.id.bottom_menu_title_icon).apply {
             setImageDrawable(
-                ViewStateDrawables.selectedDefaultDrawableFromRes(
+                selectedDefaultDrawableFromRes(
                     context,
                     intArrayOf(R.drawable.ic_menu_favorite, R.drawable.ic_menu_favorite_selected)
                 )

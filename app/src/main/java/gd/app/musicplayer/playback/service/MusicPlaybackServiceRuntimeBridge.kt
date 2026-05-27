@@ -194,8 +194,14 @@ private fun MusicPlaybackService.releaseTickersAndJobs() {
 
     defaultQueueRestoreJob?.cancel()
     defaultQueueRestoreJob = null
+    defaultTracksObserverJob?.cancel()
+    defaultTracksObserverJob = null
 
     pendingResumeAfterDefaultQueue = false
+    cachedDefaultTracks = emptyList()
+    cachedPlayableDefaultTracks = emptyList()
+    deferForcedStartupUiUpdates = false
+    pendingQueueSessionSyncAfterStartupPlay = false
 }
 
 private fun MusicPlaybackService.releaseObservers() {

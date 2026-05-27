@@ -36,43 +36,31 @@ class WidgetPlaybackSnapshotLoader @Inject constructor(
         }
         val playMode = settingPreferencesDataStore.getPlayMode()
 
-        val runtimeTrack = runtimeState.currentTrack
-            ?.takeIf { track ->
-                queue.any { queued -> queued.id == track.id }
+        val runtimeIndex = runtimeState.currentIndex
+            .takeIf { index ->
+                serviceRunning && index in queue.indices
             }
 
-        val restoredIndexByTrackId = restoredProgress
-            ?.let { progress -> queue.indexOfFirst { queued -> queued.id == progress.trackId } }
-            ?.takeIf { index -> index in queue.indices }
-
-        val restoredIndex = restoredIndexByTrackId
-            ?: restoredProgress?.currentIndex?.takeIf { index ->
-                index in queue.indices
+        val restoredIndex = restoredProgress
+            ?.let { progress ->
+                queue.indexOfFirst { music -> music.id == progress.trackId }
+                    .takeIf { it >= 0 }
             }
 
-        val currentTrack = if (serviceRunning) {
-            runtimeTrack
-                ?: restoredIndex?.let { index -> queue[index] }
-        } else {
-            restoredIndex?.let { index -> queue[index] }
-                ?: runtimeTrack
+        val currentIndex = when {
+            runtimeIndex != null -> runtimeIndex
+            restoredIndex != null -> restoredIndex
+            else -> -1
         }
-
-        val currentIndex = currentTrack
-            ?.let { track ->
-                queue.indexOfFirst { queued ->
-                    queued.id == track.id
-                }
-            }
-            ?: -1
+        val currentTrack = queue.getOrNull(currentIndex)
 
         return WidgetPlaybackSnapshot(
             queue = queue,
             currentTrack = currentTrack,
             currentIndex = currentIndex,
-            positionMs = if (serviceRunning && runtimeTrack != null) {
+            positionMs = if (serviceRunning && runtimeIndex != null) {
                 runtimeState.positionMs
-            } else if (restoredIndexByTrackId != null) {
+            } else if (restoredIndex != null) {
                 restoredProgress?.progressMs?.toLong()?.coerceAtLeast(0L) ?: 0L
             } else {
                 0L

@@ -145,7 +145,7 @@
     </style>
 
     <style name="DialogButton.Confirm" parent="@style/DialogButton.Action">
-        <item name="android:tag">dialogConfirm</item>
+        <item name="android:tag">buttonConfirm</item>
     </style>
 
     <style name="DialogButton.Old" parent="@style/DialogButton">
