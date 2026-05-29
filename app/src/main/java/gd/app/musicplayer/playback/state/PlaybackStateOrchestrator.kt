@@ -3,7 +3,6 @@ package gd.app.musicplayer.playback.state
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.notification.NotificationMediaSessionBridge
 import gd.app.musicplayer.playback.notification.PlaybackNotificationController
-import gd.app.musicplayer.playback.state.PlaybackStatePublisher
 
 class PlaybackStateOrchestrator(
     private val notificationSessionBridge: NotificationMediaSessionBridge,
