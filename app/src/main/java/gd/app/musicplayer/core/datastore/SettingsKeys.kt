@@ -11,12 +11,12 @@ object SettingsKeys {
     val SHOW_FORWARD_BACKWARD = booleanPreferencesKey("show_forward_backward")
     val SHOW_HIDDEN_FOLDERS = booleanPreferencesKey("show_hidden_folders")
     val SHOW_KEEP_ALIVE_DOT = booleanPreferencesKey("show_keep_alive_dot")
-    val FADE_DURATION_MS = intPreferencesKey("fade_duration")
+    val CROSS_FADE_DURATION_MS = intPreferencesKey("fade_duration")
     val SWIPE_CHANGE_SONGS = booleanPreferencesKey("swipe_change_songs")
-    val SIMULTANEOUS_PLAY = booleanPreferencesKey("simultaneous_play")
+    val SIMULTANEOUS_PLAYBACK_ALLOWED = booleanPreferencesKey("simultaneous_play")
     val VOLUME_FADE = booleanPreferencesKey("preference_volume_fade")
     val GAPLESS_PLAYBACK = booleanPreferencesKey("gapless_play")
-    val CROSS_FADE = booleanPreferencesKey("fade_enable")
+    val CROSS_FADE_ENABLED = booleanPreferencesKey("fade_enable")
     val TRACK_CLICK_OPERATION = booleanPreferencesKey("preference_track_click_operation")
     val REPLAY_SONG = booleanPreferencesKey("preference_replay_song")
     val QUEUE_FOR_SEARCHING = intPreferencesKey("queue_for_searching")
@@ -84,4 +84,7 @@ object SettingsKeys {
 
     val KEY_DESKTOP_LYRIC_Y =
         intPreferencesKey("desk_lrc_y")
+
+    val PLAY_SPEED = floatPreferencesKey("preference_play_speed")
+    val PLAY_PITCH = floatPreferencesKey("preference_play_pitch")
 }

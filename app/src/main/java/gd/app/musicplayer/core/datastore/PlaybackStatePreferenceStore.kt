@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import gd.app.musicplayer.core.datastore.SettingsKeys.PLAY_PITCH
+import gd.app.musicplayer.core.datastore.SettingsKeys.PLAY_SPEED
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import javax.inject.Inject
@@ -26,14 +28,14 @@ class PlaybackStatePreferenceStore @Inject constructor(
     val playSpeed: Flow<Float> =
         dataStore.data
             .map { preferences ->
-                preferences[KEY_PLAY_SPEED] ?: DEFAULT_PLAY_SPEED
+                preferences[PLAY_SPEED] ?: DEFAULT_PLAY_SPEED
             }
             .distinctUntilChanged()
 
     val playPitch: Flow<Float> =
         dataStore.data
             .map { preferences ->
-                preferences[KEY_PLAY_PITCH] ?: DEFAULT_PLAY_PITCH
+                preferences[PLAY_PITCH] ?: DEFAULT_PLAY_PITCH
             }
             .distinctUntilChanged()
 
@@ -64,22 +66,22 @@ class PlaybackStatePreferenceStore @Inject constructor(
     }
 
     suspend fun getPlaySpeed(): Float {
-        return dataStore.data.first()[KEY_PLAY_SPEED] ?: DEFAULT_PLAY_SPEED
+        return dataStore.data.first()[PLAY_SPEED] ?: DEFAULT_PLAY_SPEED
     }
 
     suspend fun setPlaySpeed(speed: Float) {
         dataStore.edit { preferences ->
-            preferences[KEY_PLAY_SPEED] = speed.coerceIn(0.5f, 2.0f)
+            preferences[PLAY_SPEED] = speed.coerceIn(0.5f, 2.0f)
         }
     }
 
     suspend fun getPlayPitch(): Float {
-        return dataStore.data.first()[KEY_PLAY_PITCH] ?: DEFAULT_PLAY_PITCH
+        return dataStore.data.first()[PLAY_PITCH] ?: DEFAULT_PLAY_PITCH
     }
 
     suspend fun setPlayPitch(pitch: Float) {
         dataStore.edit { preferences ->
-            preferences[KEY_PLAY_PITCH] = pitch.coerceIn(0.5f, 2.0f)
+            preferences[PLAY_PITCH] = pitch.coerceIn(0.5f, 2.0f)
         }
     }
 
@@ -116,7 +118,6 @@ class PlaybackStatePreferenceStore @Inject constructor(
         const val DEFAULT_PLAY_PITCH = 1.0f
 
         val KEY_MUSIC_PROGRESS = stringPreferencesKey("preference_music_progress")
-        val KEY_PLAY_SPEED = floatPreferencesKey("preference_play_speed")
-        val KEY_PLAY_PITCH = floatPreferencesKey("preference_play_pitch")
+
     }
 }

@@ -70,7 +70,7 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
     }
 
     override suspend fun getSimultaneousPlayEnabled(): Boolean {
-        return dataStore.data.first()[SettingsKeys.SIMULTANEOUS_PLAY] ?: false
+        return dataStore.data.first()[SettingsKeys.SIMULTANEOUS_PLAYBACK_ALLOWED] ?: false
     }
 
     override suspend fun setLibraryLastTab(tabId: Int) {
@@ -158,7 +158,7 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
 
     override suspend fun updateFadeDurationSeconds(seconds: Int) {
         val durationMs = seconds.coerceIn(1, 12) * 1000
-        dataStore.set(SettingsKeys.FADE_DURATION_MS, durationMs)
+        dataStore.set(SettingsKeys.CROSS_FADE_DURATION_MS, durationMs)
     }
 
     override suspend fun updateSwipeChangeSongsEnabled(enabled: Boolean) {
@@ -166,7 +166,7 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
     }
 
     override suspend fun updateSimultaneousPlayEnabled(enabled: Boolean) {
-        dataStore.set(SettingsKeys.SIMULTANEOUS_PLAY, enabled)
+        dataStore.set(SettingsKeys.SIMULTANEOUS_PLAYBACK_ALLOWED, enabled)
     }
 
     override suspend fun updateVolumeFadeEnabled(enabled: Boolean) {
@@ -177,12 +177,12 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
         dataStore.set(SettingsKeys.GAPLESS_PLAYBACK, enabled)
 
         if (enabled) {
-            dataStore.set(SettingsKeys.CROSS_FADE, false)
+            dataStore.set(SettingsKeys.CROSS_FADE_ENABLED, false)
         }
     }
 
     override suspend fun updateCrossFadeEnabled(enabled: Boolean) {
-        dataStore.set(SettingsKeys.CROSS_FADE, enabled)
+        dataStore.set(SettingsKeys.CROSS_FADE_ENABLED, enabled)
 
         if (enabled) {
             dataStore.set(SettingsKeys.GAPLESS_PLAYBACK, false)
@@ -295,15 +295,15 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
             ),
             audio = AudioSettingPreference(
                 fadeDurationSeconds = normalizeFadeDurationSeconds(
-                    preferences[SettingsKeys.FADE_DURATION_MS]
+                    preferences[SettingsKeys.CROSS_FADE_DURATION_MS]
                 ),
                 shakeEnabled = preferences[SettingsKeys.SHAKE_CHANGE_MUSIC] ?: false,
                 shakeLevel = preferences[SettingsKeys.SHAKE_LEVEL] ?: 0.5f,
                 swipeChangeSongsEnabled = preferences[SettingsKeys.SWIPE_CHANGE_SONGS] ?: true,
-                simultaneousPlayEnabled = preferences[SettingsKeys.SIMULTANEOUS_PLAY] ?: false,
+                simultaneousPlayEnabled = preferences[SettingsKeys.SIMULTANEOUS_PLAYBACK_ALLOWED] ?: false,
                 volumeFadeEnabled = preferences[SettingsKeys.VOLUME_FADE] ?: false,
                 gaplessPlaybackEnabled = preferences[SettingsKeys.GAPLESS_PLAYBACK] ?: false,
-                crossFadeEnabled = preferences[SettingsKeys.CROSS_FADE] ?: false,
+                crossFadeEnabled = preferences[SettingsKeys.CROSS_FADE_ENABLED] ?: false,
                 trackClickOperationEnabled = preferences[SettingsKeys.TRACK_CLICK_OPERATION]
                     ?: false,
                 replaySongEnabled = preferences[SettingsKeys.REPLAY_SONG] ?: false

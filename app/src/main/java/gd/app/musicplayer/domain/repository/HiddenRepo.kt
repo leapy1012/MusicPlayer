@@ -18,10 +18,6 @@ class HiddenRepo @Inject constructor(
 
     fun observeVisibleFolders(): Flow<List<MusicSet.Folder>> = musicDao.observeFolders()
 
-    fun observeVisibleSongs(): Flow<List<Music>> = musicDao.observeTracks(
-        sortStyle = "title",
-        sortDescending = false
-    )
 
     suspend fun removeHiddenFolder(folderPath: String) {
         musicDao.removeHiddenFolder(folderPath)

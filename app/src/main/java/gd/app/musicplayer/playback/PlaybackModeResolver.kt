@@ -7,6 +7,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @Singleton
 class PlaybackModeResolver @Inject constructor(
@@ -16,6 +17,8 @@ class PlaybackModeResolver @Inject constructor(
 
     @Volatile
     private var currentPlayMode: Int = PlaybackMode.ORDER
+    private val shuffleHistory = mutableListOf<Int>()
+    private var shuffleHistoryCursor = -1
 
     init {
         observePlayMode()
@@ -35,12 +38,12 @@ class PlaybackModeResolver @Inject constructor(
                 if (fromAutoTransition) {
                     activeIndex
                 } else {
-                    if (activeIndex == queueSize - 1) activeIndex else activeIndex + 1
+                    if (activeIndex >= queueSize - 1) 0 else activeIndex + 1
                 }
             }
 
             PlaybackMode.SHUFFLE_ALL -> {
-                randomOtherIndex(queueSize, activeIndex) ?: activeIndex
+                resolveShuffleNextIndex(queueSize, activeIndex)
             }
 
             PlaybackMode.LOOP_ALL -> {
@@ -48,7 +51,7 @@ class PlaybackModeResolver @Inject constructor(
             }
 
             else -> {
-                if (activeIndex == queueSize - 1) null else activeIndex + 1
+                (activeIndex + 1).coerceAtMost(queueSize - 1)
             }
         }
     }
@@ -68,11 +71,11 @@ class PlaybackModeResolver @Inject constructor(
 
         return when (currentPlayMode) {
             PlaybackMode.SINGLE -> {
-                activeIndex
+                if (activeIndex <= 0) queueSize - 1 else activeIndex - 1
             }
 
             PlaybackMode.SHUFFLE_ALL -> {
-                randomOtherIndex(queueSize, activeIndex) ?: activeIndex
+                resolveShufflePreviousIndex(queueSize, activeIndex)
             }
 
             PlaybackMode.LOOP_ALL -> {
@@ -124,8 +127,61 @@ class PlaybackModeResolver @Inject constructor(
     ): Int? {
         if (queueSize <= 1) return null
 
-        return (0 until queueSize)
-            .filterNot { index -> index == currentIndex }
-            .random()
+        var next: Int
+        do {
+            next = Random.nextInt(queueSize)
+        } while (next == currentIndex)
+        return next
+    }
+
+    private fun resolveShuffleNextIndex(
+        queueSize: Int,
+        currentIndex: Int
+    ): Int {
+        if (queueSize <= 1) return 0
+
+        if (shuffleHistoryCursor < shuffleHistory.lastIndex) {
+            shuffleHistoryCursor++
+            return shuffleHistory[shuffleHistoryCursor].coerceIn(0, queueSize - 1)
+        }
+
+        val next = randomOtherIndex(queueSize, currentIndex) ?: 0
+        shuffleHistory += next
+        shuffleHistoryCursor = shuffleHistory.lastIndex
+        trimShuffleHistory()
+        return next
+    }
+
+    private fun resolveShufflePreviousIndex(
+        queueSize: Int,
+        currentIndex: Int
+    ): Int {
+        if (queueSize <= 1) return 0
+
+        if (shuffleHistoryCursor > 0) {
+            shuffleHistoryCursor--
+            return shuffleHistory[shuffleHistoryCursor].coerceIn(0, queueSize - 1)
+        }
+
+        val previous = randomOtherIndex(queueSize, currentIndex) ?: 0
+        shuffleHistory.add(0, previous)
+        shuffleHistoryCursor = 0
+        trimShuffleHistory()
+        return previous
+    }
+
+    private fun trimShuffleHistory() {
+        if (shuffleHistory.size <= MAX_SHUFFLE_HISTORY_SIZE) return
+
+        val overflow = shuffleHistory.size - MAX_SHUFFLE_HISTORY_SIZE
+        repeat(overflow) {
+            shuffleHistory.removeAt(0)
+        }
+
+        shuffleHistoryCursor = (shuffleHistoryCursor - overflow).coerceAtLeast(0)
+    }
+
+    companion object {
+        private const val MAX_SHUFFLE_HISTORY_SIZE = 100
     }
 }

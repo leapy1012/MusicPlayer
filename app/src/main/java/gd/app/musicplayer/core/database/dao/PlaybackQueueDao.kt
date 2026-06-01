@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
+import gd.app.musicplayer.core.database.entity.MusicEntity
 import gd.app.musicplayer.core.database.entity.MusicPlaylistEntity
 import gd.app.musicplayer.domain.model.Music
 import kotlinx.coroutines.flow.Flow

@@ -3,6 +3,7 @@ package gd.app.musicplayer.core.database.dao
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
+import gd.app.musicplayer.core.database.entity.MusicEntity
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import kotlinx.coroutines.flow.Flow
