@@ -1,17 +1,11 @@
-﻿package gd.app.musicplayer.playback.service
+package gd.app.musicplayer.playback.service
 
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.command.PlaybackCommandHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-/**
- * Command adapter for playback intents/session/notification actions.
- *
- * Keeping this outside [MusicPlaybackService] prevents command routing from
- * becoming lifecycle/player/service glue again.
- */
-class PlaybackCommandCallbacks(
+internal class MusicPlaybackServiceActions(
     private val service: MusicPlaybackService,
     private val serviceScope: CoroutineScope
 ) : PlaybackCommandHandler.Callbacks {
@@ -160,4 +154,3 @@ class PlaybackCommandCallbacks(
         return service.currentMusicForCommand()
     }
 }
-

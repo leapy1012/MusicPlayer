@@ -18,7 +18,7 @@ class NotificationCloseController(
 
         callbacks.pausePlayerIfNeeded()
 
-        callbacks.persistPlaybackSnapshotBlocking(
+        callbacks.persistForSnapshotPolicy(
             snapshot = snapshot,
             persistQueue = true
         )

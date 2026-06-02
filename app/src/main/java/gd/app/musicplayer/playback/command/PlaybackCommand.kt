@@ -50,18 +50,18 @@ sealed interface PlaybackCommand {
         val tracks: List<Music>
     ) : PlaybackCommand
 
-    data object TogglePlayPause : PlaybackCommand
-    data object Play : PlaybackCommand
-    data object Pause : PlaybackCommand
-    data object Next : PlaybackCommand
-    data object Previous : PlaybackCommand
-    data object ClearQueue : PlaybackCommand
-    data object Stop : PlaybackCommand
-    data object ApplyAudioEffects : PlaybackCommand
-    data object ApplyPlaybackTuning : PlaybackCommand
-    data object RefreshNotificationStyle : PlaybackCommand
-    data object RestartCurrentTrack : PlaybackCommand
-    data object ChangeMode : PlaybackCommand
-    data object SetShuffleAllMode : PlaybackCommand
-    data object ToggleFavorite : PlaybackCommand
+    object TogglePlayPause : PlaybackCommand
+    object Play : PlaybackCommand
+    object Pause : PlaybackCommand
+    object Next : PlaybackCommand
+    object Previous : PlaybackCommand
+    object ClearQueue : PlaybackCommand
+    object Stop : PlaybackCommand
+    object ApplyAudioEffects : PlaybackCommand
+    object ApplyPlaybackTuning : PlaybackCommand
+    object RefreshNotificationStyle : PlaybackCommand
+    object RestartCurrentTrack : PlaybackCommand
+    object ChangeMode : PlaybackCommand
+    object SetShuffleAllMode : PlaybackCommand
+    object ToggleFavorite : PlaybackCommand
 }

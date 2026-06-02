@@ -1,12 +1,11 @@
-﻿package gd.app.musicplayer.playback.service
+package gd.app.musicplayer.playback.service
 
 import android.content.res.Configuration
 import gd.app.musicplayer.playback.shutdown.ShutdownOptions
 import gd.app.musicplayer.playback.state.PublishReason
 import gd.app.musicplayer.playback.timer.SleepTimerManager
 
-/** Bridges lifecycle orchestration to [MusicPlaybackService] implementation details. */
-class PlaybackLifecycleCallbacks(
+internal class MusicPlaybackServiceLifecycleActions(
     private val service: MusicPlaybackService
 ) : PlaybackLifecycleController.Callbacks {
 
@@ -47,7 +46,7 @@ class PlaybackLifecycleCallbacks(
     }
 
     override fun registerScreenOffReceiver() {
-        service.registerScreenOffReceiver()
+        service.playbackSessionOrNull()?.registerScreenOffReceiver()
     }
 
     override fun startProgressTicker() {
@@ -100,4 +99,3 @@ class PlaybackLifecycleCallbacks(
         service.releasePlaybackResources()
     }
 }
-

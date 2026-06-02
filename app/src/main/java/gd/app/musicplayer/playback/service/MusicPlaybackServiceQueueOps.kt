@@ -1,26 +1,56 @@
-﻿package gd.app.musicplayer.playback.service
+package gd.app.musicplayer.playback.service
 
 import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.playback.queue.QueueActionController
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import gd.app.musicplayer.playback.shutdown.ShutdownOptions
 import gd.app.musicplayer.playback.state.PublishReason
 
-
-internal fun MusicPlaybackService.updateStopAfterCurrentTrackMode(enabled: Boolean) {
-    stopAfterCurrentTrack = enabled
-    if (isPlayerInitialized()) {
-        player.pauseAtEndOfMediaItems = enabled
+private inline fun MusicPlaybackService.launchAfterPlaybackRestore(
+    operation: String,
+    crossinline block: suspend MusicPlaybackService.() -> Unit
+) {
+    serviceScope.launch {
+        measurePlaybackRuntimePhase("restore_then_$operation") {
+            ensurePlaybackRestored()
+            block()
+        }
     }
 }
 
-internal fun MusicPlaybackService.resumeWithDefaultQueue() {
-    if (defaultQueueRestoreJob?.isActive == true) return
+private inline fun MusicPlaybackService.withQueueActionController(
+    block: (QueueActionController) -> Unit
+) {
+    queueActionControllerOrNull()?.let(block)
+}
 
-    defaultQueueRestoreJob = serviceScope.launch {
-        val playableTracks = cachedPlayableDefaultTracks.takeIf { it.isNotEmpty() }
-            ?: cachedDefaultTracks
+private inline fun MusicPlaybackService.runQueueAction(
+    operation: String,
+    phase: String,
+    crossinline block: QueueActionController.() -> Unit
+) {
+    launchAfterPlaybackRestore(operation = operation) {
+        withQueueActionController { controller ->
+            measurePlaybackRuntimePhase(phase) {
+                controller.block()
+            }
+        }
+    }
+}
+
+internal fun MusicPlaybackService.updateStopAfterCurrentTrackMode(enabled: Boolean) {
+    sessionFlags.stopAfterCurrentTrack = enabled
+    playerOrNull()?.pauseAtEndOfMediaItems = enabled
+}
+
+internal fun MusicPlaybackService.resumeWithDefaultQueue() {
+    if (jobState.defaultQueueRestoreJob?.isActive == true) return
+
+    jobState.defaultQueueRestoreJob = serviceScope.launch {
+        val playableTracks = startupState.cachedPlayableDefaultTracks.takeIf { it.isNotEmpty() }
+            ?: startupState.cachedDefaultTracks
                 .takeIf { it.isNotEmpty() }
                 ?.filter { music -> music.toMediaItemOrNull() != null }
             ?: withContext(dispatchers.io) {
@@ -32,7 +62,7 @@ internal fun MusicPlaybackService.resumeWithDefaultQueue() {
             }
 
         if (playableTracks.isEmpty()) {
-            pendingResumeAfterDefaultQueue = false
+            startupState.pendingResumeAfterDefaultQueue = false
             playbackRuntimeStateStore.initializeIfNeeded()
             publishPlaybackState(
                 reason = PublishReason.Restore,
@@ -47,16 +77,16 @@ internal fun MusicPlaybackService.resumeWithDefaultQueue() {
         )
 
         restoreManager.markRestored()
-        pendingQueueSessionSyncAfterStartupPlay = true
+        startupState.pendingQueueSessionSyncAfterStartupPlay = true
 
-        val shouldAutoResume = pendingResumeAfterDefaultQueue
-        pendingResumeAfterDefaultQueue = false
+        val shouldAutoResume = startupState.pendingResumeAfterDefaultQueue
+        startupState.pendingResumeAfterDefaultQueue = false
 
         if (!audioFocusController.request()) {
             return@launch
         }
 
-        deferForcedStartupUiUpdates = true
+        startupState.deferForcedStartupUiUpdates = true
 
         // Obfuscated parity: start playback path immediately from in-memory queue,
         // do not block play on upfront queue/progress persistence writes.
@@ -81,12 +111,11 @@ internal fun MusicPlaybackService.handlePlayFromQueue(
     incomingQueue: List<Music>,
     incomingIndex: Int
 ) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (!isQueueActionControllerInitialized()) return@launch
-
-        queueActionController.playFromQueue(
+    runQueueAction(
+        operation = "play_from_queue",
+        phase = "queue_action_play_from_queue"
+    ) {
+        playFromQueue(
             incomingQueue = incomingQueue,
             incomingIndex = incomingIndex
         )
@@ -94,32 +123,29 @@ internal fun MusicPlaybackService.handlePlayFromQueue(
 }
 
 internal fun MusicPlaybackService.handleEnqueue(incomingQueue: List<Music>) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (!isQueueActionControllerInitialized()) return@launch
-
-        queueActionController.enqueue(incomingQueue)
+    runQueueAction(
+        operation = "enqueue",
+        phase = "queue_action_enqueue"
+    ) {
+        enqueue(incomingQueue)
     }
 }
 
 internal fun MusicPlaybackService.handlePlayNextQueue(incomingQueue: List<Music>) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (!isQueueActionControllerInitialized()) return@launch
-
-        queueActionController.playNextQueue(incomingQueue)
+    runQueueAction(
+        operation = "play_next_queue",
+        phase = "queue_action_play_next_queue"
+    ) {
+        playNextQueue(incomingQueue)
     }
 }
 
 internal fun MusicPlaybackService.removeQueueItem(index: Int) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (!isQueueActionControllerInitialized()) return@launch
-
-        queueActionController.removeQueueItem(index)
+    runQueueAction(
+        operation = "remove_queue_item",
+        phase = "queue_action_remove_item"
+    ) {
+        removeQueueItem(index)
     }
 }
 
@@ -127,12 +153,11 @@ internal fun MusicPlaybackService.moveQueueItem(
     fromIndex: Int,
     toIndex: Int
 ) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (!isQueueActionControllerInitialized()) return@launch
-
-        queueActionController.moveQueueItem(
+    runQueueAction(
+        operation = "move_queue_item",
+        phase = "queue_action_move_item"
+    ) {
+        moveQueueItem(
             fromIndex = fromIndex,
             toIndex = toIndex
         )
@@ -143,12 +168,11 @@ internal fun MusicPlaybackService.replaceQueue(
     newQueue: List<Music>,
     requestedIndex: Int
 ) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (!isQueueActionControllerInitialized()) return@launch
-
-        queueActionController.replaceQueue(
+    runQueueAction(
+        operation = "replace_queue",
+        phase = "queue_action_replace_queue"
+    ) {
+        replaceQueue(
             newQueue = newQueue,
             requestedIndex = requestedIndex
         )
@@ -156,34 +180,36 @@ internal fun MusicPlaybackService.replaceQueue(
 }
 
 internal fun MusicPlaybackService.playIndexFromCommand(index: Int) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        playIndex(
-            index = index,
-            playWhenReady = true
-        )
+    launchAfterPlaybackRestore(operation = "play_index_from_command") {
+        measurePlaybackRuntimePhase("queue_action_play_index") {
+            playIndex(
+                index = index,
+                playWhenReady = true
+            )
+        }
     }
 }
 
 internal fun MusicPlaybackService.togglePlayPause() {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (isEffectivelyPlaying()) {
-            pausePlaybackInternal()
-        } else {
-            resumePlaybackInternal()
+    launchAfterPlaybackRestore(operation = "toggle_play_pause") {
+        measurePlaybackRuntimePhase("toggle_play_pause") {
+            if (isEffectivelyPlaying()) {
+                pausePlaybackInternal()
+            } else {
+                resumePlaybackInternal()
+            }
         }
     }
 }
 
 internal fun MusicPlaybackService.resumePlayback() {
-    if (resumeJob?.isActive == true) return
+    if (jobState.resumeJob?.isActive == true) return
 
-    resumeJob = serviceScope.launch {
-        ensurePlaybackRestored()
-        resumePlaybackInternal()
+    jobState.resumeJob = serviceScope.launch {
+        measurePlaybackRuntimePhase("resume_playback") {
+            ensurePlaybackRestored()
+            resumePlaybackInternal()
+        }
     }
 }
 
@@ -194,9 +220,7 @@ internal fun MusicPlaybackService.pausePlayback(
 }
 
 internal fun MusicPlaybackService.pauseAndPersistForNotificationClose() {
-    if (!isNotificationCloseControllerInitialized()) return
-
-    notificationCloseController.pauseAndCloseNotification()
+    notificationCloseControllerOrNull()?.pauseAndCloseNotification()
 }
 
 internal fun MusicPlaybackService.exitService() {
@@ -204,26 +228,11 @@ internal fun MusicPlaybackService.exitService() {
 }
 
 internal fun MusicPlaybackService.clearQueueKeepingNotification() {
-    keepIdleNotification = true
-    notificationDismissedByUser = false
     shutdownPlayback(ShutdownOptions.ClearQueueKeepingNotification)
-    notificationController.stopForegroundDetached()
-    notificationController.update(force = true)
 }
 
 internal fun MusicPlaybackService.shutdownPlayback(options: ShutdownOptions) {
-    if (isShutdownCoordinatorInitialized()) {
-        shutdownCoordinator.shutdown(options)
-        return
-    }
-
-    keepIdleNotification = false
-    updateStopAfterCurrentTrackMode(false)
-    notificationDismissedByUser = false
-
-    if (isShutdownControllerInitialized()) {
-        shutdownController.shutdown(options)
-    }
+    shutdownCoordinatorOrNull()?.shutdown(options)
 }
 
 internal fun MusicPlaybackService.handleNotificationFavoriteToggle() {
@@ -231,27 +240,27 @@ internal fun MusicPlaybackService.handleNotificationFavoriteToggle() {
 }
 
 internal fun MusicPlaybackService.toggleCurrentFavorite() {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (isFavoriteControllerInitialized()) {
-            favoriteController.toggleCurrent()
+    launchAfterPlaybackRestore(operation = "toggle_favorite") {
+        favoriteControllerOrNull()?.let { controller ->
+            measurePlaybackRuntimePhase("favorite_toggle") {
+                controller.toggleCurrent()
+            }
         }
     }
 }
 
 internal fun MusicPlaybackService.setCurrentFavorite(isFavorite: Boolean) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (isFavoriteControllerInitialized()) {
-            favoriteController.setCurrentFavorite(isFavorite)
+    launchAfterPlaybackRestore(operation = "set_favorite") {
+        favoriteControllerOrNull()?.let { controller ->
+            measurePlaybackRuntimePhase("favorite_set") {
+                controller.setCurrentFavorite(isFavorite)
+            }
         }
     }
 }
 
 internal fun MusicPlaybackService.refreshArtworkAndSession(force: Boolean = false) {
-    if (isArtworkControllerInitialized()) {
+    withArtworkController {
         artworkController.refresh(force = force)
         return
     }
@@ -265,14 +274,7 @@ internal fun MusicPlaybackService.updateEditedTrackMetadata(
     val changed = queueManager.updateTrackMetadata(music)
     if (!changed) return
 
-    notificationSessionBridge.updateQueue()
-    refreshArtworkAndSession(force = true)
-    persistSessionFromCurrentStateAsync()
-    publishPlaybackState(
-        reason = PublishReason.QueueChanged,
-        forceNotification = true,
-        forceWidgetUpdate = true
-    )
+    onQueueMetadataChanged()
 }
 
 internal fun MusicPlaybackService.updateEditedTracksMetadata(
@@ -281,30 +283,13 @@ internal fun MusicPlaybackService.updateEditedTracksMetadata(
     val changed = queueManager.updateTracksMetadata(music)
     if (!changed) return
 
-    notificationSessionBridge.updateQueue()
-    refreshArtworkAndSession(force = true)
-    persistSessionFromCurrentStateAsync()
-    publishPlaybackState(
-        reason = PublishReason.QueueChanged,
-        forceNotification = true,
-        forceWidgetUpdate = true
-    )
+    onQueueMetadataChanged()
 }
 
 internal fun MusicPlaybackService.filterPlayableQueue(queue: List<Music>): List<Music> {
-    return if (isPlayerQueueControllerInitialized()) {
-        playerQueueController.filterPlayable(queue)
-    } else {
-        queue
-    }
+    return playerQueueControllerOrNull()?.filterPlayable(queue) ?: queue
 }
 
 internal fun MusicPlaybackService.clearArtworkState() {
-    if (isArtworkControllerInitialized()) {
-        artworkController.clear()
-    } else if (isArtworkLoaderInitialized()) {
-        artworkLoader.clear()
-    }
+    artworkControllerOrNull()?.clear() ?: artworkLoaderOrNull()?.clear()
 }
-
-

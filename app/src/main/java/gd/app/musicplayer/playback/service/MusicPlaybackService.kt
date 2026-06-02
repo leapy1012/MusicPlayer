@@ -4,30 +4,18 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
-import android.os.Build
 import android.os.Bundle
-import android.os.Parcelable
-import android.view.KeyEvent
 import androidx.annotation.OptIn
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionError
-import androidx.media3.session.SessionResult
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.SettableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
-import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.core.database.dao.MusicDao
-import gd.app.musicplayer.core.datastore.DesktopLyricPreference
 import gd.app.musicplayer.core.datastore.DesktopLyricPreferenceStore
 import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
-import gd.app.musicplayer.core.datastore.SettingPreferences
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.core.datastore.SoundEffectPreferences
 import gd.app.musicplayer.core.datastore.StatusBarLyricPreferenceStore
@@ -80,13 +68,20 @@ import gd.app.musicplayer.playback.state.PlaybackStatePublisher
 import gd.app.musicplayer.playback.state.PlaybackStateUpdateCoordinator
 import gd.app.musicplayer.playback.statusbar.StatusBarLyricsOverlayController
 import gd.app.musicplayer.playback.transition.TimedTransitionController
+import gd.app.musicplayer.playback.session.Media3Commands
+import gd.app.musicplayer.playback.session.Media3CommandHandler
+import gd.app.musicplayer.playback.session.Media3TransportCommandTracker
+import gd.app.musicplayer.playback.session.MusicMediaSessionCallback
+import gd.app.musicplayer.playback.session.PlaybackResumptionHandler
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MusicPlaybackService : MediaSessionService() {
+
+    @Inject internal lateinit var sessionFactory: PlaybackSessionFactory
+
+    private var playbackSession: PlaybackSession? = null
 
     // ---------------------------------------------------------------------
     // Injected dependencies
@@ -128,6 +123,7 @@ class MusicPlaybackService : MediaSessionService() {
     internal lateinit var artworkController: CurrentArtworkController
     internal lateinit var stateOrchestrator: PlaybackStateOrchestrator
     internal lateinit var stateUpdateCoordinator: PlaybackStateUpdateCoordinator
+    internal lateinit var playbackEventDispatcher: PlaybackEventDispatcher
     internal lateinit var playerQueueController: PlayerQueueController
     internal lateinit var queueActionController: QueueActionController
     internal lateinit var shutdownController: ShutdownController
@@ -157,6 +153,10 @@ class MusicPlaybackService : MediaSessionService() {
     internal lateinit var volumeFader: VolumeFader
     internal lateinit var crossfadeVolumeFader: VolumeFader
     internal lateinit var progressTicker: PlaybackProgressTicker
+    internal lateinit var media3CommandHandler: Media3CommandHandler
+    internal lateinit var playbackResumptionHandler: PlaybackResumptionHandler
+    internal lateinit var media3TransportCommandTracker: Media3TransportCommandTracker
+    internal lateinit var media3SessionCallbackDelegate: MusicMediaSessionCallback
 
     internal var media3Session: MediaSession? = null
 
@@ -164,43 +164,11 @@ class MusicPlaybackService : MediaSessionService() {
     // Runtime state
     // ---------------------------------------------------------------------
 
-    internal var resumeJob: Job? = null
-    internal var defaultQueueRestoreJob: Job? = null
-    internal var defaultTracksObserverJob: Job? = null
-    internal var widgetUpdateJob: Job? = null
-
-    @Volatile
-    internal var pendingResumeAfterDefaultQueue = false
-    @Volatile
-    internal var cachedDefaultTracks: List<Music> = emptyList()
-    @Volatile
-    internal var cachedPlayableDefaultTracks: List<Music> = emptyList()
-    @Volatile
-    internal var deferForcedStartupUiUpdates = false
-    @Volatile
-    internal var pendingQueueSessionSyncAfterStartupPlay = false
-
-    internal var screenReceiverRegistered = false
-    internal var keepIdleNotification = false
-    internal var stopAfterCurrentTrack = false
-    internal var notificationDismissedByUser = false
-    internal var lastSessionAutoSaveElapsedMs = 0L
-
-    internal var pendingMedia3TransportCommand = NO_PLAYER_COMMAND
-    internal var pendingMedia3TransportStartIndex = NO_INDEX
-    internal var pendingMedia3TransportStartPositionMs = 0L
-    internal var pendingMedia3StopSnapshot: PlaybackSnapshot? = null
-
-    internal var correctingMediaItemTransition = false
-    internal var suppressNextCrossfadeCommitTransition = false
-    internal var pendingRestoreTrackId: Long? = null
-    internal var isNightMode = false
-
-    @Volatile
-    internal var latestSettingPreferences = SettingPreferences()
-
-    @Volatile
-    internal var latestDesktopLyricPreference = DesktopLyricPreference()
+    internal val jobState = PlaybackJobState()
+    internal val startupState = PlaybackStartupState()
+    internal val media3TransportState = Media3TransportState()
+    internal val sessionFlags = PlaybackSessionFlagsState()
+    internal val runtimeCacheState = PlaybackRuntimeCacheState()
 
     internal val queue: List<Music>
         get() = queueManager.queue
@@ -214,31 +182,25 @@ class MusicPlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
-
-        prepareServiceBaseState()
-
-        lifecycleController = createLifecycleController()
-        lifecycleController.onCreate()
+        playbackSession = sessionFactory.create(this).also { session ->
+            session.start()
+        }
     }
 
     override fun onGetSession(
         controllerInfo: MediaSession.ControllerInfo
     ): MediaSession? {
-        return media3Session
+        return playbackSession?.mediaSession()
     }
 
     override fun onUpdateNotification(
         session: MediaSession,
         startInForegroundRequired: Boolean
     ) {
-        if (!isNotificationControllerInitialized()) return
-
-        if (startInForegroundRequired) {
-            notificationDismissedByUser = false
-            notificationController.ensureForegroundStarted()
-        } else {
-            updateNotification()
-        }
+        playbackSession?.onUpdateNotification(
+            session = session,
+            startInForegroundRequired = startInForegroundRequired
+        )
     }
 
     override fun onStartCommand(
@@ -252,219 +214,31 @@ class MusicPlaybackService : MediaSessionService() {
             startId
         )
 
-        return if (isPlaybackServiceRuntimeInitialized()) {
-            playbackServiceRuntime.handleStartCommand(
-                intent = intent,
-                startId = startId
-            )
-        } else {
-            handleEmptyStartCommand(startId)
-        }
+        return playbackSession?.onStartCommand(
+            intent = intent,
+            startId = startId
+        ) ?: handleEmptyStartCommand(startId)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        if (isLifecycleControllerInitialized()) {
-            lifecycleController.onTaskRemoved()
-        }
+        playbackSession?.onTaskRemoved()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        if (isLifecycleControllerInitialized()) {
-            lifecycleController.onConfigurationChanged(newConfig)
-        }
+        playbackSession?.onConfigurationChanged(newConfig)
     }
 
     override fun onDestroy() {
-        if (isLifecycleControllerInitialized()) {
-            lifecycleController.onDestroy()
-        }
-
+        playbackSession?.stop()
+        playbackSession = null
         super.onDestroy()
     }
 
-    // ---------------------------------------------------------------------
-    // Media3 session callback
-    // ---------------------------------------------------------------------
-
     @OptIn(UnstableApi::class)
-    internal val media3SessionCallback: MediaSession.Callback = @UnstableApi
-    object : MediaSession.Callback {
-
-        @OptIn(UnstableApi::class)
-        override fun onConnect(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo
-        ): MediaSession.ConnectionResult {
-            val sessionCommands = MediaSession.ConnectionResult
-                .DEFAULT_SESSION_COMMANDS
-                .buildUpon()
-                .add(SessionCommand(MEDIA3_COMMAND_TOGGLE_FAVORITE, Bundle.EMPTY))
-                .add(SessionCommand(MEDIA3_COMMAND_CYCLE_PLAYBACK_MODE, Bundle.EMPTY))
-                .add(SessionCommand(MEDIA3_COMMAND_STOP_AFTER_CURRENT, Bundle.EMPTY))
-                .add(SessionCommand(MEDIA3_COMMAND_CLOSE_NOTIFICATION, Bundle.EMPTY))
-                .build()
-
-            return MediaSession.ConnectionResult
-                .AcceptedResultBuilder(session)
-                .setAvailableSessionCommands(sessionCommands)
-                .build()
-        }
-
-        override fun onCustomCommand(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            customCommand: SessionCommand,
-            args: Bundle
-        ): ListenableFuture<SessionResult> {
-            return when (customCommand.customAction) {
-                MEDIA3_COMMAND_TOGGLE_FAVORITE -> {
-                    toggleCurrentFavorite()
-                    successSessionResult()
-                }
-
-                MEDIA3_COMMAND_CYCLE_PLAYBACK_MODE -> {
-                    playbackModeResolver.cyclePlaybackMode()
-                    successSessionResult()
-                }
-
-                MEDIA3_COMMAND_CLOSE_NOTIFICATION -> {
-                    pauseAndPersistForNotificationClose()
-                    successSessionResult()
-                }
-
-                MEDIA3_COMMAND_STOP_AFTER_CURRENT -> {
-                    updateStopAfterCurrentTrackMode(!stopAfterCurrentTrack)
-                    publishAllRuntimeState(forceNotification = true)
-                    successSessionResult()
-                }
-
-                else -> unsupportedSessionResult()
-            }
-        }
-
-        @Suppress("DEPRECATION")
-        override fun onPlayerCommandRequest(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            playerCommand: Int
-        ): Int {
-            when {
-                playerCommand.isMedia3TransportNavigationCommand() -> {
-                    pendingMedia3TransportCommand = playerCommand
-                    pendingMedia3TransportStartIndex = currentIndex
-                    pendingMedia3TransportStartPositionMs =
-                        player.currentPosition.coerceAtLeast(0L)
-                }
-
-                playerCommand == Player.COMMAND_STOP -> {
-                    pendingMedia3StopSnapshot = capturePlaybackSnapshot()
-                }
-            }
-
-            return SessionResult.RESULT_SUCCESS
-        }
-
-        @OptIn(UnstableApi::class)
-        override fun onPlaybackResumption(
-            mediaSession: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            isForPlayback: Boolean
-        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
-
-            serviceScope.launch {
-                runCatching {
-                    resolvePlaybackResumption(isForPlayback)
-                }.onSuccess { result ->
-                    future.set(result)
-                }.onFailure { error ->
-                    future.setException(error)
-                }
-            }
-
-            return future
-        }
-
-        override fun onMediaButtonEvent(
-            session: MediaSession,
-            controllerInfo: MediaSession.ControllerInfo,
-            intent: Intent
-        ): Boolean {
-            val event = intent.mediaButtonKeyEventOrNull()
-
-            if (event?.action != KeyEvent.ACTION_DOWN) {
-                return false
-            }
-
-            headsetMediaButtonHandler.handle(event.keyCode)
-            return true
-        }
-
-        override fun onPlayerInteractionFinished(
-            session: MediaSession,
-            controllerInfo: MediaSession.ControllerInfo,
-            playerCommands: Player.Commands
-        ) {
-            handleMedia3PlayerInteractionFinished()
-        }
-    }
-
-    private fun successSessionResult(): ListenableFuture<SessionResult> {
-        return Futures.immediateFuture(
-            SessionResult(SessionResult.RESULT_SUCCESS)
-        )
-    }
-
-    @OptIn(UnstableApi::class)
-    private fun unsupportedSessionResult(): ListenableFuture<SessionResult> {
-        return Futures.immediateFuture(
-            SessionResult(SessionError.ERROR_NOT_SUPPORTED)
-        )
-    }
-
-    @OptIn(UnstableApi::class)
-    private suspend fun resolvePlaybackResumption(
-        isForPlayback: Boolean
-    ): MediaSession.MediaItemsWithStartPosition {
-        ensurePlaybackRestored()
-
-        if (isForPlayback && !audioFocusController.request()) {
-            throw IllegalStateException("Audio focus request was denied.")
-        }
-
-        val mediaItems = queue.mapNotNull { music ->
-            music.toMediaItemOrNull()
-        }
-
-        if (mediaItems.isEmpty()) {
-            throw UnsupportedOperationException("No restorable media items.")
-        }
-
-        val startIndex = currentIndex.coerceIn(
-            minimumValue = 0,
-            maximumValue = mediaItems.lastIndex
-        )
-
-        return MediaSession.MediaItemsWithStartPosition(
-            mediaItems,
-            startIndex,
-            resolveCurrentSnapshotPositionMs()
-        )
-    }
-
-    private fun Intent.mediaButtonKeyEventOrNull(): KeyEvent? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelableExtra(
-                Intent.EXTRA_KEY_EVENT,
-                KeyEvent::class.java
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            getParcelableExtra(Intent.EXTRA_KEY_EVENT)
-        }
-    }
+    internal val media3SessionCallback: MediaSession.Callback
+        get() = media3SessionCallbackDelegate
 
     // ---------------------------------------------------------------------
     // Lateinit guards for extracted service extension files
@@ -474,140 +248,108 @@ class MusicPlaybackService : MediaSessionService() {
     // that owns the lateinit backing field. Extracted extension files should
     // call these helpers instead of checking ::property.isInitialized directly.
 
-    internal fun isSnapshotManagerInitialized(): Boolean =
-        ::snapshotManager.isInitialized
+    internal fun playerOrNull(): ExoPlayer? =
+        if (::player.isInitialized) player else null
 
-    internal fun isRestoreManagerInitialized(): Boolean =
-        ::restoreManager.isInitialized
+    internal fun crossfadePlayerOrNull(): ExoPlayer? =
+        if (::crossfadePlayer.isInitialized) crossfadePlayer else null
 
-    internal fun isPlayerEventHandlerInitialized(): Boolean =
-        ::playerEventHandler.isInitialized
+    internal fun playerEventHandlerOrNull(): PlayerEventHandler? =
+        if (::playerEventHandler.isInitialized) playerEventHandler else null
 
-    internal fun isPlaybackEngineInitialized(): Boolean =
-        ::playbackEngine.isInitialized
+    internal fun playbackEngineOrNull(): PlaybackEngine? =
+        if (::playbackEngine.isInitialized) playbackEngine else null
 
-    internal fun isTimedTransitionControllerInitialized(): Boolean =
-        ::timedTransitionController.isInitialized
+    internal fun audioFocusControllerOrNull(): AudioFocusController? =
+        if (::audioFocusController.isInitialized) audioFocusController else null
 
-    internal fun isFavoriteControllerInitialized(): Boolean =
-        ::favoriteController.isInitialized
+    internal fun timedTransitionControllerOrNull(): TimedTransitionController? =
+        if (::timedTransitionController.isInitialized) timedTransitionController else null
 
-    internal fun isArtworkControllerInitialized(): Boolean =
-        ::artworkController.isInitialized
+    internal fun volumeFaderOrNull(): VolumeFader? =
+        if (::volumeFader.isInitialized) volumeFader else null
 
-    internal fun isStateOrchestratorInitialized(): Boolean =
-        ::stateOrchestrator.isInitialized
+    internal fun crossfadeVolumeFaderOrNull(): VolumeFader? =
+        if (::crossfadeVolumeFader.isInitialized) crossfadeVolumeFader else null
 
-    internal fun isStateUpdateCoordinatorInitialized(): Boolean =
-        ::stateUpdateCoordinator.isInitialized
+    internal fun artworkControllerOrNull(): CurrentArtworkController? =
+        if (::artworkController.isInitialized) artworkController else null
 
-    internal fun isPlayerQueueControllerInitialized(): Boolean =
-        ::playerQueueController.isInitialized
+    internal fun artworkLoaderOrNull(): ArtworkLoader? =
+        if (::artworkLoader.isInitialized) artworkLoader else null
 
-    internal fun isQueueActionControllerInitialized(): Boolean =
-        ::queueActionController.isInitialized
+    internal fun audioEffectsManagerOrNull(): AudioEffectsManager? =
+        if (::audioEffectsManager.isInitialized) audioEffectsManager else null
 
-    internal fun isShutdownControllerInitialized(): Boolean =
-        ::shutdownController.isInitialized
+    internal fun serviceScopeOrNull(): CoroutineScope? =
+        if (::serviceScope.isInitialized) serviceScope else null
 
-    internal fun isShutdownCoordinatorInitialized(): Boolean =
-        ::shutdownCoordinator.isInitialized
+    internal fun lifecycleControllerOrNull(): PlaybackLifecycleController? =
+        if (::lifecycleController.isInitialized) lifecycleController else null
 
-    internal fun isNotificationCloseControllerInitialized(): Boolean =
-        ::notificationCloseController.isInitialized
+    internal fun playbackServiceRuntimeOrNull(): PlaybackServiceRuntime? =
+        if (::playbackServiceRuntime.isInitialized) playbackServiceRuntime else null
 
-    internal fun isDesktopLyricsControllerInitialized(): Boolean =
-        ::desktopLyricsController.isInitialized
+    internal fun playbackRuntimeStateStoreOrNull(): PlaybackRuntimeStateStore? =
+        if (::playbackRuntimeStateStore.isInitialized) playbackRuntimeStateStore else null
 
-    internal fun isStatusBarLyricsControllerInitialized(): Boolean =
-        ::statusBarLyricsController.isInitialized
+    internal fun stateOrchestratorOrNull(): PlaybackStateOrchestrator? =
+        if (::stateOrchestrator.isInitialized) stateOrchestrator else null
 
-    internal fun isPlayerInitialized(): Boolean =
-        ::player.isInitialized
+    internal fun stateUpdateCoordinatorOrNull(): PlaybackStateUpdateCoordinator? =
+        if (::stateUpdateCoordinator.isInitialized) stateUpdateCoordinator else null
 
-    internal fun isCrossfadePlayerInitialized(): Boolean =
-        ::crossfadePlayer.isInitialized
+    internal fun playbackEventDispatcherOrNull(): PlaybackEventDispatcher? =
+        if (::playbackEventDispatcher.isInitialized) playbackEventDispatcher else null
 
-    internal fun isServiceScopeInitialized(): Boolean =
-        ::serviceScope.isInitialized
+    internal fun shutdownControllerOrNull(): ShutdownController? =
+        if (::shutdownController.isInitialized) shutdownController else null
 
-    internal fun isDefaultArtworkInitialized(): Boolean =
-        ::defaultArtwork.isInitialized
+    internal fun notificationControllerOrNull(): PlaybackNotificationController? =
+        if (::notificationController.isInitialized) notificationController else null
 
-    internal fun isAudioFocusControllerInitialized(): Boolean =
-        ::audioFocusController.isInitialized
+    internal fun notificationSessionBridgeOrNull(): NotificationMediaSessionBridge? =
+        if (::notificationSessionBridge.isInitialized) notificationSessionBridge else null
 
-    internal fun isArtworkLoaderInitialized(): Boolean =
-        ::artworkLoader.isInitialized
+    internal fun widgetUpdateCoordinatorOrNull(): WidgetUpdateCoordinator? =
+        if (::widgetUpdateCoordinator.isInitialized) widgetUpdateCoordinator else null
 
-    internal fun isCommandHandlerInitialized(): Boolean =
-        ::commandHandler.isInitialized
+    internal fun queueActionControllerOrNull(): QueueActionController? =
+        if (::queueActionController.isInitialized) queueActionController else null
 
-    internal fun isPlaybackServiceRuntimeInitialized(): Boolean =
-        ::playbackServiceRuntime.isInitialized
+    internal fun playerQueueControllerOrNull(): PlayerQueueController? =
+        if (::playerQueueController.isInitialized) playerQueueController else null
 
-    internal fun isLifecycleControllerInitialized(): Boolean =
-        ::lifecycleController.isInitialized
+    internal fun favoriteControllerOrNull(): CurrentFavoriteController? =
+        if (::favoriteController.isInitialized) favoriteController else null
 
-    internal fun isNotificationSessionBridgeInitialized(): Boolean =
-        ::notificationSessionBridge.isInitialized
+    internal fun notificationCloseControllerOrNull(): NotificationCloseController? =
+        if (::notificationCloseController.isInitialized) notificationCloseController else null
 
-    internal fun isNotificationControllerInitialized(): Boolean =
-        ::notificationController.isInitialized
+    internal fun shutdownCoordinatorOrNull(): PlaybackShutdownCoordinator? =
+        if (::shutdownCoordinator.isInitialized) shutdownCoordinator else null
 
-    internal fun isPlaybackModeResolverInitialized(): Boolean =
-        ::playbackModeResolver.isInitialized
+    internal fun playbackModeResolverOrNull(): PlaybackModeResolver? =
+        if (::playbackModeResolver.isInitialized) playbackModeResolver else null
 
-    internal fun isPlaybackTuningControllerInitialized(): Boolean =
-        ::playbackTuningController.isInitialized
+    internal fun playbackTuningControllerOrNull(): PlaybackTuningController? =
+        if (::playbackTuningController.isInitialized) playbackTuningController else null
 
-    internal fun isScreenOffLockReceiverInitialized(): Boolean =
-        ::screenOffLockReceiver.isInitialized
+    internal fun progressTickerOrNull(): PlaybackProgressTicker? =
+        if (::progressTicker.isInitialized) progressTicker else null
 
-    internal fun isStatePublisherInitialized(): Boolean =
-        ::statePublisher.isInitialized
+    internal fun desktopLyricsControllerOrNull(): DesktopLyricsOverlayController? =
+        if (::desktopLyricsController.isInitialized) desktopLyricsController else null
 
-    internal fun isStereoBalanceAudioProcessorInitialized(): Boolean =
-        ::stereoBalanceAudioProcessor.isInitialized
+    internal fun statusBarLyricsControllerOrNull(): StatusBarLyricsOverlayController? =
+        if (::statusBarLyricsController.isInitialized) statusBarLyricsController else null
 
-    internal fun isCrossfadeStereoBalanceAudioProcessorInitialized(): Boolean =
-        ::crossfadeStereoBalanceAudioProcessor.isInitialized
-
-    internal fun isVolumeFaderInitialized(): Boolean =
-        ::volumeFader.isInitialized
-
-    internal fun isCrossfadeVolumeFaderInitialized(): Boolean =
-        ::crossfadeVolumeFader.isInitialized
-
-    internal fun isProgressTickerInitialized(): Boolean =
-        ::progressTicker.isInitialized
-
-    internal fun isPlaybackRuntimeStateStoreInitialized(): Boolean =
-        ::playbackRuntimeStateStore.isInitialized
-
-    internal fun isWidgetUpdateCoordinatorInitialized(): Boolean =
-        ::widgetUpdateCoordinator.isInitialized
-
-    internal fun isAudioEffectsManagerInitialized(): Boolean =
-        ::audioEffectsManager.isInitialized
+    internal fun playbackSessionOrNull(): PlaybackSession? = playbackSession
 
     companion object {
 
         @Volatile
         var isRunning: Boolean = false
             internal set
-
-        internal const val NO_INDEX = -1
-        internal const val NO_TRACK_ID = Long.MIN_VALUE
-        internal const val NO_PLAYER_COMMAND = -1
-
-        internal const val MEDIA3_COMMAND_TOGGLE_FAVORITE =
-            "gd.app.musicplayer.media3.TOGGLE_FAVORITE"
-        internal const val MEDIA3_COMMAND_CYCLE_PLAYBACK_MODE =
-            "gd.app.musicplayer.media3.CYCLE_PLAYBACK_MODE"
-        internal const val MEDIA3_COMMAND_STOP_AFTER_CURRENT =
-            "gd.app.musicplayer.media3.STOP_AFTER_CURRENT"
-        internal const val MEDIA3_COMMAND_CLOSE_NOTIFICATION =
-            "gd.app.musicplayer.media3.CLOSE_NOTIFICATION"
     }
 }

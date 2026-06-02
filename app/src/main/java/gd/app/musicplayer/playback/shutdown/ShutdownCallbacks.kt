@@ -6,7 +6,7 @@ interface ShutdownCallbacks {
 
     fun capturePlaybackSnapshot(): PlaybackSnapshot
 
-    fun persistPlaybackSnapshotBlocking(
+    fun persistForSnapshotPolicy(
         snapshot: PlaybackSnapshot,
         persistQueue: Boolean
     )

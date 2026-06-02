@@ -1,25 +1,55 @@
-﻿package gd.app.musicplayer.playback.service
+package gd.app.musicplayer.playback.service
 
-import android.os.SystemClock
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.feature.widget.provider.WidgetPlaybackSnapshot
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import gd.app.musicplayer.playback.restore.RestoreStatus
-import gd.app.musicplayer.playback.state.PlaybackSnapshot
+import gd.app.musicplayer.playback.state.PlaybackSnapshot as StatePlaybackSnapshot
 import gd.app.musicplayer.playback.state.PublishReason
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
-internal fun MusicPlaybackService.handleProgressTick() {
-    if (isTimedTransitionControllerInitialized()) {
-        timedTransitionController.maybeHandleTimedTransition()
-    }
+internal sealed interface PersistenceEvent {
+    data class PlaybackSnapshot(
+        val snapshot: StatePlaybackSnapshot,
+        val persistQueue: Boolean
+    ) : PersistenceEvent
 
-    if (isPlayerInitialized() && player.isPlaying) {
+    data class TrackProgress(
+        val track: Music?,
+        val positionMs: Long,
+        val currentIndex: Int
+    ) : PersistenceEvent
+
+    data class QueueMutation(
+        val snapshot: StatePlaybackSnapshot
+    ) : PersistenceEvent
+
+    data class Pause(
+        val snapshot: StatePlaybackSnapshot
+    ) : PersistenceEvent
+
+    data class Transition(
+        val snapshot: StatePlaybackSnapshot
+    ) : PersistenceEvent
+
+    data class Seek(
+        val snapshot: StatePlaybackSnapshot
+    ) : PersistenceEvent
+
+    data class Stop(
+        val snapshot: StatePlaybackSnapshot,
+        val clearQueue: Boolean
+    ) : PersistenceEvent
+}
+
+internal fun MusicPlaybackService.handleProgressTick() {
+    timedTransitionControllerOrNull()?.maybeHandleTimedTransition()
+
+    playerOrNull()?.takeIf { it.isPlaying }?.let { basePlayer ->
         playbackStatsTracker.onProgress(
-            positionMs = player.currentPosition.coerceAtLeast(0L),
+            positionMs = basePlayer.currentPosition.coerceAtLeast(0L),
             durationMs = resolveCurrentSnapshotDurationMs(
                 track = queue.getOrNull(currentIndex)
             )
@@ -44,17 +74,19 @@ internal fun MusicPlaybackService.restoreLastSessionIntoRuntimeStateIfNeeded() {
 }
 
 internal suspend fun MusicPlaybackService.ensurePlaybackRestored() {
-    restoreManager.ensureRestored(
-        onRestored = { restored ->
-            handlePlaybackRestored(restored)
-        },
-        onEmpty = {
-            handlePlaybackRestoreEmpty()
-        },
-        onFailed = {
-            handlePlaybackRestoreFailed()
-        }
-    )
+    measurePlaybackRuntimePhase("ensure_playback_restored") {
+        restoreManager.ensureRestored(
+            onRestored = { restored ->
+                handlePlaybackRestored(restored)
+            },
+            onEmpty = {
+                handlePlaybackRestoreEmpty()
+            },
+            onFailed = {
+                handlePlaybackRestoreFailed()
+            }
+        )
+    }
 }
 
 private fun MusicPlaybackService.handlePlaybackRestored(
@@ -74,7 +106,7 @@ private fun MusicPlaybackService.handlePlaybackRestored(
         0L
     }
 
-    pendingRestoreTrackId = restoredTrackId
+    runtimeCacheState.pendingRestoreTrackId = restoredTrackId
 
     prepareRestoredPlayerState(
         index = restoredIndex,
@@ -91,7 +123,7 @@ private fun MusicPlaybackService.handlePlaybackRestored(
 }
 
 private fun MusicPlaybackService.handlePlaybackRestoreEmpty() {
-    pendingRestoreTrackId = null
+    runtimeCacheState.pendingRestoreTrackId = null
     clearQueueState()
 
     syncControllersAfterQueueRestore(forceArtwork = false)
@@ -103,7 +135,7 @@ private fun MusicPlaybackService.handlePlaybackRestoreEmpty() {
 }
 
 private fun MusicPlaybackService.handlePlaybackRestoreFailed() {
-    pendingRestoreTrackId = null
+    runtimeCacheState.pendingRestoreTrackId = null
 
     publishPlaybackState(
         reason = PublishReason.Restore,
@@ -114,13 +146,13 @@ private fun MusicPlaybackService.handlePlaybackRestoreFailed() {
 internal fun MusicPlaybackService.syncControllersAfterQueueRestore(
     forceArtwork: Boolean
 ) {
-    if (isNotificationSessionBridgeInitialized()) {
+    withNotificationSessionBridge {
         notificationSessionBridge.updateQueue()
     }
 
     refreshArtworkAndSession(force = forceArtwork)
 
-    if (isNotificationSessionBridgeInitialized()) {
+    withNotificationSessionBridge {
         notificationSessionBridge.updatePlaybackState()
     }
 
@@ -128,44 +160,17 @@ internal fun MusicPlaybackService.syncControllersAfterQueueRestore(
 }
 
 internal fun MusicPlaybackService.publishStateAfterShutdown(
-    snapshot: PlaybackSnapshot? = null
+    snapshot: StatePlaybackSnapshot? = null
 ) {
-    if (isStateUpdateCoordinatorInitialized()) {
-        stateUpdateCoordinator.publishStateAfterShutdown(snapshot)
-        return
-    }
-
-    if (isStateOrchestratorInitialized()) {
-        stateOrchestrator.publishStateAfterShutdown(
-            snapshot = snapshot,
-            notifyWidgets = false
-        )
-    }
-
-    val widgetSnapshot = snapshot?.toWidgetPlaybackSnapshot()
-        ?: playbackRuntimeStateStore.state.value.toWidgetPlaybackSnapshot()
-
-    updateWidgetSnapshotBlocking(widgetSnapshot)
+    dispatchPlaybackEvent(PlaybackEvent.ShutdownStatePublished(snapshot = snapshot))
 }
 
 internal fun MusicPlaybackService.publishAllRuntimeState(
     forceNotification: Boolean = false
 ) {
-    val effectiveForceNotification = forceNotification && !deferForcedStartupUiUpdates
-    if (isStateUpdateCoordinatorInitialized()) {
-        stateUpdateCoordinator.publishAllRuntimeState(
-            forceNotification = effectiveForceNotification
-        )
-        return
-    }
-
-    if (isStateOrchestratorInitialized()) {
-        stateOrchestrator.publishAllRuntimeState(
-            forceNotification = effectiveForceNotification
-        )
-    }
-
-    updateWidgetsFromRuntimeState()
+    dispatchPlaybackEvent(
+        PlaybackEvent.RuntimeStateChanged(forceNotification = forceNotification)
+    )
 }
 
 internal fun MusicPlaybackService.publishPlaybackState(
@@ -173,48 +178,34 @@ internal fun MusicPlaybackService.publishPlaybackState(
     forceNotification: Boolean = false,
     forceWidgetUpdate: Boolean = forceNotification
 ) {
-    val effectiveForceNotification = forceNotification && !deferForcedStartupUiUpdates
-    val effectiveForceWidgetUpdate = forceWidgetUpdate && !deferForcedStartupUiUpdates
-    if (isStateUpdateCoordinatorInitialized()) {
-        stateUpdateCoordinator.publishPlaybackState(
+    dispatchPlaybackEvent(
+        PlaybackEvent.PlaybackStateChanged(
             reason = reason,
-            forceNotification = effectiveForceNotification,
-            forceWidgetUpdate = effectiveForceWidgetUpdate
+            forceNotification = forceNotification,
+            forceWidgetUpdate = forceWidgetUpdate
         )
-        return
-    }
+    )
+}
 
-    if (isStateOrchestratorInitialized()) {
-        stateOrchestrator.publishPlaybackState(
-            reason = reason,
-            forceNotification = effectiveForceNotification,
-            forceWidgetUpdate = effectiveForceWidgetUpdate
-        )
-    }
-
-    if (reason != PublishReason.ProgressTick || effectiveForceWidgetUpdate) {
-        updateWidgetsFromRuntimeState()
-    }
+internal fun MusicPlaybackService.onQueueMetadataChanged() {
+    dispatchPlaybackEvent(PlaybackEvent.QueueMetadataChanged)
 }
 
 internal fun MusicPlaybackService.updateWidgetsFromRuntimeState() {
-    if (!isPlaybackRuntimeStateStoreInitialized()) return
-
-    updateWidgetSnapshot(
-        playbackRuntimeStateStore.state.value.toWidgetPlaybackSnapshot()
-    )
+    if (playbackRuntimeStateStoreOrNull() == null) return
+    updateWidgetSnapshot(runtimeWidgetSnapshot())
 }
 
 internal fun MusicPlaybackService.updateWidgetSnapshot(
     snapshot: WidgetPlaybackSnapshot
 ) {
-    if (!isWidgetUpdateCoordinatorInitialized()) return
-    if (!isServiceScopeInitialized()) return
+    val widgetCoordinator = widgetUpdateCoordinatorOrNull() ?: return
+    val scope = serviceScopeOrNull() ?: return
 
-    widgetUpdateJob?.cancel()
-    widgetUpdateJob = serviceScope.launch {
+    jobState.widgetUpdateJob?.cancel()
+    jobState.widgetUpdateJob = scope.launch {
         withContext(NonCancellable) {
-            widgetUpdateCoordinator.updateAll(snapshot)
+            widgetCoordinator.updateAll(snapshot)
         }
     }
 }
@@ -222,63 +213,44 @@ internal fun MusicPlaybackService.updateWidgetSnapshot(
 internal fun MusicPlaybackService.updateWidgetSnapshotBlocking(
     snapshot: WidgetPlaybackSnapshot
 ) {
-    if (!isWidgetUpdateCoordinatorInitialized()) return
-
-    widgetUpdateJob?.cancel()
-
-    runBlocking {
-        withContext(NonCancellable) {
-            widgetUpdateCoordinator.updateAll(snapshot)
-        }
-    }
+    if (widgetUpdateCoordinatorOrNull() == null) return
+    updateWidgetSnapshot(snapshot)
 }
 
-private fun MusicPlaybackService.toWidgetPlaybackSnapshot(
-    state: MusicPlaybackState
-): WidgetPlaybackSnapshot {
-    return WidgetPlaybackSnapshot(
-        queue = state.queue,
-        currentTrack = state.currentTrack,
-        currentIndex = state.currentIndex,
-        positionMs = state.positionMs,
-        isPlaying = state.isPlaying,
-        playMode = latestSettingPreferences.playMode
-    )
-}
-
-private fun MusicPlaybackService.toWidgetPlaybackSnapshot(
-    snapshot: PlaybackSnapshot
-): WidgetPlaybackSnapshot {
-    return WidgetPlaybackSnapshot(
-        queue = snapshot.queue,
-        currentTrack = snapshot.currentTrack,
-        currentIndex = snapshot.currentIndex,
-        positionMs = snapshot.positionMs,
-        isPlaying = false,
-        playMode = latestSettingPreferences.playMode
-    )
-}
-
-fun MusicPlaybackState.toWidgetPlaybackSnapshot(): WidgetPlaybackSnapshot {
+fun MusicPlaybackState.toWidgetPlaybackSnapshot(playMode: Int): WidgetPlaybackSnapshot {
     return WidgetPlaybackSnapshot(
         queue = queue,
         currentTrack = currentTrack,
         currentIndex = currentIndex,
         positionMs = positionMs,
         isPlaying = isPlaying,
-        playMode = 0
+        playMode = playMode
     )
 }
 
-fun PlaybackSnapshot.toWidgetPlaybackSnapshot(): WidgetPlaybackSnapshot {
+fun StatePlaybackSnapshot.toWidgetPlaybackSnapshot(playMode: Int): WidgetPlaybackSnapshot {
     return WidgetPlaybackSnapshot(
         queue = queue,
         currentTrack = currentTrack,
         currentIndex = currentIndex,
         positionMs = positionMs,
         isPlaying = false,
-        playMode = 0
+        playMode = playMode
     )
+}
+
+internal fun MusicPlaybackService.runtimeWidgetSnapshot(): WidgetPlaybackSnapshot {
+    return playbackRuntimeStateStore.state.value.toWidgetPlaybackSnapshot(
+        playMode = runtimeCacheState.latestSettingPreferences.playMode
+    )
+}
+
+internal fun MusicPlaybackService.shutdownWidgetSnapshot(
+    snapshot: StatePlaybackSnapshot?
+): WidgetPlaybackSnapshot {
+    val playMode = runtimeCacheState.latestSettingPreferences.playMode
+    return snapshot?.toWidgetPlaybackSnapshot(playMode = playMode)
+        ?: runtimeWidgetSnapshot()
 }
 
 internal fun MusicPlaybackService.setQueueState(
@@ -327,109 +299,21 @@ internal fun MusicPlaybackService.maybePersistSessionFromProgressTick() {
     // Obfuscated parity: do not autosave playback progress on timer ticks.
 }
 
-internal fun MusicPlaybackService.capturePlaybackSnapshot(): PlaybackSnapshot {
+internal fun MusicPlaybackService.capturePlaybackSnapshot(): StatePlaybackSnapshot {
     return snapshotManager.capture(
-        player = if (isPlayerInitialized()) player else null,
+        player = playerOrNull(),
         queueState = queueManager.state
     )
 }
 
-internal fun MusicPlaybackService.persistPlaybackSnapshotBlocking(
-    snapshot: PlaybackSnapshot,
-    persistQueue: Boolean
-) {
-    runBlocking {
-        snapshotManager.persist(
-            snapshot = snapshot,
-            persistQueue = persistQueue
-        )
-    }
-}
-
-internal fun MusicPlaybackService.persistPlaybackSnapshotAsync(
-    snapshot: PlaybackSnapshot,
-    persistQueue: Boolean
-) {
-    if (!isServiceScopeInitialized()) return
-
-    serviceScope.launch {
-        withContext(NonCancellable) {
-            snapshotManager.persist(
-                snapshot = snapshot,
-                persistQueue = persistQueue
-            )
-        }
-    }
-}
-
-internal fun MusicPlaybackService.persistSessionFromCurrentStateAsync() {
-    // Obfuscated parity: avoid broad session-triggered progress persistence.
-    // Progress is persisted explicitly by player-driven operations (seek/pause/stop).
-}
-
-internal fun MusicPlaybackService.persistCurrentTrackProgressAsync(
-    positionMs: Int
-) {
-    val track = queueManager.currentTrack ?: return
-
-    if (!isServiceScopeInitialized()) return
-
-    serviceScope.launch {
-        snapshotManager.persistProgress(
-            track = track,
-            positionMs = positionMs.toLong().coerceAtLeast(0L),
-            currentIndex = queueManager.currentIndex
-        )
-    }
-}
-
-internal fun MusicPlaybackService.persistCurrentTrackProgressFromPlayerAsync() {
-    val track = queueManager.currentTrack ?: return
-    val positionMs = resolveCurrentSnapshotPositionMs()
-    val currentIndex = queueManager.currentIndex
-
-    if (!isServiceScopeInitialized()) return
-
-    serviceScope.launch {
-        snapshotManager.persistProgress(
-            track = track,
-            positionMs = positionMs,
-            currentIndex = currentIndex
-        )
-    }
-}
-
-internal fun MusicPlaybackService.persistCurrentTrackProgressBlocking(
-    track: Music?,
-    positionMs: Long,
-    currentIndex: Int
-) {
-    if (track == null) return
-
-    runBlocking {
-        snapshotManager.persistProgress(
-            track = track,
-            positionMs = positionMs,
-            currentIndex = currentIndex
-        )
-    }
-}
-
-internal fun MusicPlaybackService.persistSessionFromCurrentState() {
-    persistPlaybackSnapshotBlocking(
-        snapshot = capturePlaybackSnapshot(),
-        persistQueue = false
-    )
-}
-
 internal fun MusicPlaybackService.clearPersistedPlaybackState() {
-    runBlocking {
+    serviceScopeOrNull()?.launch {
         snapshotManager.clearProgress()
     }
 }
 
-internal fun MusicPlaybackService.clearPersistedQueueBlocking() {
-    runBlocking {
+internal fun MusicPlaybackService.clearPersistedQueueAsync() {
+    serviceScopeOrNull()?.launch {
         withContext(dispatchers.io) {
             playbackQueueRepo.clearQueue()
         }
@@ -438,7 +322,7 @@ internal fun MusicPlaybackService.clearPersistedQueueBlocking() {
 
 internal fun MusicPlaybackService.resolveCurrentSnapshotPositionMs(): Long {
     return snapshotManager.resolveCurrentPositionMs(
-        player = if (isPlayerInitialized()) player else null,
+        player = playerOrNull(),
         queueState = queueManager.state
     )
 }
@@ -447,7 +331,145 @@ internal fun MusicPlaybackService.resolveCurrentSnapshotDurationMs(
     track: Music?
 ): Long {
     return snapshotManager.resolveCurrentDurationMs(
-        player = if (isPlayerInitialized()) player else null,
+        player = playerOrNull(),
         track = track
     )
+}
+
+internal fun MusicPlaybackService.publishAllRuntimeStateDirect(
+    forceNotification: Boolean = false
+) {
+    publishStateWithStartupGate(
+        reason = null,
+        forceNotification = forceNotification
+    )
+}
+
+internal fun MusicPlaybackService.publishPlaybackStateDirect(
+    reason: PublishReason,
+    forceNotification: Boolean = false,
+    forceWidgetUpdate: Boolean = forceNotification
+) {
+    publishStateWithStartupGate(
+        reason = reason,
+        forceNotification = forceNotification,
+        forceWidgetUpdate = forceWidgetUpdate
+    )
+}
+
+internal fun MusicPlaybackService.publishStateAfterShutdownDirect(
+    snapshot: StatePlaybackSnapshot? = null
+) {
+    stateUpdateCoordinatorOrNull()?.publishStateAfterShutdown(snapshot)
+}
+
+internal fun MusicPlaybackService.dispatchPlaybackEvent(event: PlaybackEvent) {
+    playbackEventDispatcherOrNull()?.let { dispatcher ->
+        dispatcher.dispatch(event)
+        return
+    }
+
+    when (event) {
+        is PlaybackEvent.RuntimeStateChanged -> {
+            publishAllRuntimeStateDirect(event.forceNotification)
+        }
+
+        is PlaybackEvent.PlaybackStateChanged -> {
+            publishPlaybackStateDirect(
+                reason = event.reason,
+                forceNotification = event.forceNotification,
+                forceWidgetUpdate = event.forceWidgetUpdate
+            )
+        }
+
+        is PlaybackEvent.ShutdownStatePublished -> {
+            publishStateAfterShutdownDirect(event.snapshot)
+        }
+
+        PlaybackEvent.QueueMetadataChanged -> {
+            if (notificationSessionBridgeOrNull() == null) return
+            notificationSessionBridge.updateQueue()
+            refreshArtworkAndSession(force = true)
+            persistFor(
+                PersistenceEvent.QueueMutation(
+                    snapshot = capturePlaybackSnapshot()
+                )
+            )
+            publishPlaybackStateDirect(
+                reason = PublishReason.QueueChanged,
+                forceNotification = true,
+                forceWidgetUpdate = true
+            )
+        }
+
+        is PlaybackEvent.NotificationUpdateRequested -> {
+            updateNotificationDirect(force = event.force)
+        }
+    }
+}
+
+private fun MusicPlaybackService.publishStateWithStartupGate(
+    reason: PublishReason?,
+    forceNotification: Boolean,
+    forceWidgetUpdate: Boolean = forceNotification
+) {
+    val coordinator = stateUpdateCoordinatorOrNull() ?: return
+
+    val effectiveForceNotification = forceNotification && !startupState.deferForcedStartupUiUpdates
+    val effectiveForceWidgetUpdate = forceWidgetUpdate && !startupState.deferForcedStartupUiUpdates
+
+    if (reason == null) {
+        coordinator.publishAllRuntimeState(
+            forceNotification = effectiveForceNotification
+        )
+        return
+    }
+
+    coordinator.publishPlaybackState(
+        reason = reason,
+        forceNotification = effectiveForceNotification,
+        forceWidgetUpdate = effectiveForceWidgetUpdate
+    )
+}
+
+internal fun MusicPlaybackService.updateNotificationDirect(force: Boolean = false) {
+    val coordinator = stateUpdateCoordinatorOrNull() ?: return
+    val scope = serviceScopeOrNull() ?: return
+    jobState.scheduleNotificationUpdate(
+        scope = scope,
+        force = force,
+        delayMs = NOTIFICATION_COALESCE_WINDOW_MS
+    ) { updateForce ->
+        coordinator.updateNotification(force = updateForce)
+    }
+}
+
+internal fun MusicPlaybackService.persistFor(event: PersistenceEvent) {
+    val scope = serviceScopeOrNull() ?: return
+
+    for (operation in resolvePersistencePlan(event)) {
+        when (operation) {
+            is PersistenceOp.PersistProgress -> {
+                val track = operation.track ?: continue
+                scope.launch {
+                    snapshotManager.persistProgress(
+                        track = track,
+                        positionMs = operation.positionMs.coerceAtLeast(0L),
+                        currentIndex = operation.currentIndex
+                    )
+                }
+            }
+
+            is PersistenceOp.PersistSnapshot -> {
+                scope.launch {
+                    withContext(NonCancellable) {
+                        snapshotManager.persist(
+                            snapshot = operation.snapshot,
+                            persistQueue = operation.persistQueue
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

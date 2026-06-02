@@ -1,4 +1,4 @@
-﻿package gd.app.musicplayer.playback.service
+package gd.app.musicplayer.playback.service
 
 import gd.app.musicplayer.core.common.AppForegroundTracker
 import kotlinx.coroutines.flow.combine
@@ -14,14 +14,14 @@ internal fun MusicPlaybackService.observePreferences() {
 }
 
 internal fun MusicPlaybackService.observeCurrentTrackArtwork() {
-    if (isArtworkControllerInitialized()) {
+    withArtworkController {
         artworkController.observe(serviceScope)
     }
 }
 
 
 internal fun MusicPlaybackService.observeCurrentTrackFavorite() {
-    if (isFavoriteControllerInitialized()) {
+    withFavoriteController {
         favoriteController.observe(serviceScope)
     }
 }
@@ -29,7 +29,7 @@ internal fun MusicPlaybackService.observeCurrentTrackFavorite() {
 internal fun MusicPlaybackService.observeSettingPreferences() {
     settingPreferencesDataStore.observeSettingPreferences()
         .onEach { preferences ->
-            latestSettingPreferences = preferences
+            runtimeCacheState.latestSettingPreferences = preferences
         }
         .launchIn(serviceScope)
 }
@@ -37,8 +37,8 @@ internal fun MusicPlaybackService.observeSettingPreferences() {
 internal fun MusicPlaybackService.observeDesktopLyricPreference() {
     desktopLyricPreferenceStore.desktopLyricPreference
         .onEach { preference ->
-            latestDesktopLyricPreference = preference
-            if (isDesktopLyricsControllerInitialized()) {
+            runtimeCacheState.latestDesktopLyricPreference = preference
+            withDesktopLyricsController {
                 desktopLyricsController.renderPreference(preference)
             }
             updateNotification(force = true)
@@ -47,7 +47,7 @@ internal fun MusicPlaybackService.observeDesktopLyricPreference() {
 
     AppForegroundTracker.isForeground
         .onEach { isForeground ->
-            if (isDesktopLyricsControllerInitialized()) {
+            withDesktopLyricsController {
                 desktopLyricsController.renderAppForeground(isForeground)
             }
         }
@@ -55,7 +55,7 @@ internal fun MusicPlaybackService.observeDesktopLyricPreference() {
 
     playbackRuntimeStateStore.state
         .onEach { state ->
-            if (isDesktopLyricsControllerInitialized()) {
+            withDesktopLyricsController {
                 desktopLyricsController.renderPlaybackState(state)
             }
         }
@@ -65,7 +65,7 @@ internal fun MusicPlaybackService.observeDesktopLyricPreference() {
 internal fun MusicPlaybackService.observeStatusBarLyricPreference() {
     statusBarLyricPreferenceStore.preference
         .onEach { preference ->
-            if (isStatusBarLyricsControllerInitialized()) {
+            withStatusBarLyricsController {
                 statusBarLyricsController.renderPreference(preference)
             }
         }
@@ -73,7 +73,7 @@ internal fun MusicPlaybackService.observeStatusBarLyricPreference() {
 
     playbackRuntimeStateStore.state
         .onEach { state ->
-            if (isStatusBarLyricsControllerInitialized()) {
+            withStatusBarLyricsController {
                 statusBarLyricsController.renderPlaybackState(state)
             }
         }
@@ -89,7 +89,7 @@ internal fun MusicPlaybackService.observeAudioEffectPreferences() {
     }
         .distinctUntilChanged()
         .onEach {
-            if (isPlayerInitialized()) {
+            withPlayer {
                 applyAudioEffectsFromPreferences()
             }
         }

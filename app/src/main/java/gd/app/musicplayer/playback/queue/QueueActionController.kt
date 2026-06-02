@@ -163,7 +163,7 @@ class QueueActionController(
 
         playerQueueController.seekTo(target.toLong())
 
-        callbacks.persistCurrentTrackProgress(target)
+        callbacks.persistForSeek(target)
         callbacks.publishPlayerEvent(forceNotification = true)
     }
 

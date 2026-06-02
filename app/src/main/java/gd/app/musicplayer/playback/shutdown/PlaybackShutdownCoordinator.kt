@@ -9,16 +9,14 @@ class PlaybackShutdownCoordinator(
 ) {
 
     interface Callbacks {
-        fun clearIdleNotificationPolicy()
-        fun disableStopAfterCurrentTrack()
-        fun markNotificationAsVisibleAgain()
+        fun prepareForShutdown(options: ShutdownOptions)
+        fun finalizeShutdown(options: ShutdownOptions)
         fun shutdownControllerOrNull(): ShutdownController?
     }
 
     fun shutdown(options: ShutdownOptions) {
-        callbacks.clearIdleNotificationPolicy()
-        callbacks.disableStopAfterCurrentTrack()
-        callbacks.markNotificationAsVisibleAgain()
+        callbacks.prepareForShutdown(options)
         callbacks.shutdownControllerOrNull()?.shutdown(options)
+        callbacks.finalizeShutdown(options)
     }
 }

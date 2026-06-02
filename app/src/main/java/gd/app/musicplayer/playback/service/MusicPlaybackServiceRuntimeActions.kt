@@ -1,7 +1,6 @@
-﻿package gd.app.musicplayer.playback.service
+package gd.app.musicplayer.playback.service
 
-/** Thin adapter so runtime orchestration does not depend on service internals. */
-class PlaybackServiceRuntimeCallbacks(
+internal class MusicPlaybackServiceRuntimeActions(
     private val service: MusicPlaybackService
 ) : PlaybackServiceRuntime.Callbacks {
 
@@ -13,4 +12,3 @@ class PlaybackServiceRuntimeCallbacks(
         service.promoteToForegroundForPlaybackCommand()
     }
 }
-

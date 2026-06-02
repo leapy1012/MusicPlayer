@@ -7,8 +7,8 @@ class ShutdownController(
     fun shutdown(options: ShutdownOptions) {
         val shutdownSnapshot = callbacks.capturePlaybackSnapshot()
 
-        if (!options.clearQueue) {
-            callbacks.persistPlaybackSnapshotBlocking(
+        if (!options.clearQueue && options.persistQueueSnapshotWhenKeepingQueue) {
+            callbacks.persistForSnapshotPolicy(
                 snapshot = shutdownSnapshot,
                 persistQueue = true
             )

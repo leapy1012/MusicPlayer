@@ -22,10 +22,10 @@ class PlaybackStateUpdateCoordinator(
     }
 
     fun publishAllRuntimeState(forceNotification: Boolean = false) {
-        callbacks.stateOrchestratorOrNull()?.publishAllRuntimeState(
+        callbacks.stateOrchestratorOrNull()?.publishPlaybackState(
+            reason = PublishReason.PlayerEvent,
             forceNotification = forceNotification
         )
-
         callbacks.updateWidgets(callbacks.runtimeWidgetSnapshot())
     }
 
@@ -34,15 +34,11 @@ class PlaybackStateUpdateCoordinator(
         forceNotification: Boolean = false,
         forceWidgetUpdate: Boolean = forceNotification
     ) {
-        callbacks.stateOrchestratorOrNull()?.publishPlaybackState(
+        publishWithWidgetPolicy(
             reason = reason,
             forceNotification = forceNotification,
-            forceWidgetUpdate = forceWidgetUpdate
+            shouldUpdateWidgets = reason != PublishReason.ProgressTick || forceWidgetUpdate
         )
-
-        if (reason != PublishReason.ProgressTick) {
-            callbacks.updateWidgets(callbacks.runtimeWidgetSnapshot())
-        }
     }
 
     fun updateNotification(force: Boolean = false) {
@@ -51,12 +47,26 @@ class PlaybackStateUpdateCoordinator(
 
     fun publishStateAfterShutdown(snapshot: PlaybackSnapshot? = null) {
         callbacks.stateOrchestratorOrNull()?.publishStateAfterShutdown(
-            snapshot = snapshot,
-            notifyWidgets = false
+            snapshot = snapshot
         )
 
         callbacks.updateWidgetsBlocking(
             callbacks.shutdownWidgetSnapshot(snapshot)
         )
+    }
+
+    private fun publishWithWidgetPolicy(
+        reason: PublishReason,
+        forceNotification: Boolean,
+        shouldUpdateWidgets: Boolean
+    ) {
+        callbacks.stateOrchestratorOrNull()?.publishPlaybackState(
+            reason = reason,
+            forceNotification = forceNotification
+        )
+
+        if (shouldUpdateWidgets) {
+            callbacks.updateWidgets(callbacks.runtimeWidgetSnapshot())
+        }
     }
 }

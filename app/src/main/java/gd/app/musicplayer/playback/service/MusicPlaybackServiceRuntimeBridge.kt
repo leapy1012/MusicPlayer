@@ -1,4 +1,4 @@
-﻿package gd.app.musicplayer.playback.service
+package gd.app.musicplayer.playback.service
 
 import android.content.res.Configuration
 import gd.app.musicplayer.domain.model.Music
@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
 internal fun MusicPlaybackService.handleEmptyStartCommand(
     startId: Int
 ): Int {
-    if (isLifecycleControllerInitialized()) {
-        return lifecycleController.handleEmptyStartCommand(startId)
+    lifecycleControllerOrNull()?.let { controller ->
+        return controller.handleEmptyStartCommand(startId)
     }
 
     if (!isEffectivelyPlaying() && !hasCurrentQueueItem()) {
@@ -41,54 +41,46 @@ internal fun MusicPlaybackService.handleAppTaskRemoved() {
 }
 
 internal fun MusicPlaybackService.promoteToForegroundForPlaybackCommand() {
-    notificationDismissedByUser = false
-
-    if (isNotificationControllerInitialized()) {
+    sessionFlags.notificationDismissedByUser = false
+    withNotificationController {
         notificationController.ensureForegroundStarted()
     }
 }
 
 internal suspend fun MusicPlaybackService.refreshNotificationStyleFromCommand() {
-    if (!isNotificationControllerInitialized()) return
-    if (!isProgressTickerInitialized()) return
+    val ticker = progressTickerOrNull() ?: return
 
-    latestSettingPreferences =
+    runtimeCacheState.latestSettingPreferences =
         settingPreferencesDataStore.observeSettingPreferences().first()
 
-    notificationController.refreshStyle { delayMs, block ->
-        progressTicker.postDelayed(
-            block = block,
-            delayMs = delayMs
-        )
+    withNotificationController {
+        notificationController.refreshStyle { delayMs, block ->
+            ticker.postDelayed(
+                block = block,
+                delayMs = delayMs
+            )
+        }
     }
 }
 
 internal fun MusicPlaybackService.cyclePlaybackModeFromCommand() {
-    if (isPlaybackModeResolverInitialized()) {
-        playbackModeResolver.cyclePlaybackMode()
-    }
+    playbackModeResolverOrNull()?.cyclePlaybackMode()
 }
 
 internal fun MusicPlaybackService.setPlaybackModeFromCommand(
     mode: Int
 ) {
-    if (isPlaybackModeResolverInitialized()) {
-        playbackModeResolver.setPlaybackMode(mode)
-    }
+    playbackModeResolverOrNull()?.setPlaybackMode(mode)
 }
 
 internal fun MusicPlaybackService.applyPlaybackTuningFromCommand() {
-    if (isPlaybackTuningControllerInitialized()) {
-        playbackTuningController.applyPlaybackTuning()
-    }
+    playbackTuningControllerOrNull()?.applyPlaybackTuning()
 }
 
 internal fun MusicPlaybackService.setDesktopLyricsLockedFromCommand(
     locked: Boolean
 ) {
-    if (!isServiceScopeInitialized()) return
-
-    serviceScope.launch {
+    serviceScopeOrNull()?.launch {
         desktopLyricPreferenceStore.setLocked(locked)
     }
 }
@@ -114,13 +106,13 @@ internal fun MusicPlaybackService.stopSelfForStartId(
 }
 
 internal fun MusicPlaybackService.createNotificationChannelFromLifecycle() {
-    if (isNotificationControllerInitialized()) {
+    withNotificationController {
         notificationController.createNotificationChannel()
     }
 }
 
 internal fun MusicPlaybackService.startProgressTickerFromLifecycle() {
-    if (isProgressTickerInitialized()) {
+    withProgressTicker {
         progressTicker.start()
     }
 }
@@ -138,11 +130,12 @@ internal fun MusicPlaybackService.publishPlaybackStateFromLifecycle(
 internal fun MusicPlaybackService.updateNightModeFromConfiguration(
     configuration: Configuration
 ) {
-    val newNightMode = isNightMode(configuration)
+    val newNightMode = playbackSessionOrNull()?.isNightMode(configuration)
+        ?: return
 
-    if (newNightMode == isNightMode) return
+    if (newNightMode == runtimeCacheState.isNightMode) return
 
-    isNightMode = newNightMode
+    runtimeCacheState.isNightMode = newNightMode
     updateNotification(force = true)
 }
 
@@ -153,11 +146,11 @@ internal fun MusicPlaybackService.updateNotificationFromLifecycle(
 }
 
 internal fun MusicPlaybackService.notifyOverlayConfigurationChanged() {
-    if (isDesktopLyricsControllerInitialized()) {
+    withDesktopLyricsController {
         desktopLyricsController.onConfigurationChanged()
     }
 
-    if (isStatusBarLyricsControllerInitialized()) {
+    withStatusBarLyricsController {
         statusBarLyricsController.onConfigurationChanged()
     }
 }
@@ -185,102 +178,70 @@ internal fun MusicPlaybackService.releasePlaybackResources() {
 }
 
 private fun MusicPlaybackService.releaseTickersAndJobs() {
-    if (isProgressTickerInitialized()) {
+    withProgressTicker {
         progressTicker.shutdown()
     }
+    jobState.cancelAndClearAll()
 
-    resumeJob?.cancel()
-    resumeJob = null
-
-    defaultQueueRestoreJob?.cancel()
-    defaultQueueRestoreJob = null
-    defaultTracksObserverJob?.cancel()
-    defaultTracksObserverJob = null
-
-    pendingResumeAfterDefaultQueue = false
-    cachedDefaultTracks = emptyList()
-    cachedPlayableDefaultTracks = emptyList()
-    deferForcedStartupUiUpdates = false
-    pendingQueueSessionSyncAfterStartupPlay = false
+    startupState.reset()
+    media3TransportState.reset()
+    sessionFlags.reset()
+    runtimeCacheState.reset()
 }
 
 private fun MusicPlaybackService.releaseObservers() {
-    if (isArtworkControllerInitialized()) {
+    withArtworkController {
         artworkController.stopObserving()
     }
 
-    if (isFavoriteControllerInitialized()) {
+    withFavoriteController {
         favoriteController.stopObserving()
     }
 }
 
 private fun MusicPlaybackService.releaseFaders() {
-    if (isVolumeFaderInitialized()) {
-        volumeFader.cancel()
-    }
-
-    if (isCrossfadeVolumeFaderInitialized()) {
-        crossfadeVolumeFader.cancel()
-    }
+    volumeFaderOrNull()?.cancel()
+    crossfadeVolumeFaderOrNull()?.cancel()
 }
 
 private fun MusicPlaybackService.releaseArtwork() {
-    when {
-        isArtworkControllerInitialized() -> {
-            artworkController.clear()
-        }
-
-        isArtworkLoaderInitialized() -> {
-            artworkLoader.clear()
-        }
-    }
+    artworkControllerOrNull()?.clear() ?: artworkLoaderOrNull()?.clear()
 }
 
 private fun MusicPlaybackService.releaseMediaSessionResources() {
     media3Session?.release()
     media3Session = null
 
-    if (isNotificationSessionBridgeInitialized()) {
+    withNotificationSessionBridge {
         notificationSessionBridge.release()
     }
 }
 
 private fun MusicPlaybackService.releaseLyricsOverlays() {
-    if (isDesktopLyricsControllerInitialized()) {
+    withDesktopLyricsController {
         desktopLyricsController.destroy()
     }
 
-    if (isStatusBarLyricsControllerInitialized()) {
+    withStatusBarLyricsController {
         statusBarLyricsController.destroy()
     }
 }
 
 private fun MusicPlaybackService.releaseAudioResources() {
-    if (isAudioEffectsManagerInitialized()) {
-        audioEffectsManager.release()
-    }
+    audioEffectsManagerOrNull()?.release()
+    timedTransitionControllerOrNull()?.release()
+    audioFocusControllerOrNull()?.abandon()
 
-    if (isTimedTransitionControllerInitialized()) {
-        timedTransitionController.release()
-    }
-
-    if (isAudioFocusControllerInitialized()) {
-        audioFocusController.abandon()
-    }
-
-    unregisterScreenOffReceiver()
+    playbackSessionOrNull()?.unregisterScreenOffReceiver()
 }
 
 private fun MusicPlaybackService.releasePlayers() {
-    if (isPlaybackEngineInitialized()) {
-        playbackEngine.release(
-            player = if (isPlayerInitialized()) player else null,
-            crossfadePlayer = if (isCrossfadePlayerInitialized()) crossfadePlayer else null,
-            playerEventHandler = if (isPlayerEventHandlerInitialized()) {
-                playerEventHandler
-            } else {
-                null
-            }
+    val engine = playbackEngineOrNull()
+    if (engine != null) {
+        engine.release(
+            player = playerOrNull(),
+            crossfadePlayer = crossfadePlayerOrNull(),
+            playerEventHandler = playerEventHandlerOrNull()
         )
         return
     }
@@ -289,21 +250,13 @@ private fun MusicPlaybackService.releasePlayers() {
 }
 
 private fun MusicPlaybackService.releasePlayersDirectly() {
-    if (isPlayerInitialized()) {
-        if (isPlayerEventHandlerInitialized()) {
-            player.removeListener(playerEventHandler)
-        }
-
-        player.release()
+    playerOrNull()?.let { basePlayer ->
+        playerEventHandlerOrNull()?.let(basePlayer::removeListener)
+        basePlayer.release()
     }
-
-    if (isCrossfadePlayerInitialized()) {
-        crossfadePlayer.release()
-    }
+    crossfadePlayerOrNull()?.release()
 }
 
 private fun MusicPlaybackService.releaseServiceScope() {
-    if (isServiceScopeInitialized()) {
-        serviceScope.cancel()
-    }
+    serviceScopeOrNull()?.cancel()
 }

@@ -1,7 +1,4 @@
 package gd.app.musicplayer.playback.state
-import android.content.Context
-import android.content.Intent
-import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -9,20 +6,15 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
-import gd.app.musicplayer.feature.widget.WidgetCatalog
 
 class PlaybackStatePublisher(
-    private val context: Context,
     private val player: ExoPlayer,
     private val runtimeStateStore: PlaybackRuntimeStateStore,
     private val queueProvider: () -> List<Music>,
     private val currentIndexProvider: () -> Int,
 ) {
-    private var lastWidgetSignature: WidgetSignature? = null
-    private var lastWidgetUpdateElapsedMs: Long = 0L
-
     @OptIn(UnstableApi::class)
-    fun publish(forceWidgetUpdate: Boolean = false) {
+    fun publish() {
         val queue = queueProvider().toList()
         val currentIndex = currentIndexProvider()
         val currentTrack = queue.getOrNull(currentIndex)
@@ -45,11 +37,6 @@ class PlaybackStatePublisher(
         )
 
         setRuntimeState(state)
-
-        maybeNotifyWidgets(
-            state = state,
-            force = forceWidgetUpdate
-        )
     }
 
     fun publishRestored(
@@ -76,11 +63,6 @@ class PlaybackStatePublisher(
         )
 
         setRuntimeState(state)
-
-        maybeNotifyWidgets(
-            state = state,
-            force = true
-        )
     }
 
     fun publishSnapshot(
@@ -90,8 +72,7 @@ class PlaybackStatePublisher(
         isPlaying: Boolean,
         positionMs: Long,
         durationMs: Long,
-        audioSessionId: Int = player.audioSessionId,
-        notifyWidgets: Boolean = true
+        audioSessionId: Int = player.audioSessionId
     ) {
         val safeQueue = queue.toList()
         val safeIndex = resolveSnapshotIndex(
@@ -113,20 +94,10 @@ class PlaybackStatePublisher(
         )
 
         setRuntimeState(state)
-
-        if (notifyWidgets) {
-            maybeNotifyWidgets(
-                state = state,
-                force = true
-            )
-        }
     }
 
     fun reset() {
         runtimeStateStore.reset()
-        lastWidgetSignature = null
-        lastWidgetUpdateElapsedMs = 0L
-        notifyWidgets()
     }
 
     private fun resolveSnapshotIndex(
@@ -143,34 +114,6 @@ class PlaybackStatePublisher(
 
     private fun setRuntimeState(state: MusicPlaybackState) {
         runtimeStateStore.setState(state)
-    }
-
-    private fun maybeNotifyWidgets(
-        state: MusicPlaybackState,
-        force: Boolean
-    ) {
-        val now = SystemClock.elapsedRealtime()
-        val signature = WidgetSignature.from(state)
-
-        if (
-            force ||
-            signature != lastWidgetSignature ||
-            now - lastWidgetUpdateElapsedMs >= WIDGET_PROGRESS_UPDATE_INTERVAL_MS
-        ) {
-            lastWidgetSignature = signature
-            lastWidgetUpdateElapsedMs = now
-            notifyWidgets()
-        }
-    }
-
-    private fun notifyWidgets() {
-        WidgetCatalog.items.forEach { spec ->
-            context.sendBroadcast(
-                Intent(context, spec.providerClass).apply {
-                    action = ACTION_PLAYBACK_SESSION_UPDATED
-                }
-            )
-        }
     }
 
     private fun resolveDurationMs(currentTrack: Music?): Long {
@@ -192,31 +135,10 @@ class PlaybackStatePublisher(
         }
     }.getOrDefault(0L)
 
-    private data class WidgetSignature(
-        val queueIds: List<Long>,
-        val currentIndex: Int,
-        val currentTrackId: Long?,
-        val isPlaying: Boolean,
-        val progressBucket: Long
-    ) {
-        companion object {
-            fun from(state: MusicPlaybackState): WidgetSignature {
-                return WidgetSignature(
-                    queueIds = state.queue.map { music -> music.id },
-                    currentIndex = state.currentIndex,
-                    currentTrackId = state.currentTrack?.id,
-                    isPlaying = state.isPlaying,
-                    progressBucket = state.positionMs / WIDGET_PROGRESS_UPDATE_INTERVAL_MS
-                )
-            }
-        }
-    }
-
     companion object {
         const val ACTION_PLAYBACK_SESSION_UPDATED =
             "gd.app.musicplayer.action.WIDGET_PLAYBACK_SESSION_UPDATED"
 
         private const val NO_INDEX = -1
-        private const val WIDGET_PROGRESS_UPDATE_INTERVAL_MS = 15_000L
     }
 }

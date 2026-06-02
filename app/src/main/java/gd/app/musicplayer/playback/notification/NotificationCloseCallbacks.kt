@@ -12,7 +12,7 @@ interface NotificationCloseCallbacks {
 
     fun pausePlayerIfNeeded()
 
-    fun persistPlaybackSnapshotBlocking(
+    fun persistForSnapshotPolicy(
         snapshot: PlaybackSnapshot,
         persistQueue: Boolean
     )

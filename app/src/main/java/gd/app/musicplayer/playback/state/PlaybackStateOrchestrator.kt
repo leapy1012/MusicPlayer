@@ -25,8 +25,7 @@ class PlaybackStateOrchestrator(
 
     fun publishPlaybackState(
         reason: PublishReason,
-        forceNotification: Boolean = false,
-        forceWidgetUpdate: Boolean = forceNotification
+        forceNotification: Boolean = false
     ) {
         if (
             reason == PublishReason.ProgressTick &&
@@ -43,9 +42,7 @@ class PlaybackStateOrchestrator(
             notificationSessionBridge.updatePlaybackState()
         }
 
-        statePublisher.publish(
-            forceWidgetUpdate = forceWidgetUpdate
-        )
+        statePublisher.publish()
     }
 
     fun updateNotification(force: Boolean = false) {
@@ -60,16 +57,14 @@ class PlaybackStateOrchestrator(
     }
 
     fun publishStateAfterShutdown(
-        snapshot: PlaybackSnapshot? = null,
-        notifyWidgets: Boolean = true
+        snapshot: PlaybackSnapshot? = null
     ) {
         notificationSessionBridge.updatePlaybackState()
 
         if (snapshot == null) {
             publishPlaybackState(
                 reason = PublishReason.Shutdown,
-                forceNotification = true,
-                forceWidgetUpdate = true
+                forceNotification = true
             )
             return
         }
@@ -81,8 +76,7 @@ class PlaybackStateOrchestrator(
             isPlaying = false,
             positionMs = snapshot.positionMs,
             durationMs = snapshot.durationMs,
-            audioSessionId = snapshot.audioSessionId,
-            notifyWidgets = notifyWidgets
+            audioSessionId = snapshot.audioSessionId
         )
     }
 
