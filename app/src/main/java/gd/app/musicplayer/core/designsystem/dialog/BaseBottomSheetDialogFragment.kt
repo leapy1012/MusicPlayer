@@ -61,6 +61,7 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
     override fun onStart() {
         super.onStart()
         themeRegistry.registerObserver(this)
+        // Theme once when shown (not again on every resume).
         applyThemeTo(rootView)
 
         val dialog = dialog as? BottomSheetDialog ?: return
@@ -196,11 +197,6 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
     override fun onStop() {
         themeRegistry.unregisterObserver(this)
         super.onStop()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        applyThemeTo(rootView)
     }
 
     override fun onThemeChanged(palette: ThemePalette?) {

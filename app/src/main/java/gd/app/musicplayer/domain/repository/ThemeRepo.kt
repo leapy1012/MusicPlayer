@@ -33,6 +33,7 @@ class ThemeRepo @Inject constructor(
     }
 
     fun refreshTheme(): ThemePalette {
+        // Original ensure path [m4.c.c] — no notify when already loaded.
         themeRegistry.refreshTheme(appContext)
         return themeRegistry.getCurrentTheme()
     }
@@ -54,7 +55,8 @@ class ThemeRepo @Inject constructor(
             blur = blur ?: currentSettings.blur
         )
 
-        return refreshTheme()
+        // Original theme pick: H() then m()/j(notify) — not a silent ensure.
+        return themeManager.applySettingsAndNotify()
     }
 
     suspend fun updateThemeAppearance(
@@ -68,17 +70,19 @@ class ThemeRepo @Inject constructor(
             blur = blur
         )
 
-        return refreshTheme()
+        return themeManager.applySettingsAndNotify()
     }
 
     fun updateAccentColor(accentColor: Int): ThemePalette {
+        // Original o7.f.v — mutate + notify once (no second refreshTheme).
         themeManager.updateAccentColor(accentColor)
-        return refreshTheme()
+        return themeRegistry.getCurrentTheme()
     }
 
     fun toggleDarkMode(enabled: Boolean): ThemePalette {
+        // Original o7.f.u — clone + bg H() + notify (no second refreshTheme).
         themeManager.toggleDarkMode(enabled)
-        return refreshTheme()
+        return themeRegistry.getCurrentTheme()
     }
 
     /** User-selected night switch — not system-followed dark appearance. */

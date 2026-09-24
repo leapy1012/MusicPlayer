@@ -77,6 +77,12 @@ class HeadsetMediaButtonHandler @Inject constructor(
                 true
             }
 
+            // Original MediaButtonReceiver → y.g1()
+            KeyEvent.KEYCODE_MEDIA_STOP -> {
+                playbackController.stop()
+                true
+            }
+
             KeyEvent.KEYCODE_HEADSETHOOK -> {
                 clickCount += 1
                 handler.removeCallbacks(flushRunnable)
@@ -113,6 +119,6 @@ class HeadsetMediaButtonHandler @Inject constructor(
     }
 
     private companion object {
-        const val MULTI_CLICK_WINDOW_MS = 350L
+        const val MULTI_CLICK_WINDOW_MS = 600L
     }
 }

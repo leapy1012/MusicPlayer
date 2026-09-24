@@ -12,10 +12,13 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.asynclayoutinflater.view.AsyncLayoutInflater
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -58,12 +61,19 @@ class SettingActivity : BaseActivity() {
     private var pendingOldNotificationEnable = false
     private var pendingLockScreenEnable = false
     private var suppressFadeSeekCallback = false
+    private var settingsObservationStarted = false
+    private var enterAnimationComplete = false
+    private var pendingResumePermissionRender = false
+    /** Preference tree finished async inflate; safe to touch [binding]. */
+    private var contentReady = false
+    private var pendingInflatedContent: View? = null
+    private lateinit var contentHost: FrameLayout
 
     private val bluetoothPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted && pendingBluetoothAutoStartEnable) {
                 viewModel.setBluetoothAutoStartEnabled(true)
-            } else {
+            } else if (::binding.isInitialized) {
                 binding.preferenceBluetoothAutoStart.isSelected = false
                 if (pendingBluetoothAutoStartEnable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     showBluetoothPermissionSettingsDialog()
@@ -74,22 +84,100 @@ class SettingActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivitySettingBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
-        setupToolbar()
+        // Warm DataStore combine while shell paints (original paints SP-correct toggles on inflate;
+        // Dream must not wait until after open to discover real values).
+        viewModel.uiState
+
+        // Device (MTK): sync PreferenceItemView inflate ~300ms blocks first frame (~700–900ms).
+        // Shell (toolbar) paints immediately; body inflates async. Attach as soon as ready so
+        // PreferenceItemView SP first paint is visible — do not wait for enter animation.
+        val shellBinding = gd.app.musicplayer.databinding.ActivitySettingShellBinding.inflate(layoutInflater)
+        contentHost = shellBinding.settingsBodyHost
+        setContentView(shellBinding.root)
+        setupEdgeToEdgeToolbar(
+            root = shellBinding.skinLayout,
+            statusBarView = shellBinding.statusBarSpace,
+            bottomPaddingView = shellBinding.skinLayout,
+            toolbar = shellBinding.toolbar,
+            titleRes = R.string.settings
+        )
+
         setupFragmentResultListeners()
+        AsyncLayoutInflater(this).inflate(R.layout.activity_setting_body, contentHost) { view, _, _ ->
+            attachSettingsContent(view)
+        }
+        scheduleEnterAnimationFallback()
+    }
+
+    private fun attachSettingsContent(view: View) {
+        if (contentReady) return
+        contentHost.removeAllViews()
+        contentHost.addView(view)
+        // Body views live under shell; bind full activity_setting IDs via the shell root.
+        binding = ActivitySettingBinding.bind(findViewById(R.id.skin_layout))
+        applyThemeTo(binding.root)
         setupClickListeners()
-        observeUiState()
+        contentReady = true
+        pendingInflatedContent = null
+        // PreferenceItemView already applied SharedPreferences during inflate (like original).
+        // Apply DataStore state only if already loaded — never wipe with placeholder defaults.
+        viewModel.uiState.value?.let(::render)
+        onContentReady()
+    }
+
+    private fun onContentReady() {
+        startSettingsObservation()
+        if (pendingResumePermissionRender) {
+            pendingResumePermissionRender = false
+            renderPostAnimationResumeWork()
+        }
+    }
+
+    /**
+     * Some OEMs skip [onEnterAnimationComplete]; still unblock after the
+     * 400ms [music_activity_in] window.
+     */
+    private fun scheduleEnterAnimationFallback() {
+        window.decorView.postDelayed({
+            if (!enterAnimationComplete) {
+                onEnterAnimationComplete()
+            }
+        }, ENTER_ANIMATION_FALLBACK_MS)
     }
 
     override fun onResume() {
         super.onResume()
+        if (enterAnimationComplete && contentReady) {
+            renderPostAnimationResumeWork()
+        } else {
+            pendingResumePermissionRender = true
+        }
+    }
+
+    override fun onEnterAnimationComplete() {
+        super.onEnterAnimationComplete()
+        if (enterAnimationComplete) return
+        enterAnimationComplete = true
+        pendingInflatedContent?.let(::attachSettingsContent)
+        if (contentReady) {
+            onContentReady()
+        }
+    }
+
+    private fun renderPostAnimationResumeWork() {
+        if (!contentReady) return
         renderNotificationPermissionPrompt()
         binding.preferenceShowDeskLrc.resumeDesktopLyricsAfterOverlayPermissionChange()
         binding.preferenceShowDeskLrc.disableDesktopLyricsIfOverlayPermissionWasRevoked()
         resumeLockScreenAfterOverlayPermissionChange()
         renderKeepAlivePermission()
+    }
+
+    private fun startSettingsObservation() {
+        if (settingsObservationStarted || !contentReady) return
+        settingsObservationStarted = true
+        observeUiState()
     }
 
     override fun onNotificationPermissionResult() {
@@ -102,23 +190,15 @@ class SettingActivity : BaseActivity() {
         }
 
         if (!granted) {
-            binding.preferenceUseNotification.isSelected = false
-            binding.preferenceUseOldNotification.isSelected = false
+            if (contentReady) {
+                binding.preferenceUseNotification.isSelected = false
+                binding.preferenceUseOldNotification.isSelected = false
+            }
             openAppNotificationSettings()
         }
 
         pendingNotificationBarEnable = false
         pendingOldNotificationEnable = false
-    }
-
-    private fun setupToolbar() {
-        setupEdgeToEdgeToolbar(
-            root = binding.skinLayout,
-            statusBarView = binding.statusBarSpace,
-            bottomPaddingView = binding.skinLayout,
-            toolbar = binding.toolbar,
-            titleRes = R.string.settings
-        )
     }
 
     private fun setupFragmentResultListeners() {
@@ -163,12 +243,18 @@ class SettingActivity : BaseActivity() {
     private fun observeUiState() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect(::render)
+                viewModel.uiState.collect { state ->
+                    // null = ViewModel placeholder before DataStore; keep PreferenceItemView SP paint.
+                    if (state != null) render(state)
+                }
             }
         }
     }
 
+    private fun currentUiState(): SettingsUiState = viewModel.uiState.value ?: SettingsUiState()
+
     private fun render(state: SettingsUiState) {
+        if (!contentReady) return
         binding.preferenceUseTenBands.isSelected = state.useTenBand
         setEnabledState(binding.preferenceUseTenBands, state.useTenBandAvailable)
         binding.preferenceShowHiddenFolders.isSelected = state.showHiddenFolders
@@ -283,7 +369,7 @@ class SettingActivity : BaseActivity() {
         }
         binding.preferenceShakeLevel.setOnClickListener {
             ShakeLevelDialogFragment
-                .newInstance(viewModel.uiState.value.shakeLevel)
+                .newInstance(currentUiState().shakeLevel)
                 .show(supportFragmentManager, ShakeLevelDialogFragment::class.java.simpleName)
         }
 //        binding.preferenceSwipeChangeSongs.onPreferenceChanged {
@@ -318,8 +404,8 @@ class SettingActivity : BaseActivity() {
         }
         binding.preferenceReplayGainPreamp.setOnClickListener {
             ReplayGainPreampDialogFragment.newInstance(
-                withTag = viewModel.uiState.value.replayGainPreampWithTag,
-                withoutTag = viewModel.uiState.value.replayGainPreampWithoutTag
+                withTag = currentUiState().replayGainPreampWithTag,
+                withoutTag = currentUiState().replayGainPreampWithoutTag
             ).show(
                 supportFragmentManager,
                 ReplayGainPreampDialogFragment::class.java.simpleName
@@ -445,7 +531,7 @@ class SettingActivity : BaseActivity() {
     private fun showForwardBackwardDialog() {
         val values = intArrayOf(5, 10, 15, 20, 30, 60)
         val labels = values.map(::formatSecondsLabel)
-        val checkedIndex = values.indexOf(viewModel.uiState.value.forwardBackwardSeconds)
+        val checkedIndex = values.indexOf(currentUiState().forwardBackwardSeconds)
             .takeIf { it >= 0 } ?: 2
 
         showSingleChoiceDialog(
@@ -464,7 +550,7 @@ class SettingActivity : BaseActivity() {
                 getString(R.string.queue_all_songs),
                 getString(R.string.queue_search_result)
             ),
-            checkedIndex = viewModel.uiState.value.queueForSearchingMode.coerceIn(0, 1)
+            checkedIndex = currentUiState().queueForSearchingMode.coerceIn(0, 1)
         ) { which ->
             viewModel.setQueueForSearchingMode(which)
         }
@@ -478,7 +564,7 @@ class SettingActivity : BaseActivity() {
                 getString(R.string.replay_gain_track),
                 getString(R.string.replay_gain_album)
             ),
-            checkedIndex = viewModel.uiState.value.replayGainMode.coerceIn(0, 2)
+            checkedIndex = currentUiState().replayGainMode.coerceIn(0, 2)
         ) { which ->
             viewModel.setReplayGainMode(which)
             playerViewModel.applyPlaybackTuning(this)
@@ -492,7 +578,7 @@ class SettingActivity : BaseActivity() {
                 getString(R.string.add_music_position_top),
                 getString(R.string.add_music_position_end)
             ),
-            checkedIndex = viewModel.uiState.value.playlistAddPosition.coerceIn(0, 1)
+            checkedIndex = currentUiState().playlistAddPosition.coerceIn(0, 1)
         ) { which ->
             viewModel.setPlaylistAddPosition(which)
         }
@@ -501,8 +587,8 @@ class SettingActivity : BaseActivity() {
     private fun showSmartPlaylistLimitDialog() {
         SmartPlaylistLimitDialogFragment
             .newInstance(
-                selectedIndex = viewModel.uiState.value.smartPlaylistSelectionIndex,
-                customLimit = viewModel.uiState.value.smartPlaylistCustomLimit
+                selectedIndex = currentUiState().smartPlaylistSelectionIndex,
+                customLimit = currentUiState().smartPlaylistCustomLimit
             )
             .show(supportFragmentManager, SmartPlaylistLimitDialogFragment::class.java.simpleName)
     }
@@ -514,7 +600,7 @@ class SettingActivity : BaseActivity() {
                 getString(R.string.lock_screen_theme),
                 getString(R.string.lock_screen_artwork)
             ),
-            checkedIndex = viewModel.uiState.value.lockBackgroundMode.coerceIn(0, 1)
+            checkedIndex = currentUiState().lockBackgroundMode.coerceIn(0, 1)
         ) { which ->
             viewModel.setLockBackgroundMode(which)
         }
@@ -792,6 +878,7 @@ class SettingActivity : BaseActivity() {
     }
 
     companion object {
+        private const val ENTER_ANIMATION_FALLBACK_MS = 450L
         private const val MUSIC_PREFERENCE_NAME = "music_preference"
         private const val KEY_SHOW_KEEP_ALIVE_DOT = "show_keep_alive_dot"
 

@@ -14,6 +14,7 @@ import gd.app.musicplayer.domain.usecase.theme.ObserveThemeSettingsUseCase
 import gd.app.musicplayer.domain.usecase.theme.ParseThemesUseCase
 import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val DEFAULT_THEME_OVERLAY_COLOR = 855638016
 
@@ -52,9 +54,11 @@ class ThemeViewModel @Inject constructor(
     private val applyPictureThemeUseCase: ApplyPictureThemeUseCase
 ) : ViewModel() {
 
-    private val parsedThemes: List<ThemeGroup> by lazy(LazyThreadSafetyMode.NONE) {
-        parseThemesUseCase()
-    }
+    /**
+     * Original [ActivityTheme.s1] / [o7.f.q]: catalog loads on a background executor;
+     * pager starts empty until the callback fills it.
+     */
+    private val themesFlow = MutableStateFlow<List<ThemeGroup>>(emptyList())
 
     private val selectedTabIndex = MutableStateFlow(0)
 
@@ -63,10 +67,11 @@ class ThemeViewModel @Inject constructor(
 
     val uiState: StateFlow<ThemeUiState> = combine(
         observeThemeSettingsUseCase(),
-        selectedTabIndex
-    ) { settings, tabIndex ->
+        selectedTabIndex,
+        themesFlow
+    ) { settings, tabIndex, themes ->
         ThemeUiState(
-            themes = parsedThemes,
+            themes = themes,
             settings = settings,
             selectedTabIndex = tabIndex
         )
@@ -75,12 +80,17 @@ class ThemeViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ThemeUiState(
-                themes = parsedThemes,
-                settings = null,
-                selectedTabIndex = 0
-            )
+            initialValue = ThemeUiState()
         )
+
+    init {
+        viewModelScope.launch {
+            val groups = withContext(Dispatchers.Default) {
+                parseThemesUseCase()
+            }
+            themesFlow.value = groups
+        }
+    }
 
     fun onAccentColorClicked(fallbackColor: Int) {
         val currentColor = uiState.value.settings?.themeColor ?: fallbackColor

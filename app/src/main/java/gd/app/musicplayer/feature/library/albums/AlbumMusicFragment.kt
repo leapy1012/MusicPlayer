@@ -120,6 +120,8 @@ class AlbumMusicFragment :
     private fun setupToolbar(binding: FragmentAlbumMusicBinding) {
         binding.toolbar.apply {
             navigateBack(this@AlbumMusicFragment)
+            // Original l5.f.f0: inflateMenu in code (no app:menu on Toolbar XML).
+            inflateMenu(R.menu.menu_fragment_music)
             title = musicSet.toolbarTitle
             menu.findItem(R.id.menu_add)?.isVisible = musicSet.supportsAddTracks
             setOnMenuItemClickListener(this@AlbumMusicFragment)

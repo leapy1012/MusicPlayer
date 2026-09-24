@@ -129,7 +129,7 @@ open class BaseDialogFragment : DialogFragment(), ThemeObserver {
 
     override fun onResume() {
         super.onResume()
-        applyThemeTo(view)
+        // Original does not retheme dialogs on every resume.
         flushPendingUiActions()
     }
 

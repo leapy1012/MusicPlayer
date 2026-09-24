@@ -370,7 +370,7 @@ class MusicPlaybackService : MediaSessionService() {
                 }
 
                 MEDIA3_COMMAND_CLOSE_NOTIFICATION -> {
-                    pauseAndPersistForNotificationClose()
+                    exitService()
                     successSessionResult()
                 }
 

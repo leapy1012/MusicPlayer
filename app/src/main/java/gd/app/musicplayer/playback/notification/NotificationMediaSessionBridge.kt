@@ -172,9 +172,10 @@ class NotificationMediaSessionBridge(
             PlaybackServiceActions.ACTION_CUSTOM_FAVORITE -> callbacks.setFavorite(true)
             PlaybackServiceActions.ACTION_CUSTOM_UNFAVORITE -> callbacks.setFavorite(false)
             PlaybackServiceActions.ACTION_TOGGLE_FAVORITE -> callbacks.toggleFavorite()
-            PlaybackServiceActions.ACTION_QUIT -> callbacks.quit()
-            PlaybackServiceActions.ACTION_CUSTOM_STOP -> callbacks.quit()
-            PlaybackServiceActions.ACTION_STOP -> callbacks.stop()
+            // Original e7.j STOP → g1() → exit
+            PlaybackServiceActions.ACTION_QUIT,
+            PlaybackServiceActions.ACTION_CUSTOM_STOP,
+            PlaybackServiceActions.ACTION_STOP -> callbacks.quit()
         }
     }
 

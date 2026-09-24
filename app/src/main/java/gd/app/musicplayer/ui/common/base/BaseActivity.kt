@@ -1,5 +1,6 @@
 package gd.app.musicplayer.ui.common.base
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
@@ -7,10 +8,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.view.View
+import android.view.ViewGroup
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
@@ -19,6 +22,14 @@ import gd.app.musicplayer.feature.library.options.RingtoneActionHandler
 import gd.app.musicplayer.ui.theme.ThemeEngine
 import javax.inject.Inject
 
+/**
+ * Theme lifecycle matches original [BaseActivity.K0] / [BMusicActivity.i]:
+ * register observer + apply once after content inflate; retheme only on [onThemeChanged]
+ * (and configuration when system night forces a palette type change).
+ *
+ * Transitions match original [BMusicActivity.startActivityForResult] / [finish]:
+ * always [overridePendingTransition] with music_activity_in/out (not theme-only).
+ */
 abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     private var isStateSaved = false
@@ -31,7 +42,6 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
         super.onSaveInstanceState(outState, outPersistentState)
         isStateSaved = true
     }
-
 
     companion object {
         val AUDIO_PERMISSIONS =
@@ -65,20 +75,59 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Original [BMusicActivity.T0] → w0.c(this, false, true): transparent system bars
+        // before content. Dream uses enableEdgeToEdge for the same window flags.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
         )
     }
 
+    /**
+     * Original [BMusicActivity.startActivityForResult]: after start, always force
+     * music_activity_in / music_activity_out. Theme windowAnimationStyle alone is not
+     * what the APK relies on for the open path from Main/More.
+     */
+    override fun startActivity(intent: Intent, options: Bundle?) {
+        super.startActivity(intent, options)
+        overridePendingTransition(R.anim.music_activity_in, R.anim.music_activity_out)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        @Suppress("DEPRECATION")
+        super.startActivityForResult(intent, requestCode, options)
+        overridePendingTransition(R.anim.music_activity_in, R.anim.music_activity_out)
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.music_activity_in, R.anim.music_activity_out)
+    }
+
+    /**
+     * Original [BActivity.O0] → [K0]: theme walk runs once after [setContentView].
+     */
+    override fun setContentView(layoutResID: Int) {
+        super.setContentView(layoutResID)
+        applyThemeAfterContentSet()
+    }
+
+    override fun setContentView(view: View?) {
+        super.setContentView(view)
+        applyThemeAfterContentSet()
+    }
+
+    override fun setContentView(view: View?, params: ViewGroup.LayoutParams?) {
+        super.setContentView(view, params)
+        applyThemeAfterContentSet()
+    }
+
     override fun onResume() {
         super.onResume()
         isStateSaved = false
         RingtoneActionHandler.handlePendingPermissionResult(this)
-        // Do not schedule MediaStore sync on every Activity resume — original only
-        // syncs via ContentObserver + cold-start schedule. Resume sync made Library
-        // open contend with a full MediaStore→Room scan.
-        applyThemeTo(findViewById(android.R.id.content))
+        // Original does not retheme on resume.
     }
 
     fun applyThemeTo(root: View?) {
@@ -88,8 +137,8 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     override fun onStart() {
         super.onStart()
         isStateSaved = false
+        // Original y.Y().L(this) — register only; no refreshTheme / c().
         themeRegistry.registerObserver(this)
-        themeRepo.refreshTheme()
     }
 
     override fun onRestoreInstanceState(
@@ -111,7 +160,12 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        // Ensure palette follows system night if type must change; notify only when swapped.
         themeRepo.refreshTheme()
+        applyThemeTo(findViewById(android.R.id.content))
+    }
+
+    private fun applyThemeAfterContentSet() {
         applyThemeTo(findViewById(android.R.id.content))
     }
 

@@ -11,7 +11,13 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
+import gd.app.musicplayer.core.datastore.PreferenceSharedStore
 
+/**
+ * Matches original [com.ijoysoft.music.view.PreferenceItemView]: toggle rows read
+ * SharedPreferences by [R.styleable.PreferenceItemView_preference_item_key] during inflate
+ * so the first frame is already correct (no DataStore Flow thrash mid enter-animation).
+ */
 class PreferenceItemView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
@@ -24,10 +30,12 @@ class PreferenceItemView @JvmOverloads constructor(
     private var summaryWhenEnabled: String? = null
     private var summaryWhenDisabled: String? = null
     private var defaultValue: Boolean = false
+    private var preferenceKey: String? = null
+    private var preferenceStore: PreferenceSharedStore? = null
 
     private val summaryView: TextView
     private val tipsView: TextView
-    private val selectBox: gd.app.musicplayer.core.designsystem.view.SelectBox
+    private val selectBox: SelectBox
     private val titleView: TextView
 
     private var onPreferenceChangedListener: OnPreferenceChangedListener? = null
@@ -47,6 +55,10 @@ class PreferenceItemView @JvmOverloads constructor(
             typedArray.getString(R.styleable.PreferenceItemView_preference_item_summary_off)
         defaultValue =
             typedArray.getBoolean(R.styleable.PreferenceItemView_preference_item_default, false)
+        preferenceKey =
+            typedArray.getString(R.styleable.PreferenceItemView_preference_item_key)
+        val fileName =
+            typedArray.getString(R.styleable.PreferenceItemView_preference_item_file_name)
 
         val iconResId = typedArray.getResourceId(
             R.styleable.PreferenceItemView_preference_item_check_drawable,
@@ -58,10 +70,14 @@ class PreferenceItemView @JvmOverloads constructor(
 
         typedArray.recycle()
 
+        if (!fileName.isNullOrBlank()) {
+            preferenceStore = PreferenceSharedStore(fileName)
+        }
+
         titleView = findViewById(R.id.title)
         summaryView = findViewById(R.id.summary)
         tipsView = findViewById(R.id.tips)
-        selectBox = findViewById<gd.app.musicplayer.core.designsystem.view.SelectBox>(R.id.checkbox).apply {
+        selectBox = findViewById<SelectBox>(R.id.checkbox).apply {
             setOnClickListener(this@PreferenceItemView)
         }
 
@@ -70,9 +86,15 @@ class PreferenceItemView @JvmOverloads constructor(
         setupIndicator(indicatorDrawable, iconResId)
         updateSummaryVisibility()
 
+        // Original: i(store.getBoolean(key, default), false, false) — sync first paint.
+        val initialSelected = preferenceKey?.let { key ->
+            preferenceStore?.getBoolean(context, key, defaultValue) ?: defaultValue
+        } ?: defaultValue
+
         renderState(
-            isSelected = defaultValue,
-            notifyListener = false
+            isSelected = initialSelected,
+            notifyListener = false,
+            persist = false
         )
 
         super.setOnClickListener(this)
@@ -87,9 +109,11 @@ class PreferenceItemView @JvmOverloads constructor(
     override fun isSelected(): Boolean = selectBox.isSelected
 
     override fun setSelected(selected: Boolean) {
+        // Original setSelected → i(value, false, true): persist when keyed.
         renderState(
             isSelected = selected,
-            notifyListener = false
+            notifyListener = false,
+            persist = preferenceKey != null
         )
     }
 
@@ -103,10 +127,7 @@ class PreferenceItemView @JvmOverloads constructor(
 
     fun setDefaultValue(value: Boolean) {
         defaultValue = value
-        renderState(
-            isSelected = defaultValue,
-            notifyListener = false
-        )
+        refreshFromPreference(persistCurrentValue = false)
     }
 
     fun setSummaryOn(text: String?) {
@@ -124,28 +145,42 @@ class PreferenceItemView @JvmOverloads constructor(
         setTips(resources.getString(resId))
     }
 
-    fun getSelectBox(): gd.app.musicplayer.core.designsystem.view.SelectBox = selectBox
+    fun getSelectBox(): SelectBox = selectBox
 
     fun getTipsView(): TextView = tipsView
 
     fun refreshFromPreference(persistCurrentValue: Boolean) {
+        val key = preferenceKey
+        val selected = if (key != null) {
+            preferenceStore?.getBoolean(context, key, defaultValue) ?: defaultValue
+        } else {
+            defaultValue
+        }
         renderState(
-            isSelected = defaultValue,
-            notifyListener = false
+            isSelected = selected,
+            notifyListener = false,
+            persist = persistCurrentValue && key != null
         )
     }
 
     private fun toggle() {
         renderState(
             isSelected = !selectBox.isSelected,
-            notifyListener = true
+            notifyListener = true,
+            persist = true
         )
     }
 
     private fun renderState(
         isSelected: Boolean,
-        notifyListener: Boolean
+        notifyListener: Boolean,
+        persist: Boolean
     ) {
+        if (persist) {
+            preferenceKey?.let { key ->
+                preferenceStore?.putBoolean(context, key, isSelected)
+            }
+        }
         selectBox.isSelected = isSelected
         updateSummaryText(isSelected)
 
@@ -190,12 +225,12 @@ class PreferenceItemView @JvmOverloads constructor(
 
         when (iconResId) {
             R.drawable.vector_toggle_selector -> {
-                (params as MarginLayoutParams).width = context.dpToPx(56f)
+                params.width = context.dpToPx(56f)
                 selectBox.scaleType = ImageView.ScaleType.CENTER_INSIDE
             }
 
             R.drawable.vector_arrow_right -> {
-                (params as MarginLayoutParams).width = context.dpToPx(24f)
+                params.width = context.dpToPx(24f)
                 params.marginEnd = context.dpToPx(8f)
                 selectBox.setPadding(0, 0, 0, 0)
                 selectBox.scaleType = ImageView.ScaleType.CENTER_INSIDE
@@ -204,5 +239,4 @@ class PreferenceItemView @JvmOverloads constructor(
 
         selectBox.layoutParams = params
     }
-
 }

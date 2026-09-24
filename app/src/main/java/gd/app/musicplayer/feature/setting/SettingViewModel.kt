@@ -36,7 +36,7 @@ class SettingsViewModel @Inject constructor(
     private val themeRepo: ThemeRepo
 ) : ViewModel() {
 
-    val uiState: StateFlow<SettingsUiState> =
+    val uiState: StateFlow<SettingsUiState?> =
         combine(
             settingPreferences.observeSettingPreferences(),
             soundEffectPreferences.equalizerPreference,
@@ -53,8 +53,10 @@ class SettingsViewModel @Inject constructor(
         }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = SettingPreferences().toUiState()
+                // Eagerly so DataStore is already warm when Settings body attaches.
+                // initialValue null: never paint placeholder defaults over PreferenceItemView SP.
+                started = SharingStarted.Eagerly,
+                initialValue = null
             )
 
 

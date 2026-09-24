@@ -52,7 +52,8 @@ object ThemeModule {
             appScope = appScope
         ).also { manager ->
             themeRegistry.installProvider(manager, replace = true)
-            themeRegistry.refreshTheme(context)
+            // Original installs factory at app start without decoding on the main thread.
+            // Bitmap [H]/ensure runs on Welcome worker (warmUp), not here.
         }
     }
 }

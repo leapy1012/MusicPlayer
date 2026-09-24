@@ -9,15 +9,20 @@ import gd.app.musicplayer.di.ApplicationScope
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+/**
+ * Real theme provider — original [o7.f] / [m4.c].
+ */
 @Singleton
 class ThemeManager @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val themeSettingPreferenceStore: ThemeSettingPreferenceStore,
     private val themeRegistry: ThemeRegistry,
-    private val themeBitmapLoader: ThemeBitmapLoader,
+    themeBitmapLoader: ThemeBitmapLoader,
     @param:ApplicationScope private val appScope: CoroutineScope
 ) : BaseThemeProvider(themeBitmapLoader) {
 
@@ -54,7 +59,14 @@ class ThemeManager @Inject constructor(
     }
 
     override fun notifyThemeChanged(palette: ThemePalette) {
-        themeRegistry.notifyObservers(palette)
+        // Original o7.f.l / m4.c: notify UI on main only.
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            themeRegistry.notifyObservers(palette)
+        } else {
+            appScope.launch(Dispatchers.Main.immediate) {
+                themeRegistry.notifyObservers(palette)
+            }
+        }
     }
 
     override fun persistTheme(palette: ThemePalette) {
@@ -83,29 +95,61 @@ class ThemeManager @Inject constructor(
         }
     }
 
+    /**
+     * Original [m4.c.c] plus Dream system-dark follow:
+     * if resolved type differs from the live palette, rebuild (like prefs reload) and notify;
+     * otherwise only [H]/ensure — no notify when already loaded.
+     */
     override fun refreshTheme(context: Context) {
         val safeContext = context.applicationContext
+        val resolvedType = resolveThemeType(safeContext, cachedSettings.themeType)
+        val current = getCurrentTheme()
 
-        val preferredType = cachedSettings.themeType
-        val resolvedType = resolveThemeType(
-            context = safeContext,
-            preferredType = preferredType
-        )
-
-        val palette = createPalette(resolvedType)
-
-        if (palette.ensureResourcesLoaded(safeContext, themeBitmapLoader)) {
-            updateCurrentTheme(
-                palette = palette,
-                persist = false,
-                notify = true
-            )
-            return
+        if (needsSettingsReload || current.getThemeType() != resolvedType) {
+            // Prefs reload → new palette (original g()). Type-only switch may reuse bitmaps (O).
+            val rebuilt = if (needsSettingsReload) {
+                createPalette(resolvedType)
+            } else {
+                rebuildPalette(
+                    targetType = resolvedType,
+                    reuseBitmapsFrom = current as? PictureThemePalette
+                )
+            }
+            if (rebuilt.ensureResourcesLoaded(safeContext, themeBitmapLoader())) {
+                updateCurrentTheme(
+                    palette = rebuilt,
+                    persist = false,
+                    notify = true
+                )
+                return
+            }
         }
 
         super.refreshTheme(safeContext)
     }
 
+    /**
+     * After picture/theme prefs are written — original theme-pick path:
+     * rebuild from settings, [H] off-caller thread, then [j] notify.
+     */
+    suspend fun applySettingsAndNotify(): ThemePalette = withContext(Dispatchers.Default) {
+        cachedSettings = themeSettingPreferenceStore.getSettingsSnapshot()
+        val resolvedType = resolveThemeType(appContext, cachedSettings.themeType)
+        val palette = createPalette(resolvedType)
+        palette.ensureResourcesLoaded(appContext, themeBitmapLoader())
+        withContext(Dispatchers.Main.immediate) {
+            updateCurrentTheme(
+                palette = palette,
+                persist = false,
+                notify = true
+            )
+            palette
+        }
+    }
+
+    /**
+     * Original [o7.f.u]: clone with shared bitmaps ([O] reuse), [H] on bg, notify on main.
+     */
     fun toggleDarkMode(enabled: Boolean) {
         val themeType = if (enabled) {
             THEME_TYPE_DARK
@@ -119,9 +163,27 @@ class ThemeManager @Inject constructor(
             themeSettingPreferenceStore.setThemeType(themeType)
         }
 
-        // Resolve again so turning the switch OFF still follows system dark when active.
-        val palette = createPalette(resolveThemeType(appContext, themeType))
-        applyTheme(palette)
+        val current = getCurrentTheme() as? PictureThemePalette
+        val resolvedType = resolveThemeType(appContext, themeType)
+        val cloned = if (current != null) {
+            current.copyAsThemeType(resolvedType, reuseBitmaps = true)
+        } else {
+            createPalette(resolvedType)
+        }
+
+        appScope.launch(Dispatchers.Default) {
+            // Original o7.f.l: H() off main, then j(notify) on main.
+            if (!cloned.ensureResourcesLoaded(appContext, themeBitmapLoader())) {
+                return@launch
+            }
+            withContext(Dispatchers.Main.immediate) {
+                updateCurrentTheme(
+                    palette = cloned,
+                    persist = false,
+                    notify = true
+                )
+            }
+        }
     }
 
     /**
@@ -132,6 +194,9 @@ class ThemeManager @Inject constructor(
         return cachedSettings.themeType == THEME_TYPE_DARK
     }
 
+    /**
+     * Original [o7.f.v]: mutate accent on current palette + notify (no full rebuild).
+     */
     fun updateAccentColor(accentColor: Int) {
         cachedSettings = cachedSettings.copy(themeColor = accentColor)
 
@@ -149,8 +214,31 @@ class ThemeManager @Inject constructor(
         )
     }
 
+    /**
+     * Original Welcome [c] preload: prefs snapshot + ensure bitmaps on a worker thread.
+     */
     suspend fun warmUp() {
         cachedSettings = themeSettingPreferenceStore.getSettingsSnapshot()
+        withContext(Dispatchers.IO) {
+            refreshTheme(appContext)
+        }
+    }
+
+    private fun rebuildPalette(
+        targetType: Int,
+        reuseBitmapsFrom: PictureThemePalette?
+    ): ThemePalette {
+        if (reuseBitmapsFrom != null) {
+            return reuseBitmapsFrom.copyAsThemeType(targetType, reuseBitmaps = true).also { copy ->
+                // Keep settings metadata in sync with cache (accent/blur/image).
+                val settings = cachedSettings
+                copy.setImageName(settings.imageName)
+                copy.setAccentColor(settings.themeColor)
+                copy.setBlurAmount(settings.blur)
+                copy.setBackgroundOverlayColor(settings.overlayColor)
+            }
+        }
+        return createPalette(targetType)
     }
 
     /**

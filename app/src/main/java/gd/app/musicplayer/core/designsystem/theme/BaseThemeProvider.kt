@@ -2,6 +2,12 @@ package gd.app.musicplayer.core.designsystem.theme
 
 import android.content.Context
 
+/**
+ * Matches original [m4.c]:
+ * - [getCurrentTheme] / [d]: lazy current palette
+ * - [refreshTheme] / [c]: ensure resources; notify only when swapping theme
+ * - [applyTheme] / [b]: install theme + persist + notify
+ */
 abstract class BaseThemeProvider(
     private val themeBitmapLoader: ThemeBitmapLoader
 ) : ThemeProvider {
@@ -11,34 +17,47 @@ abstract class BaseThemeProvider(
     @Volatile
     private var currentTheme: ThemePalette? = null
 
+    /**
+     * Original [m4.c.f11842c]: after installing a fallback default, next [refreshTheme]
+     * rebuilds from preferences and notifies.
+     */
+    @Volatile
+    protected var needsSettingsReload: Boolean = false
+
     final override fun applyTheme(palette: ThemePalette) {
         updateCurrentTheme(
             palette = palette,
             persist = true,
             notify = true
         )
+        needsSettingsReload = false
     }
 
+    /**
+     * Original [m4.c.c]:
+     * 1. If [needsSettingsReload], rebuild via [createInitialTheme], [H], notify
+     * 2. Else if current [H] succeeds → return (no notify)
+     * 3. Else load fallback, install + notify, set reload flag
+     */
     override fun refreshTheme(context: Context) {
         val safeContext = context.applicationContext
 
-        val refreshed = createInitialTheme()
-        if (refreshed.ensureResourcesLoaded(safeContext, themeBitmapLoader)) {
-            updateCurrentTheme(
-                palette = refreshed,
-                persist = false,
-                notify = true
-            )
-            return
+        if (needsSettingsReload) {
+            val rebuilt = createInitialTheme()
+            if (rebuilt.ensureResourcesLoaded(safeContext, themeBitmapLoader)) {
+                updateCurrentTheme(
+                    palette = rebuilt,
+                    persist = false,
+                    notify = true
+                )
+                needsSettingsReload = false
+                return
+            }
         }
 
         val current = getCurrentTheme()
         if (current.ensureResourcesLoaded(safeContext, themeBitmapLoader)) {
-            updateCurrentTheme(
-                palette = current,
-                persist = false,
-                notify = true
-            )
+            // Original: d().H(context) → return with no notify.
             return
         }
 
@@ -49,6 +68,7 @@ abstract class BaseThemeProvider(
                 persist = false,
                 notify = true
             )
+            needsSettingsReload = true
         }
     }
 
@@ -79,6 +99,7 @@ abstract class BaseThemeProvider(
     ) {
         synchronized(lock) {
             currentTheme = palette
+            needsSettingsReload = false
         }
 
         if (persist) {
@@ -89,4 +110,6 @@ abstract class BaseThemeProvider(
             notifyThemeChanged(palette)
         }
     }
+
+    protected fun themeBitmapLoader(): ThemeBitmapLoader = themeBitmapLoader
 }

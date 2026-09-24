@@ -293,6 +293,14 @@ internal fun MusicPlaybackService.handleTrackEnded() {
         return
     }
 
+    // Original [u6.e.u]: reuse gapless-prepared next MediaPlayer when it matches.
+    if (
+        isTimedTransitionControllerInitialized() &&
+        timedTransitionController.consumeTrackEndedWithGaplessPrepare()
+    ) {
+        return
+    }
+
     resetTimedTransitionState()
 
     playbackStatsTracker.onTrackEnded(

@@ -405,8 +405,8 @@ internal fun MusicPlaybackService.configureControllers() {
             override fun seekTo(positionMs: Int) = this@configureControllers.seekTo(positionMs)
             override fun toggleFavorite() = handleNotificationFavoriteToggle()
             override fun setFavorite(isFavorite: Boolean) = setCurrentFavorite(isFavorite)
-            override fun quit() = pauseAndPersistForNotificationClose()
-            override fun stop() = stopPlaybackWithoutClearingQueue()
+            override fun quit() = exitService()
+            override fun stop() = exitService()
         }
     )
 

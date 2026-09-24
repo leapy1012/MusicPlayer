@@ -27,6 +27,8 @@ import gd.app.musicplayer.feature.player.queue.PlayQueueActivity
 import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.feature.playlist.PlaylistInputDialog
 import gd.app.musicplayer.ui.selection.MusicEditActivity
+import gd.app.musicplayer.ui.selection.MusicSelectActivity
+import gd.app.musicplayer.ui.scan.ScanMusicActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.menu.ContextMenu
 import gd.app.musicplayer.ui.common.menu.ContextMenuAction
@@ -126,6 +128,8 @@ class TrackListFragment : BaseListFragment() {
             emptyViewStub = binding.layoutListEmpty
         ).apply {
             configureForMusicSet()
+            // Match original m5.v.h path once the stub inflates.
+            applyTheme(themeRepo.getCorePalette())
         }
     }
 
@@ -203,18 +207,29 @@ class TrackListFragment : BaseListFragment() {
         when (musicSet) {
             is MusicSet.Favorites,
             is MusicSet.Playlist -> {
+                // Original l5.m0 → m5.v.j → ActivityMusicSelect.B1
                 setActionButtonVisible(true)
                 setActionButtonText(getString(R.string.add_songs))
                 setEmptyMessage(getString(R.string.music_empty))
+                setActionClickListener {
+                    MusicSelectActivity.start(
+                        context = requireContext(),
+                        musicSet = musicSet
+                    )
+                }
             }
 
             is MusicSet.Tracks,
             is MusicSet.RecentlyAdded -> {
+                // Original l5.m0.e0 → ScanMusicActivity for id -1 / -3
                 setActionButtonVisible(true)
                 setExtraTextVisible(true)
                 setActionButtonText(getString(R.string.rescan_library))
                 setExtraText(getString(R.string.music_empty_add))
                 setEmptyMessage(getString(R.string.music_empty))
+                setActionClickListener {
+                    ScanMusicActivity.start(requireContext())
+                }
             }
 
             else -> {

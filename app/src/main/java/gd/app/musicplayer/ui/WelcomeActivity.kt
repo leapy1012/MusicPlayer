@@ -9,6 +9,9 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.extension.isMediaOpenIntent
 import gd.app.musicplayer.core.datastore.AppStartupPreferenceDataStore
+import gd.app.musicplayer.core.datastore.MusicDataStore
+import gd.app.musicplayer.core.datastore.SoundEffectPreferences
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.ActivityWelcomeBinding
 import gd.app.musicplayer.domain.usecase.database.RunMusicDatabaseStartupSyncUseCase
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -24,6 +27,9 @@ class WelcomeActivity : BaseActivity() {
 
     @Inject lateinit var runMusicDatabaseStartupSyncUseCase: RunMusicDatabaseStartupSyncUseCase
     @Inject lateinit var appStartupPreferenceDataStore: AppStartupPreferenceDataStore
+    @Inject lateinit var themeManager: ThemeManager
+    @Inject lateinit var musicDataStore: MusicDataStore
+    @Inject lateinit var soundEffectPreferences: SoundEffectPreferences
 
     private lateinit var binding: ActivityWelcomeBinding
 
@@ -53,6 +59,11 @@ class WelcomeActivity : BaseActivity() {
     private fun handleStartup() {
         lifecycleScope.launch {
             if (shouldBypassStartupForIncomingIntent()) {
+                // Still preload theme like original cold-start H(); skip only branding delay.
+                withContext(Dispatchers.IO) {
+                    themeManager.warmUp()
+                    syncPreferenceMirrors()
+                }
                 openMainAndFinish()
                 return@launch
             }
@@ -87,17 +98,25 @@ class WelcomeActivity : BaseActivity() {
     }
 
     /**
-     * Original Welcome: schedule sync in background, enforce splash wall-clock only.
-     * Do not wait for MediaStore → Room completion before Main.
+     * Original Welcome: [m4.c.c] / [H] on a background thread, plus DB sync.
+     * Splash wall-clock only — do not wait for MediaStore → Room completion before Main.
      */
     private suspend fun runStartupWithMinimumSplashDuration() {
         val startTime = SystemClock.elapsedRealtime()
 
         withContext(Dispatchers.IO) {
+            // Original WelcomeActivity.c Thread: f.i().k().c(appCtx) before UI proceeds.
+            themeManager.warmUp()
+            syncPreferenceMirrors()
             runMusicDatabaseStartupSyncUseCase()
         }
 
         delayRemainingSplashTime(startTime)
+    }
+
+    private suspend fun syncPreferenceMirrors() {
+        musicDataStore.syncBooleansToSharedPreferences()
+        soundEffectPreferences.syncBooleansToSharedPreferences()
     }
 
     private suspend fun delayRemainingSplashTime(startTimeMillis: Long) {

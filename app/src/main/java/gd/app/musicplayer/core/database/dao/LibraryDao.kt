@@ -553,6 +553,38 @@ interface LibraryDao : LibraryVisibleTracksDao {
 
     @Query(
         """
+        SELECT folder_path
+        FROM musictbl
+        WHERE data = :dataPath
+        LIMIT 1
+        """
+    )
+    suspend fun findFolderPathByData(dataPath: String): String?
+
+    @Query(
+        """
+        SELECT folder_path
+        FROM musictbl
+        WHERE data LIKE '%' || :fileName
+        LIMIT 1
+        """
+    )
+    suspend fun findFolderPathByFileName(fileName: String): String?
+
+    @Query(
+        """
+        SELECT *
+        FROM musictbl
+        WHERE hide_time = 0
+          AND `show` = 1
+          AND folder_path = :folderPath
+        ORDER BY title COLLATE NOCASE ASC
+        """
+    )
+    suspend fun getVisibleTracksInFolder(folderPath: String): List<MusicEntity>
+
+    @Query(
+        """
         SELECT _id
         FROM musictbl
         WHERE _id IN (:trackIds)

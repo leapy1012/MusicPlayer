@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
@@ -75,12 +74,14 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
         super.onViewCreated(view, savedInstanceState)
         // Configure binding
         onBindingCreated(requireBinding(), savedInstanceState)
+        // Original fragment path: theme once after view created (not on every resume).
+        applyThemeAndInsets()
     }
 
     override fun onStart() {
         super.onStart()
+        // Original y.Y().L(this) — register only.
         themeRegistry.registerObserver(this)
-        applyThemeAndInsets()
     }
 
     override fun onStop() {
@@ -98,11 +99,6 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
         applyThemeAndInsets()
     }
 
-    override fun onResume() {
-        super.onResume()
-        applyThemeAndInsets()
-    }
-
     fun applyThemeTo(root: View?) {
         themeEngine.apply(root)
     }
@@ -110,6 +106,5 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
     private fun applyThemeAndInsets() {
         val root = binding?.root ?: return
         applyThemeTo(root)
-//        ViewCompat.requestApplyInsets(root)
     }
 }

@@ -51,8 +51,21 @@ class DefaultThemeBinder : ThemeViewBinder {
         payload: Any?,
         view: View,
     ): Boolean {
+        return bind(
+            palette = palette,
+            theme = ThemeBindContext.from(palette),
+            payload = payload,
+            view = view
+        )
+    }
+
+    internal fun bind(
+        palette: ThemePalette,
+        theme: ThemeBindContext,
+        payload: Any?,
+        view: View,
+    ): Boolean {
         val tag = payload as? String ?: return false
-        val theme = ThemeBindContext.from(palette)
 
         return bindSurface(tag, palette, theme, view) ||
                 bindDialog(tag, palette, theme, view) ||
@@ -563,7 +576,26 @@ class DefaultThemeBinder : ThemeViewBinder {
         view: View,
     ): Boolean {
         when (tag) {
-            ThemeTags.Item.EMPTY_BUTTON,
+            // Original m5.v.c for tag "emptyButton": accent text/icon,
+            // translucent white/black stroke (not accent stroke).
+            ThemeTags.Item.EMPTY_BUTTON -> {
+                if (view is TextView) {
+                    view.setTextColor(theme.accentColor)
+                    tintCompoundDrawables(view, theme.accentColor)
+                    view.background = outlinedRoundedRippleDrawable(
+                        cornerRadius = view.context.dpToPx(100f),
+                        strokeWidth = view.context.dpToPx(1f),
+                        strokeColor = if (theme.usesDarkForeground) {
+                            0x1A000000
+                        } else {
+                            0x33FFFFFF
+                        },
+                        rippleColor = theme.rippleColor,
+                    )
+                }
+                return true
+            }
+
             ThemeTags.Item.THEME_STROKE_BUTTON,
             ThemeTags.Misc.SCAN_BUTTON -> {
                 if (view is TextView) {

@@ -13,6 +13,7 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.core.common.extension.applyCachedStatusBarHeight
 import gd.app.musicplayer.core.common.extension.screenHeight
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat
@@ -28,6 +29,9 @@ class ThemeActivity : BaseActivity() {
     private lateinit var binding: ActivityThemeBinding
     private lateinit var pagerAdapter: ThemePagerAdapter
     private var tabMediator: TabLayoutMediator? = null
+    /** Defer grid/tab population until enter animation ends (original fills after async s1). */
+    private var enterAnimationComplete = false
+    private var pendingUiState: ThemeUiState? = null
 
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -45,6 +49,8 @@ class ThemeActivity : BaseActivity() {
         }
 
     companion object {
+        private const val ENTER_ANIMATION_FALLBACK_MS = 450L
+
         fun start(context: Context) {
             context.startActivityCompat(Intent(context, ThemeActivity::class.java))
         }
@@ -59,16 +65,30 @@ class ThemeActivity : BaseActivity() {
         setupInsets()
         setupToolbar()
         setupAccentColorDialog()
-        setupPager()
+        // Original attaches an empty ViewPager in y0; catalog fills async after s1.
+        // Dream's ViewPager2 creates fragments immediately — defer until enter animation
+        // ends so fragment inflate / DiffUtil / Glide do not fight music_activity_in.
         observeUiState()
         observeEffects()
+        scheduleEnterAnimationFallback()
+    }
+
+    private fun scheduleEnterAnimationFallback() {
+        window.decorView.postDelayed({
+            if (!enterAnimationComplete) {
+                onEnterAnimationComplete()
+            }
+        }, ENTER_ANIMATION_FALLBACK_MS)
+    }
+
+    private fun ensurePagerReady() {
+        if (this::pagerAdapter.isInitialized) return
+        setupPager()
     }
 
     private fun setupInsets() {
-        binding.root.applySystemBarInsets(
-            statusBarView = binding.statusBarSpace,
-            bottomPaddingView = binding.viewPager
-        )
+        // Original ActivityTheme.y0: w0.h(status_bar_space) only — sync cached height.
+        binding.statusBarSpace.applyCachedStatusBarHeight()
     }
 
     private fun setupToolbar() {
@@ -158,6 +178,15 @@ class ThemeActivity : BaseActivity() {
     }
 
     private fun render(state: ThemeUiState) {
+        if (!enterAnimationComplete) {
+            pendingUiState = state
+            return
+        }
+        applyUiState(state)
+    }
+
+    private fun applyUiState(state: ThemeUiState) {
+        ensurePagerReady()
         pagerAdapter.submitList(state.themes)
         updateTabTitles()
 
@@ -168,7 +197,17 @@ class ThemeActivity : BaseActivity() {
         }
     }
 
+    override fun onEnterAnimationComplete() {
+        super.onEnterAnimationComplete()
+        if (enterAnimationComplete) return
+        enterAnimationComplete = true
+        ensurePagerReady()
+        pendingUiState?.let(::applyUiState)
+        pendingUiState = null
+    }
+
     private fun updateTabTitles() {
+        if (!this::pagerAdapter.isInitialized) return
         for (index in 0 until binding.tabLayout.tabCount) {
             binding.tabLayout.getTabAt(index)?.text = pagerAdapter.titleFor(index)
         }

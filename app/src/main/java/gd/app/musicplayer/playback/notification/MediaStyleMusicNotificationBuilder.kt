@@ -15,6 +15,11 @@ import androidx.media.app.NotificationCompat.MediaStyle
 import gd.app.musicplayer.R
 import java.lang.ref.SoftReference
 
+/**
+ * Modern notification — original [z6.d]:
+ * MediaStyle only (no custom RemoteViews), actions
+ * favorite / prev / play-pause / next / stop, compact indices 1,2,3.
+ */
 class MediaStyleMusicNotificationBuilder(
     context: Context,
     shouldUseDynamicColors: Boolean,
@@ -23,52 +28,85 @@ class MediaStyleMusicNotificationBuilder(
     shouldUseDynamicColors = shouldUseDynamicColors,
 ) {
     private var cachedDefaultAlbumBitmap: SoftReference<Bitmap>? = null
-    private var cachedBuilder: MutableNotificationBuilder? = null
 
     override fun buildNotification(content: MusicNotificationContent): Notification {
         createNotificationChannelIfNeeded()
         val art = content.getAlbumArt(1)
-        val builder = ensureBuilder(content)
-        builder
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(content.getSmallIconRes())
             .setContentTitle(content.getTitle())
             .setContentText("${content.getArtistName()}-${content.getAlbumName()}")
+            .setContentIntent(content.createContentIntent(context))
+            .setDeleteIntent(content.createStopIntent(context))
             .setOngoing(content.isPlaying())
-            .setCustomContentView(createCollapsedRemoteViews(content))
-            .setCustomBigContentView(createExpandedRemoteViews(content))
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(false)
+            .setShowWhen(false)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setLargeIcon(
                 if (art.hasDisplayBitmap) art.displayBitmap
                 else getDefaultAlbumBitmap(content.getDefaultAlbumArtRes(1, false))
             )
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    if (content.isFavorite()) R.drawable.notify_favorite_new
+                    else R.drawable.notify_unfavorite_new,
+                    if (content.isFavorite()) "UNFAVORITE" else "FAVORITE",
+                    content.createFavoriteIntent(context),
+                ).build(),
+            )
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.notify_previous_new,
+                    "PREVIOUS",
+                    content.createPreviousIntent(context),
+                ).build(),
+            )
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    if (content.isPlaying()) R.drawable.notify_pause_new
+                    else R.drawable.notify_play_new,
+                    if (content.isPlaying()) "PAUSE" else "PLAY",
+                    content.createPlayPauseIntent(context),
+                ).build(),
+            )
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.notify_next_new,
+                    "NEXT",
+                    content.createNextIntent(context),
+                ).build(),
+            )
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.notify_close_new,
+                    "STOP",
+                    content.createStopIntent(context),
+                ).build(),
+            )
 
-        builder.replaceAction(
-            ACTION_INDEX_FAVORITE,
-            NotificationCompat.Action.Builder(
-                if (content.isFavorite()) R.drawable.notify_favorite_new else R.drawable.notify_unfavorite_new,
-                if (content.isFavorite()) "UNFAVORITE" else "FAVORITE",
-                content.createFavoriteIntent(context),
-            ).build(),
-        )
-        builder.replaceAction(
-            ACTION_INDEX_PLAY_PAUSE,
-            NotificationCompat.Action.Builder(
-                if (content.isPlaying()) R.drawable.notify_pause_new else R.drawable.notify_play_new,
-                if (content.isPlaying()) "PAUSE" else "PLAY",
-                content.createPlayPauseIntent(context),
-            ).build(),
-        )
+        // Original z6.d: skip colorize on Samsung API 28
+        if (!(isSamsungDevice() && Build.VERSION.SDK_INT == 28)) {
+            builder.setColor(resolveColorStyle(art).backgroundColor)
+            builder.setColorized(true)
+        }
 
         val mediaStyle = MediaStyle()
             .setShowActionsInCompactView(
-                ACTION_INDEX_FAVORITE,
+                ACTION_INDEX_PREVIOUS,
                 ACTION_INDEX_PLAY_PAUSE,
-                ACTION_INDEX_STOP
+                ACTION_INDEX_NEXT
             )
+            .setCancelButtonIntent(content.createStopIntent(context))
+            .setShowCancelButton(true)
+
         content.getMediaSessionToken()?.let { token ->
             mediaStyle.setMediaSession(MediaSessionCompat.Token.fromToken(token))
         }
         builder.setStyle(mediaStyle)
-        builder.setColor(resolveColorStyle(art).backgroundColor)
-        builder.setColorized(true)
 
         return builder.build()
     }
@@ -76,62 +114,15 @@ class MediaStyleMusicNotificationBuilder(
     private fun createNotificationChannelIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (notificationManager.getNotificationChannel(CHANNEL_ID) != null) return
-        val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW).apply {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(channel)
-    }
-
-    private fun ensureBuilder(content: MusicNotificationContent): MutableNotificationBuilder {
-        cachedBuilder?.let { return it }
-        val builder = MutableNotificationBuilder(context, CHANNEL_ID)
-        builder.setSmallIcon(content.getSmallIconRes())
-        builder.setContentIntent(content.createContentIntent(context))
-        builder.setDeleteIntent(content.createStopIntent(context))
-        builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-        builder.setOnlyAlertOnce(true)
-        builder.setAutoCancel(false)
-        builder.setShowWhen(false)
-        builder.setCategory(NotificationCompat.CATEGORY_SERVICE)
-        builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
-        builder.addAction(
-            NotificationCompat.Action.Builder(
-                if (content.isFavorite()) R.drawable.notify_favorite_new else R.drawable.notify_unfavorite_new,
-                if (content.isFavorite()) "UNFAVORITE" else "FAVORITE",
-                content.createFavoriteIntent(context),
-            ).build(),
-        )
-        builder.addAction(
-            NotificationCompat.Action.Builder(
-                R.drawable.notify_previous_new,
-                "PREVIOUS",
-                content.createPreviousIntent(context),
-            ).build(),
-        )
-        builder.addAction(
-            NotificationCompat.Action.Builder(
-                R.drawable.notify_play_new,
-                "PLAY",
-                content.createPlayPauseIntent(context),
-            ).build(),
-        )
-        builder.addAction(
-            NotificationCompat.Action.Builder(
-                R.drawable.notify_next_new,
-                "NEXT",
-                content.createNextIntent(context),
-            ).build(),
-        )
-        builder.addAction(
-            NotificationCompat.Action.Builder(
-                R.drawable.notify_close_new,
-                "STOP",
-                content.createStopIntent(context),
-            ).build(),
-        )
-        cachedBuilder = builder
-        return builder
     }
 
     private fun getDefaultAlbumBitmap(drawableRes: Int): Bitmap {
@@ -143,21 +134,15 @@ class MediaStyleMusicNotificationBuilder(
         return bitmap
     }
 
-    private class MutableNotificationBuilder(
-        context: Context,
-        channelId: String,
-    ) : NotificationCompat.Builder(context, channelId) {
-        fun replaceAction(index: Int, action: NotificationCompat.Action) {
-            if (index in mActions.indices) {
-                mActions[index] = action
-            }
-        }
+    private fun isSamsungDevice(): Boolean {
+        return Build.MANUFACTURER.equals("samsung", ignoreCase = true)
     }
 
     private companion object {
-        const val ACTION_INDEX_FAVORITE = 0
+        // Original z6.d action order: 0 fav, 1 prev, 2 play/pause, 3 next, 4 stop
+        // Compact l(1, 2, 3) = prev / play-pause / next
+        const val ACTION_INDEX_PREVIOUS = 1
         const val ACTION_INDEX_PLAY_PAUSE = 2
-        const val ACTION_INDEX_STOP = 4
-
+        const val ACTION_INDEX_NEXT = 3
     }
 }

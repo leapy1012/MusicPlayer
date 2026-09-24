@@ -15,13 +15,19 @@ import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.effects.VolumeFader
 
 /**
- * Crossfade / gapless — original [w6.b] + [u6.e] + [y6.y.U]:
+ * Crossfade / gapless — original [w6.b] + [u6.e] + [y6.y.U] / [y6.y.C0]:
  *
+ * Crossfade:
  * 1. Arm in fade window
  * 2. Advance queue to next ([e0.s(true)]) then start incoming on next track
- * 3. Primary stays on old track as outgoing; secondary is incoming (new primary)
+ * 3. Primary stays on old track as outgoing; secondary is incoming
  * 4. Every 100ms: gains from incoming.position / fadeDuration + AccelerateDecelerate
  * 5. Commit = promote incoming → primary and release outgoing ([u6.e.v]) — no seek
+ *
+ * Gapless (prepare-only, not early advance):
+ * 1. When remaining < 2000ms and duration > 2000 ([w6.b.p] / [f16252o])
+ * 2. Peek next ([e0.q]) and [u6.e.k] prepareNextMedia on secondary (no play)
+ * 3. On track end / next start: reuse prepared player ([u6.e.u] when [f15430p]==2)
  */
 class TimedTransitionController(
     private var outgoingPlayer: ExoPlayer,
@@ -36,6 +42,7 @@ class TimedTransitionController(
 ) {
 
     private var activeTransition: ActiveTransition? = null
+    private var gaplessPrepared: GaplessPrepared? = null
     private var incomingTrack: Music? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -51,6 +58,7 @@ class TimedTransitionController(
     private val incomingPlayerListener = object : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
             val transition = activeTransition
+            clearGaplessPrepared(abortIncoming = false)
             abortIncomingKeepOutgoing()
             stopCrossfadeTicker()
 
@@ -77,6 +85,8 @@ class TimedTransitionController(
         if (currentIndex !in queue.indices) return
 
         val currentTrack = queue[currentIndex]
+        invalidateGaplessIfTrackChanged(currentTrack.id)
+
         val durationMs = outgoingPlayer.duration.takeIf { duration ->
             duration != C.TIME_UNSET && duration > 0L
         } ?: return
@@ -109,8 +119,10 @@ class TimedTransitionController(
             }
 
             preferences.audio.gaplessPlaybackEnabled -> {
-                maybeStartGaplessAdvance(
+                maybePrepareGapless(
                     currentTrackId = currentTrack.id,
+                    nextIndex = nextIndex,
+                    durationMs = durationMs,
                     remainingMs = remainingMs
                 )
             }
@@ -120,6 +132,7 @@ class TimedTransitionController(
     fun reset() {
         stopCrossfadeTicker()
         activeTransition = null
+        clearGaplessPrepared(abortIncoming = false)
         abortIncomingKeepOutgoing()
     }
 
@@ -137,9 +150,54 @@ class TimedTransitionController(
         return true
     }
 
+    /**
+     * Original [u6.e.u]: when next matches [f15428j]/[f15429o] prepared, reuse that
+     * player instead of preparing from scratch.
+     */
+    fun consumeTrackEndedWithGaplessPrepare(): Boolean {
+        val prepared = gaplessPrepared ?: return false
+
+        val queue = queueProvider()
+        val currentIndex = currentIndexProvider()
+        val resolvedNextIndex = playbackModeResolver.resolveNextIndex(
+            queueSize = queue.size,
+            currentIndex = currentIndex,
+            fromAutoTransition = true
+        )
+
+        val expectedNext = queue.getOrNull(prepared.nextIndex)
+        val incomingId = incomingTrack?.id
+
+        if (
+            resolvedNextIndex != prepared.nextIndex ||
+            expectedNext?.id != prepared.nextTrackId ||
+            incomingId != prepared.nextTrackId
+        ) {
+            clearGaplessPrepared(abortIncoming = true)
+            return false
+        }
+
+        gaplessPrepared = null
+        val promotedTrack = incomingTrack
+        incomingTrack = null
+
+        // Prepared only — start before promote (original start() on reused MediaPlayer).
+        runCatching {
+            incomingPlayer.playWhenReady = true
+            incomingPlayer.play()
+        }
+
+        callbacks.onCrossfadePromote(
+            nextIndex = prepared.nextIndex,
+            incomingTrack = promotedTrack
+        )
+        return true
+    }
+
     fun cancelAndRestoreVolume() {
         stopCrossfadeTicker()
         activeTransition = null
+        clearGaplessPrepared(abortIncoming = false)
         abortIncomingKeepOutgoing()
         outgoingVolumeFader.resetToFullVolume()
     }
@@ -147,6 +205,7 @@ class TimedTransitionController(
     fun release() {
         stopCrossfadeTicker()
         runCatching { incomingPlayer.removeListener(incomingPlayerListener) }
+        clearGaplessPrepared(abortIncoming = false)
         abortIncomingKeepOutgoing()
     }
 
@@ -169,6 +228,7 @@ class TimedTransitionController(
         incomingPlayer.addListener(incomingPlayerListener)
         incomingTrack = null
         activeTransition = null
+        gaplessPrepared = null
     }
 
     private fun maybeStartCrossfade(
@@ -195,6 +255,8 @@ class TimedTransitionController(
         val queue = queueProvider()
         val nextTrack = queue.getOrNull(nextIndex) ?: return
         val mediaItem = nextTrack.toMediaItemOrNull() ?: return
+
+        clearGaplessPrepared(abortIncoming = true)
 
         activeTransition = ActiveTransition.Crossfade(
             outgoingTrackId = currentTrackId,
@@ -255,31 +317,46 @@ class TimedTransitionController(
         return true
     }
 
-    private fun maybeStartGaplessAdvance(
+    /**
+     * Original [w6.b.p] gapless branch → [y6.y.C0] → [u6.e.k] prepareNextMedia.
+     * Arms once per track ([f16252o]); does not advance queue or start playback.
+     */
+    private fun maybePrepareGapless(
         currentTrackId: Long,
+        nextIndex: Int,
+        durationMs: Long,
         remainingMs: Long
     ) {
-        if (remainingMs > GAPLESS_ADVANCE_WINDOW_MS) return
+        if (gaplessPrepared != null) return
+        if (durationMs <= GAPLESS_PREPARE_WINDOW_MS) return
+        if (remainingMs > GAPLESS_PREPARE_WINDOW_MS) return
 
-        activeTransition = ActiveTransition.GaplessAdvance(
-            trackId = currentTrackId
+        val queue = queueProvider()
+        val nextTrack = queue.getOrNull(nextIndex) ?: return
+        // Original Music.H(): id != -1
+        if (nextTrack.id == INVALID_MUSIC_ID) return
+        val mediaItem = nextTrack.toMediaItemOrNull() ?: return
+
+        gaplessPrepared = GaplessPrepared(
+            currentTrackId = currentTrackId,
+            nextIndex = nextIndex,
+            nextTrackId = nextTrack.id
         )
+        incomingTrack = nextTrack
 
-        advanceIfStillOnTrack(expectedTrackId = currentTrackId)
-    }
-
-    private fun advanceIfStillOnTrack(expectedTrackId: Long) {
-        val latestQueue = queueProvider()
-        val latestIndex = currentIndexProvider()
-        val latestTrackId = latestQueue.getOrNull(latestIndex)?.id
-
-        if (latestTrackId != expectedTrackId) {
-            activeTransition = null
+        runCatching {
+            incomingPlayer.stop()
+            incomingPlayer.clearMediaItems()
+            incomingPlayer.playbackParameters = outgoingPlayer.playbackParameters
+            incomingPlayer.setMediaItem(mediaItem, 0L)
+            incomingPlayer.prepare()
+            incomingPlayer.playWhenReady = false
+        }.onFailure {
+            clearGaplessPrepared(abortIncoming = true)
             return
         }
 
-        activeTransition = null
-        callbacks.onPlayNext(fromAutoTransition = true)
+        callbacks.onCrossfadeIncomingPrepared()
     }
 
     private fun commitCrossfadePromote(
@@ -325,16 +402,32 @@ class TimedTransitionController(
         incomingTrack = null
     }
 
+    private fun clearGaplessPrepared(abortIncoming: Boolean) {
+        if (gaplessPrepared == null && !abortIncoming) return
+        gaplessPrepared = null
+        if (abortIncoming) {
+            abortIncomingKeepOutgoing()
+        }
+    }
+
+    private fun invalidateGaplessIfTrackChanged(currentTrackId: Long) {
+        val prepared = gaplessPrepared ?: return
+        if (prepared.currentTrackId != currentTrackId) {
+            clearGaplessPrepared(abortIncoming = true)
+        }
+    }
+
     private fun stopCrossfadeTicker() {
         mainHandler.removeCallbacks(crossfadeVolumeTick)
     }
 
     private fun isAlreadyHandling(trackId: Long): Boolean {
-        return when (val transition = activeTransition) {
-            is ActiveTransition.Crossfade -> transition.outgoingTrackId == trackId
-            is ActiveTransition.GaplessAdvance -> transition.trackId == trackId
-            null -> false
+        val transition = activeTransition
+        if (transition is ActiveTransition.Crossfade) {
+            return transition.outgoingTrackId == trackId
         }
+        val prepared = gaplessPrepared
+        return prepared != null && prepared.currentTrackId == trackId
     }
 
     interface Callbacks {
@@ -347,8 +440,8 @@ class TimedTransitionController(
         fun onCrossfadeIncomingPrepared()
 
         /**
-         * Original [u6.e.v]: promote incoming to primary, release outgoing.
-         * Must not seek/reload the next track.
+         * Original [u6.e.v] / gapless reuse in [u6.e.u]: promote incoming to primary,
+         * release outgoing. Must not seek/reload the next track.
          */
         fun onCrossfadePromote(
             nextIndex: Int,
@@ -362,15 +455,19 @@ class TimedTransitionController(
             val nextIndex: Int,
             val fadeDurationMs: Long
         ) : ActiveTransition()
-
-        data class GaplessAdvance(
-            val trackId: Long
-        ) : ActiveTransition()
     }
+
+    private data class GaplessPrepared(
+        val currentTrackId: Long,
+        val nextIndex: Int,
+        val nextTrackId: Long
+    )
 
     private companion object {
         private const val MILLIS_PER_SECOND = 1_000
-        private const val GAPLESS_ADVANCE_WINDOW_MS = 150L
+        /** Original [w6.b.p]: duration > 2000 && remaining < 2000. */
+        private const val GAPLESS_PREPARE_WINDOW_MS = 2_000L
+        private const val INVALID_MUSIC_ID = -1L
         private const val MIN_FADE_DURATION_MS = 1_000
         private const val MAX_FADE_DURATION_MS = 12_000
         private const val CROSSFADE_ARM_WINDOW_MS = 2_000L

@@ -56,7 +56,8 @@ class DefaultMusicNotificationContent(
     override fun getAlbumArt(viewType: Int): NotificationAlbumArtwork = albumArt
 
     override fun createStopIntent(context: Context): PendingIntent =
-        actionIntentFactory(PlaybackServiceActions.ACTION_QUIT, REQUEST_STOP)
+        // Original z6.i.o → music_action_stop → y.g1() → opraton_action_exit
+        actionIntentFactory(PlaybackServiceActions.ACTION_STOP, REQUEST_STOP)
 
     override fun getMediaSessionToken(): MediaSession.Token? = mediaSessionToken
 

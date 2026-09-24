@@ -50,9 +50,11 @@ class PlaybackCommandHandler(
                 return false
             }
 
-            PlaybackServiceActions.ACTION_QUIT -> {
-                callbacks.pauseAndPersistForNotificationClose()
-                return true
+            // Original music_action_stop → g1() → exit; quit/deleteIntent same path
+            PlaybackServiceActions.ACTION_QUIT,
+            PlaybackServiceActions.ACTION_STOP -> {
+                callbacks.exitService()
+                return false
             }
 
             PlaybackServiceActions.ACTION_TOGGLE_PLAY_PAUSE -> callbacks.togglePlayPause()
@@ -62,7 +64,6 @@ class PlaybackCommandHandler(
             PlaybackServiceActions.ACTION_NEXT -> callbacks.playNext()
             PlaybackServiceActions.ACTION_PREVIOUS -> callbacks.playPrevious()
 
-            PlaybackServiceActions.ACTION_STOP -> callbacks.stopPlayback()
             PlaybackServiceActions.ACTION_CUSTOM_STOP -> callbacks.stopPlaybackWithoutClearingQueue()
 
             PlaybackServiceActions.ACTION_RESTART_CURRENT -> callbacks.restartCurrentTrack()

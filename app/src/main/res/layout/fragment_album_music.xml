@@ -42,7 +42,6 @@
                 android:minHeight="@dimen/common_title_height"
                 android:theme="@style/AppToolbar"
                 app:layout_collapseMode="pin"
-                app:menu="@menu/menu_fragment_music"
                 app:navigationIcon="@drawable/vector_menu_back"
                 app:titleTextAppearance="@style/AppToolbarTitle" />
         </com.google.android.material.appbar.CollapsingToolbarLayout>

@@ -83,17 +83,26 @@ class ThemeRegistry(
     ) {
         if (root == null) return
 
+        // Hoist bind context once per walk (original binder uses palette ints; Dream was
+        // allocating ThemeBindContext per tagged view).
+        val bindContext = ThemeBindContext.from(palette)
+        val defaultBinder = provider.getThemeBinder() as? DefaultThemeBinder
+
         applyRecursive(
             view = root,
             palette = palette,
-            binder = binder
+            bindContext = bindContext,
+            customBinder = binder,
+            defaultBinder = defaultBinder
         )
     }
 
     private fun applyRecursive(
         view: View,
         palette: ThemePalette,
-        binder: ThemeViewBinder?
+        bindContext: ThemeBindContext,
+        customBinder: ThemeViewBinder?,
+        defaultBinder: DefaultThemeBinder?
     ) {
         val tag = view.tag
 
@@ -102,18 +111,27 @@ class ThemeRegistry(
         }
 
         if (tag != null) {
-            val handled = binder?.bind(
+            val handledByCustom = customBinder?.bind(
                 palette = palette,
                 payload = tag,
                 view = view
             ) == true
 
-            if (!handled) {
-                provider.getThemeBinder()?.bind(
-                    palette = palette,
-                    payload = tag,
-                    view = view
-                )
+            if (!handledByCustom) {
+                if (defaultBinder != null) {
+                    defaultBinder.bind(
+                        palette = palette,
+                        theme = bindContext,
+                        payload = tag,
+                        view = view
+                    )
+                } else {
+                    provider.getThemeBinder()?.bind(
+                        palette = palette,
+                        payload = tag,
+                        view = view
+                    )
+                }
             }
         }
 
@@ -122,7 +140,9 @@ class ThemeRegistry(
                 applyRecursive(
                     view = view.getChildAt(index),
                     palette = palette,
-                    binder = binder
+                    bindContext = bindContext,
+                    customBinder = customBinder,
+                    defaultBinder = defaultBinder
                 )
             }
         }

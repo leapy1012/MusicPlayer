@@ -40,8 +40,10 @@ class PlaybackStateOrchestrator(
 
         if (reason != PublishReason.ProgressTick) {
             updateNotification(force = forceNotification)
-            notificationSessionBridge.updatePlaybackState()
         }
+
+        // Original y.d(pos) → e7.j.n(pos) every progress tick — keep lockscreen/BT position live
+        notificationSessionBridge.updatePlaybackState()
 
         statePublisher.publish(
             forceWidgetUpdate = forceWidgetUpdate
