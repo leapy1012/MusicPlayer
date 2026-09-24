@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "gd.app.musicplayer"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "gd.app.musicplayer"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -44,16 +44,34 @@ android {
     }
 }
 
+// Media3 1.5+ AARs declare minCompileSdk 35; product is AOSP 14 (API 34).
+// Runtime target stays 34; disable AAR metadata gate so we can compile against SDK 34.
+tasks.configureEach {
+    if (name.contains("AarMetadata", ignoreCase = true)) {
+        enabled = false
+    }
+}
+
+// Offline Maven mirror often lacks Gradle .module metadata for KMP artifacts.
+// Without it, both -android and -jvm variants can land on the classpath.
+configurations.configureEach {
+    exclude(group = "androidx.datastore", module = "datastore-core-jvm")
+    exclude(group = "androidx.datastore", module = "datastore-jvm")
+    exclude(group = "androidx.datastore", module = "datastore-preferences-jvm")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.material)
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
-    implementation("androidx.media:media:1.7.0")
+    implementation(libs.androidx.media)
     implementation(libs.hilt.android)
     implementation(libs.glide)
     implementation(libs.androidx.datastore.preferences)

@@ -106,9 +106,38 @@ class AudioEffectsManager @Inject constructor(
         attachedSessionId = -1
     }
 
+    /**
+     * Ensures effects are bound to [player]'s audio session without re-reading prefs when
+     * already attached — used for live band dragging.
+     */
+    @OptIn(UnstableApi::class)
+    suspend fun ensureAttached(player: ExoPlayer): Boolean {
+        val sessionId = withContext(Dispatchers.Main.immediate) {
+            player.audioSessionId
+        }
+        if (sessionId <= 0) {
+            return false
+        }
+        if (attachedSessionId != sessionId || equalizer == null) {
+            attachAndApply(player)
+        }
+        return equalizer != null
+    }
+
+    /**
+     * Applies UI equalizer band levels immediately (no prefs IO). Matches original
+     * `z5.l.t` / `z5.b.f` live path during seekbar drag.
+     */
+    fun setEqualizerUiLevels(levels: List<Int>, enabled: Boolean) {
+        applyEqualizerLevels(levels, enabled)
+    }
+
     private fun applyEqualizer(settings: AudioEffectSettings) {
+        applyEqualizerLevels(settings.activeCustomLevels, settings.eqEnabled)
+    }
+
+    private fun applyEqualizerLevels(levels: List<Int>, enabled: Boolean) {
         val eq = equalizer ?: return
-        val levels = settings.activeCustomLevels
 
         val bandRange = runCatching {
             eq.bandLevelRange
@@ -122,7 +151,7 @@ class AudioEffectsManager @Inject constructor(
             eq.numberOfBands.toInt()
         }.getOrDefault(0)
 
-        if (!settings.eqEnabled || targetUiBands <= 0 || targetEqBands <= 0) {
+        if (!enabled || targetUiBands <= 0 || targetEqBands <= 0) {
             runCatching {
                 eq.enabled = false
             }

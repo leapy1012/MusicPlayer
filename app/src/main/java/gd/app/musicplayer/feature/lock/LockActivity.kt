@@ -34,6 +34,7 @@ import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.screenHeight
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.toDurationString
+import gd.app.musicplayer.feature.player.common.PlaybackProgressBinder
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.core.designsystem.theme.accentColor
@@ -43,6 +44,7 @@ import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.domain.model.ContextMenuItem
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.PlaybackController
+import gd.app.musicplayer.playback.lock.LockScreenController
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.menu.BaseContextMenu
@@ -84,6 +86,7 @@ class LockActivity : BaseActivity(),
     private lateinit var totalTimeView: TextView
 
     @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
+    @Inject lateinit var lockScreenController: LockScreenController
     @Inject lateinit var playbackController: PlaybackController
     @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
@@ -140,6 +143,7 @@ class LockActivity : BaseActivity(),
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
+        applyShowWhenLockedPolicy()
         renderCurrentPlaybackSnapshot()
     }
 
@@ -196,8 +200,6 @@ class LockActivity : BaseActivity(),
         window.navigationBarColor = Color.TRANSPARENT
         window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
 
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility =
             View.SYSTEM_UI_FLAG_FULLSCREEN or
@@ -206,22 +208,40 @@ class LockActivity : BaseActivity(),
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
                     View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-            )
-        }
+        applyShowWhenLockedPolicy()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes = window.attributes.apply {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
+        }
+    }
+
+    /**
+     * Matches original [com.ijoysoft.music.activity.BaseLockActivity.n1]:
+     * show-when-locked always; turn-screen-on only pre-O; dismiss keyguard only if insecure.
+     */
+    private fun applyShowWhenLockedPolicy() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            @Suppress("DEPRECATION")
+            window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+            return
+        }
+
+        runCatching {
+            val keyguardManager =
+                getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+                    ?: return
+            if (keyguardManager.isKeyguardSecure) return
+            keyguardManager.requestDismissKeyguard(this, null)
         }
     }
 
@@ -375,8 +395,12 @@ class LockActivity : BaseActivity(),
             getString(android.R.string.unknownName)
         }
 
-        totalTimeView.text = track.duration.toLong().toDurationString()
-        progressView.setMax(track.duration.coerceAtLeast(1))
+        val metrics = PlaybackProgressBinder.metrics(
+            durationMs = track.duration.toLong(),
+            positionMs = 0L
+        )
+        totalTimeView.text = metrics.durationMs.toDurationString()
+        progressView.setMax(metrics.durationInt)
         progressView.isEnabled = track.duration > 0
     }
 
@@ -384,13 +408,15 @@ class LockActivity : BaseActivity(),
         positionMs: Long,
         durationMs: Int
     ) {
-        val safePositionMs = positionMs
-            .coerceAtLeast(0L)
-            .coerceAtMost(durationMs.coerceAtLeast(0).toLong())
+        val metrics = PlaybackProgressBinder.metrics(
+            durationMs = durationMs.toLong(),
+            positionMs = positionMs,
+            minDurationMs = 0L
+        )
 
-        progressView.setProgress(safePositionMs.toInt())
-        currentTimeView.text = safePositionMs.toDurationString()
-        lyricView.setCurrentTime(safePositionMs)
+        progressView.setProgress(metrics.positionInt)
+        currentTimeView.text = metrics.positionMs.toDurationString()
+        lyricView.setCurrentTime(metrics.positionMs)
     }
 
     private fun renderArtwork(track: Music) {
@@ -555,6 +581,7 @@ class LockActivity : BaseActivity(),
                 positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
                     lifecycleScope.launch {
                         settingPreferencesDataStore.updateLockScreenEnabled(false)
+                        lockScreenController.refresh(false)
                         dialog.dismiss()
                         finish()
                     }
@@ -596,15 +623,18 @@ class LockActivity : BaseActivity(),
         private const val CLOCK_DATE_PATTERN = "EEE, MMM d"
 
         fun start(context: Context) {
-            context.startActivity(
-                Intent(context, LockActivity::class.java).apply {
-                    addFlags(
-                        Intent.FLAG_ACTIVITY_NEW_TASK or
-                                Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                                Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    )
-                }
-            )
+            val intent = Intent(context, LockActivity::class.java).apply {
+                // Original LockActivity.r1 flags: NEW_TASK | EXCLUDE_FROM_RECENTS (0x10800000).
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                )
+            }
+            runCatching {
+                context.startActivity(intent)
+            }.onFailure {
+                context.applicationContext.startActivity(intent)
+            }
         }
     }
 }

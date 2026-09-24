@@ -3,7 +3,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import androidx.annotation.OptIn
-import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -13,32 +12,46 @@ import gd.app.musicplayer.feature.widget.WidgetCatalog
 
 class PlaybackStatePublisher(
     private val context: Context,
-    private val player: ExoPlayer,
+    private var player: ExoPlayer,
     private val runtimeStateStore: PlaybackRuntimeStateStore,
     private val queueProvider: () -> List<Music>,
     private val currentIndexProvider: () -> Int,
+    /**
+     * During original-style crossfade, progress/position come from the incoming
+     * (new primary) player — [u6.e.getPosition] after swap.
+     */
+    private val progressPlayerProvider: () -> ExoPlayer? = { null }
 ) {
     private var lastWidgetSignature: WidgetSignature? = null
     private var lastWidgetUpdateElapsedMs: Long = 0L
+
+    fun replacePlayer(newPlayer: ExoPlayer) {
+        player = newPlayer
+    }
 
     @OptIn(UnstableApi::class)
     fun publish(forceWidgetUpdate: Boolean = false) {
         val queue = queueProvider().toList()
         val currentIndex = currentIndexProvider()
         val currentTrack = queue.getOrNull(currentIndex)
-        val durationMs = resolveDurationMs(currentTrack)
-        val positionMs = player.safePositionMs(durationMs)
+        val progressPlayer = progressPlayerProvider() ?: player
+        val durationMs = PlaybackDurationResolver.resolveDurationMs(
+            player = progressPlayer,
+            track = currentTrack
+        )
+        val positionMs = PlaybackDurationResolver.safePositionMs(progressPlayer, durationMs)
         val transitionPlaying =
-            player.playWhenReady &&
+            (player.playWhenReady || progressPlayer.playWhenReady) &&
                     currentIndex in queue.indices &&
-                    player.playbackState != Player.STATE_IDLE
+                    (player.playbackState != Player.STATE_IDLE ||
+                        progressPlayer.playbackState != Player.STATE_IDLE)
 
         val state = MusicPlaybackState(
             initialized = true,
             queue = queue,
             currentIndex = currentIndex,
             currentTrack = currentTrack,
-            isPlaying = player.isPlaying || transitionPlaying,
+            isPlaying = player.isPlaying || progressPlayer.isPlaying || transitionPlaying,
             positionMs = positionMs,
             durationMs = durationMs,
             audioSessionId = player.audioSessionId
@@ -172,25 +185,6 @@ class PlaybackStatePublisher(
             )
         }
     }
-
-    private fun resolveDurationMs(currentTrack: Music?): Long {
-        val playerDuration = player.safeDurationMs()
-        if (playerDuration > 0L) return playerDuration
-
-        return currentTrack?.duration?.toLong()?.coerceAtLeast(0L) ?: 0L
-    }
-
-    private fun ExoPlayer.safeDurationMs(): Long = runCatching {
-        duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0L) ?: 0L
-    }.getOrDefault(0L)
-
-    private fun ExoPlayer.safePositionMs(durationMs: Long): Long = runCatching {
-        if (durationMs <= 0L) {
-            currentPosition.coerceAtLeast(0L)
-        } else {
-            currentPosition.coerceIn(0L, durationMs)
-        }
-    }.getOrDefault(0L)
 
     private data class WidgetSignature(
         val queueIds: List<Long>,

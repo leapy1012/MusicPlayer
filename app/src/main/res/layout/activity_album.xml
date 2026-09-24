@@ -23,17 +23,16 @@
         app:behavior_skipCollapsed="false"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-        <androidx.fragment.app.FragmentContainerView
+        <!-- Original activity_album: empty FrameLayouts; banners added via FragmentTransaction.commit(). -->
+        <FrameLayout
             android:id="@+id/bottomPlayer"
-            android:name="gd.app.musicplayer.feature.player.bottomsheet.BottomPlayerFragment"
             android:layout_width="match_parent"
             android:layout_height="236dp"
             android:clipToPadding="false"
             android:visibility="gone" />
 
-        <androidx.fragment.app.FragmentContainerView
+        <FrameLayout
             android:id="@+id/miniPlayer"
-            android:name="gd.app.musicplayer.feature.player.mini.BottomMiniPlayerFragment"
             android:layout_width="match_parent"
             android:layout_height="@dimen/main_control_banner_height"
             android:clipToPadding="false" />

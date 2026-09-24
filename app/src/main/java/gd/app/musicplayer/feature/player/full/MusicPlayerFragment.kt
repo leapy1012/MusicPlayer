@@ -51,6 +51,7 @@ import gd.app.musicplayer.feature.lyrics.LyricSettingsDialogFragment
 import gd.app.musicplayer.feature.lyrics.a
 import gd.app.musicplayer.feature.lyrics.hasTimedLyrics
 import gd.app.musicplayer.feature.lyrics.setLyricText
+import gd.app.musicplayer.feature.player.common.PlaybackProgressBinder
 import gd.app.musicplayer.feature.player.queue.PlayQueueActivity
 import gd.app.musicplayer.feature.player.TempoDialogFragment
 import gd.app.musicplayer.util.LyricsLoader
@@ -379,14 +380,17 @@ class MusicPlayerFragment :
             position
         }
 
-        binding.musicPlayController.controlPlayPause.isSelected = state.isPlaying
-        binding.musicPlayProgress.musicPlayTotalTime.text = duration.toDurationString()
-        binding.musicPlayProgress.musicPlayCurrTime.text = displayedPosition.toDurationString()
-        binding.musicPlayProgress.musicPlayProgress.setMax(duration.toInt())
-
-        if (!userSeeking) {
-            binding.musicPlayProgress.musicPlayProgress.setProgress(displayedPosition.toInt())
-        }
+        PlaybackProgressBinder.bind(
+            seekBar = binding.musicPlayProgress.musicPlayProgress,
+            durationMs = duration,
+            positionMs = position,
+            userSeeking = userSeeking,
+            isPlaying = state.isPlaying,
+            playPauseView = binding.musicPlayController.controlPlayPause,
+            currentTimeView = binding.musicPlayProgress.musicPlayCurrTime,
+            totalTimeView = binding.musicPlayProgress.musicPlayTotalTime,
+            displayedPositionMs = displayedPosition
+        )
 
         if (pendingSeek != null && kotlin.math.abs(position - pendingSeek) <= 750L) {
             pendingSeekPositionMs = null

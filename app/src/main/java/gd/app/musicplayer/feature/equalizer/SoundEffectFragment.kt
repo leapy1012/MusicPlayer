@@ -505,6 +505,7 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
 
         binding.root.requestDisallowInterceptTouchEvent(intercept)
         binding.equalizerContentView.requestDisallowInterceptTouchEvent(intercept)
+        (activity as? EqualizerActivity)?.requestPagerDisallowInterceptTouchEvent(intercept)
     }
 
     private fun updateContentHeight() {

@@ -9,7 +9,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
@@ -17,6 +16,8 @@ import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.databinding.FragmentMainControl2Binding
+import gd.app.musicplayer.feature.player.common.PlaybackChromeSnapshot
+import gd.app.musicplayer.feature.player.common.PlaybackProgressBinder
 import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
@@ -24,7 +25,8 @@ import gd.app.musicplayer.feature.player.full.MusicPlayActivity
 import gd.app.musicplayer.feature.player.full.PlaybackProgressUiState
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import gd.app.musicplayer.feature.player.full.TrackUiState
-import gd.app.musicplayer.ui.shell.MainActivity
+import gd.app.musicplayer.playback.PlaybackController
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -32,6 +34,9 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
     SeekBar.OnSeekBarChangeListener {
 
     private val viewModel: PlayerViewModel by activityViewModels()
+
+    @Inject lateinit var playbackController: PlaybackController
+
     private var userSeeking = false
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentMainControl2Binding {
@@ -46,8 +51,16 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
 
         setupInsets(binding)
         setupClickListeners(binding)
+        // Sync first paint from process singleton (original d0/e0 → y6.y).
+        paintFromPlaybackSingleton()
         observeTrackMetadata()
         observePlaybackProgress()
+    }
+
+    private fun paintFromPlaybackSingleton() {
+        val state = playbackController.state.value
+        renderTrackMetadata(PlaybackChromeSnapshot.trackUiState(state))
+        renderPlaybackProgress(PlaybackChromeSnapshot.progressUiState(state))
     }
 
     private fun observeTrackMetadata() {
@@ -87,22 +100,17 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
     private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
         val binding = binding ?: return
 
-        val durationMs = state.durationMs
-            .coerceAtLeast(1L)
-            .coerceAtMost(Int.MAX_VALUE.toLong())
-
-        val positionMs = state.positionMs.coerceIn(0L, durationMs)
-
-        binding.mainControlPlayPause.isSelected = state.isPlaying
-        binding.mainControlCurrTime.text = positionMs.toDurationString()
-        binding.mainControlTotalTime.text = durationMs.toDurationString()
-        binding.mainControlProgress.setMax(durationMs.toInt())
-
-        if (!userSeeking) {
-            binding.mainControlProgress.setProgress(positionMs.toInt())
-        }
+        PlaybackProgressBinder.bind(
+            seekBar = binding.mainControlProgress,
+            durationMs = state.durationMs,
+            positionMs = state.positionMs,
+            userSeeking = userSeeking,
+            isPlaying = state.isPlaying,
+            playPauseView = binding.mainControlPlayPause,
+            currentTimeView = binding.mainControlCurrTime,
+            totalTimeView = binding.mainControlTotalTime
+        )
     }
-
 
     private fun setupInsets(binding: FragmentMainControl2Binding) {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->

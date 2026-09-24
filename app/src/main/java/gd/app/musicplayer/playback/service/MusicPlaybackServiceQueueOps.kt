@@ -22,12 +22,12 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.AppForegroundTracker
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
+import gd.app.musicplayer.core.common.extension.resolveMediaUri
 import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.core.database.dao.MusicDao
 import gd.app.musicplayer.core.datastore.DesktopLyricPreference
@@ -59,7 +59,6 @@ import gd.app.musicplayer.playback.command.PlaybackCommandHandler
 import gd.app.musicplayer.playback.state.PlaybackStatePublisher
 import gd.app.musicplayer.playback.PlaybackStatsTracker
 import gd.app.musicplayer.playback.effects.PlaybackTuningController
-import gd.app.musicplayer.playback.headset.ScreenOffLockReceiver
 import gd.app.musicplayer.playback.effects.StereoBalanceAudioProcessor
 import gd.app.musicplayer.playback.timer.SleepTimerManager
 import gd.app.musicplayer.playback.effects.VolumeFader
@@ -126,13 +125,14 @@ internal fun MusicPlaybackService.resumeWithDefaultQueue() {
         val playableTracks = cachedPlayableDefaultTracks.takeIf { it.isNotEmpty() }
             ?: cachedDefaultTracks
                 .takeIf { it.isNotEmpty() }
-                ?.filter { music -> music.toMediaItemOrNull() != null }
+                ?.filter { music -> music.resolveMediaUri() != null }
             ?: withContext(dispatchers.io) {
                 runCatching {
                     musicDao.getVisibleTracksSnapshotForPlayback()
                 }.getOrDefault(emptyList())
             }.filter { music ->
-                music.toMediaItemOrNull() != null
+                // Cheap URI check — do not allocate MediaItem per row (original cursor filter).
+                music.resolveMediaUri() != null
             }
 
         if (playableTracks.isEmpty()) {
@@ -292,7 +292,7 @@ internal fun MusicPlaybackService.resumePlayback() {
 }
 
 internal fun MusicPlaybackService.pausePlayback(
-    withFade: Boolean = playbackTuningController.isPlayPauseFadeEnabled()
+    withFade: Boolean = playbackFadeController.isPlayPauseFadeEnabled()
 ) {
     pausePlaybackInternal(withFade)
 }

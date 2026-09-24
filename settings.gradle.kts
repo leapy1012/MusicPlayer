@@ -1,22 +1,24 @@
 pluginManagement {
     repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
+        maven {
+            name = "offlineMavenRepo"
+            url = uri("file:///D:/Tools/Android/maven_repo")
         }
+        // Declared for Gradle cache identity. With --offline these are never contacted
+        // if the local Gradle cache (~/.gradle) was warmed once online.
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
 }
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        maven {
+            name = "offlineMavenRepo"
+            url = uri("file:///D:/Tools/Android/maven_repo")
+        }
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")

@@ -28,8 +28,8 @@ import gd.app.musicplayer.ui.selection.ItemMoveListener
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
 import gd.app.musicplayer.core.designsystem.theme.dialogTitleColor
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
-import gd.app.musicplayer.feature.library.model.LibraryTabConfig
-import gd.app.musicplayer.feature.library.model.LibraryTabConfigStore
+import gd.app.musicplayer.domain.model.LibraryTabConfig
+import gd.app.musicplayer.domain.model.LibraryTabConfigStore
 import javax.inject.Inject
 import java.util.Collections
 import kotlinx.coroutines.launch

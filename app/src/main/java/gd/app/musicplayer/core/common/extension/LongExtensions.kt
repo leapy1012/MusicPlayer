@@ -1,20 +1,31 @@
 package gd.app.musicplayer.core.common.extension
 
-import java.util.Locale
-
+/**
+ * Formats a duration in milliseconds for list/player UI.
+ * Matches Music Player 8.1.5 [y6.m0.B] (zero-padded minutes/seconds).
+ */
 fun Long.toDurationString(): String {
-    if (this <= 0L) return "0:00"
+    if (this <= 1L) return "00:00"
+    if (this < 1_000L) return "00:01"
 
-    val totalSeconds = this / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
+    val totalSeconds = this / 1_000L
+    val hours = totalSeconds / 3_600L
+    val minutes = (totalSeconds / 60L) % 60L
+    val seconds = totalSeconds % 60L
 
-    return if (hours > 0) {
-        String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
+    val builder = StringBuilder()
+    if (hours > 0L) {
+        builder.append(hours).append(':')
     }
+    if (minutes < 10L) {
+        builder.append('0')
+    }
+    builder.append(minutes).append(':')
+    if (seconds < 10L) {
+        builder.append('0')
+    }
+    builder.append(seconds)
+    return builder.toString()
 }
 
 fun Long.isValidId(): Boolean {

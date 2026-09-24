@@ -45,6 +45,7 @@ object ThemeModule {
         @ApplicationScope appScope: CoroutineScope,
     ): ThemeManager {
         return ThemeManager(
+            appContext = context,
             themeSettingPreferenceStore = themeSettingPreferenceStore,
             themeRegistry = themeRegistry,
             themeBitmapLoader = themeBitmapLoader,

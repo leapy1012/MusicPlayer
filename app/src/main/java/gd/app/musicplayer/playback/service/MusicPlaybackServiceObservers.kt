@@ -29,7 +29,12 @@ internal fun MusicPlaybackService.observeCurrentTrackFavorite() {
 internal fun MusicPlaybackService.observeSettingPreferences() {
     settingPreferencesDataStore.observeSettingPreferences()
         .onEach { preferences ->
+            val previousLockEnabled =
+                latestSettingPreferences.lockscreen.lockScreenEnabled
             latestSettingPreferences = preferences
+            if (previousLockEnabled != preferences.lockscreen.lockScreenEnabled) {
+                lockScreenController.refresh(preferences.lockscreen.lockScreenEnabled)
+            }
         }
         .launchIn(serviceScope)
 }

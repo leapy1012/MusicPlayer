@@ -1,6 +1,8 @@
 package gd.app.musicplayer.core.designsystem.theme
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import gd.app.musicplayer.core.common.extension.isDarkTheme
 import gd.app.musicplayer.core.datastore.ThemeSettings
 import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import gd.app.musicplayer.di.ApplicationScope
@@ -12,6 +14,7 @@ import kotlinx.coroutines.launch
 
 @Singleton
 class ThemeManager @Inject constructor(
+    @param:ApplicationContext private val appContext: Context,
     private val themeSettingPreferenceStore: ThemeSettingPreferenceStore,
     private val themeRegistry: ThemeRegistry,
     private val themeBitmapLoader: ThemeBitmapLoader,
@@ -25,6 +28,8 @@ class ThemeManager @Inject constructor(
 
     init {
         appScope.launch {
+            // Load theme_type (and the rest) before collecting, so first refresh is correct.
+            cachedSettings = themeSettingPreferenceStore.getSettingsSnapshot()
             themeSettingPreferenceStore.settings.collectLatest { settings ->
                 cachedSettings = settings
             }
@@ -45,7 +50,7 @@ class ThemeManager @Inject constructor(
     }
 
     override fun createInitialTheme(): ThemePalette {
-        return createPalette(cachedSettings.themeType)
+        return createPalette(resolveThemeType(appContext, cachedSettings.themeType))
     }
 
     override fun notifyThemeChanged(palette: ThemePalette) {
@@ -55,8 +60,12 @@ class ThemeManager @Inject constructor(
     override fun persistTheme(palette: ThemePalette) {
         val pictureTheme = palette as? PictureThemePalette ?: return
 
+        // Persist the user preference type from cache, not a system-followed Dark palette.
+        // System dark can apply DarkThemePalette while theme_type stays PICTURE.
+        val typeToPersist = cachedSettings.themeType
+
         cachedSettings = cachedSettings.copy(
-            themeType = pictureTheme.getThemeType(),
+            themeType = typeToPersist,
             imageName = pictureTheme.getImageName(),
             themeColor = pictureTheme.getAccentColor(),
             blur = pictureTheme.getBlurAmount(),
@@ -64,7 +73,7 @@ class ThemeManager @Inject constructor(
         )
 
         appScope.launch {
-            themeSettingPreferenceStore.setThemeType(pictureTheme.getThemeType())
+            themeSettingPreferenceStore.setThemeType(typeToPersist)
             themeSettingPreferenceStore.setThemeImageName(pictureTheme.getImageName())
             themeSettingPreferenceStore.setThemeColor(pictureTheme.getAccentColor())
             themeSettingPreferenceStore.setThemeBlur(pictureTheme.getBlurAmount())
@@ -110,8 +119,17 @@ class ThemeManager @Inject constructor(
             themeSettingPreferenceStore.setThemeType(themeType)
         }
 
-        val palette = createPalette(themeType)
+        // Resolve again so turning the switch OFF still follows system dark when active.
+        val palette = createPalette(resolveThemeType(appContext, themeType))
         applyTheme(palette)
+    }
+
+    /**
+     * True only when the user explicitly enabled night mode in settings
+     * ([THEME_TYPE_DARK]), not when the UI is dark solely because of system night.
+     */
+    fun isUserDarkModePreferred(): Boolean {
+        return cachedSettings.themeType == THEME_TYPE_DARK
     }
 
     fun updateAccentColor(accentColor: Int) {
@@ -135,15 +153,22 @@ class ThemeManager @Inject constructor(
         cachedSettings = themeSettingPreferenceStore.getSettingsSnapshot()
     }
 
+    /**
+     * User night (99) always wins. Otherwise follow system UI night mode so
+     * picture theme (2) still paints dark when the device is in dark mode —
+     * without selecting the night switch in settings.
+     */
     private fun resolveThemeType(
         context: Context,
         preferredType: Int
     ): Int {
-        return if (preferredType == THEME_TYPE_DARK) {
-            THEME_TYPE_DARK
-        } else {
-            THEME_TYPE_PICTURE
+        if (preferredType == THEME_TYPE_DARK) {
+            return THEME_TYPE_DARK
         }
+        if (context.isDarkTheme()) {
+            return THEME_TYPE_DARK
+        }
+        return THEME_TYPE_PICTURE
     }
 
     private fun createPalette(themeType: Int): PictureThemePalette {

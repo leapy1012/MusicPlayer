@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -14,18 +13,24 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.loadCircularArtwork
 import gd.app.musicplayer.databinding.MainBottomControlPanelBinding
+import gd.app.musicplayer.feature.player.common.PlaybackChromeSnapshot
+import gd.app.musicplayer.feature.player.common.PlaybackProgressBinder
 import gd.app.musicplayer.ui.common.base.PlaybackQueueBottomSheetFragment
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.feature.player.full.MusicPlayActivity
 import gd.app.musicplayer.feature.player.full.PlaybackProgressUiState
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import gd.app.musicplayer.feature.player.full.TrackUiState
+import gd.app.musicplayer.playback.PlaybackController
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBinding>() {
 
     private val playerViewModel: PlayerViewModel by activityViewModels()
+
+    @Inject lateinit var playbackController: PlaybackController
 
     private val shouldApplyInsets: Boolean
         get() = arguments?.getBoolean(ARG_APPLY_INSETS, true) ?: true
@@ -44,8 +49,16 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
 //            setupInsets(binding)
         }
         setupControls(binding)
+        // Sync first paint from process singleton (original e0 → y6.y).
+        paintFromPlaybackSingleton()
         observeTrackMetadata()
         observePlaybackProgress()
+    }
+
+    private fun paintFromPlaybackSingleton() {
+        val state = playbackController.state.value
+        renderTrackMetadata(PlaybackChromeSnapshot.trackUiState(state))
+        renderPlaybackProgress(PlaybackChromeSnapshot.progressUiState(state))
     }
 
     private fun setupInsets(binding: MainBottomControlPanelBinding) {
@@ -66,7 +79,7 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
         mainControlPlayPause.setOnClickListener { onPlayPauseClicked() }
         mainControlNext.setOnClickListener { playerViewModel.playNext(requireContext()) }
         mainControlList.setOnClickListener { showPlaybackQueue() }
-        root.setOnClickListener {openPlayer()}
+        root.setOnClickListener { openPlayer() }
         itemMainControlAlbum.setOnClickListener { openPlayer() }
         itemMainControlArtist.setOnClickListener { openPlayer() }
         itemMainControlTitle.setOnClickListener { openPlayer() }
@@ -99,22 +112,17 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
         }
     }
 
-
     private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
         val binding = binding ?: return
 
-        binding.mainControlPlayPause.isSelected = state.isPlaying
-
-        if (state.durationMs <= 0L) {
-            binding.mainMusicProgress.setProgress(0)
-            return
-        }
-
-        val durationMs = state.durationMs.coerceAtMost(Int.MAX_VALUE.toLong())
-        val progressMs = state.positionMs.coerceIn(0L, durationMs)
-
-        binding.mainMusicProgress.setMax(durationMs.toInt())
-        binding.mainMusicProgress.setProgress(progressMs.toInt())
+        PlaybackProgressBinder.bindWithoutTimes(
+            seekBar = binding.mainMusicProgress,
+            durationMs = state.durationMs,
+            positionMs = state.positionMs,
+            isPlaying = state.isPlaying,
+            playPauseView = binding.mainControlPlayPause,
+            skipWhenEmptyDuration = true
+        )
     }
 
     private fun renderTrackMetadata(state: TrackUiState) {

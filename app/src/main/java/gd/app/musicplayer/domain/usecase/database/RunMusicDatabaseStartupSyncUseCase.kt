@@ -1,22 +1,32 @@
 package gd.app.musicplayer.domain.usecase.database
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import gd.app.musicplayer.core.datastore.AppStartupPreferenceDataStore
+import gd.app.musicplayer.core.mediastore.MediaStoreLibraryObserver
 import gd.app.musicplayer.domain.repository.DatabaseStartupGateway
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Cold-start bootstrap matching original Welcome / [BMusicActivity.d1]:
+ * - schedule MediaStore sync (non-blocking)
+ * - run only light one-shot DB work on the splash path
+ */
 @Singleton
 class RunMusicDatabaseStartupSyncUseCase @Inject constructor(
     private val appStartupPreferenceDataStore: AppStartupPreferenceDataStore,
-    private val databaseStartupGateway: DatabaseStartupGateway
+    private val databaseStartupGateway: DatabaseStartupGateway,
+    private val mediaStoreLibraryObserver: MediaStoreLibraryObserver
 ) {
 
-    @RequiresApi(Build.VERSION_CODES.R)
     suspend operator fun invoke() {
+        // Original m.c().f(): schedule only — never await MediaStore → DB.
+        mediaStoreLibraryObserver.scheduleSync()
+
         reseedEffectPresetsIfNeeded()
-        importMusicOnFirstStartIfNeeded()
+
+        if (appStartupPreferenceDataStore.isFirstStart()) {
+            appStartupPreferenceDataStore.setFirstStart(false)
+        }
     }
 
     private suspend fun reseedEffectPresetsIfNeeded() {
@@ -32,16 +42,6 @@ class RunMusicDatabaseStartupSyncUseCase @Inject constructor(
         appStartupPreferenceDataStore.setEffectPresetSchemaVersion(
             EFFECT_PRESET_SCHEMA_VERSION
         )
-    }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    private suspend fun importMusicOnFirstStartIfNeeded() {
-        if (!appStartupPreferenceDataStore.isFirstStart()) {
-            return
-        }
-
-        databaseStartupGateway.importAllMusic()
-        appStartupPreferenceDataStore.setFirstStart(false)
     }
 
     private companion object {

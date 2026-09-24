@@ -145,7 +145,8 @@
         <activity
             android:name=".feature.equalizer.EqualizerActivity"
             android:exported="false"
-            android:launchMode="singleTop" />
+            android:launchMode="singleTop"
+            android:configChanges="screenSize|orientation|keyboardHidden|keyboard" />
         <activity
             android:name=".feature.equalizer.EffectGroupActivity"
             android:exported="false"

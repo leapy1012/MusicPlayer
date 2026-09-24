@@ -12,16 +12,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.databinding.FragmentLibraryBinding
 import gd.app.musicplayer.databinding.LayoutLibraryTitleBinding
+import gd.app.musicplayer.ui.common.MusicTabLayoutMediator
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.feature.library.model.LibraryTabConfig
-import gd.app.musicplayer.feature.library.model.LibraryTabConfigStore
+import gd.app.musicplayer.domain.model.LibraryTabConfig
+import gd.app.musicplayer.domain.model.LibraryTabConfigStore
 import gd.app.musicplayer.feature.search.SearchActivity
 import kotlinx.coroutines.launch
 
@@ -33,7 +33,7 @@ class LibraryFragment :
     private val viewModel: LibraryScreenViewModel by viewModels()
 
     private var visibleTabs: List<LibraryTabConfig> = emptyList()
-    private var tabMediator: TabLayoutMediator? = null
+    private var tabMediator: MusicTabLayoutMediator? = null
     private var pageChangeCallback: ViewPager2.OnPageChangeCallback? = null
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentLibraryBinding {
@@ -72,7 +72,15 @@ class LibraryFragment :
         titleViewBinding.appwallTitle.text =
             getString(R.string.library).uppercase()
 
-        binding.toolbar.addView(titleViewBinding.root)
+        // Original (l5.q): MATCH_PARENT x MATCH_PARENT so the custom title aligns
+        // with the toolbar title slot instead of wrapping at the wrong offset.
+        binding.toolbar.addView(
+            titleViewBinding.root,
+            Toolbar.LayoutParams(
+                Toolbar.LayoutParams.MATCH_PARENT,
+                Toolbar.LayoutParams.MATCH_PARENT
+            )
+        )
     }
 
     private fun observeUiState() {
@@ -112,9 +120,11 @@ class LibraryFragment :
             items = visibleTabs
         )
 
-        tabMediator = TabLayoutMediator(
-            binding.tabLayout,
-            binding.viewPager
+        // Original MusicTabLayoutMediator: idle taps jump instantly without settling,
+        // and suppress onPageScrolled so the indicator cannot snap back to the old tab.
+        tabMediator = MusicTabLayoutMediator(
+            tabLayout = binding.tabLayout,
+            viewPager = binding.viewPager
         ) { tab, position ->
             tab.text = getString(
                 LibraryTabConfigStore.labelRes(visibleTabs[position].id)

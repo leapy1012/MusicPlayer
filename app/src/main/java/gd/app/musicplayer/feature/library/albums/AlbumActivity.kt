@@ -6,17 +6,23 @@ import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
 import dagger.hilt.android.AndroidEntryPoint
-import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.databinding.ActivityAlbumBinding
-import gd.app.musicplayer.feature.library.folder.FolderFragment
-import gd.app.musicplayer.feature.playlist.PlaylistFragment
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
-import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
+import gd.app.musicplayer.databinding.ActivityAlbumBinding
+import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
 import gd.app.musicplayer.feature.library.LibraryFragment
+import gd.app.musicplayer.feature.library.folder.FolderFragment
 import gd.app.musicplayer.feature.library.musicset.MusicSetListFragment
+import gd.app.musicplayer.feature.playlist.PlaylistFragment
+import gd.app.musicplayer.feature.player.bottomsheet.BottomPlayerFragment
+import gd.app.musicplayer.feature.player.mini.BottomMiniPlayerFragment
+import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 
+/**
+ * Matches original [ActivityAlbum.y0]: one FragmentTransaction with
+ * replace(content) + replace(banner e0) + replace(banner d0) then commit().
+ */
 @AndroidEntryPoint
 class AlbumActivity : BasePlayerSheetActivity() {
 
@@ -39,21 +45,30 @@ class AlbumActivity : BasePlayerSheetActivity() {
 
         binding = ActivityAlbumBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setupPlayerSheet()
 
         if (savedInstanceState == null) {
-            val fragment = readMusicSetFromIntent()?.let { musicSet ->
+            val content = readMusicSetFromIntent()?.let { musicSet ->
                 when (musicSet) {
-                    is MusicSet.Artists, is MusicSet.Albums, is MusicSet.Genres -> MusicSetListFragment.newInstance(musicSet)
+                    is MusicSet.Artists, is MusicSet.Albums, is MusicSet.Genres -> {
+                        MusicSetListFragment.newInstance(musicSet)
+                    }
                     is MusicSet.Folders -> FolderFragment.newInstance()
                     is MusicSet.Playlists -> PlaylistFragment.newInstance()
                     else -> null
                 }
             } ?: LibraryFragment()
 
+            // Original: b0().n().q(container).q(banner).q(banner_2).g() → commit()
             supportFragmentManager.beginTransaction()
-                .replace(binding.mainFragmentContainer.id, fragment)
-                .commitNow()
+                .replace(binding.mainFragmentContainer.id, content)
+                .replace(binding.miniPlayer.id, BottomMiniPlayerFragment.newInstance())
+                .replace(binding.bottomPlayer.id, BottomPlayerFragment())
+                .commit()
+        }
+
+        // Wire sheet after commit schedules fragments (original panel controller after y0).
+        binding.playerSheet.post {
+            setupPlayerSheet()
         }
     }
 

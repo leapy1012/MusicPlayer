@@ -7,15 +7,26 @@ import kotlin.math.roundToInt
 
 internal object EqualizerPresets {
 
-    private val FIVE_BAND_FREQUENCIES = listOf("60", "230", "910", "3.6K", "14K")
-    private val TEN_BAND_FREQUENCIES =
-        listOf("31", "62", "125", "250", "500", "1K", "2K", "4K", "8K", "16K")
+    // Center frequencies in Hz — same arrays as original c6.e0 / c6.d0.
+    private val FIVE_BAND_HZ = intArrayOf(60, 230, 910, 3600, 14000)
+    private val TEN_BAND_HZ =
+        intArrayOf(31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
 
     fun frequencies(useTenBand: Boolean): List<String> {
-        return if (useTenBand) {
-            TEN_BAND_FREQUENCIES
+        val hz = if (useTenBand) TEN_BAND_HZ else FIVE_BAND_HZ
+        return hz.map(::formatFrequencyHz)
+    }
+
+    /** Matches original `z5.b.a` label formatting. */
+    fun formatFrequencyHz(hz: Int): String {
+        if (hz < 1000) {
+            return hz.toString()
+        }
+        val fraction = (hz % 1000) / 100
+        return if (fraction == 0) {
+            "${hz / 1000}k"
         } else {
-            FIVE_BAND_FREQUENCIES
+            "${hz / 1000}.$fraction" + "k"
         }
     }
 

@@ -5,14 +5,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
-import androidx.fragment.app.commit
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityAlbumMusicBinding
-import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
+import gd.app.musicplayer.feature.player.bottomsheet.BottomPlayerFragment
+import gd.app.musicplayer.feature.player.mini.BottomMiniPlayerFragment
+import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 
 @AndroidEntryPoint
 class AlbumMusicActivity : BasePlayerSheetActivity() {
@@ -37,12 +38,22 @@ class AlbumMusicActivity : BasePlayerSheetActivity() {
         binding = ActivityAlbumMusicBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupPlayerSheet()
-
         val musicSet = getMusicSetOrFinish() ?: return
 
         if (savedInstanceState == null) {
-            showAlbumMusicFragment(musicSet)
+            // Same commit pattern as ActivityAlbum: content + banners together.
+            supportFragmentManager.beginTransaction()
+                .replace(
+                    binding.mainFragmentContainer.id,
+                    AlbumMusicFragment.newInstance(musicSet)
+                )
+                .replace(binding.miniPlayer.id, BottomMiniPlayerFragment.newInstance())
+                .replace(binding.bottomPlayer.id, BottomPlayerFragment())
+                .commit()
+        }
+
+        binding.playerSheet.post {
+            setupPlayerSheet()
         }
     }
 
@@ -55,15 +66,6 @@ class AlbumMusicActivity : BasePlayerSheetActivity() {
 
     private fun readMusicSetFromIntent(): MusicSet? {
         return intent.parcelable(ARG_MUSIC_SET)
-    }
-
-    private fun showAlbumMusicFragment(musicSet: MusicSet) {
-        supportFragmentManager.commit {
-            replace(
-                binding.mainFragmentContainer.id,
-                AlbumMusicFragment.newInstance(musicSet)
-            )
-        }
     }
 
     companion object {

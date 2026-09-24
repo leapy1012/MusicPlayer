@@ -1,17 +1,15 @@
 package gd.app.musicplayer.playback.effects
 import android.os.SystemClock
-import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.AccelerateInterpolator
 import android.view.animation.Interpolator
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 class VolumeFader(
@@ -41,6 +39,13 @@ class VolumeFader(
     fun muteImmediately() {
         cancel()
         fadeGain = MUTED_GAIN
+        applyResolvedVolume()
+    }
+
+    /** Direct gain for crossfade ticks (original [d7.a.g]) — cancels play/pause fade jobs. */
+    fun setFadeGain(gain: Float) {
+        cancel()
+        fadeGain = gain.coerceIn(MUTED_GAIN, FULL_GAIN)
         applyResolvedVolume()
     }
 
@@ -158,7 +163,8 @@ class VolumeFader(
         private const val MIN_FADE_DURATION_MS = 1L
         private const val DEFAULT_PLAY_PAUSE_FADE_DURATION_MS = 1_000L
 
+        /** Original [w6.b] play/pause fade uses [AccelerateInterpolator], not decelerate. */
         private val DEFAULT_INTERPOLATOR: Interpolator =
-            AccelerateDecelerateInterpolator()
+            AccelerateInterpolator()
     }
 }

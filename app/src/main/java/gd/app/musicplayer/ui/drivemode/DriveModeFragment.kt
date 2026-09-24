@@ -23,6 +23,7 @@ import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.databinding.ActivityDriveModeItemBinding
 import gd.app.musicplayer.databinding.FragmentDriveModeBinding
 import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.feature.player.common.PlaybackProgressBinder
 import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.playback.queue.hasSameQueueIdentity
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
@@ -148,14 +149,15 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
                     binding.driveModePlayPause.isSelected = state.isPlaying
                     binding.driveModeFavorite.isSelected = trackState.isFavorite
                     binding.driveModeProgress.isEnabled = state.durationMs > 0L
-                    binding.driveModeProgress.setMax(state.durationMs.coerceAtLeast(1L).toInt())
 
-                    if (!userSeeking) {
-                        binding.driveModeProgress.setProgress(state.positionMs.toInt())
-                    }
-
-                    binding.driveModeCurrTime.text = state.positionMs.toDurationString()
-                    binding.driveModeTotalTime.text = state.durationMs.toDurationString()
+                    PlaybackProgressBinder.bind(
+                        seekBar = binding.driveModeProgress,
+                        durationMs = state.durationMs,
+                        positionMs = state.positionMs,
+                        userSeeking = userSeeking,
+                        currentTimeView = binding.driveModeCurrTime,
+                        totalTimeView = binding.driveModeTotalTime
+                    )
 
                     val displayQueue = queue.ifEmpty {
                         listOf(placeholderMusic(requireContext()))

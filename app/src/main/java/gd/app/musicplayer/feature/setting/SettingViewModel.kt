@@ -236,7 +236,7 @@ class SettingsViewModel @Inject constructor(
             useTenBandAvailable = SoundEffectPreferences.supportsTenBandEqualizer(),
             showHiddenFolders = normal.showHiddenFolders,
             showKeepAliveDot = normal.showKeepAliveDot,
-            darkModeEnabled = themeRepo.getCorePalette().isDarkMode(),
+            darkModeEnabled = themeRepo.isUserDarkModePreferred(),
             showForwardBackward = normal.showForwardBackward,
             forwardBackwardSeconds = normal.forwardBackwardSeconds,
             queueForSearchingMode = normal.queueForSearchingMode,

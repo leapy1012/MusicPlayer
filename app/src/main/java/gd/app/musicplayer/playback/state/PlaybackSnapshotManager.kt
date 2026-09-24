@@ -1,16 +1,15 @@
 package gd.app.musicplayer.playback.state
 
 import androidx.annotation.OptIn
-import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
 import gd.app.musicplayer.core.common.extension.parseQueueTokenFromQueueMediaId
 import gd.app.musicplayer.core.common.extension.parseTrackIdFromQueueMediaId
 import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
-import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.queue.QueueState
 import gd.app.musicplayer.playback.queue.hasSameQueueIdentity
 import kotlinx.coroutines.withContext
@@ -53,18 +52,13 @@ class PlaybackSnapshotManager(
             fallbackPositionMs = fallbackState.positionMs
         )
 
-        val durationMs = resolveDurationMs(
+        val durationMs = PlaybackDurationResolver.resolveDurationMs(
             player = player,
             track = snapshotTrack,
             fallbackDurationMs = fallbackState.durationMs
         )
 
-        val audioSessionId = player
-            ?.let { safePlayer ->
-                runCatching {
-                    safePlayer.audioSessionId
-                }.getOrDefault(fallbackState.audioSessionId)
-            }
+        val audioSessionId = (player as? ExoPlayer)?.audioSessionId
             ?: fallbackState.audioSessionId
 
         return PlaybackSnapshot(
@@ -138,7 +132,7 @@ class PlaybackSnapshotManager(
         player: Player?,
         track: Music?
     ): Long {
-        return resolveDurationMs(
+        return PlaybackDurationResolver.resolveDurationMs(
             player = player,
             track = track,
             fallbackDurationMs = runtimeStateStore.state.value.durationMs
@@ -202,27 +196,10 @@ class PlaybackSnapshotManager(
             player.currentMediaItemIndex
         }.getOrDefault(QueueState.NO_INDEX)
 
-        return playerIndex == snapshotIndex &&
-                player.mediaItemCount == snapshotQueue.size
-    }
-
-    private fun resolveDurationMs(
-        player: Player?,
-        track: Music?,
-        fallbackDurationMs: Long
-    ): Long {
-        val fallback = track?.duration?.toLong()?.coerceAtLeast(0L)
-            ?: fallbackDurationMs.coerceAtLeast(0L)
-
-        if (player == null) {
-            return fallback
-        }
-
-        return runCatching {
-            player.duration
-                .takeIf { duration -> duration != C.TIME_UNSET }
-                ?.coerceAtLeast(0L)
-        }.getOrNull() ?: fallback
+        // Full-timeline legacy path only. Single-track ExoPlayer always reports index 0.
+        return player.mediaItemCount > 1 &&
+            playerIndex == snapshotIndex &&
+            player.mediaItemCount == snapshotQueue.size
     }
 
     private fun resolveSnapshotIndex(
@@ -275,27 +252,38 @@ class PlaybackSnapshotManager(
     ): Int? {
         if (player == null || snapshotQueue.isEmpty()) return null
 
+        val mediaItemCount = runCatching { player.mediaItemCount }.getOrDefault(0)
+
+        // Prefer mediaId match — original e0 cursor is authoritative; ExoPlayer index is
+        // only meaningful when the player holds the full timeline.
+        val mediaId = runCatching { player.currentMediaItem?.mediaId }.getOrNull()
+        if (mediaId != null) {
+            val mediaTrackId = mediaId.parseTrackIdFromQueueMediaId()
+            if (mediaTrackId != null) {
+                val mediaQueueToken = mediaId.parseQueueTokenFromQueueMediaId()
+
+                if (mediaQueueToken != null) {
+                    val identityIndex = snapshotQueue.indexOfFirst { music ->
+                        music.id == mediaTrackId && music.queueToken == mediaQueueToken
+                    }
+                    if (identityIndex >= 0) return identityIndex
+                }
+
+                snapshotQueue.indexOfFirst { music ->
+                    music.id == mediaTrackId
+                }.takeIf { it >= 0 }?.let { return it }
+            }
+        }
+
+        if (mediaItemCount <= 1) {
+            // Single-track mode: never treat mediaItemIndex (always 0) as the app cursor.
+            return null
+        }
+
         val playerIndex = runCatching {
             player.currentMediaItemIndex
         }.getOrDefault(QueueState.NO_INDEX)
 
-        if (playerIndex in snapshotQueue.indices) {
-            return playerIndex
-        }
-
-        val mediaId = runCatching { player.currentMediaItem?.mediaId }.getOrNull() ?: return null
-        val mediaTrackId = mediaId.parseTrackIdFromQueueMediaId() ?: return null
-        val mediaQueueToken = mediaId.parseQueueTokenFromQueueMediaId()
-
-        if (mediaQueueToken != null) {
-            val identityIndex = snapshotQueue.indexOfFirst { music ->
-                music.id == mediaTrackId && music.queueToken == mediaQueueToken
-            }
-            if (identityIndex >= 0) return identityIndex
-        }
-
-        return snapshotQueue.indexOfFirst { music ->
-            music.id == mediaTrackId
-        }.takeIf { it >= 0 }
+        return playerIndex.takeIf { it in snapshotQueue.indices }
     }
 }

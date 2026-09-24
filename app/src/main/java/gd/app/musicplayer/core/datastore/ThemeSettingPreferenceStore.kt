@@ -122,6 +122,7 @@ class ThemeSettingPreferenceStore @Inject constructor(
 
     private fun Preferences.toThemeSettings(): ThemeSettings {
         return ThemeSettings(
+            themeType = this[KEY_THEME_TYPE] ?: DEFAULT_THEME_TYPE,
             overlayColor = this[KEY_THEME_OVERLAY_COLOR] ?: DEFAULT_THEME_OVERLAY_COLOR,
             blur = this[KEY_THEME_BLUR] ?: DEFAULT_THEME_BLUR,
             themeColor = this[KEY_THEME_COLOR] ?: DEFAULT_THEME_COLOR,

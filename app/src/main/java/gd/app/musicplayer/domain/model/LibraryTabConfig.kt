@@ -1,4 +1,4 @@
-package gd.app.musicplayer.feature.library.model
+package gd.app.musicplayer.domain.model
 
 import androidx.annotation.StringRes
 import gd.app.musicplayer.R
@@ -9,6 +9,11 @@ data class LibraryTabConfig(
 )
 
 object LibraryTabConfigStore {
+
+    const val TAB_TRACKS = 0
+    const val TAB_ARTISTS = 1
+    const val TAB_ALBUMS = 2
+    const val TAB_GENRES = 3
 
     val defaultItems: List<LibraryTabConfig> = listOf(
         LibraryTabConfig(TAB_TRACKS, true),
@@ -65,9 +70,4 @@ object LibraryTabConfigStore {
             else -> R.string.tracks
         }
     }
-
-    const val TAB_TRACKS = 0
-    const val TAB_ARTISTS = 1
-    const val TAB_ALBUMS = 2
-    const val TAB_GENRES = 3
 }

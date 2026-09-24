@@ -11,11 +11,16 @@ import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * UI façade. Transport play/pause/next matches original [y6.y] via [PlaybackAudioController]
+ * (in-process). Queue mutations and other ops still go through the service command bus.
+ */
 @Singleton
 class MusicPlaybackControllerImpl @Inject constructor(
-    @param:ApplicationContext private  val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val runtimeStateStore: PlaybackRuntimeStateStore,
-    private val dispatcher: PlaybackCommandDispatcher
+    private val dispatcher: PlaybackCommandDispatcher,
+    private val audioController: PlaybackAudioController
 ) : PlaybackController {
 
     override val state: StateFlow<MusicPlaybackState>
@@ -66,15 +71,19 @@ class MusicPlaybackControllerImpl @Inject constructor(
     }
 
     override fun togglePlayPause() {
-        dispatcher.dispatch(context, PlaybackCommand.TogglePlayPause)
+        // Original e0/d0 → y.Y().A0()
+        audioController.ensureInitialized()
+        audioController.playOrPause()
     }
 
     override fun play() {
-        dispatcher.dispatch(context, PlaybackCommand.Play)
+        // Original y0()
+        audioController.ensureInitialized()
+        audioController.play()
     }
 
     override fun pause() {
-        dispatcher.dispatch(context, PlaybackCommand.Pause)
+        audioController.pause()
     }
 
     override fun playIndex(index: Int) {
@@ -85,11 +94,14 @@ class MusicPlaybackControllerImpl @Inject constructor(
     }
 
     override fun playNext() {
-        dispatcher.dispatch(context, PlaybackCommand.Next)
+        // Original next via in-process controller when possible
+        audioController.ensureInitialized()
+        audioController.playNext()
     }
 
     override fun playPrevious() {
-        dispatcher.dispatch(context, PlaybackCommand.Previous)
+        audioController.ensureInitialized()
+        audioController.playPrevious()
     }
 
     override fun seekTo(positionMs: Int) {

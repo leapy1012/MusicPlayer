@@ -18,7 +18,8 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
     suspend operator fun invoke(
         options: ScanOptions = ScanOptions(),
         markMissingTracks: Boolean = true,
-        incremental: Boolean = options.isDefaultObserverSync(),
+        // Original v5.j always full-diffs MediaStore; incremental DATE_MODIFIED is opt-in only.
+        incremental: Boolean = false,
         onBeforeUpsert: suspend (List<MusicEntity>) -> Unit = {}
     ): ScanResultSummary {
         val existingIds = scanRepo.getAllTrackIds()
@@ -120,11 +121,4 @@ private fun String?.normalizedScanPath(): String {
     return orEmpty()
         .replace('\\', '/')
         .trimEnd('/')
-}
-
-private fun ScanOptions.isDefaultObserverSync(): Boolean {
-    return selectedScanPaths.isEmpty() &&
-        !excludeBySeconds &&
-        !excludeBySize &&
-        !excludeRingtone
 }

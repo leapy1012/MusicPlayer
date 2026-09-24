@@ -1,11 +1,13 @@
 package gd.app.musicplayer.feature.equalizer
 
 import android.content.DialogInterface
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.AdapterView
+import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -15,7 +17,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyLengthFilter
+import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.extractValidatedText
+import gd.app.musicplayer.core.common.extension.isLandscape
 import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialog
@@ -32,6 +36,8 @@ import gd.app.musicplayer.domain.usecase.equalizer.DeleteEqualizerPresetUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.LoadEqualizerPresetsUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.SaveEqualizerCustomLevelsUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.UpdateEqualizerPresetUseCase
+import gd.app.musicplayer.playback.ProcessPlayerHolder
+import gd.app.musicplayer.playback.effects.AudioEffectsManager
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import javax.inject.Inject
@@ -49,6 +55,8 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     @Inject lateinit var updateEqualizerPresetUseCase: UpdateEqualizerPresetUseCase
     @Inject lateinit var deleteEqualizerPresetUseCase: DeleteEqualizerPresetUseCase
     @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
+    @Inject lateinit var audioEffectsManager: AudioEffectsManager
+    @Inject lateinit var processPlayerHolder: ProcessPlayerHolder
 
     private val equalizerViewModel: EqualizerViewModel by viewModels()
     private val playerViewModel: PlayerViewModel by activityViewModels()
@@ -62,7 +70,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     private var lastAnimatedPresetId: Int? = null
     private var lastAnimatedBandMode: Int? = null
     private var loadedBandMode: Int? = null
-    private var bandApplyJob: Job? = null
+    private var bandSaveJob: Job? = null
     private var bassApplyJob: Job? = null
     private var virtualizerApplyJob: Job? = null
 
@@ -81,7 +89,18 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         setupEditAndSave(binding)
         setupBandRecycler(binding)
         setupBassAndVirtualizer(binding)
+        setupEnableTipGuard(binding)
         observeSettings()
+        updateContentHeight()
+    }
+
+    override fun onDestroyView() {
+        (activity as? EqualizerActivity)?.equalizerTipGuard()?.clearShieldViews()
+        super.onDestroyView()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
         updateContentHeight()
     }
 
@@ -163,19 +182,9 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
 
                     currentBandLevels[bandIndex] = levelMb
                     syncCustomPresetFromCurrentLevels()
-                    bandApplyJob?.cancel()
-                    bandApplyJob = viewLifecycleOwner.lifecycleScope.launch {
-                        delay(BAND_APPLY_DELAY_MS)
-                        saveCurrentCustomLevels()
-                        if (latestSettings.selectedEffectId != USER_PRESET_ID) {
-                            equalizerViewModel.persistSelectedEffectId(USER_PRESET_ID)
-                            latestSettings = latestSettings.copy(
-                                selectedEffectId = USER_PRESET_ID
-                            )
-                            renderAll(requireBinding(), latestSettings)
-                        }
-                        applyAudioEffects()
-                    }
+                    switchToCustomPresetIfNeeded()
+                    applyBandsLive()
+                    scheduleBandSave()
                 },
                 onTrackingChanged = { tracking ->
                     updateGestureInterception(tracking)
@@ -184,6 +193,17 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
             )
             adapter = equalizerBandAdapter
         }
+    }
+
+    private fun setupEnableTipGuard(binding: FragmentEqualizerBinding) {
+        val host = activity as? EqualizerActivity ?: return
+        val guard = host.equalizerTipGuard()
+        guard.clearShieldViews()
+        guard.setEqualizerToggle(binding.equalizerBox)
+        guard.addShieldViews(
+            binding.equalizerEffectLayout,
+            binding.equalizerSeekParent.equalizerRecycler
+        )
     }
 
     private fun setupBassAndVirtualizer(binding: FragmentEqualizerBinding) = with(binding) {
@@ -650,10 +670,43 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         loadedBandMode = settings.bandMode
     }
 
+    private fun switchToCustomPresetIfNeeded() {
+        if (latestSettings.selectedEffectId == USER_PRESET_ID) return
+
+        latestSettings = latestSettings.copy(selectedEffectId = USER_PRESET_ID)
+        val binding = binding ?: return
+        binding.equalizerText.text = resolveEffectName(USER_PRESET_ID)
+        binding.equalizerSave.isSelected = true
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            equalizerViewModel.persistSelectedEffectId(USER_PRESET_ID)
+        }
+    }
+
+    private fun applyBandsLive() {
+        if (!latestSettings.equalizerEnabled) return
+        val levels = currentBandLevels.toList()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val player = processPlayerHolder.playerOrNull() ?: return@launch
+            if (!audioEffectsManager.ensureAttached(player)) return@launch
+            audioEffectsManager.setEqualizerUiLevels(levels, enabled = true)
+        }
+    }
+
+    private fun scheduleBandSave() {
+        bandSaveJob?.cancel()
+        bandSaveJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(BAND_SAVE_DEBOUNCE_MS)
+            saveCurrentCustomLevels()
+        }
+    }
+
     private fun updateGestureInterception(intercept: Boolean) {
         val binding = binding ?: return
         binding.equalizerSeekParent.equalizerRecycler.requestDisallowInterceptTouchEvent(intercept)
+        (binding.root as? NestedScrollView)?.requestDisallowInterceptTouchEvent(intercept)
         binding.root.requestDisallowInterceptTouchEvent(intercept)
+        (activity as? EqualizerActivity)?.requestPagerDisallowInterceptTouchEvent(intercept)
     }
 
     private fun syncCustomPresetFromCurrentLevels() {
@@ -672,13 +725,28 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     }
 
     private fun updateContentHeight() {
-        val binding = requireBinding()
+        val binding = binding ?: return
+        val landscape = requireContext().isLandscape()
 
         binding.root.post {
             val rootHeight = binding.root.height
             if (rootHeight <= 0) return@post
 
-            binding.equalizerContentView.setFixedHeight(rootHeight)
+            // Original l5.i.a0(landscape): add stacked chrome so NestedScrollView can scroll
+            // bass/virtualizer into view when the pager is short in landscape.
+            var height = rootHeight
+            if (landscape) {
+                val context = requireContext()
+                height += context.dpToPx(64f) +
+                    resources.getDimensionPixelSize(R.dimen.equalizer_title_margin_bottom) +
+                    resources.getDimensionPixelSize(R.dimen.equalizer_rotate_margin_bottom) +
+                    resources.getDimensionPixelSize(R.dimen.equalizer_toggle_height) +
+                    resources.getDimensionPixelSize(R.dimen.equalizer_box_margin_top) +
+                    resources.getDimensionPixelSize(R.dimen.equalizer_bass_height) +
+                    resources.getDimensionPixelSize(R.dimen.equalizer_rotate_text_margin) +
+                    context.dpToPx(16f)
+            }
+            binding.equalizerContentView.setFixedHeight(height)
         }
     }
 
@@ -689,7 +757,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     companion object {
         private const val USER_PRESET_ID = 0
         private const val TEN_BAND_MODE = 1
-        private const val BAND_APPLY_DELAY_MS = 32L
+        private const val BAND_SAVE_DEBOUNCE_MS = 1000L
         private const val BASS_VIRTUALIZER_APPLY_DELAY_MS = 150L
     }
 }

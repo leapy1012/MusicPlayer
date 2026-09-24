@@ -81,6 +81,11 @@ class ThemeRepo @Inject constructor(
         return refreshTheme()
     }
 
+    /** User-selected night switch — not system-followed dark appearance. */
+    fun isUserDarkModePreferred(): Boolean {
+        return themeManager.isUserDarkModePreferred()
+    }
+
     fun getAccentColor(): Int {
         return getCorePalette().accentColor
     }

@@ -22,6 +22,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+/**
+ * MediaStore → Room sync scheduler.
+ *
+ * Matches Music Player 8.1.5 [v5.m]: schedule-only, single background worker,
+ * coalesce + up-to-6s spacing. Never blocks Welcome → Main.
+ */
 @Singleton
 class MediaStoreLibraryObserver @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
@@ -41,6 +47,7 @@ class MediaStoreLibraryObserver @Inject constructor(
 
     private val observer = object : ContentObserver(handler) {
         override fun onChange(selfChange: Boolean) {
+            // Original v5.d: ignore selfChange notifications.
             if (!selfChange) {
                 scheduleSync()
             }
@@ -55,13 +62,17 @@ class MediaStoreLibraryObserver @Inject constructor(
         }
     }
 
+    /**
+     * Register ContentObservers only. Original registers on foreground and
+     * schedules sync separately from [BMusicActivity.d1] / Welcome — do not
+     * auto-sync here or cold start races a second full scan.
+     */
     fun register() {
         if (registered) return
         registered = true
         observedUris.forEach { uri ->
             appContext.contentResolver.registerContentObserver(uri, true, observer)
         }
-        scheduleSync()
     }
 
     fun unregister() {
@@ -72,6 +83,9 @@ class MediaStoreLibraryObserver @Inject constructor(
         appContext.contentResolver.unregisterContentObserver(observer)
     }
 
+    /**
+     * Original [v5.m.f]: fire-and-forget schedule. Safe to call from UI.
+     */
     fun scheduleSync() {
         if (syncJob?.isActive == true) {
             syncPendingWhileRunning = true
@@ -94,7 +108,8 @@ class MediaStoreLibraryObserver @Inject constructor(
         }
         syncJob = applicationScope.launch(dispatchers.io) {
             runCatching {
-                syncMediaStoreLibraryUseCase(incremental = true)
+                // Original v5.j: full MediaStore path-diff into local DB.
+                syncMediaStoreLibraryUseCase(incremental = false)
             }.onFailure { error ->
                 Log.e(TAG, "MediaStore sync failed", error)
             }.also {
@@ -133,6 +148,7 @@ class MediaStoreLibraryObserver @Inject constructor(
 
     private companion object {
         const val TAG = "MediaStoreObserver"
+        /** Original v5.m coalesce window. */
         const val SYNC_DEBOUNCE_MS = 6_000L
     }
 }

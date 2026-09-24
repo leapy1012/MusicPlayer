@@ -36,6 +36,7 @@
         <item name="android:windowBackground">@color/welcome_background_color</item>
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:windowActionBarOverlay">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightStatusBar">true</item>
@@ -45,8 +46,26 @@
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     </style>
 
-    <style name="Welcome.LaunchTheme" parent="@style/Welcome.Theme">
+    <!--
+      Android 12+ always draws a system splash (launcher icon on a flat background).
+      Keep that splash blank/matching Welcome so only WelcomeView (custom splash) is visible.
+    -->
+    <style name="Welcome.LaunchTheme" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/welcome_background_color</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="postSplashScreenTheme">@style/Welcome.Theme</item>
+        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">
+            @android:color/transparent
+        </item>
         <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="28">shortEdges</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     </style>
 
 </resources>

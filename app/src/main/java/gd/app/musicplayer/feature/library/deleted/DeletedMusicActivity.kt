@@ -1,11 +1,9 @@
 package gd.app.musicplayer.feature.library.deleted
 
-import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.widget.ImageView
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +18,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.mediastore.MediaStoreDeleteRequests
 import gd.app.musicplayer.databinding.ActivityDeletedMusicBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -240,21 +239,10 @@ class DeletedMusicActivity : BaseActivity() {
             return false
         }
 
-        val uris = tracks
-            .distinctBy(Music::id)
-            .filter { track -> track.id > 0L }
-            .map { track ->
-                ContentUris.withAppendedId(
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    track.id
-                )
-            }
-
-        if (uris.isEmpty()) return false
-
-        val pendingIntent = runCatching {
-            MediaStore.createDeleteRequest(contentResolver, uris)
-        }.getOrNull() ?: return false
+        val pendingIntent = MediaStoreDeleteRequests.createDeletePendingIntent(
+            contentResolver = contentResolver,
+            tracks = tracks
+        ) ?: return false
 
         mediaDeleteLauncher.launch(
             IntentSenderRequest.Builder(pendingIntent.intentSender).build()

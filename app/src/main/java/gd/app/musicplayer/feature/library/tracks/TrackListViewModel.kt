@@ -39,7 +39,8 @@ import kotlinx.coroutines.launch
 data class TrackListUiState(
     val tracks: List<Music> = emptyList(),
     val artistAlbums: List<MusicSet.Album> = emptyList(),
-    val isEmpty: Boolean = true
+    val isEmpty: Boolean = false,
+    val hasLoaded: Boolean = false
 )
 
 data class TrackListSortState(
@@ -117,7 +118,8 @@ class TrackListViewModel @Inject constructor(
                     TrackListUiState(
                         tracks = tracks,
                         artistAlbums = albums,
-                        isEmpty = tracks.isEmpty()
+                        isEmpty = tracks.isEmpty(),
+                        hasLoaded = true
                     )
                 }
             }

@@ -37,6 +37,7 @@ import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.duplicate.DuplicateFinderActivity
 import gd.app.musicplayer.feature.lyrics.StatusBarLyricsActivity
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
+import gd.app.musicplayer.playback.lock.LockScreenController
 import gd.app.musicplayer.ui.theme.SelectAccentColorDialog
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -50,10 +51,12 @@ class SettingActivity : BaseActivity() {
     private val playerViewModel: PlayerViewModel by viewModels()
 
     @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
+    @Inject lateinit var lockScreenController: LockScreenController
 
     private var pendingBluetoothAutoStartEnable = false
     private var pendingNotificationBarEnable = false
     private var pendingOldNotificationEnable = false
+    private var pendingLockScreenEnable = false
     private var suppressFadeSeekCallback = false
 
     private val bluetoothPermissionLauncher =
@@ -85,6 +88,7 @@ class SettingActivity : BaseActivity() {
         renderNotificationPermissionPrompt()
         binding.preferenceShowDeskLrc.resumeDesktopLyricsAfterOverlayPermissionChange()
         binding.preferenceShowDeskLrc.disableDesktopLyricsIfOverlayPermissionWasRevoked()
+        resumeLockScreenAfterOverlayPermissionChange()
         renderKeepAlivePermission()
     }
 
@@ -352,8 +356,8 @@ class SettingActivity : BaseActivity() {
             viewModel.setDesktopLyricsPendingEnableAfterPermission(pending)
         }
 
-        binding.preferenceLockScreen.onPreferenceChanged {
-            viewModel.setLockScreenEnabled(it)
+        binding.preferenceLockScreen.onPreferenceChanged { enabled ->
+            onLockScreenPreferenceChanged(enabled)
         }
         binding.preferenceLockBackground.setOnClickListener {
             showLockBackgroundDialog()
@@ -535,6 +539,79 @@ class SettingActivity : BaseActivity() {
             }
 
         OptionsListDialog.show(this, config)
+    }
+
+    private fun onLockScreenPreferenceChanged(enabled: Boolean) {
+        if (enabled && needsLockScreenOverlayPermission()) {
+            // Match original j7.l: block enable until OEM lock/overlay permission is granted.
+            binding.preferenceLockScreen.isSelected = false
+            pendingLockScreenEnable = true
+            showLockScreenPermissionDialog()
+            return
+        }
+
+        pendingLockScreenEnable = false
+        viewModel.setLockScreenEnabled(enabled)
+        lockScreenController.refresh(enabled)
+    }
+
+    private fun needsLockScreenOverlayPermission(): Boolean {
+        // Original t6.b.c(context): API 29+ requires canDrawOverlays for lock-screen type.
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            !Settings.canDrawOverlays(this)
+    }
+
+    private fun showLockScreenPermissionDialog() {
+        val message = getString(
+            R.string.permission_lock_screen,
+            getString(R.string.permission_des_lock_screen)
+        )
+        showMessageDialog(
+            materialDialogConfigFactory.createMaterialMessageDialogConfig(this).apply {
+                titleText = getString(R.string.lock_screen)
+                messageText = message
+                positiveButtonText = getString(R.string.grant_permission)
+                negativeButtonText = getString(R.string.cancel)
+                positiveButtonClickListener =
+                    android.content.DialogInterface.OnClickListener { dialog, _ ->
+                        dialog.dismiss()
+                        if (!openOverlayPermissionSettings()) {
+                            pendingLockScreenEnable = false
+                            ToastUtil.show(
+                                this@SettingActivity,
+                                Toast.LENGTH_SHORT,
+                                getString(R.string.open_permission_failed)
+                            )
+                        }
+                    }
+                negativeButtonClickListener =
+                    android.content.DialogInterface.OnClickListener { dialog, _ ->
+                        pendingLockScreenEnable = false
+                        dialog.dismiss()
+                    }
+            }
+        )
+    }
+
+    private fun resumeLockScreenAfterOverlayPermissionChange() {
+        if (!pendingLockScreenEnable) return
+        if (needsLockScreenOverlayPermission()) return
+
+        pendingLockScreenEnable = false
+        binding.preferenceLockScreen.isSelected = true
+        viewModel.setLockScreenEnabled(true)
+        lockScreenController.refresh(true)
+    }
+
+    private fun openOverlayPermissionSettings(): Boolean {
+        return runCatching {
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+            )
+        }.isSuccess
     }
 
     private fun onKeepAliveBackgroundClicked() {

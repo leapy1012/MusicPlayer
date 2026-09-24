@@ -54,6 +54,15 @@ class PlaybackLifecycleCallbacks(
         service.startProgressTickerFromLifecycle()
     }
 
+    override fun isNotificationOnlyAttach(): Boolean {
+        return service.processPlayerHolder.isCreated &&
+            service.queueManager.queue.isNotEmpty()
+    }
+
+    override fun scheduleDeferredServiceObservers() {
+        service.scheduleDeferredServiceObservers()
+    }
+
     override fun isEffectivelyPlaying(): Boolean {
         return service.isEffectivelyPlaying()
     }

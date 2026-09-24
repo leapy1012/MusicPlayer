@@ -172,7 +172,8 @@ class TrackListFragment : BaseListFragment() {
     private fun render(state: TrackListUiState) {
         currentTracks = state.tracks
 
-        emptyStateController.setVisible(state.isEmpty)
+        // Original: empty stub only after a real empty query result — not while loading.
+        emptyStateController.setVisible(state.hasLoaded && state.isEmpty)
 
         trackAdapter.submitList(state.tracks)
         artistAlbumHeaderAdapter?.submitAlbums(state.artistAlbums)

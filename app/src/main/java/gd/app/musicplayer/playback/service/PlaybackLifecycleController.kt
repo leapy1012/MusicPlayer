@@ -27,6 +27,9 @@ class PlaybackLifecycleController(
         fun restoreLastSessionIntoRuntimeStateIfNeeded()
         fun registerScreenOffReceiver()
         fun startProgressTicker()
+        /** True when AudioController already created players — notification-only attach. */
+        fun isNotificationOnlyAttach(): Boolean
+        fun scheduleDeferredServiceObservers()
 
         fun isEffectivelyPlaying(): Boolean
         fun hasCurrentQueueItem(): Boolean
@@ -49,9 +52,15 @@ class PlaybackLifecycleController(
         callbacks.setServiceRunning(true)
         callbacks.configurePlayer()
         callbacks.configureControllers()
-        callbacks.observePreferences()
-        callbacks.observeCurrentTrackArtwork()
-        callbacks.observeCurrentTrackFavorite()
+        val notificationOnly = callbacks.isNotificationOnlyAttach()
+        if (notificationOnly) {
+            // Original MusicPlayService notification attach does not re-run full UI observers.
+            callbacks.scheduleDeferredServiceObservers()
+        } else {
+            callbacks.observePreferences()
+            callbacks.observeCurrentTrackArtwork()
+            callbacks.observeCurrentTrackFavorite()
+        }
         callbacks.setSleepTimerPlaybackProvider()
         callbacks.createNotificationChannel()
         callbacks.restoreLastSessionIntoRuntimeStateIfNeeded()

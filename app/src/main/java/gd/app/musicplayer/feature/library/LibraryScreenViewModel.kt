@@ -3,11 +3,11 @@ package gd.app.musicplayer.feature.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import gd.app.musicplayer.domain.model.LibraryTabConfig
+import gd.app.musicplayer.domain.model.LibraryTabConfigStore
 import gd.app.musicplayer.domain.usecase.library.GetLibraryLastTabUseCase
 import gd.app.musicplayer.domain.usecase.library.GetLibraryTabConfigsUseCase
 import gd.app.musicplayer.domain.usecase.library.SetLibraryLastTabUseCase
-import gd.app.musicplayer.feature.library.model.LibraryTabConfig
-import gd.app.musicplayer.feature.library.model.LibraryTabConfigStore
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +15,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class LibraryScreenUiState(
-    val visibleTabs: List<LibraryTabConfig> = emptyList(),
+    val visibleTabs: List<LibraryTabConfig> = LibraryTabConfigStore.visibleItems(
+        LibraryTabConfigStore.defaultItems
+    ),
     val initialTabIndex: Int = 0
 )
 
@@ -26,6 +28,7 @@ class LibraryScreenViewModel @Inject constructor(
     private val setLibraryLastTabUseCase: SetLibraryLastTabUseCase
 ) : ViewModel() {
 
+    // Paint default tabs immediately — don't wait for DataStore before ViewPager exists.
     private val _uiState = MutableStateFlow(LibraryScreenUiState())
     val uiState: StateFlow<LibraryScreenUiState> = _uiState.asStateFlow()
 

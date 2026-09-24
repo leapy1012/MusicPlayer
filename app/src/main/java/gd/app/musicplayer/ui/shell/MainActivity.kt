@@ -2,11 +2,14 @@ package gd.app.musicplayer.ui.shell
 
 import android.content.ContentUris
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
-import android.provider.MediaStore
-import android.content.res.Configuration
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.Process
+import android.provider.MediaStore
 import android.view.KeyEvent
 import android.view.View
 import android.widget.FrameLayout
@@ -15,20 +18,25 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.externalIntentKey
 import gd.app.musicplayer.core.common.extension.extractExternalAudioUris
 import gd.app.musicplayer.core.common.extension.isExternalAudioIntent
-import gd.app.musicplayer.databinding.ActivityMainBinding
-import gd.app.musicplayer.feature.home.MainFragment
 import gd.app.musicplayer.core.common.extension.isTablet
 import gd.app.musicplayer.core.common.extension.normalizePath
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
+import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
+import gd.app.musicplayer.databinding.ActivityMainBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
 import gd.app.musicplayer.domain.usecase.scan.SyncMediaStoreLibraryUseCase
+import gd.app.musicplayer.feature.home.MainFragment
 import gd.app.musicplayer.playback.PlaybackController
+import gd.app.musicplayer.playback.command.PlaybackServiceActions
+import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +71,7 @@ class MainActivity : BasePlayerSheetActivity() {
     @Inject lateinit var playbackController: PlaybackController
     @Inject lateinit var getTracksUseCase: GetTracksUseCase
     @Inject lateinit var syncMediaStoreLibraryUseCase: SyncMediaStoreLibraryUseCase
+    @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
     private var lastHandledExternalIntentKey: String? = null
 
@@ -93,6 +102,21 @@ class MainActivity : BasePlayerSheetActivity() {
 
     fun drawerLayout(): DrawerLayout = navigationDrawer
 
+    fun showQuitConfirmDialog() {
+        val config = materialDialogConfigFactory
+            .createMaterialMessageDialogConfig(this)
+            .apply {
+                messageText = getString(R.string.adv_quit_message)
+                positiveButtonText = getString(R.string.adv_quit_confirm)
+                negativeButtonText = getString(R.string.adv_quit_cancel)
+                positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
+                    dialog.dismiss()
+                    quitApplication()
+                }
+            }
+
+        MessageDialog.show(this, config)
+    }
 
     private fun initializeMainUi(savedInstanceState: Bundle?) {
         navigationDrawer = binding.mainDrawerLayout
@@ -108,8 +132,9 @@ class MainActivity : BasePlayerSheetActivity() {
         }
     }
 
-
     private fun installBackHandler() {
+        // Original MainActivity.onBackPressed:
+        // drawer → fragment back stack → collapse player panel → quit confirm.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
@@ -122,9 +147,29 @@ class MainActivity : BasePlayerSheetActivity() {
                         onBackPressedDispatcher.onBackPressed()
                         isEnabled = true
                     }
+
+                    collapsePlayerPanelIfExpanded() -> Unit
+
+                    else -> showQuitConfirmDialog()
                 }
             }
         })
+    }
+
+    private fun quitApplication() {
+        val serviceIntent = Intent(applicationContext, MusicPlaybackService::class.java).apply {
+            action = PlaybackServiceActions.ACTION_EXIT
+        }
+
+        applicationContext.startService(serviceIntent)
+        finishAffinity()
+
+        Handler(Looper.getMainLooper()).postDelayed(
+            {
+                Process.killProcess(Process.myPid())
+            },
+            150L
+        )
     }
 
     private fun setupDrawerWidth() {

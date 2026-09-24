@@ -1,6 +1,6 @@
 package gd.app.musicplayer.core.datastore
 
-import gd.app.musicplayer.feature.library.model.LibraryTabConfig
+import gd.app.musicplayer.domain.model.LibraryTabConfig
 import kotlinx.coroutines.flow.Flow
 
 interface SettingPreferencesDataStore {

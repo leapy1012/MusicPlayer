@@ -4,29 +4,30 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.MotionEvent
+import android.view.View
 import android.widget.AdapterView
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.datastore.SoundEffectPreferences
+import gd.app.musicplayer.core.designsystem.dialog.BaseDialog
+import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.messageColor
 import gd.app.musicplayer.core.designsystem.theme.titleColor
 import gd.app.musicplayer.databinding.ActivityEqualizerBinding
 import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
-import gd.app.musicplayer.core.datastore.SoundEffectPreferences
-import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
-import gd.app.musicplayer.core.designsystem.dialog.BaseDialog
-import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
-
+import gd.app.musicplayer.ui.common.MusicTabLayoutMediator
+import gd.app.musicplayer.ui.common.base.BaseActivity
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -40,6 +41,8 @@ class EqualizerActivity : BaseActivity() {
     private lateinit var binding: ActivityEqualizerBinding
     private val equalizerFragment = EqualizerFragment()
     private val soundEffectFragment = SoundEffectFragment()
+    private var tabMediator: MusicTabLayoutMediator? = null
+    private lateinit var tipGuard: EqualizerEnableTipGuard
 
     companion object {
         fun start(context: Context) {
@@ -53,6 +56,10 @@ class EqualizerActivity : BaseActivity() {
         binding = ActivityEqualizerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        tipGuard = EqualizerEnableTipGuard(this).apply {
+            setTipAccentColor(themeRepo.getCorePalette().accentColor)
+        }
+
         setupInsets()
         setupPager()
         setupActions()
@@ -65,8 +72,30 @@ class EqualizerActivity : BaseActivity() {
         equalizerFragment.reloadFromSettings()
     }
 
+    override fun onDestroy() {
+        tabMediator?.detach()
+        tabMediator = null
+        tipGuard.clearShieldViews()
+        super.onDestroy()
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        tipGuard.onTouchEvent(ev)
+        return super.dispatchTouchEvent(ev)
+    }
+
+    fun equalizerTipGuard(): EqualizerEnableTipGuard = tipGuard
+
+    fun requestPagerDisallowInterceptTouchEvent(disallow: Boolean) {
+        if (!::binding.isInitialized) return
+        binding.equalizerViewPager.requestDisallowInterceptTouchEvent(disallow)
+    }
+
     private fun applyTheme() {
         applyThemeTo(binding.root)
+        if (::tipGuard.isInitialized) {
+            tipGuard.setTipAccentColor(themeRepo.getCorePalette().accentColor)
+        }
     }
 
     private fun setupInsets() {
@@ -84,9 +113,14 @@ class EqualizerActivity : BaseActivity() {
             }
         }
 
-        TabLayoutMediator(binding.equalizerTabLayout, binding.equalizerViewPager) { tab, position ->
+        tabMediator = MusicTabLayoutMediator(
+            binding.equalizerTabLayout,
+            binding.equalizerViewPager
+        ) { tab, position ->
             tab.text = if (position == 0) "EQ" else "VOL"
-        }.attach()
+        }.also { mediator ->
+            mediator.attach()
+        }
 
         lifecycleScope.launch {
             binding.equalizerViewPager.setCurrentItem(
@@ -109,8 +143,15 @@ class EqualizerActivity : BaseActivity() {
 
     private fun setupActions() {
         binding.equalizerBack.navigateBack(this)
-        binding.equalizerType.setOnClickListener {
-            if (SoundEffectPreferences.supportsTenBandEqualizer()) {
+
+        val supportsTenBand = SoundEffectPreferences.supportsTenBandEqualizer()
+        binding.equalizerType.visibility = if (supportsTenBand) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
+        if (supportsTenBand) {
+            binding.equalizerType.setOnClickListener {
                 showBandTypeDialog()
             }
         }
@@ -167,7 +208,7 @@ class EqualizerActivity : BaseActivity() {
                 0f,
                 0f
             )
-            contentTopPaddingPx  = 0
+            contentTopPaddingPx = 0
 
             titleTextColor = palette.titleColor
             itemTextColor = palette.messageColor
@@ -177,4 +218,3 @@ class EqualizerActivity : BaseActivity() {
         }
     }
 }
-

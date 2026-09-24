@@ -3,6 +3,7 @@ package gd.app.musicplayer.ui
 import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -27,6 +28,12 @@ class WelcomeActivity : BaseActivity() {
     private lateinit var binding: ActivityWelcomeBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Dismiss Android 12+ system splash immediately; WelcomeView is the real splash.
+        val splashScreen = installSplashScreen()
+        splashScreen.setOnExitAnimationListener { splashView ->
+            splashView.remove()
+        }
+
         super.onCreate(savedInstanceState)
 
         binding = ActivityWelcomeBinding.inflate(layoutInflater)
@@ -74,12 +81,16 @@ class WelcomeActivity : BaseActivity() {
 
     private fun startLoading() {
         lifecycleScope.launch {
-            runStartupSyncWithMinimumSplashDuration()
+            runStartupWithMinimumSplashDuration()
             openMainAndFinish()
         }
     }
 
-    private suspend fun runStartupSyncWithMinimumSplashDuration() {
+    /**
+     * Original Welcome: schedule sync in background, enforce splash wall-clock only.
+     * Do not wait for MediaStore → Room completion before Main.
+     */
+    private suspend fun runStartupWithMinimumSplashDuration() {
         val startTime = SystemClock.elapsedRealtime()
 
         withContext(Dispatchers.IO) {
@@ -110,6 +121,7 @@ class WelcomeActivity : BaseActivity() {
     }
 
     private companion object {
+        /** Branding floor only — must not include MediaStore sync time. */
         const val MIN_SPLASH_DURATION_MS = 250L
     }
 }

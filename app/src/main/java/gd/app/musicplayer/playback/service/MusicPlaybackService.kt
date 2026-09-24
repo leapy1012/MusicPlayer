@@ -58,7 +58,7 @@ import gd.app.musicplayer.playback.effects.StereoBalanceAudioProcessor
 import gd.app.musicplayer.playback.effects.VolumeFader
 import gd.app.musicplayer.playback.favorite.CurrentFavoriteController
 import gd.app.musicplayer.playback.headset.HeadsetMediaButtonHandler
-import gd.app.musicplayer.playback.headset.ScreenOffLockReceiver
+import gd.app.musicplayer.playback.lock.LockScreenController
 import gd.app.musicplayer.playback.notification.NotificationCloseController
 import gd.app.musicplayer.playback.notification.NotificationMediaSessionBridge
 import gd.app.musicplayer.playback.notification.PlaybackNotificationController
@@ -77,6 +77,7 @@ import gd.app.musicplayer.playback.state.PlaybackSnapshot
 import gd.app.musicplayer.playback.state.PlaybackSnapshotManager
 import gd.app.musicplayer.playback.state.PlaybackStateOrchestrator
 import gd.app.musicplayer.playback.state.PlaybackStatePublisher
+import gd.app.musicplayer.playback.widget.PlaybackWidgetBridge
 import gd.app.musicplayer.playback.state.PlaybackStateUpdateCoordinator
 import gd.app.musicplayer.playback.statusbar.StatusBarLyricsOverlayController
 import gd.app.musicplayer.playback.transition.TimedTransitionController
@@ -93,6 +94,7 @@ class MusicPlaybackService : MediaSessionService() {
     // ---------------------------------------------------------------------
 
     @Inject lateinit var musicPlayerFactory: MusicPlayerFactory
+    @Inject lateinit var processPlayerHolder: gd.app.musicplayer.playback.ProcessPlayerHolder
     @Inject lateinit var queueManager: PlaybackQueueManager
     @Inject lateinit var playbackRuntimeStateStore: PlaybackRuntimeStateStore
     @Inject lateinit var playbackQueueRepo: PlaybackQueueRepo
@@ -114,6 +116,8 @@ class MusicPlaybackService : MediaSessionService() {
     @Inject lateinit var playbackStatsTracker: PlaybackStatsTracker
     @Inject lateinit var widgetUpdateCoordinator: WidgetUpdateCoordinator
     @Inject lateinit var commandPayloadStore: PlaybackCommandPayloadStore
+    @Inject lateinit var lockScreenController: LockScreenController
+    @Inject lateinit var playbackFadeController: gd.app.musicplayer.playback.effects.PlaybackFadeController
 
     // ---------------------------------------------------------------------
     // Runtime collaborators
@@ -150,8 +154,8 @@ class MusicPlaybackService : MediaSessionService() {
     internal lateinit var notificationController: PlaybackNotificationController
     internal lateinit var playbackModeResolver: PlaybackModeResolver
     internal lateinit var playbackTuningController: PlaybackTuningController
-    internal lateinit var screenOffLockReceiver: ScreenOffLockReceiver
     internal lateinit var statePublisher: PlaybackStatePublisher
+    internal lateinit var widgetBridge: PlaybackWidgetBridge
     internal lateinit var stereoBalanceAudioProcessor: StereoBalanceAudioProcessor
     internal lateinit var crossfadeStereoBalanceAudioProcessor: StereoBalanceAudioProcessor
     internal lateinit var volumeFader: VolumeFader
@@ -167,7 +171,6 @@ class MusicPlaybackService : MediaSessionService() {
     internal var resumeJob: Job? = null
     internal var defaultQueueRestoreJob: Job? = null
     internal var defaultTracksObserverJob: Job? = null
-    internal var widgetUpdateJob: Job? = null
 
     @Volatile
     internal var pendingResumeAfterDefaultQueue = false
@@ -180,7 +183,6 @@ class MusicPlaybackService : MediaSessionService() {
     @Volatile
     internal var pendingQueueSessionSyncAfterStartupPlay = false
 
-    internal var screenReceiverRegistered = false
     internal var keepIdleNotification = false
     internal var stopAfterCurrentTrack = false
     internal var notificationDismissedByUser = false
@@ -306,10 +308,48 @@ class MusicPlaybackService : MediaSessionService() {
                 .add(SessionCommand(MEDIA3_COMMAND_CLOSE_NOTIFICATION, Bundle.EMPTY))
                 .build()
 
+            val playerCommands = MediaSession.ConnectionResult
+                .DEFAULT_PLAYER_COMMANDS
+                .buildUpon()
+                .add(Player.COMMAND_SEEK_TO_NEXT)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .build()
+
             return MediaSession.ConnectionResult
                 .AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(sessionCommands)
+                .setAvailablePlayerCommands(playerCommands)
                 .build()
+        }
+
+        @OptIn(UnstableApi::class)
+        override fun onSetMediaItems(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: MutableList<androidx.media3.common.MediaItem>,
+            startIndex: Int,
+            startPositionMs: Long
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            val safeIndex = startIndex.coerceIn(0, (mediaItems.size - 1).coerceAtLeast(0))
+            val current = mediaItems.getOrNull(safeIndex)
+                ?: return Futures.immediateFuture(
+                    MediaSession.MediaItemsWithStartPosition(
+                        emptyList(),
+                        0,
+                        startPositionMs
+                    )
+                )
+
+            // Keep ExoPlayer single-track; app queue remains source of truth.
+            return Futures.immediateFuture(
+                MediaSession.MediaItemsWithStartPosition(
+                    listOf(current),
+                    /* startIndex= */ 0,
+                    startPositionMs
+                )
+            )
         }
 
         override fun onCustomCommand(
@@ -350,15 +390,21 @@ class MusicPlaybackService : MediaSessionService() {
             controller: MediaSession.ControllerInfo,
             playerCommand: Int
         ): Int {
-            when {
-                playerCommand.isMedia3TransportNavigationCommand() -> {
-                    pendingMedia3TransportCommand = playerCommand
-                    pendingMedia3TransportStartIndex = currentIndex
-                    pendingMedia3TransportStartPositionMs =
-                        player.currentPosition.coerceAtLeast(0L)
+            // Single-track ExoPlayer has no timeline next/prev — route like original BassPlayer.
+            when (playerCommand) {
+                Player.COMMAND_SEEK_TO_NEXT,
+                Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> {
+                    playNext()
+                    return SessionResult.RESULT_INFO_SKIPPED
                 }
 
-                playerCommand == Player.COMMAND_STOP -> {
+                Player.COMMAND_SEEK_TO_PREVIOUS,
+                Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> {
+                    playPrevious()
+                    return SessionResult.RESULT_INFO_SKIPPED
+                }
+
+                Player.COMMAND_STOP -> {
                     pendingMedia3StopSnapshot = capturePlaybackSnapshot()
                 }
             }
@@ -369,14 +415,13 @@ class MusicPlaybackService : MediaSessionService() {
         @OptIn(UnstableApi::class)
         override fun onPlaybackResumption(
             mediaSession: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            isForPlayback: Boolean
+            controller: MediaSession.ControllerInfo
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
 
             serviceScope.launch {
                 runCatching {
-                    resolvePlaybackResumption(isForPlayback)
+                    resolvePlaybackResumption(isForPlayback = true)
                 }.onSuccess { result ->
                     future.set(result)
                 }.onFailure { error ->
@@ -434,22 +479,18 @@ class MusicPlaybackService : MediaSessionService() {
             throw IllegalStateException("Audio focus request was denied.")
         }
 
-        val mediaItems = queue.mapNotNull { music ->
-            music.toMediaItemOrNull()
-        }
-
-        if (mediaItems.isEmpty()) {
-            throw UnsupportedOperationException("No restorable media items.")
-        }
-
         val startIndex = currentIndex.coerceIn(
             minimumValue = 0,
-            maximumValue = mediaItems.lastIndex
+            maximumValue = queue.lastIndex
         )
+        val current = queue.getOrNull(startIndex)
+            ?.toMediaItemOrNull()
+            ?: throw UnsupportedOperationException("No restorable media items.")
 
+        // Single-track player parity: resume with the current item only (original one MediaPlayer).
         return MediaSession.MediaItemsWithStartPosition(
-            mediaItems,
-            startIndex,
+            listOf(current),
+            /* startIndex= */ 0,
             resolveCurrentSnapshotPositionMs()
         )
     }
@@ -561,9 +602,6 @@ class MusicPlaybackService : MediaSessionService() {
     internal fun isPlaybackTuningControllerInitialized(): Boolean =
         ::playbackTuningController.isInitialized
 
-    internal fun isScreenOffLockReceiverInitialized(): Boolean =
-        ::screenOffLockReceiver.isInitialized
-
     internal fun isStatePublisherInitialized(): Boolean =
         ::statePublisher.isInitialized
 
@@ -587,6 +625,9 @@ class MusicPlaybackService : MediaSessionService() {
 
     internal fun isWidgetUpdateCoordinatorInitialized(): Boolean =
         ::widgetUpdateCoordinator.isInitialized
+
+    internal fun isWidgetBridgeInitialized(): Boolean =
+        ::widgetBridge.isInitialized
 
     internal fun isAudioEffectsManagerInitialized(): Boolean =
         ::audioEffectsManager.isInitialized

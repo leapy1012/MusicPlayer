@@ -86,7 +86,9 @@ class MusicSetListViewModel @Inject constructor(
                             viewMode = viewMode,
                             currentSortStyle = sortSelection.first,
                             sortDescending = sortSelection.second,
-                            isEmpty = items.isEmpty() && musicSet !is MusicSet.Folders
+                            // Match original l5.d: empty when folder data list is empty
+                            // (w7.x.c(0) == 0 → no footer, empty state shown).
+                            isEmpty = displayItems.isEmpty()
                         )
                     } 
             }

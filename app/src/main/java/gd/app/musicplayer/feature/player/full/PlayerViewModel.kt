@@ -11,6 +11,7 @@ import gd.app.musicplayer.domain.repository.PlaylistRepo
 import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
 import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
+import gd.app.musicplayer.feature.player.common.PlaybackChromeSnapshot
 import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.playback.PlaybackStartupInitializer
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
@@ -65,6 +66,9 @@ class PlayerViewModel @Inject constructor(
 
     private val playbackStateFlow = observePlaybackStateUseCase()
 
+    /** Seed from process singleton so new Activity VMs paint like original banners. */
+    private val chromeSeed: MusicPlaybackState = playbackController.state.value
+
     init {
         viewModelScope.launch {
             playbackStartupInitializer.initialize()
@@ -99,23 +103,19 @@ class PlayerViewModel @Inject constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = TrackUiState()
+                initialValue = PlaybackChromeSnapshot.trackUiState(chromeSeed)
             )
 
     val progressUiState: StateFlow<PlaybackProgressUiState> =
         playbackState
             .map { state ->
-                PlaybackProgressUiState(
-                    isPlaying = state.isPlaying,
-                    positionMs = state.positionMs,
-                    durationMs = state.durationMs
-                )
+                PlaybackChromeSnapshot.progressUiState(state)
             }
             .distinctUntilChanged()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = PlaybackProgressUiState()
+                initialValue = PlaybackChromeSnapshot.progressUiState(chromeSeed)
             )
 
     val visualizerUiState: StateFlow<VisualizerUiState> =
@@ -130,7 +130,10 @@ class PlayerViewModel @Inject constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = VisualizerUiState()
+                initialValue = VisualizerUiState(
+                    audioSessionId = chromeSeed.audioSessionId,
+                    isPlaying = chromeSeed.isPlaying
+                )
             )
 
     val currentIndex: StateFlow<Int> =
@@ -142,7 +145,7 @@ class PlayerViewModel @Inject constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue =  NO_QUEUE_INDEX
+                initialValue = chromeSeed.currentIndex
             )
 
     val playbackHighlightState: StateFlow<PlaybackHighlightState> =
@@ -157,7 +160,10 @@ class PlayerViewModel @Inject constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = PlaybackHighlightState()
+                initialValue = PlaybackHighlightState(
+                    currentMusicId = chromeSeed.currentTrack?.id,
+                    isPlaying = chromeSeed.isPlaying
+                )
             )
 
     fun toggleFavorite(context: Context) {
@@ -354,6 +360,5 @@ class PlayerViewModel @Inject constructor(
 
     private companion object {
         private const val STOP_TIMEOUT_MILLIS = 5_000L
-        private const val NO_QUEUE_INDEX = -1
     }
 }

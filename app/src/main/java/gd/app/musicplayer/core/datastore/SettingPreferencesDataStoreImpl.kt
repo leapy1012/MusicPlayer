@@ -2,8 +2,8 @@ package gd.app.musicplayer.core.datastore
 
 import androidx.datastore.preferences.core.Preferences
 import gd.app.musicplayer.playback.PlaybackMode
-import gd.app.musicplayer.feature.library.model.LibraryTabConfig
-import gd.app.musicplayer.feature.library.model.LibraryTabConfigStore
+import gd.app.musicplayer.domain.model.LibraryTabConfig
+import gd.app.musicplayer.domain.model.LibraryTabConfigStore
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -66,7 +66,8 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
     }
 
     override suspend fun getLockScreenEnabled(): Boolean {
-        return dataStore.data.first()[SettingsKeys.LOCK_SCREEN] ?: true
+        return dataStore.data.first()[SettingsKeys.LOCK_SCREEN]
+            ?: defaultLockScreenEnabled()
     }
 
     override suspend fun getSimultaneousPlayEnabled(): Boolean {
@@ -329,7 +330,8 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
             ),
             lockscreen = LockscreenSettingPreference(
                 backgroundMode = preferences[SettingsKeys.LOCK_BACKGROUND] ?: 1,
-                lockScreenEnabled = preferences[SettingsKeys.LOCK_SCREEN] ?: true
+                lockScreenEnabled = preferences[SettingsKeys.LOCK_SCREEN]
+                    ?: defaultLockScreenEnabled()
             ),
             headset = HeadsetSettingPreference(
                 bluetoothAutoStartEnabled = preferences[SettingsKeys.BLUETOOTH_AUTO_START]

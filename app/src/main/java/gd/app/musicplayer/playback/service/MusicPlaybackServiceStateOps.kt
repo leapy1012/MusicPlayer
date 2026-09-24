@@ -3,7 +3,6 @@
 import android.os.SystemClock
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.feature.widget.provider.WidgetPlaybackSnapshot
-import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import gd.app.musicplayer.playback.restore.RestoreStatus
 import gd.app.musicplayer.playback.state.PlaybackSnapshot
 import gd.app.musicplayer.playback.state.PublishReason
@@ -13,6 +12,13 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 internal fun MusicPlaybackService.handleProgressTick() {
+    val prefs = latestSettingPreferences
+    val wantsTimedTransition =
+        prefs.audio.crossFadeEnabled || prefs.audio.gaplessPlaybackEnabled
+    if (wantsTimedTransition) {
+        ensureCrossfadePlaybackStack()
+    }
+
     if (isTimedTransitionControllerInitialized()) {
         timedTransitionController.maybeHandleTimedTransition()
     }
@@ -38,6 +44,14 @@ internal fun MusicPlaybackService.handleProgressTick() {
 }
 
 internal fun MusicPlaybackService.restoreLastSessionIntoRuntimeStateIfNeeded() {
+    // Original MusicPlayService does not re-hydrate queue on notification attach —
+    // AudioController ([y6.y]) already owns warm state. Skip when queue is live.
+    if (queueManager.queue.isNotEmpty() || processPlayerHolder.isCreated) {
+        if (isRestoreManagerInitialized()) {
+            restoreManager.markRestored()
+        }
+        return
+    }
     serviceScope.launch {
         ensurePlaybackRestored()
     }
@@ -142,10 +156,13 @@ internal fun MusicPlaybackService.publishStateAfterShutdown(
         )
     }
 
-    val widgetSnapshot = snapshot?.toWidgetPlaybackSnapshot()
-        ?: playbackRuntimeStateStore.state.value.toWidgetPlaybackSnapshot()
+    val widgetSnapshot = if (snapshot != null) {
+        widgetBridge.map(snapshot)
+    } else {
+        widgetBridge.map(playbackRuntimeStateStore.state.value)
+    }
 
-    updateWidgetSnapshotBlocking(widgetSnapshot)
+    widgetBridge.updateBlocking(widgetSnapshot)
 }
 
 internal fun MusicPlaybackService.publishAllRuntimeState(
@@ -199,86 +216,23 @@ internal fun MusicPlaybackService.publishPlaybackState(
 
 internal fun MusicPlaybackService.updateWidgetsFromRuntimeState() {
     if (!isPlaybackRuntimeStateStoreInitialized()) return
+    if (!isWidgetBridgeInitialized()) return
 
-    updateWidgetSnapshot(
-        playbackRuntimeStateStore.state.value.toWidgetPlaybackSnapshot()
-    )
+    widgetBridge.updateFromRuntimeState(playbackRuntimeStateStore.state.value)
 }
 
 internal fun MusicPlaybackService.updateWidgetSnapshot(
     snapshot: WidgetPlaybackSnapshot
 ) {
-    if (!isWidgetUpdateCoordinatorInitialized()) return
-    if (!isServiceScopeInitialized()) return
-
-    widgetUpdateJob?.cancel()
-    widgetUpdateJob = serviceScope.launch {
-        withContext(NonCancellable) {
-            widgetUpdateCoordinator.updateAll(snapshot)
-        }
-    }
+    if (!isWidgetBridgeInitialized()) return
+    widgetBridge.update(snapshot)
 }
 
 internal fun MusicPlaybackService.updateWidgetSnapshotBlocking(
     snapshot: WidgetPlaybackSnapshot
 ) {
-    if (!isWidgetUpdateCoordinatorInitialized()) return
-
-    widgetUpdateJob?.cancel()
-
-    runBlocking {
-        withContext(NonCancellable) {
-            widgetUpdateCoordinator.updateAll(snapshot)
-        }
-    }
-}
-
-private fun MusicPlaybackService.toWidgetPlaybackSnapshot(
-    state: MusicPlaybackState
-): WidgetPlaybackSnapshot {
-    return WidgetPlaybackSnapshot(
-        queue = state.queue,
-        currentTrack = state.currentTrack,
-        currentIndex = state.currentIndex,
-        positionMs = state.positionMs,
-        isPlaying = state.isPlaying,
-        playMode = latestSettingPreferences.playMode
-    )
-}
-
-private fun MusicPlaybackService.toWidgetPlaybackSnapshot(
-    snapshot: PlaybackSnapshot
-): WidgetPlaybackSnapshot {
-    return WidgetPlaybackSnapshot(
-        queue = snapshot.queue,
-        currentTrack = snapshot.currentTrack,
-        currentIndex = snapshot.currentIndex,
-        positionMs = snapshot.positionMs,
-        isPlaying = false,
-        playMode = latestSettingPreferences.playMode
-    )
-}
-
-fun MusicPlaybackState.toWidgetPlaybackSnapshot(): WidgetPlaybackSnapshot {
-    return WidgetPlaybackSnapshot(
-        queue = queue,
-        currentTrack = currentTrack,
-        currentIndex = currentIndex,
-        positionMs = positionMs,
-        isPlaying = isPlaying,
-        playMode = 0
-    )
-}
-
-fun PlaybackSnapshot.toWidgetPlaybackSnapshot(): WidgetPlaybackSnapshot {
-    return WidgetPlaybackSnapshot(
-        queue = queue,
-        currentTrack = currentTrack,
-        currentIndex = currentIndex,
-        positionMs = positionMs,
-        isPlaying = false,
-        playMode = 0
-    )
+    if (!isWidgetBridgeInitialized()) return
+    widgetBridge.updateBlocking(snapshot)
 }
 
 internal fun MusicPlaybackService.setQueueState(

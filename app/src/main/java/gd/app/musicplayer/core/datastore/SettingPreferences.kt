@@ -1,7 +1,8 @@
 package gd.app.musicplayer.core.datastore
 
-import gd.app.musicplayer.feature.library.model.LibraryTabConfig
-import gd.app.musicplayer.feature.library.model.LibraryTabConfigStore
+import android.os.Build
+import gd.app.musicplayer.domain.model.LibraryTabConfig
+import gd.app.musicplayer.domain.model.LibraryTabConfigStore
 
 data class SettingPreferences(
     val playMode: Int = 1,
@@ -65,8 +66,13 @@ data class NotificationSettingPreference(
 
 data class LockscreenSettingPreference(
     val backgroundMode: Int = 1,
-    val lockScreenEnabled: Boolean = true
+    val lockScreenEnabled: Boolean = defaultLockScreenEnabled()
 )
+
+/** Original `w7.v.y0` default: enabled only below API 29. */
+fun defaultLockScreenEnabled(): Boolean {
+    return Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+}
 
 data class HeadsetSettingPreference(
     val bluetoothAutoStartEnabled: Boolean = false,

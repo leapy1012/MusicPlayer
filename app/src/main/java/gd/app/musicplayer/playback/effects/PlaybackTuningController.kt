@@ -17,15 +17,25 @@ import kotlinx.coroutines.withContext
 import kotlin.math.pow
 
 class PlaybackTuningController(
-    private val player: ExoPlayer,
+    private var player: ExoPlayer,
     private val playbackStatePreferenceStore: PlaybackStatePreferenceStore,
     private val settingPreferencesDataStore: SettingPreferencesDataStore,
     private val soundEffectPreferences: SoundEffectPreferences,
     private val stereoBalanceAudioProcessor: StereoBalanceAudioProcessor,
     private val extraStereoBalanceAudioProcessors: List<StereoBalanceAudioProcessor> = emptyList(),
     private val currentMusicProvider: () -> Music?,
-    private val applicationScope: CoroutineScope
+    private val applicationScope: CoroutineScope,
+    /**
+     * When set (service + [VolumeFader]), volume writes go through the fader so play/pause
+     * and crossfade gains are not stomped. Original [d7.a] keeps fade channels separate.
+     * Receives the resolved target volume for fallback when the fader is not bound yet.
+     */
+    private val applyPlayerVolume: ((resolvedVolume: Float) -> Unit)? = null
 ) {
+
+    fun replacePlayer(newPlayer: ExoPlayer) {
+        player = newPlayer
+    }
 
     @Volatile
     private var latestPlaySpeed: Float = DEFAULT_PLAY_SPEED
@@ -71,19 +81,28 @@ class PlaybackTuningController(
 
             withContext(Dispatchers.Main.immediate) {
                 player.playbackParameters = PlaybackParameters(speed, pitch)
-                player.volume = volume
+                applyVolumeToPlayer(volume)
             }
         }
     }
 
     fun applyResolvedPlayerVolume() {
         applicationScope.launch(Dispatchers.Main.immediate) {
-            player.volume = resolveTargetPlaybackVolume()
+            applyVolumeToPlayer(resolveTargetPlaybackVolume())
         }
     }
 
     fun applyResolvedPlayerVolumeOnMain() {
-        player.volume = resolveTargetPlaybackVolume()
+        applyVolumeToPlayer(resolveTargetPlaybackVolume())
+    }
+
+    private fun applyVolumeToPlayer(resolvedVolume: Float) {
+        val applier = applyPlayerVolume
+        if (applier != null) {
+            applier(resolvedVolume)
+        } else {
+            player.volume = resolvedVolume
+        }
     }
 
     suspend fun refreshSoundBalanceFromPreferences() {

@@ -2,29 +2,69 @@ package gd.app.musicplayer.playback.player
 
 import android.content.Context
 import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.playback.effects.StereoBalanceAudioProcessor
 
 /**
- * Owns the low-level Media3 player objects used by playback.
- *
- * This keeps ExoPlayer construction, listener attachment, and release ordering
- * out of MusicPlaybackService. The service still owns business decisions for now;
- * those can move here later once queue/state dependencies are smaller.
+ * Owns Media3 players. Matches original [u6.e]:
+ * - Primary created on demand
+ * - Crossfade/outgoing player only for the fade window
+ * - On fade end: promote incoming to primary and release outgoing ([u6.e.v])
  */
 class PlaybackEngine(
     private val context: Context,
     private val musicPlayerFactory: MusicPlayerFactory
 ) {
 
-    data class Components(
-        val player: ExoPlayer,
-        val crossfadePlayer: ExoPlayer,
+    class Components(
+        initialPlayer: ExoPlayer,
         val playerEventHandler: PlayerEventHandler,
         val stereoBalanceAudioProcessor: StereoBalanceAudioProcessor,
-        val crossfadeStereoBalanceAudioProcessor: StereoBalanceAudioProcessor
-    )
+        val crossfadeStereoBalanceAudioProcessor: StereoBalanceAudioProcessor,
+        private val musicPlayerFactory: MusicPlayerFactory,
+        private val context: Context
+    ) {
+        @Volatile
+        private var primaryPlayerField: ExoPlayer = initialPlayer
+
+        @Volatile
+        private var crossfadePlayerField: ExoPlayer? = null
+
+        val player: ExoPlayer
+            get() = primaryPlayerField
+
+        val crossfadePlayerOrNull: ExoPlayer?
+            get() = crossfadePlayerField
+
+        /** Original: secondary MediaPlayer only for crossfade path. */
+        fun ensureCrossfadePlayer(): ExoPlayer {
+            crossfadePlayerField?.let { return it }
+            val created = musicPlayerFactory.create(
+                context = context,
+                stereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor
+            ).apply { volume = 0f }
+            crossfadePlayerField = created
+            return created
+        }
+
+        /**
+         * Original [u6.e.v] after fade: incoming ([f15426g] after swap) stays;
+         * outgoing ([f15431r]) is released by the caller.
+         *
+         * @return demoted outgoing player, or null if no crossfade player exists
+         */
+        fun promoteCrossfadeToPrimary(): ExoPlayer? {
+            val incoming = crossfadePlayerField ?: return null
+            val outgoing = primaryPlayerField
+
+            runCatching { outgoing.removeListener(playerEventHandler) }
+            runCatching { incoming.addListener(playerEventHandler) }
+
+            primaryPlayerField = incoming
+            crossfadePlayerField = null
+            return outgoing
+        }
+    }
 
     interface Callbacks {
         fun onPlayerReady()
@@ -43,13 +83,6 @@ class PlaybackEngine(
             context = context,
             stereoBalanceAudioProcessor = stereoBalanceAudioProcessor
         )
-
-        val crossfadePlayer = musicPlayerFactory.create(
-            context = context,
-            stereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor
-        ).apply {
-            volume = 0f
-        }
 
         val eventHandler = PlayerEventHandler(
             callbacks = object : PlayerEventHandler.Callbacks {
@@ -82,11 +115,12 @@ class PlaybackEngine(
         player.addListener(eventHandler)
 
         return Components(
-            player = player,
-            crossfadePlayer = crossfadePlayer,
+            initialPlayer = player,
             playerEventHandler = eventHandler,
             stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
-            crossfadeStereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor
+            crossfadeStereoBalanceAudioProcessor = crossfadeStereoBalanceAudioProcessor,
+            musicPlayerFactory = musicPlayerFactory,
+            context = context
         )
     }
 
@@ -96,7 +130,7 @@ class PlaybackEngine(
         playerEventHandler: PlayerEventHandler?
     ) {
         if (player != null && playerEventHandler != null) {
-            player.removeListener(playerEventHandler)
+            runCatching { player.removeListener(playerEventHandler) }
         }
 
         player?.release()

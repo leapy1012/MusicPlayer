@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "gd.app.lib"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 24
@@ -36,6 +36,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.recyclerview)
     implementation(libs.material)
     implementation(libs.flexbox)
     implementation("com.github.albfernandez:juniversalchardet:2.5.0")

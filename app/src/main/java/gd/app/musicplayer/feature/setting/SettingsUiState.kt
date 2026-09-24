@@ -2,6 +2,7 @@ package gd.app.musicplayer.feature.setting
 
 import gd.app.musicplayer.core.datastore.DesktopLyricPreference
 import gd.app.musicplayer.core.datastore.StatusBarLyricPreference
+import gd.app.musicplayer.core.datastore.defaultLockScreenEnabled
 
 data class SettingsUiState(
     val useTenBand: Boolean = false,
@@ -43,7 +44,7 @@ data class SettingsUiState(
     val colorNotificationEnabledAvailable: Boolean = true,
     val desktopLyricPreference: DesktopLyricPreference = DesktopLyricPreference(),
     val statusBarLyricPreference: StatusBarLyricPreference = StatusBarLyricPreference(),
-    val lockScreenEnabled: Boolean = true,
+    val lockScreenEnabled: Boolean = defaultLockScreenEnabled(),
     val lockBackgroundMode: Int = 1,
     val lockBackgroundLabel: String = "",
     val headsetInPlayEnabled: Boolean = false,

@@ -4,9 +4,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
-import android.content.Context.RECEIVER_NOT_EXPORTED
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -30,6 +28,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.AppForegroundTracker
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
+import gd.app.musicplayer.core.common.extension.resolveMediaUri
 import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.core.database.dao.MusicDao
 import gd.app.musicplayer.core.datastore.DesktopLyricPreference
@@ -59,9 +58,9 @@ import gd.app.musicplayer.playback.command.IndexActionData
 import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.command.PlaybackCommandHandler
 import gd.app.musicplayer.playback.state.PlaybackStatePublisher
+import gd.app.musicplayer.playback.widget.PlaybackWidgetBridge
 import gd.app.musicplayer.playback.PlaybackStatsTracker
 import gd.app.musicplayer.playback.effects.PlaybackTuningController
-import gd.app.musicplayer.playback.headset.ScreenOffLockReceiver
 import gd.app.musicplayer.playback.effects.StereoBalanceAudioProcessor
 import gd.app.musicplayer.playback.timer.SleepTimerManager
 import gd.app.musicplayer.playback.effects.VolumeFader
@@ -91,6 +90,7 @@ import gd.app.musicplayer.playback.notification.NotificationCloseController
 import gd.app.musicplayer.playback.player.MusicPlayerFactory
 import gd.app.musicplayer.playback.player.PlaybackEngine
 import gd.app.musicplayer.playback.player.PlayerEventHandler
+import gd.app.musicplayer.playback.player.QueueAwareSessionPlayer
 import gd.app.musicplayer.playback.progress.PlaybackProgressTicker
 import gd.app.musicplayer.playback.queue.PlaybackQueueManager
 import gd.app.musicplayer.playback.queue.PlayerQueueController
@@ -134,7 +134,7 @@ internal fun MusicPlaybackService.prepareServiceBaseState() {
         observeTracksUseCase(MusicSet.Tracks).collectLatest { tracks ->
             cachedDefaultTracks = tracks
             cachedPlayableDefaultTracks = tracks.filter { music ->
-                music.toMediaItemOrNull() != null
+                music.resolveMediaUri() != null
             }
         }
     }
@@ -171,20 +171,23 @@ internal fun MusicPlaybackService.createStateUpdateCoordinator(): PlaybackStateU
             }
 
             override fun runtimeWidgetSnapshot(): WidgetPlaybackSnapshot {
-                return playbackRuntimeStateStore.state.value.toWidgetPlaybackSnapshot()
+                return widgetBridge.map(playbackRuntimeStateStore.state.value)
             }
 
             override fun shutdownWidgetSnapshot(snapshot: PlaybackSnapshot?): WidgetPlaybackSnapshot {
-                return snapshot?.toWidgetPlaybackSnapshot()
-                    ?: playbackRuntimeStateStore.state.value.toWidgetPlaybackSnapshot()
+                return if (snapshot != null) {
+                    widgetBridge.map(snapshot)
+                } else {
+                    widgetBridge.map(playbackRuntimeStateStore.state.value)
+                }
             }
 
             override fun updateWidgets(snapshot: WidgetPlaybackSnapshot) {
-                updateWidgetSnapshot(snapshot)
+                widgetBridge.update(snapshot)
             }
 
             override fun updateWidgetsBlocking(snapshot: WidgetPlaybackSnapshot) {
-                updateWidgetSnapshotBlocking(snapshot)
+                widgetBridge.updateBlocking(snapshot)
             }
         }
     )
@@ -307,11 +310,19 @@ internal fun MusicPlaybackService.configureControllers() {
         settingPreferencesDataStore = settingPreferencesDataStore,
         soundEffectPreferences = soundEffectPreferences,
         stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
-        extraStereoBalanceAudioProcessors = listOf(crossfadeStereoBalanceAudioProcessor),
+        extraStereoBalanceAudioProcessors = emptyList(),
         currentMusicProvider = {
             queue.getOrNull(currentIndex)
         },
-        applicationScope = serviceScope
+        applicationScope = serviceScope,
+        applyPlayerVolume = { resolvedVolume ->
+            val fader = playbackFadeController.volumeFaderOrNull()
+            if (fader != null) {
+                fader.applyResolvedVolume()
+            } else {
+                player.volume = resolvedVolume
+            }
+        }
     )
 
     playerQueueController = PlayerQueueController(
@@ -324,15 +335,6 @@ internal fun MusicPlaybackService.configureControllers() {
     artworkLoader = ArtworkLoader(
         context = this,
         defaultArtwork = defaultArtwork
-    )
-
-    screenOffLockReceiver = ScreenOffLockReceiver(
-        hasCurrentMusic = {
-            currentIndex in queue.indices
-        },
-        isLockScreenEnabled = {
-            latestSettingPreferences.lockscreen.lockScreenEnabled
-        }
     )
 
     audioFocusController = AudioFocusController(
@@ -360,12 +362,31 @@ internal fun MusicPlaybackService.configureControllers() {
         },
         currentIndexProvider = {
             currentIndex
+        },
+        progressPlayerProvider = {
+            if (
+                isTimedTransitionControllerInitialized() &&
+                timedTransitionController.isCrossfadeActive() &&
+                isCrossfadePlayerInitialized()
+            ) {
+                crossfadePlayer
+            } else {
+                null
+            }
+        }
+    )
+
+    widgetBridge = PlaybackWidgetBridge(
+        widgetUpdateCoordinator = widgetUpdateCoordinator,
+        scope = serviceScope,
+        playModeProvider = {
+            latestSettingPreferences.playMode
         }
     )
 
     notificationSessionBridge = NotificationMediaSessionBridge(
         context = this,
-        player = player,
+        playerProvider = { player },
         queueProvider = {
             queue
         },
@@ -642,52 +663,12 @@ internal fun MusicPlaybackService.configureControllers() {
             }
         }
     )
-    volumeFader = VolumeFader(
+    volumeFader = playbackFadeController.bind(
         player = player,
-        scope = serviceScope,
-        targetVolumeProvider = playbackTuningController::resolveTargetPlaybackVolume
+        targetVolume = playbackTuningController::resolveTargetPlaybackVolume
     )
-    crossfadeVolumeFader = VolumeFader(
-        player = crossfadePlayer,
-        scope = serviceScope,
-        targetVolumeProvider = {
-            playbackTuningController.resolveTargetPlaybackVolume(
-                timedTransitionController.currentIncomingTrack()
-            )
-        }
-    )
-
-    timedTransitionController = TimedTransitionController(
-        player = player,
-        incomingPlayer = crossfadePlayer,
-        playbackModeResolver = playbackModeResolver,
-        volumeFader = volumeFader,
-        incomingVolumeFader = crossfadeVolumeFader,
-        queueProvider = {
-            queue
-        },
-        currentIndexProvider = {
-            currentIndex
-        },
-        preferencesProvider = {
-            latestSettingPreferences
-        },
-        callbacks = object : TimedTransitionController.Callbacks {
-            override fun onPlayNext(fromAutoTransition: Boolean) {
-                playNextInternal(fromAutoTransition = fromAutoTransition)
-            }
-
-            override fun onCrossfadeCommit(
-                nextIndex: Int,
-                positionMs: Long
-            ) {
-                commitCrossfadeTransition(
-                    nextIndex = nextIndex,
-                    positionMs = positionMs
-                )
-            }
-        }
-    )
+    // Crossfade player / TimedTransitionController: lazy — original only allocates
+    // secondary MediaPlayer when crossfade runs (u6.e.l / f15431r).
 
     shutdownController = ShutdownController(
         callbacks = object : ShutdownCallbacks {
@@ -854,7 +835,13 @@ internal fun MusicPlaybackService.buildMedia3Session(): MediaSession {
 
     return MediaSession.Builder(
         this,
-        player
+        QueueAwareSessionPlayer(
+            exoPlayer = player,
+            onPlay = { resumePlayback() },
+            onPause = { pausePlayback() },
+            onSeekNext = { playNext() },
+            onSeekPrevious = { playPrevious() }
+        )
     )
         .setSessionActivity(sessionActivity)
         .setCallback(media3SessionCallback)
@@ -917,34 +904,22 @@ internal fun MusicPlaybackService.buildMedia3CommandButtons(): List<CommandButto
 }
 
 internal fun MusicPlaybackService.registerScreenOffReceiver() {
-    if (screenReceiverRegistered) return
-
-    val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        registerReceiver(
-            screenOffLockReceiver,
-            filter,
-            RECEIVER_NOT_EXPORTED
+    serviceScope.launch {
+        val enabled = settingPreferencesDataStore.getLockScreenEnabled()
+        latestSettingPreferences = latestSettingPreferences.copy(
+            lockscreen = latestSettingPreferences.lockscreen.copy(
+                lockScreenEnabled = enabled
+            )
         )
-    } else {
-        registerReceiver(
-            screenOffLockReceiver,
-            filter
-        )
+        lockScreenController.refresh(enabled)
+        if (isPlayerInitialized()) {
+            lockScreenController.setPlaying(isEffectivelyPlaying())
+        }
     }
-
-    screenReceiverRegistered = true
 }
 
 internal fun MusicPlaybackService.unregisterScreenOffReceiver() {
-    if (!screenReceiverRegistered) return
-
-    runCatching {
-        unregisterReceiver(screenOffLockReceiver)
-    }
-
-    screenReceiverRegistered = false
+    lockScreenController.unregister()
 }
 
 internal fun MusicPlaybackService.isNightMode(configuration: Configuration): Boolean {

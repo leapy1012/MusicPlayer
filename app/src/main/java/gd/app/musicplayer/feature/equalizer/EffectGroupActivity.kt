@@ -70,7 +70,8 @@ class EffectGroupActivity : BaseActivity() {
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         binding.statusBarSpace.applyStatusBarInsetHeight()
-        binding.toolbar.setTitle(R.string.equalizer_sound_effect)
+        // Original has back-only toolbar; title lives in the header graphic below.
+        binding.toolbar.title = ""
         binding.toolbar.navigateBack(this)
 
         setupRecycler()
@@ -219,7 +220,6 @@ private class EffectGroupHeaderController(
 
     init {
         view.findViewById<View>(R.id.status_bar_space).applyStatusBarInsetHeight()
-        view.findViewById<View>(R.id.status_bar_space_parent).applyStatusBarInsetHeight()
         activity.applyThemeTo(view)
 
         effectSelect.setOnSelectChangedListener(object : SelectBox.OnSelectChangedListener {

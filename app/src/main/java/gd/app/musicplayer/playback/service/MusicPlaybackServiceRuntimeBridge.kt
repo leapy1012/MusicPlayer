@@ -125,6 +125,18 @@ internal fun MusicPlaybackService.startProgressTickerFromLifecycle() {
     }
 }
 
+/**
+ * Original notification service attach is thin. Defer preference/lyric/artwork Flow
+ * collectors until after players are already playing.
+ */
+internal fun MusicPlaybackService.scheduleDeferredServiceObservers() {
+    serviceScope.launch {
+        observePreferences()
+        observeCurrentTrackArtwork()
+        observeCurrentTrackFavorite()
+    }
+}
+
 internal fun MusicPlaybackService.publishPlaybackStateFromLifecycle(
     reason: PublishReason,
     forceNotification: Boolean
@@ -197,6 +209,10 @@ private fun MusicPlaybackService.releaseTickersAndJobs() {
     defaultTracksObserverJob?.cancel()
     defaultTracksObserverJob = null
 
+    if (isWidgetBridgeInitialized()) {
+        widgetBridge.cancelPending()
+    }
+
     pendingResumeAfterDefaultQueue = false
     cachedDefaultTracks = emptyList()
     cachedPlayableDefaultTracks = emptyList()
@@ -222,6 +238,9 @@ private fun MusicPlaybackService.releaseFaders() {
     if (isCrossfadeVolumeFaderInitialized()) {
         crossfadeVolumeFader.cancel()
     }
+
+    // Keep process-scoped fader bound for AudioController; only cancel in-flight jobs.
+    playbackFadeController.cancel()
 }
 
 private fun MusicPlaybackService.releaseArtwork() {
@@ -272,20 +291,9 @@ private fun MusicPlaybackService.releaseAudioResources() {
 }
 
 private fun MusicPlaybackService.releasePlayers() {
-    if (isPlaybackEngineInitialized()) {
-        playbackEngine.release(
-            player = if (isPlayerInitialized()) player else null,
-            crossfadePlayer = if (isCrossfadePlayerInitialized()) crossfadePlayer else null,
-            playerEventHandler = if (isPlayerEventHandlerInitialized()) {
-                playerEventHandler
-            } else {
-                null
-            }
-        )
-        return
-    }
-
-    releasePlayersDirectly()
+    // Original MusicPlayService does not destroy AudioController's BassPlayer.
+    // Detach service callbacks only; keep process-scoped ExoPlayers alive.
+    processPlayerHolder.externalCallbacks = null
 }
 
 private fun MusicPlaybackService.releasePlayersDirectly() {

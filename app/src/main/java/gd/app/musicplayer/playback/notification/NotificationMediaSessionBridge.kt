@@ -23,7 +23,7 @@ import gd.app.musicplayer.ui.shell.MainActivity
 
 class NotificationMediaSessionBridge(
     private val context: Context,
-    private val player: ExoPlayer,
+    private val playerProvider: () -> ExoPlayer,
     private val queueProvider: () -> List<Music>,
     private val currentIndexProvider: () -> Int,
     private val isEffectivelyPlaying: () -> Boolean,
@@ -93,7 +93,7 @@ class NotificationMediaSessionBridge(
             playing -> PlaybackState.STATE_PLAYING
             else -> PlaybackState.STATE_PAUSED
         }
-        val position = runCatching { player.currentPosition }.getOrDefault(0L)
+        val position = runCatching { playerProvider().currentPosition }.getOrDefault(0L)
         val builder = PlaybackState.Builder()
             .setActions(
                 PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_PLAY_PAUSE or

@@ -67,27 +67,15 @@ class QueueActionController(
 
         callbacks.resetTimedTransition()
 
-        if (!playerQueueController.isPlayerPlaylistSynced()) {
-            playerQueueController.setPlayerQueue(
-                queue = queueManager.queue,
-                startIndex = index,
-                startPositionMs = 0L,
-                playWhenReady = playWhenReady
-            )
-        } else {
-            playerQueueController.seekTo(
-                index = index,
-                positionMs = 0L
-            )
-
-            playerQueueController.setPlayWhenReady(playWhenReady)
-
-            if (playWhenReady) {
-                playerQueueController.play()
-            }
-        }
-
+        // App queue index is source of truth (original e0 cursor), then load ONE track.
         queueManager.updateCurrentIndex(index)
+
+        playerQueueController.setPlayerQueue(
+            queue = queueManager.queue,
+            startIndex = index,
+            startPositionMs = 0L,
+            playWhenReady = playWhenReady
+        )
 
         callbacks.resetPlaybackStatistics()
         callbacks.applyVolumeForPlaybackStart(playWhenReady)
@@ -115,27 +103,11 @@ class QueueActionController(
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
-        if (playerQueueController.isPlayerPlaylistSynced()) {
-            playerQueueController.removeMediaItem(index)
-
-            if (removedCurrent) {
-                playerQueueController.seekTo(
-                    index = queueManager.currentIndex,
-                    positionMs = 0L
-                )
-
-                playerQueueController.setPlayWhenReady(wasPlaying)
-                playerQueueController.prepare()
-            }
-        } else {
+        if (removedCurrent) {
             playerQueueController.setPlayerQueue(
                 queue = queueManager.queue,
                 startIndex = queueManager.currentIndex,
-                startPositionMs = if (removedCurrent) {
-                    0L
-                } else {
-                    callbacks.currentPlayerPositionMs()
-                },
+                startPositionMs = 0L,
                 playWhenReady = wasPlaying
             )
         }
@@ -191,12 +163,9 @@ class QueueActionController(
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
-        if (playerQueueController.isPlayerPlaylistSynced()) {
-            playerQueueController.moveMediaItem(
-                fromIndex = fromIndex,
-                toIndex = toIndex
-            )
-        } else {
+        // Single-track player: reorder is memory-only; reload only if current track identity changed.
+        val currentStillLoaded = playerQueueController.isCurrentTrackLoaded(queueManager.currentIndex)
+        if (!currentStillLoaded) {
             playerQueueController.setPlayerQueue(
                 queue = queueManager.queue,
                 startIndex = queueManager.currentIndex,
@@ -218,7 +187,6 @@ class QueueActionController(
 
         val currentState = queueManager.state
         val wasEmpty = currentState.queue.isEmpty()
-        val wasPlayerQueueSynced = playerQueueController.isPlayerPlaylistSynced()
 
         val nextQueue = currentState.queue + playableIncomingQueue
         val nextIndex = if (wasEmpty) {
@@ -237,15 +205,14 @@ class QueueActionController(
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
-        if (wasEmpty || !wasPlayerQueueSynced) {
+        // Original append: only load player when queue was empty; otherwise memory-only.
+        if (wasEmpty) {
             playerQueueController.setPlayerQueue(
                 queue = queueManager.queue,
                 startIndex = queueManager.currentIndex.coerceAtLeast(0),
                 startPositionMs = callbacks.currentPlayerPositionMs(),
                 playWhenReady = callbacks.isEffectivelyPlaying()
             )
-        } else {
-            playerQueueController.addMediaItems(playableIncomingQueue)
         }
 
         callbacks.publishPlayerEvent(forceNotification = false)
@@ -291,7 +258,6 @@ class QueueActionController(
 
     private fun insertAfterCurrentTrack(incomingQueue: List<Music>) {
         val currentState = queueManager.state
-        val wasPlayerQueueSynced = playerQueueController.isPlayerPlaylistSynced()
 
         val insertIndex = if (currentState.currentIndex == currentState.queue.lastIndex) {
             currentState.queue.size
@@ -317,20 +283,7 @@ class QueueActionController(
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
-        if (wasPlayerQueueSynced) {
-            playerQueueController.addMediaItems(
-                index = insertIndex,
-                queue = incomingQueue
-            )
-        } else {
-            playerQueueController.setPlayerQueue(
-                queue = queueManager.queue,
-                startIndex = queueManager.currentIndex,
-                startPositionMs = callbacks.currentPlayerPositionMs(),
-                playWhenReady = callbacks.isEffectivelyPlaying()
-            )
-        }
-
+        // Keep current ExoPlayer item; inserted tracks load when they become current.
         callbacks.publishPlayerEvent(forceNotification = false)
     }
 
@@ -347,11 +300,9 @@ class QueueActionController(
 
         callbacks.markPlaybackRestored()
 
-        val previousQueue = queueManager.queue
         val previousTrackIdentity = queueManager.currentTrack?.queueIdentity()
         val previousPositionMs = callbacks.currentPlayerPositionMs()
         val wasPlaying = callbacks.isEffectivelyPlaying()
-        val wasPlayerQueueSynced = playerQueueController.isPlayerPlaylistSynced()
 
         val targetIndex = remapQueueIndex(newQueue, playableNewQueue, requestedIndex)
 
@@ -363,32 +314,20 @@ class QueueActionController(
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
-        val reorderedInPlace = if (
-            wasPlayerQueueSynced &&
-            callbacks.playerPlaybackStateIsNotIdle() &&
-            playerQueueController.haveSameQueueContents(
-                previousQueue = previousQueue,
-                newQueue = playableNewQueue
-            )
-        ) {
-            playerQueueController.applyInPlaceQueueReorder(
-                previousQueue = previousQueue,
-                newQueue = playableNewQueue
-            )
-        } else {
-            false
-        }
+        val shouldPreservePosition =
+            previousTrackIdentity != null &&
+                queueManager.currentTrack?.queueIdentity() == previousTrackIdentity &&
+                callbacks.playerPlaybackStateIsNotIdle() &&
+                playerQueueController.isCurrentTrackLoaded(queueManager.currentIndex)
 
-        if (!reorderedInPlace) {
-            val shouldPreservePosition =
-                previousTrackIdentity != null &&
-                        queueManager.currentTrack?.queueIdentity() == previousTrackIdentity &&
-                        callbacks.playerPlaybackStateIsNotIdle()
-
+        if (!shouldPreservePosition) {
             playerQueueController.setPlayerQueue(
                 queue = queueManager.queue,
                 startIndex = queueManager.currentIndex,
-                startPositionMs = if (shouldPreservePosition) {
+                startPositionMs = if (
+                    previousTrackIdentity != null &&
+                    queueManager.currentTrack?.queueIdentity() == previousTrackIdentity
+                ) {
                     previousPositionMs
                 } else {
                     0L
@@ -410,11 +349,38 @@ class QueueActionController(
 
         callbacks.markPlaybackRestored()
 
-        queueManager.setQueue(
-            newQueue = playableIncomingQueue,
-            requestedIndex = remapQueueIndex(incomingQueue, playableIncomingQueue, incomingIndex)
+        val remappedIndex = remapQueueIndex(
+            incomingQueue,
+            playableIncomingQueue,
+            incomingIndex
+        ).coerceIn(0, playableIncomingQueue.lastIndex)
+
+        // Original e0.B + com.lb.library.c.a: same id-order list → index-only, no DB rewrite.
+        val sameOrderedList = playerQueueController.haveSameOrderedTrackIds(
+            previousQueue = queueManager.queue,
+            newQueue = playableIncomingQueue
         )
 
+        if (sameOrderedList && queueManager.queue.isNotEmpty()) {
+            if (!callbacks.requestAudioFocus()) {
+                callbacks.publishPlayerEvent(forceNotification = false)
+                return
+            }
+
+            playResolvedIndex(
+                index = remappedIndex,
+                playWhenReady = true
+            )
+            callbacks.refreshArtworkAndSession(force = true)
+            return
+        }
+
+        queueManager.setQueue(
+            newQueue = playableIncomingQueue,
+            requestedIndex = remappedIndex
+        )
+
+        // Original QueueSaver: persist only when queue content changed (debounced).
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 

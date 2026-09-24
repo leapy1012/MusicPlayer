@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.SmartPlaylistConfig
+import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveFavoriteCountUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveFolderCountUseCase
@@ -19,6 +20,7 @@ import gd.app.musicplayer.domain.usecase.playlist.ResetPlaylistsSortUseCase
 import gd.app.musicplayer.domain.usecase.preferences.ObserveSmartPlaylistConfigUseCase
 import gd.app.musicplayer.playback.PlaybackStartupInitializer
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
 
 private const val SUBSCRIPTION_STOP_TIMEOUT_MS = 5_000L
 
@@ -52,14 +55,23 @@ class MainViewModel @Inject constructor(
     private val observeMostPlayCountUseCase: ObserveMostPlayCountUseCase,
     private val updateMainPlaylistOrderUseCase: UpdateMainPlaylistOrderUseCase,
     private val resetPlaylistsSortUseCase: ResetPlaylistsSortUseCase,
-    private val playbackStartupInitializer: PlaybackStartupInitializer
+    private val getTracksUseCase: GetTracksUseCase,
+    private val playbackStartupInitializer: PlaybackStartupInitializer,
+    private val playbackAudioController: gd.app.musicplayer.playback.PlaybackAudioController
 ) : ViewModel() {
 
     private var updatePlaylistOrderJob: Job? = null
 
     init {
+        // Original BMusicActivity.K0 → y.Y().L(this) starts [n0] queue warm.
+        playbackAudioController.ensureInitialized()
         viewModelScope.launch {
             playbackStartupInitializer.initialize()
+        }
+        // Warm Tracks snapshot while user is on Home (original Home COUNT warms DB;
+        // we also cache the list so Library opens without waiting on DataStore+Room).
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { getTracksUseCase(MusicSet.Tracks) }
         }
     }
 

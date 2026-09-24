@@ -14,6 +14,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.loadCircularArtwork
 import gd.app.musicplayer.databinding.FragmentQueueControlBinding
+import gd.app.musicplayer.feature.player.common.PlaybackProgressBinder
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.feature.player.full.MusicPlayActivity
 import gd.app.musicplayer.feature.player.full.PlaybackProgressUiState
@@ -138,12 +139,14 @@ class QueueControlFragment : ViewBindingFragment<FragmentQueueControlBinding>() 
 
     private fun renderPlaybackProgress(state: PlaybackProgressUiState) {
         val binding = requireBinding()
-        val durationMs = state.durationMs.coerceAtLeast(1L)
-        val positionMs = state.positionMs.coerceIn(0L, durationMs)
 
-        binding.mainControlPlayPause.isSelected = state.isPlaying
-        binding.mainMusicProgress.setMax(durationMs.toInt())
-        binding.mainMusicProgress.setProgress(positionMs.toInt())
+        PlaybackProgressBinder.bindWithoutTimes(
+            seekBar = binding.mainMusicProgress,
+            durationMs = state.durationMs,
+            positionMs = state.positionMs,
+            isPlaying = state.isPlaying,
+            playPauseView = binding.mainControlPlayPause
+        )
     }
 
     private fun onPlayPauseClicked() {

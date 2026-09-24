@@ -204,7 +204,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                             selectedColor = palette.dialogTitleColor,
                             disabledColor = ColorUtils.setAlphaComponent(
                                 palette.dialogTitleColor,
-                                DISABLED_ALPHA,
+                                ThemeBindDefaults.DISABLED_ALPHA,
                             ),
                         )
                     } else {
@@ -267,7 +267,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                 if (view is SeekBar) {
                     val backgroundColor = ColorUtils.setAlphaComponent(
                         palette.dialogTitleColor,
-                        DISABLED_ALPHA,
+                        ThemeBindDefaults.DISABLED_ALPHA,
                     )
                     val radius = (view.context.resources.displayMetrics.density * 8f).toInt()
 
@@ -319,7 +319,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                 view.background = roundedRippleDrawable(
                     fillColor = theme.accentColor,
                     rippleColor = 0x26FFFFFF,
-                    cornerRadius = FULL_ROUND_RADIUS,
+                    cornerRadius = ThemeBindDefaults.FULL_ROUND_RADIUS,
                 )
                 return true
             }
@@ -438,7 +438,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                     view.setTextColor(theme.accentColor)
                 } else {
                     view.setBackgroundColor(
-                        ColorUtils.setAlphaComponent(theme.itemTextColor, DIVIDER_ALPHA),
+                        ColorUtils.setAlphaComponent(theme.itemTextColor, ThemeBindDefaults.DIVIDER_ALPHA),
                     )
                 }
                 return true
@@ -485,7 +485,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             ThemeTags.Text.SOUND_INFO_VIEW -> {
                 if (view is TextView) {
                     view.setTextColor(
-                        ColorUtils.setAlphaComponent(theme.itemTextColor, TEXT_SECONDARY_ALPHA),
+                        ColorUtils.setAlphaComponent(theme.itemTextColor, ThemeBindDefaults.TEXT_SECONDARY_ALPHA),
                     )
                 }
                 return true
@@ -684,7 +684,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             ThemeTags.Item.ITEM_DIVIDER,
             ThemeTags.Core.UNDER_LINE -> {
                 view.setBackgroundColor(
-                    ColorUtils.setAlphaComponent(theme.itemTextColor, DIVIDER_ALPHA),
+                    ColorUtils.setAlphaComponent(theme.itemTextColor, ThemeBindDefaults.DIVIDER_ALPHA),
                 )
                 return true
             }
@@ -852,9 +852,9 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             ThemeTags.Banner.BANNER_IMAGE -> {
                 if (view is ImageView) {
-                    view.imageTintList = ColorStateList.valueOf(
-                        if (palette.isNightTheme()) 1711276032 else Color.WHITE,
-                    )
+                    // Original drawer title stays white in night mode (readable on dark header).
+                    // 0x66000000 was painting the logo near-black on dark blur — broken contrast.
+                    view.imageTintList = ColorStateList.valueOf(Color.WHITE)
                 }
                 return true
             }
@@ -901,11 +901,9 @@ class DefaultThemeBinder : ThemeViewBinder {
                     view.setMaskColor(
                         if (palette.isNightTheme()) 855638016 else 1291845632,
                     )
-                    view.imageTintList = if (palette.isNightTheme()) {
-                        ColorStateList.valueOf(436207616)
-                    } else {
-                        null
-                    }
+                    // Keep equalizer art visible in night mode (original). A dark
+                    // imageTint washed the bars out into a flat header.
+                    view.imageTintList = null
                 }
                 return true
             }
@@ -931,7 +929,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                 if (view is SoundWaveView) {
                     view.setWaveColor(theme.itemTextColor)
                     view.setBaseLineColor(
-                        ColorUtils.setAlphaComponent(theme.itemTextColor, TEXT_SECONDARY_ALPHA),
+                        ColorUtils.setAlphaComponent(theme.itemTextColor, ThemeBindDefaults.TEXT_SECONDARY_ALPHA),
                     )
                     view.setClipColor(
                         ColorUtils.setAlphaComponent(theme.itemTextColor, 220),
@@ -1020,7 +1018,7 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             is TextView -> {
                 view.setTextColor(color)
-                view.setHintTextColor(ColorUtils.setAlphaComponent(color, HINT_ALPHA))
+                view.setHintTextColor(ColorUtils.setAlphaComponent(color, ThemeBindDefaults.HINT_ALPHA))
             }
         }
     }
@@ -1084,10 +1082,10 @@ class DefaultThemeBinder : ThemeViewBinder {
             defaultDrawable = roundedRippleDrawable(
                 fillColor = theme.accentColor,
                 rippleColor = palette.confirmRippleColor,
-                cornerRadius = FULL_ROUND_RADIUS,
+                cornerRadius = ThemeBindDefaults.FULL_ROUND_RADIUS,
             ),
             disabledDrawable = roundedDrawable(
-                cornerRadius = FULL_ROUND_RADIUS,
+                cornerRadius = ThemeBindDefaults.FULL_ROUND_RADIUS,
                 fillColor = disabledFillColor,
             ),
         )
@@ -1123,7 +1121,7 @@ class DefaultThemeBinder : ThemeViewBinder {
         view.background = roundedRippleDrawable(
             fillColor = fillColor,
             rippleColor = rippleColor,
-            cornerRadius = FULL_ROUND_RADIUS,
+            cornerRadius = ThemeBindDefaults.FULL_ROUND_RADIUS,
         )
     }
 
@@ -1134,11 +1132,11 @@ class DefaultThemeBinder : ThemeViewBinder {
     ) {
         editText.setTextColor(palette.dialogTitleColor)
         editText.setHintTextColor(
-            ColorUtils.setAlphaComponent(palette.dialogTitleColor, HINT_ALPHA),
+            ColorUtils.setAlphaComponent(palette.dialogTitleColor, ThemeBindDefaults.HINT_ALPHA),
         )
         editText.highlightColor = ColorUtils.setAlphaComponent(
             theme.accentColor,
-            DISABLED_ALPHA,
+            ThemeBindDefaults.DISABLED_ALPHA,
         )
 
         val fillColor = if (theme.usesDarkForeground) 335544320 else 352321535
@@ -1155,7 +1153,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             focusedDefaultColors(
                 defaultColor = ColorUtils.setAlphaComponent(
                     palette.dialogTitleColor,
-                    DISABLED_ALPHA,
+                    ThemeBindDefaults.DISABLED_ALPHA,
                 ),
                 focusedColor = theme.accentColor,
             ),
@@ -1170,7 +1168,7 @@ class DefaultThemeBinder : ThemeViewBinder {
     ) {
         toolbar.setTitleTextColor(color)
         toolbar.setSubtitleTextColor(
-            ColorUtils.setAlphaComponent(color, TEXT_SECONDARY_ALPHA),
+            ColorUtils.setAlphaComponent(color, ThemeBindDefaults.TEXT_SECONDARY_ALPHA),
         )
         toolbar.navigationIcon?.setTint(color)
         toolbar.overflowIcon?.setTint(color)
@@ -1214,7 +1212,7 @@ class DefaultThemeBinder : ThemeViewBinder {
             is TextView -> {
                 view.setTextColor(theme.titleColor)
                 view.setHintTextColor(
-                    ColorUtils.setAlphaComponent(theme.titleColor, HINT_ALPHA),
+                    ColorUtils.setAlphaComponent(theme.titleColor, ThemeBindDefaults.HINT_ALPHA),
                 )
             }
 
@@ -1230,7 +1228,7 @@ class DefaultThemeBinder : ThemeViewBinder {
     ) {
         textView.setTextColor(textColor)
         textView.setHintTextColor(
-            ColorUtils.setAlphaComponent(textColor, HINT_ALPHA),
+            ColorUtils.setAlphaComponent(textColor, ThemeBindDefaults.HINT_ALPHA),
         )
 
         val background = DrawableCompat.wrap(
@@ -1244,7 +1242,7 @@ class DefaultThemeBinder : ThemeViewBinder {
         DrawableCompat.setTintList(
             background,
             focusedDefaultColors(
-                defaultColor = ColorUtils.setAlphaComponent(textColor, DISABLED_ALPHA),
+                defaultColor = ColorUtils.setAlphaComponent(textColor, ThemeBindDefaults.DISABLED_ALPHA),
                 focusedColor = accentColor,
             ),
         )
@@ -1258,7 +1256,7 @@ class DefaultThemeBinder : ThemeViewBinder {
     ) {
         textView.setTextColor(
             selectedDefaultColors(
-                defaultColor = ColorUtils.setAlphaComponent(palette.titleColor, TEXT_SECONDARY_ALPHA),
+                defaultColor = ColorUtils.setAlphaComponent(palette.titleColor, ThemeBindDefaults.TEXT_SECONDARY_ALPHA),
                 selectedColor = Color.WHITE,
             ),
         )
@@ -1488,45 +1486,5 @@ class DefaultThemeBinder : ThemeViewBinder {
                 normalColor,
             ),
         )
-    }
-
-    private data class ThemeBindContext(
-        val accentColor: Int,
-        val titleColor: Int,
-        val itemTextColor: Int,
-        val secondaryTextColor: Int,
-        val rippleColor: Int,
-        val contentOverlay: Int,
-        val strongerOverlay: Int,
-        val usesDarkForeground: Boolean,
-    ) {
-        companion object {
-            fun from(palette: ThemePalette): ThemeBindContext {
-                val usesDarkForeground = palette.headerTitleColor != Color.WHITE
-                val itemTextColor = palette.itemPrimaryTextColor
-
-                return ThemeBindContext(
-                    accentColor = palette.accentColor,
-                    titleColor = palette.headerTitleColor,
-                    itemTextColor = itemTextColor,
-                    secondaryTextColor = ColorUtils.setAlphaComponent(
-                        itemTextColor,
-                        TEXT_SECONDARY_ALPHA,
-                    ),
-                    rippleColor = if (usesDarkForeground) 0x1A000000 else 0x26FFFFFF,
-                    contentOverlay = if (usesDarkForeground) 0 else 0x10000000,
-                    strongerOverlay = if (usesDarkForeground) 0x0D000000 else 0x1A000000,
-                    usesDarkForeground = usesDarkForeground,
-                )
-            }
-        }
-    }
-
-    private companion object {
-        const val FULL_ROUND_RADIUS = 1000f
-        const val HINT_ALPHA = 128
-        const val TEXT_SECONDARY_ALPHA = 180
-        const val DISABLED_ALPHA = 77
-        const val DIVIDER_ALPHA = 36
     }
 }

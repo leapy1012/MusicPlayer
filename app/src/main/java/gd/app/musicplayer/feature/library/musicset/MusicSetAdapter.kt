@@ -6,26 +6,38 @@ import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
-import gd.app.musicplayer.domain.model.ListItem
-import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentAlbumGridItemBinding
 import gd.app.musicplayer.databinding.FragmentAlbumListItemBinding
+import gd.app.musicplayer.databinding.FragmentFolderFooterBinding
 import gd.app.musicplayer.databinding.FragmentFolderListItemBinding
+import gd.app.musicplayer.domain.model.ListItem
+import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 import gd.app.musicplayer.ui.common.viewholder.FolderListMusicSetViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetGridViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetListViewHolder
-import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
 
+/**
+ * Music-set list/grid adapter.
+ *
+ * Folders match original `l5.d` / `w7.x`: footer is a trailing view-type in the **same**
+ * adapter, omitted when the folder list is empty (`w7.x.c(0) == 0`), and list updates use
+ * [notifyDataSetChanged] so RecyclerView re-lays out from the top (no ConcatAdapter
+ * footer-anchor scroll-to-end).
+ */
 class MusicSetAdapter(
     private val musicSetType: MusicSet,
     private var viewMode: Int = VIEW_MODE_LIST,
     private val onItemClick: ((MusicSet) -> Unit)? = null,
     private val onItemLongClick: ((MusicSet) -> Unit)? = null,
-    private val onItemMenuClick: ((MusicSet, View) -> Unit)? = null
-) : ListAdapter<MusicSet, BaseViewHolder>(DiffCallback()) {
+    private val onItemMenuClick: ((MusicSet, View) -> Unit)? = null,
+    private val onFolderScanClick: (() -> Unit)? = null,
+    private val applyTheme: ((View) -> Unit)? = null
+) : ListAdapter<MusicSet, RecyclerView.ViewHolder>(DiffCallback()) {
 
     companion object {
         const val VIEW_MODE_LIST = 0
@@ -34,11 +46,59 @@ class MusicSetAdapter(
         private const val VIEW_TYPE_LIST = 0
         private const val VIEW_TYPE_FOLDER = 1
         private const val VIEW_TYPE_GRID = 2
+        private const val VIEW_TYPE_FOLDER_FOOTER = 12
+    }
+
+    private val isFolders: Boolean = musicSetType is MusicSet.Folders
+
+    /** Folder rows only; footer is not included (original adapter data list). */
+    private var folderItems: List<MusicSet> = emptyList()
+
+    init {
+        if (isFolders) {
+            // Original l5.d adapter: setHasStableIds(true) with getItemId = position.
+            setHasStableIds(true)
+        }
+    }
+
+    fun displayedItems(): List<MusicSet> {
+        return if (isFolders) folderItems else currentList
+    }
+
+    fun submitItems(items: List<MusicSet>) {
+        if (isFolders) {
+            folderItems = items
+            notifyDataSetChanged()
+            return
+        }
+        submitList(items)
+    }
+
+    override fun getItemCount(): Int {
+        if (!isFolders) {
+            return super.getItemCount()
+        }
+        val size = folderItems.size
+        // Original w7.x.c: empty data → 0 items (no footer).
+        return if (size == 0) 0 else size + 1
+    }
+
+    override fun getItemId(position: Int): Long {
+        if (!isFolders) {
+            return RecyclerView.NO_ID
+        }
+        return position.toLong()
     }
 
     override fun getItemViewType(position: Int): Int {
+        if (isFolders) {
+            return if (isFolderFooterPosition(position)) {
+                VIEW_TYPE_FOLDER_FOOTER
+            } else {
+                VIEW_TYPE_FOLDER
+            }
+        }
         return when {
-            musicSetType is MusicSet.Folders -> VIEW_TYPE_FOLDER
             viewMode == VIEW_MODE_GRID -> VIEW_TYPE_GRID
             else -> VIEW_TYPE_LIST
         }
@@ -47,10 +107,11 @@ class MusicSetAdapter(
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
-    ): BaseViewHolder {
+    ): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
 
         return when (viewType) {
+            VIEW_TYPE_FOLDER_FOOTER -> createFolderFooterViewHolder(inflater, parent)
             VIEW_TYPE_FOLDER -> createFolderViewHolder(inflater, parent)
             VIEW_TYPE_GRID -> createGridViewHolder(inflater, parent)
             else -> createListViewHolder(inflater, parent)
@@ -58,25 +119,16 @@ class MusicSetAdapter(
     }
 
     override fun onBindViewHolder(
-        holder: BaseViewHolder,
+        holder: RecyclerView.ViewHolder,
         position: Int
     ) {
-        bindHolder(
-            holder = holder,
-            item = getItem(position)
-        )
-    }
-
-    override fun onBindViewHolder(
-        holder: BaseViewHolder,
-        position: Int,
-        payloads: MutableList<Any>
-    ) {
-        super.onBindViewHolder(
-            holder,
-            position,
-            payloads
-        )
+        when (holder) {
+            is FolderFooterViewHolder -> Unit
+            is BaseViewHolder -> bindHolder(
+                holder = holder,
+                item = folderOrListItem(position)
+            )
+        }
     }
 
     fun setViewMode(mode: Int) {
@@ -85,6 +137,18 @@ class MusicSetAdapter(
         viewMode = mode
 
         notifyDataSetChanged()
+    }
+
+    private fun isFolderFooterPosition(position: Int): Boolean {
+        return isFolders && folderItems.isNotEmpty() && position == folderItems.size
+    }
+
+    private fun folderOrListItem(position: Int): MusicSet {
+        return if (isFolders) {
+            folderItems[position]
+        } else {
+            getItem(position)
+        }
     }
 
     private fun bindHolder(
@@ -136,6 +200,15 @@ class MusicSetAdapter(
         )
     }
 
+    private fun createFolderFooterViewHolder(
+        inflater: LayoutInflater,
+        parent: ViewGroup
+    ): FolderFooterViewHolder {
+        val binding = FragmentFolderFooterBinding.inflate(inflater, parent, false)
+        applyTheme?.invoke(binding.root)
+        return FolderFooterViewHolder(binding, onFolderScanClick)
+    }
+
     private fun createFolderViewHolder(
         inflater: LayoutInflater,
         parent: ViewGroup
@@ -179,6 +252,15 @@ class MusicSetAdapter(
         binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
         return MusicSetListViewHolder(binding)
+    }
+
+    class FolderFooterViewHolder(
+        binding: FragmentFolderFooterBinding,
+        onScanClick: (() -> Unit)?
+    ) : RecyclerView.ViewHolder(binding.root) {
+        init {
+            binding.folderFooterScan.setOnClickListener { onScanClick?.invoke() }
+        }
     }
 
     class DiffCallback : DiffUtil.ItemCallback<MusicSet>() {

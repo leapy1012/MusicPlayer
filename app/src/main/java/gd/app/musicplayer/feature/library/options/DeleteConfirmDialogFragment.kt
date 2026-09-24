@@ -1,10 +1,8 @@
 package gd.app.musicplayer.feature.library.options
 
 import android.app.Activity
-import android.content.ContentUris
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +16,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
+import gd.app.musicplayer.core.mediastore.MediaStoreDeleteRequests
 import gd.app.musicplayer.databinding.DialogCommonBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
@@ -276,21 +275,10 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
             return false
         }
 
-        val uris = tracks
-            .distinctBy(Music::id)
-            .filter { it.id > 0L }
-            .map { track ->
-                ContentUris.withAppendedId(
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    track.id
-                )
-            }
-
-        if (uris.isEmpty()) return false
-
-        val pendingIntent = runCatching {
-            MediaStore.createDeleteRequest(requireContext().contentResolver, uris)
-        }.getOrNull() ?: return false
+        val pendingIntent = MediaStoreDeleteRequests.createDeletePendingIntent(
+            contentResolver = requireContext().contentResolver,
+            tracks = tracks
+        ) ?: return false
 
         pendingSourceDeleteTracks = tracks
         waitingForSystemDeleteResult = true

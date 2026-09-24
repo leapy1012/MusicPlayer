@@ -44,6 +44,10 @@ class PlayerSheetController(
         behavior.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
+    fun isExpanded(): Boolean {
+        return behavior.state == BottomSheetBehavior.STATE_EXPANDED
+    }
+
     private fun setupBehavior() {
         behavior.state = BottomSheetBehavior.STATE_COLLAPSED
 

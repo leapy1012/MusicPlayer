@@ -6,7 +6,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
@@ -18,8 +17,6 @@ import gd.app.musicplayer.ui.common.menu.ContextMenu
 import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import gd.app.musicplayer.ui.scan.ScanMusicActivity
 import gd.app.musicplayer.ui.selection.MusicSetEditActivity
-import gd.app.musicplayer.ui.selection.PlaylistEditActivity
-import gd.app.musicplayer.feature.library.folder.FolderFooterAdapter
 import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
 import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
@@ -63,24 +60,15 @@ class MusicSetListFragment : BaseListFragment() {
             onItemLongClick = ::onMusicSetLongClicked,
             onItemMenuClick = { set, _ ->
                 showMusicSetOptionsDialog(set)
-            }
+            },
+            onFolderScanClick = {
+                ScanMusicActivity.start(requireContext())
+            },
+            applyTheme = ::applyThemeTo
         )
 
-        val displayAdapter = if (musicSet is MusicSet.Folders) {
-            ConcatAdapter(
-                adapter,
-                FolderFooterAdapter(
-                    applyTheme = ::applyThemeTo,
-                    onScanClick = {
-                    ScanMusicActivity.start(requireContext())
-                    }
-                )
-            )
-        } else {
-            adapter
-        }
-
-        setupRecyclerView(displayAdapter)
+        // Folders: single adapter + trailing footer (original l5.d), not ConcatAdapter.
+        setupRecyclerView(adapter)
         applyViewModeIfNeeded(MusicSetAdapter.VIEW_MODE_LIST)
     }
 
@@ -123,7 +111,7 @@ class MusicSetListFragment : BaseListFragment() {
     private fun render(state: MusicSetListUiState) {
         applyViewModeIfNeeded(state.viewMode)
 
-        adapter.submitList(state.items)
+        adapter.submitItems(state.items)
 
         emptyStateController.setVisible(state.isEmpty)
     }
@@ -175,7 +163,7 @@ class MusicSetListFragment : BaseListFragment() {
         MusicSetEditActivity.start(
             context = requireContext(),
             musicSet = musicSet,
-            visibleItems = adapter.currentList,
+            visibleItems = adapter.displayedItems(),
             preselectedSet = selectedSet
         )
     }
@@ -233,7 +221,7 @@ class MusicSetListFragment : BaseListFragment() {
         MusicSetEditActivity.start(
             context = requireContext(),
             musicSet = musicSet,
-            visibleItems = adapter.currentList
+            visibleItems = adapter.displayedItems()
         )
     }
 
