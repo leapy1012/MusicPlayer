@@ -1,27 +1,29 @@
 package gd.app.musicplayer.core.designsystem.view
 
 import android.content.Context
-import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
-import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.content.res.AppCompatResources
-import androidx.constraintlayout.widget.ConstraintLayout
+import com.coui.appcompat.cardlist.COUICardListHelper
+import com.coui.appcompat.couiswitch.COUISwitch
+import com.coui.appcompat.preference.COUICustomListSelectedLinearLayout
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.datastore.PreferenceSharedStore
 
 /**
- * Matches original [com.ijoysoft.music.view.PreferenceItemView]: toggle rows read
- * SharedPreferences by [R.styleable.PreferenceItemView_preference_item_key] during inflate
- * so the first frame is already correct (no DataStore Flow thrash mid enter-animation).
+ * Settings row that **is** a COUI card preference row
+ * ([COUICustomListSelectedLinearLayout] + coui_preference children + switch/jump widgets).
+ *
+ * Checked state uses [Checkable] ([isChecked]/[setChecked]) — do not use View selected.
  */
 class PreferenceItemView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : ConstraintLayout(context, attrs), View.OnClickListener {
+) : COUICustomListSelectedLinearLayout(context, attrs), View.OnClickListener {
 
     fun interface OnPreferenceChangedListener {
         fun onPreferenceChanged(view: PreferenceItemView, isEnabled: Boolean)
@@ -32,21 +34,28 @@ class PreferenceItemView @JvmOverloads constructor(
     private var defaultValue: Boolean = false
     private var preferenceKey: String? = null
     private var preferenceStore: PreferenceSharedStore? = null
+    private var useCouiSwitch: Boolean = false
 
-    private val summaryView: TextView
-    private val tipsView: TextView
-    private val selectBox: SelectBox
     private val titleView: TextView
+    private val summaryView: TextView
+    private val assignmentView: TextView
+    private val widgetFrame: LinearLayout
+    private var couiSwitch: COUISwitch? = null
 
     private var onPreferenceChangedListener: OnPreferenceChangedListener? = null
     private var externalClickListener: OnClickListener? = null
 
     init {
-        inflate(context, R.layout.preference_list_item, this)
-        setPadding(0, context.dpToPx(12f), 0, context.dpToPx(12f))
+        clipChildren = false
+        clipToPadding = false
+        adoptCouiPreferenceChrome()
+
+        titleView = findViewById(android.R.id.title)
+        summaryView = findViewById(android.R.id.summary)
+        assignmentView = findViewById(com.coui.appcompat.R.id.assignment)
+        widgetFrame = findViewById(android.R.id.widget_frame)
 
         val typedArray = context.obtainStyledAttributes(attrs, R.styleable.PreferenceItemView)
-
         val titleText =
             typedArray.getString(R.styleable.PreferenceItemView_preference_item_title)
         summaryWhenEnabled =
@@ -59,61 +68,87 @@ class PreferenceItemView @JvmOverloads constructor(
             typedArray.getString(R.styleable.PreferenceItemView_preference_item_key)
         val fileName =
             typedArray.getString(R.styleable.PreferenceItemView_preference_item_file_name)
-
         val iconResId = typedArray.getResourceId(
             R.styleable.PreferenceItemView_preference_item_check_drawable,
             NO_ID
         )
-        val indicatorDrawable = iconResId
-            .takeIf { it != NO_ID }
-            ?.let { AppCompatResources.getDrawable(context, it) }
-
         typedArray.recycle()
 
         if (!fileName.isNullOrBlank()) {
             preferenceStore = PreferenceSharedStore(fileName)
         }
 
-        titleView = findViewById(R.id.title)
-        summaryView = findViewById(R.id.summary)
-        tipsView = findViewById(R.id.tips)
-        selectBox = findViewById<SelectBox>(R.id.checkbox).apply {
-            setOnClickListener(this@PreferenceItemView)
-        }
-
         titleView.text = titleText.orEmpty()
-
-        setupIndicator(indicatorDrawable, iconResId)
+        setupWidget(iconResId)
         updateSummaryVisibility()
 
-        // Original: i(store.getBoolean(key, default), false, false) — sync first paint.
-        val initialSelected = preferenceKey?.let { key ->
+        val initialChecked = preferenceKey?.let { key ->
             preferenceStore?.getBoolean(context, key, defaultValue) ?: defaultValue
         } ?: defaultValue
 
         renderState(
-            isSelected = initialSelected,
+            isChecked = initialChecked,
             notifyListener = false,
             persist = false
         )
 
         super.setOnClickListener(this)
+        isClickable = true
+    }
+
+    private fun adoptCouiPreferenceChrome() {
+        val source = LayoutInflater.from(context).inflate(
+            com.coui.appcompat.R.layout.coui_preference,
+            null,
+            false
+        ) as COUICustomListSelectedLinearLayout
+
+        orientation = HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        minimumHeight = source.minimumHeight
+        setPaddingRelative(
+            source.paddingStart,
+            source.paddingTop,
+            source.paddingEnd,
+            source.paddingBottom
+        )
+        clipChildren = source.clipChildren
+        clipToPadding = source.clipToPadding
+
+        while (source.childCount > 0) {
+            val child = source.getChildAt(0)
+            source.removeViewAt(0)
+            addView(child)
+        }
+    }
+
+    fun setCardPositionInGroup(position: Int) {
+        COUICardListHelper.setItemCardBackground(this, position)
     }
 
     override fun onClick(v: View) {
-        externalClickListener?.onClick(this) ?: toggle()
+        externalClickListener?.onClick(this) ?: run {
+            if (useCouiSwitch) toggle()
+        }
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean = true
 
-    override fun isSelected(): Boolean = selectBox.isSelected
+    override fun isChecked(): Boolean = couiSwitch?.isChecked ?: false
 
-    override fun setSelected(selected: Boolean) {
-        // Original setSelected → i(value, false, true): persist when keyed.
+    override fun setChecked(checked: Boolean) {
         renderState(
-            isSelected = selected,
+            isChecked = checked,
             notifyListener = false,
             persist = preferenceKey != null
+        )
+    }
+
+    override fun toggle() {
+        renderState(
+            isChecked = !isChecked,
+            notifyListener = true,
+            persist = true
         )
     }
 
@@ -133,69 +168,57 @@ class PreferenceItemView @JvmOverloads constructor(
     fun setSummaryOn(text: String?) {
         summaryWhenEnabled = text
         updateSummaryVisibility()
-        updateSummaryText(selectBox.isSelected)
+        updateSummaryText(isChecked)
     }
 
     fun setTips(text: String?) {
-        tipsView.text = text
-        tipsView.visibility = if (text.isNullOrEmpty()) GONE else VISIBLE
+        assignmentView.text = text
+        assignmentView.visibility = if (text.isNullOrEmpty()) GONE else VISIBLE
     }
 
     fun setTips(resId: Int) {
         setTips(resources.getString(resId))
     }
 
-    fun getSelectBox(): SelectBox = selectBox
-
-    fun getTipsView(): TextView = tipsView
+    fun getTipsView(): TextView = assignmentView
 
     fun refreshFromPreference(persistCurrentValue: Boolean) {
         val key = preferenceKey
-        val selected = if (key != null) {
+        val checked = if (key != null) {
             preferenceStore?.getBoolean(context, key, defaultValue) ?: defaultValue
         } else {
             defaultValue
         }
         renderState(
-            isSelected = selected,
+            isChecked = checked,
             notifyListener = false,
             persist = persistCurrentValue && key != null
         )
     }
 
-    private fun toggle() {
-        renderState(
-            isSelected = !selectBox.isSelected,
-            notifyListener = true,
-            persist = true
-        )
-    }
-
     private fun renderState(
-        isSelected: Boolean,
+        isChecked: Boolean,
         notifyListener: Boolean,
         persist: Boolean
     ) {
         if (persist) {
             preferenceKey?.let { key ->
-                preferenceStore?.putBoolean(context, key, isSelected)
+                preferenceStore?.putBoolean(context, key, isChecked)
             }
         }
-        selectBox.isSelected = isSelected
-        updateSummaryText(isSelected)
-
+        couiSwitch?.isChecked = isChecked
+        updateSummaryText(isChecked)
         if (notifyListener) {
-            onPreferenceChangedListener?.onPreferenceChanged(this, isSelected)
+            onPreferenceChangedListener?.onPreferenceChanged(this, isChecked)
         }
     }
 
-    private fun updateSummaryText(isSelected: Boolean) {
-        val summaryText = if (isSelected) {
+    private fun updateSummaryText(isChecked: Boolean) {
+        val summaryText = if (isChecked) {
             summaryWhenEnabled ?: summaryWhenDisabled
         } else {
             summaryWhenDisabled ?: summaryWhenEnabled
         }
-
         summaryView.text = summaryText.orEmpty()
     }
 
@@ -209,34 +232,42 @@ class PreferenceItemView @JvmOverloads constructor(
         }
     }
 
-    private fun setupIndicator(
-        indicatorDrawable: Drawable?,
-        iconResId: Int
-    ) {
-        if (indicatorDrawable == null) {
-            selectBox.visibility = GONE
-            return
-        }
-
-        selectBox.visibility = VISIBLE
-        selectBox.setImageDrawable(indicatorDrawable)
-
-        val params = selectBox.layoutParams as? LayoutParams ?: return
+    private fun setupWidget(iconResId: Int) {
+        widgetFrame.removeAllViews()
+        useCouiSwitch = false
+        couiSwitch = null
 
         when (iconResId) {
             R.drawable.vector_toggle_selector -> {
-                params.width = context.dpToPx(56f)
-                selectBox.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                useCouiSwitch = true
+                val switchView = LayoutInflater.from(context).inflate(
+                    com.coui.appcompat.R.layout.coui_preference_widget_switch,
+                    widgetFrame,
+                    false
+                ) as COUISwitch
+                switchView.isClickable = false
+                switchView.isFocusable = false
+                widgetFrame.addView(switchView)
+                couiSwitch = switchView
             }
 
             R.drawable.vector_arrow_right -> {
-                params.width = context.dpToPx(24f)
-                params.marginEnd = context.dpToPx(8f)
-                selectBox.setPadding(0, 0, 0, 0)
-                selectBox.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                LayoutInflater.from(context).inflate(
+                    com.coui.appcompat.R.layout.coui_preference_widget_jump,
+                    widgetFrame,
+                    true
+                )
+            }
+
+            NO_ID -> Unit
+
+            else -> {
+                LayoutInflater.from(context).inflate(
+                    com.coui.appcompat.R.layout.coui_preference_widget_jump,
+                    widgetFrame,
+                    true
+                )
             }
         }
-
-        selectBox.layoutParams = params
     }
 }

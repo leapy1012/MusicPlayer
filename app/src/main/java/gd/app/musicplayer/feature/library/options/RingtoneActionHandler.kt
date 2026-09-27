@@ -40,19 +40,16 @@ object RingtoneActionHandler {
             return
         }
 
-        lateinit var dialog: OptionsListDialog
         val config = dialogConfigFactory
             .createMaterialListDialogConfig(activity, slots.map { it.label })
             .apply {
                 titleText = activity.getString(R.string.dlg_ringtone_2)
                 onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
-                    dialog.dismiss()
                     confirmSetRingtone(activity, music, slots[position], dialogConfigFactory)
                 }
             }
 
-        dialog = OptionsListDialog(activity, config)
-        dialog.show()
+        OptionsListDialog.show(activity, config)
     }
 
     fun handlePendingPermissionResult(context: Context) {

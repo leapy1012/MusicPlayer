@@ -1,113 +1,107 @@
 package gd.app.musicplayer.feature.setting
 
+import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
-import gd.app.musicplayer.core.designsystem.view.SeekBar
+import androidx.appcompat.app.AlertDialog
+import androidx.core.os.bundleOf
+import androidx.fragment.app.DialogFragment
+import com.coui.appcompat.dialog.COUIAlertDialogBuilder
+import com.coui.appcompat.seekbar.COUISeekBar
+import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogReplayGainPreampBinding
 import kotlin.math.round
 
-class ReplayGainPreampDialogFragment : BaseDialogFragment(), View.OnClickListener {
+class ReplayGainPreampDialogFragment : DialogFragment() {
 
-    private var _binding: DialogReplayGainPreampBinding? = null
-    private val binding: DialogReplayGainPreampBinding
-        get() = requireNotNull(_binding)
+    private var binding: DialogReplayGainPreampBinding? = null
 
-    private val seekChangeListener = object : SeekBar.OnSeekBarChangeListener {
-        override fun onProgressChanged(
-            seekBar: SeekBar,
-            progress: Int,
-            fromUser: Boolean
-        ) {
-            val value = replayGainDbFromProgress(progress)
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val contentBinding = DialogReplayGainPreampBinding.inflate(LayoutInflater.from(requireContext()))
+        binding = contentBinding
+        disableClipAlongParents(contentBinding.root)
 
-            when (seekBar) {
-                binding.withTagSeek -> binding.withTagText.text = formatReplayGainDb(value)
-                binding.withoutTagSeek -> binding.withoutTagText.text = formatReplayGainDb(value)
+        val listener = object : COUISeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: COUISeekBar, progress: Int, fromUser: Boolean) {
+                val value = replayGainDbFromProgress(progress)
+                when (seekBar.id) {
+                    R.id.with_tag_seek -> contentBinding.withTagText.text = formatReplayGainDb(value)
+                    R.id.without_tag_seek ->
+                        contentBinding.withoutTagText.text = formatReplayGainDb(value)
+                }
             }
+
+            override fun onStartTrackingTouch(seekBar: COUISeekBar) = Unit
+
+            override fun onStopTrackingTouch(seekBar: COUISeekBar) = Unit
         }
 
-        override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
+        contentBinding.withTagSeek.setOnSeekBarChangeListener(listener)
+        contentBinding.withoutTagSeek.setOnSeekBarChangeListener(listener)
 
-        override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
-    }
+        contentBinding.withTagSeek.progress = progressFromReplayGainDb(
+            requireArguments().getFloat(ARG_WITH_TAG, DEFAULT_PREAMP_DB)
+        )
+        contentBinding.withoutTagSeek.progress = progressFromReplayGainDb(
+            requireArguments().getFloat(ARG_WITHOUT_TAG, DEFAULT_PREAMP_DB)
+        )
+        contentBinding.withTagText.text =
+            formatReplayGainDb(replayGainDbFromProgress(contentBinding.withTagSeek.progress))
+        contentBinding.withoutTagText.text =
+            formatReplayGainDb(replayGainDbFromProgress(contentBinding.withoutTagSeek.progress))
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = DialogReplayGainPreampBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+        contentBinding.replayGainReset.setOnClickListener {
+            contentBinding.withTagSeek.progress = REPLAY_GAIN_SEEK_CENTER
+            contentBinding.withoutTagSeek.progress = REPLAY_GAIN_SEEK_CENTER
+        }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        applyDialogBackground(view)
+        // Cancel + OK only → COUI keeps a horizontal button row (3 buttons stack vertically).
+        val dialog = COUIAlertDialogBuilder(
+            requireContext(),
+            com.coui.appcompat.R.style.COUIAlertDialog_Center
+        )
+            .setTitle(R.string.replay_gain_preamp)
+            .setView(contentBinding.root)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.ok, null)
+            .create()
 
-        binding.withTagSeek.setOnSeekBarChangeListener(seekChangeListener)
-        binding.withoutTagSeek.setOnSeekBarChangeListener(seekChangeListener)
-
-        binding.dialogButtonReset.setOnClickListener(this)
-        binding.dialogButtonCancel.setOnClickListener(this)
-        binding.dialogButtonOk.setOnClickListener(this)
-
-        bindInitialValues()
+        dialog.setOnShowListener {
+            disableClipAlongParents(contentBinding.root)
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+                parentFragmentManager.setFragmentResult(
+                    RESULT_KEY,
+                    bundleOf(
+                        KEY_WITH_TAG to replayGainDbFromProgress(contentBinding.withTagSeek.progress),
+                        KEY_WITHOUT_TAG to
+                            replayGainDbFromProgress(contentBinding.withoutTagSeek.progress)
+                    )
+                )
+                dismiss()
+            }
+        }
+        return dialog
     }
 
     override fun onDestroyView() {
-        _binding = null
+        binding = null
         super.onDestroyView()
     }
 
-    override fun onClick(view: View) {
-        when (view.id) {
-            binding.dialogButtonOk.id -> saveAndDismiss()
-            binding.dialogButtonCancel.id -> dismiss()
-            binding.dialogButtonReset.id -> resetValues()
+    private fun disableClipAlongParents(view: android.view.View) {
+        var current: android.view.View? = view
+        while (current != null) {
+            if (current is ViewGroup) {
+                current.clipChildren = false
+                current.clipToPadding = false
+            }
+            current = current.parent as? android.view.View
         }
     }
 
-    private fun bindInitialValues() {
-        binding.withTagSeek.setProgress(
-            progressFromReplayGainDb(
-                requireArguments().getFloat(ARG_WITH_TAG, DEFAULT_PREAMP_DB)
-            )
-        )
-        binding.withoutTagSeek.setProgress(
-            progressFromReplayGainDb(
-                requireArguments().getFloat(ARG_WITHOUT_TAG, DEFAULT_PREAMP_DB)
-            )
-        )
-    }
-
-    private fun saveAndDismiss() {
-        parentFragmentManager.setFragmentResult(
-            RESULT_KEY,
-            Bundle().apply {
-                putFloat(KEY_WITH_TAG, replayGainDbFromProgress(binding.withTagSeek.getProgress()))
-                putFloat(
-                    KEY_WITHOUT_TAG,
-                    replayGainDbFromProgress(binding.withoutTagSeek.getProgress())
-                )
-            }
-        )
-        dismiss()
-    }
-
-    private fun resetValues() {
-        binding.withTagSeek.setProgress(REPLAY_GAIN_SEEK_CENTER)
-        binding.withoutTagSeek.setProgress(REPLAY_GAIN_SEEK_CENTER)
-    }
-
     private fun progressFromReplayGainDb(value: Float): Int {
-        val clamped = value.coerceIn(
-            MIN_REPLAY_GAIN_PREAMP_DB,
-            MAX_REPLAY_GAIN_PREAMP_DB
-        )
-
+        val clamped = value.coerceIn(MIN_REPLAY_GAIN_PREAMP_DB, MAX_REPLAY_GAIN_PREAMP_DB)
         return (((clamped - MIN_REPLAY_GAIN_PREAMP_DB) / REPLAY_GAIN_RANGE_DB) *
             REPLAY_GAIN_SEEK_MAX.toFloat()).toInt()
     }
@@ -141,15 +135,12 @@ class ReplayGainPreampDialogFragment : BaseDialogFragment(), View.OnClickListene
         private const val REPLAY_GAIN_SEEK_CENTER = REPLAY_GAIN_SEEK_MAX / 2
         private const val REPLAY_GAIN_ROUNDING_SCALE = 10f
 
-        fun newInstance(
-            withTag: Float,
-            withoutTag: Float
-        ): ReplayGainPreampDialogFragment {
+        fun newInstance(withTag: Float, withoutTag: Float): ReplayGainPreampDialogFragment {
             return ReplayGainPreampDialogFragment().apply {
-                arguments = Bundle().apply {
-                    putFloat(ARG_WITH_TAG, withTag)
-                    putFloat(ARG_WITHOUT_TAG, withoutTag)
-                }
+                arguments = bundleOf(
+                    ARG_WITH_TAG to withTag,
+                    ARG_WITHOUT_TAG to withoutTag
+                )
             }
         }
     }

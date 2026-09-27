@@ -1,47 +1,36 @@
 package gd.app.musicplayer.core.designsystem.view
 
 import android.content.Context
-import android.content.ContextWrapper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.ViewConfiguration
+import androidx.recyclerview.widget.COUIRecyclerView
 import androidx.recyclerview.widget.DefaultItemAnimator
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.SimpleItemAnimator
 import kotlin.math.abs
 
 /**
- *   Logic and behavior:
+ * Library / track lists: COUI spring overscroll + ViewPager-friendly touch routing.
  *
- *   - On ACTION_DOWN, it tells the parent not to intercept touch yet.
- *   - It stores the first touch position.
- *   - On move, once the finger moves beyond touchSlop, it decides gesture direction.
- *   - If horizontal movement is stronger than vertical movement, it gives touch handling back to the parent.
- *   - If vertical movement is stronger, the RecyclerView keeps handling the scroll.
- *   - It also disables RecyclerView change animations to avoid flicker/blink when list items update.
- *
- *   Customized reason:
- *
- *   - This class exists to resolve nested scroll conflict.
- *   - A music list is usually vertical, but it is often placed inside a parent that may swipe horizontally, such as a ViewPager, sliding panel, or tab container.
- *   - The customization makes vertical song scrolling feel natural while still allowing horizontal parent gestures.
- *   - Disabling change animations is likely intentional for music lists because play-state, selection-state, or metadata updates happen often, and default item change animations can look
- *     jumpy.
- *     */
-
+ * Only claims the gesture after a clear **vertical** drag so ViewPager2 can still
+ * switch tabs on horizontal swipes. Change animations stay off to avoid flicker.
+ */
 class MusicRecyclerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : RecyclerView(context, attrs, defStyleAttr) {
+) : COUIRecyclerView(context, attrs, defStyleAttr) {
 
     private val touchSlop: Int = ViewConfiguration.get(context).scaledTouchSlop
 
     private var initialTouchX: Float = 0f
     private var initialTouchY: Float = 0f
+    private var directionLocked: Boolean = false
 
     init {
         disableChangeAnimations()
+        setOverScrollEnable(true)
+        overScrollMode = OVER_SCROLL_ALWAYS
+        isNestedScrollingEnabled = true
     }
 
     private fun disableChangeAnimations() {
@@ -54,25 +43,31 @@ class MusicRecyclerView @JvmOverloads constructor(
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                parent?.requestDisallowInterceptTouchEvent(true)
                 initialTouchX = event.x
                 initialTouchY = event.y
+                directionLocked = false
+                // Do not block the parent yet — let ViewPager2 compete for horizontal swipes.
+                parent?.requestDisallowInterceptTouchEvent(false)
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (initialTouchX != 0f || initialTouchY != 0f) {
+                if (!directionLocked) {
                     val deltaX = abs(event.x - initialTouchX)
                     val deltaY = abs(event.y - initialTouchY)
-
-                    if (deltaX >= touchSlop || deltaY >= touchSlop) {
-                        if (deltaX > deltaY) {
+                    if (deltaX > touchSlop || deltaY > touchSlop) {
+                        directionLocked = true
+                        if (deltaY > deltaX) {
+                            parent?.requestDisallowInterceptTouchEvent(true)
+                        } else {
                             parent?.requestDisallowInterceptTouchEvent(false)
                         }
-
-                        initialTouchX = 0f
-                        initialTouchY = 0f
                     }
                 }
+            }
+
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> {
+                directionLocked = false
             }
         }
 

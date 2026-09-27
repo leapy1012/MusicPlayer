@@ -9,9 +9,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
+import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
 import gd.app.musicplayer.domain.model.ListItem
 import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 
@@ -34,6 +36,8 @@ class FolderSelectAdapter(
             parent,
             false
         )
+        binding.musicItemImage.applyRoundedOutline(R.dimen.item_image_corner_radius)
+        binding.root.installCouiPressFeedback()
         return ViewHolder(binding, accentColor, onItemClick)
     }
 
@@ -55,7 +59,7 @@ class FolderSelectAdapter(
         fun bind(item: MusicSet.Folder, highlightQuery: String) {
             val context = binding.root.context
 
-            binding.musicItemMenu.visibility = View.GONE
+            binding.musicItemCheckbox.visibility = View.GONE
             binding.musicItemSize.text = context.resources.getQuantityString(
                 R.plurals.plurals_track,
                 item.musicCount,

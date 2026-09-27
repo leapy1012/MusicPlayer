@@ -5,15 +5,16 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.checkbox.COUICheckBox
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.core.common.extension.highlight
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.isRtl
 import gd.app.musicplayer.core.common.extension.isRtlLayoutSupported
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
@@ -155,20 +156,9 @@ class MusicEditAdapter(
         }
 
         private fun renderSelectionState(selected: Boolean) {
-            val context = binding.root.context
-
-            binding.musicItemMenu.isSelected = selected
-
-            val tint = if (selected) {
-                accentColor
-            } else {
-                ContextCompat.getColor(
-                    context,
-                    R.color.item_artist_color
-                )
-            }
-
-            binding.musicItemMenu.setColorFilter(tint)
+            binding.musicItemCheckbox.setState(
+                if (selected) COUICheckBox.SELECT_ALL else COUICheckBox.SELECT_NONE
+            )
         }
     }
 
@@ -183,6 +173,7 @@ class MusicEditAdapter(
         )
 
         binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
+        binding.root.installCouiPressFeedback()
 
         return MusicEditViewHolder(binding)
     }

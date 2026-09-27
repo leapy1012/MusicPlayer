@@ -9,7 +9,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.AdapterView
-import android.widget.ImageView
+import android.widget.CompoundButton
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
@@ -18,7 +18,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.core.common.extension.hideKeyboard
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.DialogRegistry
@@ -29,6 +31,7 @@ import gd.app.musicplayer.databinding.ActivitySleepBinding
 import gd.app.musicplayer.playback.timer.SleepTimerManager
 import gd.app.musicplayer.playback.timer.SleepTimerState
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.hostStaticContent
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import kotlinx.coroutines.launch
@@ -49,7 +52,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
     private var suppressCustomWatcher: Boolean = false
     private var endAction: Int = SleepTimerState.ACTION_STOP_PLAYBACK
 
-    private val presetItems: Map<Int, ImageView>
+    private val presetItems: Map<Int, CompoundButton>
         get() = mapOf(
             10 to binding.sleepItem10Check,
             20 to binding.sleepItem20Check,
@@ -58,7 +61,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
             90 to binding.sleepItem90Check
         )
 
-    private val allCheckViews: List<ImageView>
+    private val allCheckViews: List<CompoundButton>
         get() = listOf(
             binding.sleepItemCloseCheck,
             binding.sleepItem10Check,
@@ -85,6 +88,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
 
         setupBackPressedHandler()
         setupToolbar()
+        binding.sleepList.hostStaticContent(binding.sleepContent)
         setupClickListeners()
         setupCustomInput()
         loadSavedBehavior()
@@ -116,8 +120,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
 
             R.id.sleep_item_operation_1 -> showEndActionPicker()
 
-            R.id.sleep_item_operation_2,
-            R.id.sleep_item_operation_select -> toggleStopAfterCurrentTrack()
+            R.id.sleep_item_operation_2 -> toggleStopAfterCurrentTrack()
         }
     }
 
@@ -132,6 +135,11 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
     }
 
     private fun setupClickListeners() = with(binding) {
+        // Rounded clip keeps the first/last row press mask inside the card corners.
+        listOf(sleepCardDuration, sleepCardBehavior).forEach {
+            it.applyRoundedOutline(com.coui.appcompat.R.dimen.coui_round_corner_m)
+        }
+
         listOf(
             sleepItemClose,
             sleepItem10,
@@ -141,9 +149,11 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
             sleepItem90,
             sleepItemCustom,
             sleepItemOperation1,
-            sleepItemOperation2,
-            sleepItemOperationSelect
-        ).forEach { it.setOnClickListener(this@SleepActivity) }
+            sleepItemOperation2
+        ).forEach {
+            it.installCouiPressFeedback()
+            it.setOnClickListener(this@SleepActivity)
+        }
     }
 
     private fun setupCustomInput() = with(binding.sleepItemCustomEdit) {
@@ -174,7 +184,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
         lifecycleScope.launch {
             endAction = sleepPreferenceStore.getEndAction()
 
-            binding.sleepItemOperationSelect.isSelected =
+            binding.sleepItemOperationSelect.isChecked =
                 sleepPreferenceStore.getStopAfterCurrentTrackEnabled()
 
             updateOperationText()
@@ -202,11 +212,11 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
         if (state.isActive) {
             selectedMinutes = state.durationMinutes
             endAction = state.action
-            binding.sleepItemOperationSelect.isSelected = state.stopAfterCurrentTrack
+            binding.sleepItemOperationSelect.isChecked = state.stopAfterCurrentTrack
         } else {
             selectedMinutes = 0
             endAction = sleepPreferenceStore.getEndAction()
-            binding.sleepItemOperationSelect.isSelected =
+            binding.sleepItemOperationSelect.isChecked =
                 sleepPreferenceStore.getStopAfterCurrentTrackEnabled()
         }
 
@@ -235,7 +245,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
         }
 
         clearChecks()
-        binding.sleepItemCustomCheck.isSelected = true
+        binding.sleepItemCustomCheck.isChecked = true
 
         if (!syncEditText) {
             moveCustomCursorToEnd()
@@ -260,10 +270,10 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
     }
 
     private fun toggleStopAfterCurrentTrack() {
-        val wasSelected = binding.sleepItemOperationSelect.isSelected
+        val wasSelected = binding.sleepItemOperationSelect.isChecked
         val isSelected = !wasSelected
 
-        binding.sleepItemOperationSelect.isSelected = isSelected
+        binding.sleepItemOperationSelect.isChecked = isSelected
 
         lifecycleScope.launch {
             sleepPreferenceStore.setStopAfterCurrentTrackEnabled(isSelected)
@@ -314,7 +324,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
 
         SleepTimerManager.updateBehavior(
             action = endAction,
-            stopAfterCurrentTrack = binding.sleepItemOperationSelect.isSelected
+            stopAfterCurrentTrack = binding.sleepItemOperationSelect.isChecked
         )
     }
 
@@ -331,14 +341,14 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
         clearChecks()
 
         when (selectedMinutes) {
-            0 -> binding.sleepItemCloseCheck.isSelected = true
+            0 -> binding.sleepItemCloseCheck.isChecked = true
 
             in PRESET_MINUTES -> {
-                presetItems[selectedMinutes]?.isSelected = true
+                presetItems[selectedMinutes]?.isChecked = true
             }
 
             else -> {
-                binding.sleepItemCustomCheck.isSelected = true
+                binding.sleepItemCustomCheck.isChecked = true
 
                 if (syncCustomEditText && selectedMinutes > 0) {
                     setCustomEditText(selectedMinutes)
@@ -349,7 +359,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
     }
 
     private fun clearChecks() {
-        allCheckViews.forEach { it.isSelected = false }
+        allCheckViews.forEach { it.isChecked = false }
     }
 
     private fun applyAndFinish() {
@@ -365,7 +375,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
     }
 
     private suspend fun applyPendingSleepTimerChange(): Boolean {
-        if (binding.sleepItemCustomCheck.isSelected) {
+        if (binding.sleepItemCustomCheck.isChecked) {
             val customMinutes = readCustomMinutes()
 
             if (customMinutes == null || customMinutes <= 0) {
@@ -384,7 +394,7 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
                 context = this,
                 durationMinutes = selectedMinutes,
                 action = endAction,
-                stopAfterCurrentTrack = binding.sleepItemOperationSelect.isSelected
+                stopAfterCurrentTrack = binding.sleepItemOperationSelect.isChecked
             )
         }
 

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/menu_add"
-        android:icon="@drawable/vector_add"
-        android:title=""
+        android:icon="@drawable/coui_toolbar_menu_icon_add"
+        android:title="@string/add_files"
         app:showAsAction="always" />
 </menu>

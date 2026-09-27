@@ -3,69 +3,71 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/couiColorBackgroundWithCard"
     android:orientation="vertical">
 
     <View
         android:id="@+id/status_bar_space"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:background="@color/main_actionbar"
-         />
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:tag="toolbarChrome" />
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <com.google.android.material.appbar.AppBarLayout
-            android:id="@+id/appbar_layout"
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/app_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/main_actionbar"
+            android:background="?attr/couiColorBackgroundWithCard"
+            android:elevation="0dp"
+            android:tag="toolbarChrome"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true">
 
-            app:elevation="0dp">
-
-            <androidx.appcompat.widget.Toolbar
+            <com.coui.appcompat.toolbar.COUIToolbar
                 android:id="@+id/toolbar"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:background="@android:color/transparent"
-                android:minHeight="?attr/actionBarSize"
-                android:tag="toolbar"
-                android:theme="@style/AppToolbar"
-                app:layout_scrollFlags="snap|scroll"
-                app:navigationIcon="@drawable/vector_menu_back" />
-
-            <LinearLayout
+                style="@style/Secondary.Toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:orientation="vertical">
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                android:tag="toolbar"
+                app:layout_scrollFlags="scroll|enterAlways|snap"
+                app:supportNavigationIcon="@drawable/coui_back_arrow"
+                app:supportTitle="@string/library"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
 
-                <com.google.android.material.tabs.TabLayout
-                    android:id="@+id/tab_layout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:tag="tabLayout"
-                    app:tabBackground="@drawable/selector_tab_layout_item"
-                    app:tabGravity="fill"
-                    app:tabIndicatorColor="@color/color_item_selected"
-                    app:tabIndicatorHeight="2dp"
-                    app:tabMode="fixed"
-                    app:tabPaddingEnd="16dp"
-                    app:tabPaddingStart="16dp"
-                    app:tabRippleColor="@null"
-                    app:tabSelectedTextColor="@color/color_item_selected"
-                    app:tabTextAppearance="@style/AppTabLayoutText"
-                    app:tabTextColor="@color/gray_text" />
-            </LinearLayout>
-        </com.google.android.material.appbar.AppBarLayout>
+            <com.coui.appcompat.tablayout.COUITabLayout
+                android:id="@+id/tab_layout"
+                style="@style/COUILargestTabLayoutStyle"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/tablayout_large_layout_height"
+                android:background="@android:color/transparent"
+                android:tag="tabLayout"
+                app:couiTabBackground="@android:color/transparent"
+                app:couiTabGravity="fill"
+                app:couiTabIndicatorColor="?attr/couiColorLabelTheme"
+                app:couiTabIndicatorHeight="2dp"
+                app:couiTabIndicatorWidthRatio="1.0"
+                app:couiTabMinDivider="0dp"
+                app:couiTabMinMargin="0dp"
+                app:couiTabMode="fixed"
+                app:couiTabSelectedTextColor="?attr/couiColorLabelTheme"
+                app:couiTabTextColor="?attr/couiColorSecondNeutral" />
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/transparent"
+            android:background="?attr/couiColorCardBackground"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

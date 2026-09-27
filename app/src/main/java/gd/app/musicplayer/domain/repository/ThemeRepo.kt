@@ -90,6 +90,15 @@ class ThemeRepo @Inject constructor(
         return themeManager.isUserDarkModePreferred()
     }
 
+    fun applyLightTheme(): ThemePalette {
+        themeManager.applyLightTheme()
+        return themeRegistry.getCurrentTheme()
+    }
+
+    fun isUserLightModePreferred(): Boolean {
+        return themeManager.isUserLightModePreferred()
+    }
+
     fun getAccentColor(): Int {
         return getCorePalette().accentColor
     }

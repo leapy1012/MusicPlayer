@@ -1,27 +1,28 @@
 package gd.app.musicplayer.feature.lyrics
 
 import android.app.Activity
+import android.app.Dialog
 import android.os.Bundle
 import android.text.Selection
 import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
+import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.lifecycleScope
+import com.coui.appcompat.dialog.COUIAlertDialogBuilder
 import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogMusicPlaySearchLrcBinding
-import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.TrackLyricsStore
 import kotlinx.coroutines.launch
 
-class LyricSearchDialogFragment : BaseDialogFragment(), View.OnClickListener {
+class LyricSearchDialogFragment : DialogFragment() {
 
-    private var _binding: DialogMusicPlaySearchLrcBinding? = null
-    private val binding get() = checkNotNull(_binding)
+    private var binding: DialogMusicPlaySearchLrcBinding? = null
 
     private val trackId: Long
         get() = requireArguments().getLong(ARG_TRACK_ID)
@@ -49,60 +50,52 @@ class LyricSearchDialogFragment : BaseDialogFragment(), View.OnClickListener {
             dismissAllowingStateLoss()
         }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = DialogMusicPlaySearchLrcBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val content = DialogMusicPlaySearchLrcBinding.inflate(LayoutInflater.from(requireContext()))
+        binding = content
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        applyDialogWidth(0.9f)
-        applyDialogBackground(view)
+        content.edittext.setText(titleText)
+        content.edittext.setFastDeletable(true)
+        Selection.selectAll(content.edittext.text)
+        content.dialogMessage.setText(R.string.search_lyric_message_local)
 
-        binding.edittext.setText(titleText)
-        Selection.selectAll(binding.edittext.text)
-        binding.dialogMessage.setText(R.string.search_lyric_message_local)
-
-        binding.dialogButtonSearchOnline.isVisible = false
-        binding.dialogButtonSearchEdit.setOnClickListener(this)
-        binding.dialogButtonOk.setOnClickListener(this)
-        binding.lrcSearchReset.setOnClickListener(this)
-
-        binding.lrcSearchReset.isVisible =
+        content.lrcSearchReset.isVisible =
             !TrackLyricsStore.from(requireContext()).getTrackLyricPath(trackId).isNullOrBlank()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            val result = LyricsLoader.load(requireContext(), trackId, audioPath)
-            if (!isAdded) return@launch
-            binding.dialogButtonSearchEdit.text = getString(
-                if (result.hasLyrics) {
-                    R.string.equalizer_edit
-                } else {
-                    R.string.add
-                }
-            )
-            binding.dialogButtonSearchEdit.isVisible = true
+        content.lrcSearchReset.setOnClickListener {
+            TrackLyricsStore.from(requireContext()).clearTrackLyricData(trackId)
+            setFragmentResult(RESULT_KEY, Bundle.EMPTY)
+            dismissAllowingStateLoss()
         }
-    }
+        content.dialogButtonSearchEdit.setOnClickListener {
+            lyricEditLauncher.launch(
+                LyricEditActivity.intent(
+                    context = requireContext(),
+                    trackId = trackId,
+                    title = titleText,
+                    audioPath = audioPath
+                )
+            )
+        }
 
-    override fun onDestroyView() {
-        _binding = null
-        super.onDestroyView()
-    }
+        val builder = COUIAlertDialogBuilder(
+            requireContext(),
+            com.coui.appcompat.R.style.COUIAlertDialog_BottomAssignment
+        )
+            .setTitle(R.string.related_lyrics)
+            .setView(content.root)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.lrc_manual_search, null)
 
-    override fun onClick(view: View) {
-        when (view.id) {
-            R.id.dialog_button_ok -> {
+        val dialog = builder.create()
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 lyricListLauncher.launch(
                     LyricListActivity.intent(
                         context = requireContext(),
                         track = Music(
                             id = trackId,
-                            title = titleText,
+                            title = content.edittext.text?.toString().orEmpty().ifBlank { titleText },
                             artist = artistText,
                             album = "",
                             albumId = "",
@@ -112,24 +105,27 @@ class LyricSearchDialogFragment : BaseDialogFragment(), View.OnClickListener {
                     )
                 )
             }
-
-            R.id.lrc_search_reset -> {
-                TrackLyricsStore.from(requireContext()).clearTrackLyricData(trackId)
-                setFragmentResult(RESULT_KEY, Bundle.EMPTY)
-                dismissAllowingStateLoss()
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
+                dismiss()
             }
-
-            R.id.dialog_button_search_edit -> {
-                lyricEditLauncher.launch(
-                    LyricEditActivity.intent(
-                        context = requireContext(),
-                        trackId = trackId,
-                        title = titleText,
-                        audioPath = audioPath
-                    )
-                )
-            }
+            builder.updateViewAfterShown()
         }
+
+        lifecycleScope.launch {
+            val result = LyricsLoader.load(requireContext(), trackId, audioPath)
+            if (!isAdded) return@launch
+            content.dialogButtonSearchEdit.text = getString(
+                if (result.hasLyrics) R.string.equalizer_edit else R.string.add
+            )
+            content.dialogButtonSearchEdit.isVisible = true
+        }
+
+        return dialog
+    }
+
+    override fun onDestroyView() {
+        binding = null
+        super.onDestroyView()
     }
 
     companion object {

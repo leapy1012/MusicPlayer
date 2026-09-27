@@ -18,7 +18,8 @@
         android:tag="folderFootDes"
         android:text="@string/scan_folder_des_1"
         android:textAlignment="center"
-        android:textColor="@color/i_white_m"
+        android:textAppearance="?attr/couiTextAppearanceDescription"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="14sp" />
 
     <TextView
@@ -28,7 +29,8 @@
         android:tag="folderFootDes"
         android:text="@string/scan_folder_des_2"
         android:textAlignment="center"
-        android:textColor="@color/i_white_m"
+        android:textAppearance="?attr/couiTextAppearanceDescription"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="14sp" />
 
     <LinearLayout
@@ -59,7 +61,8 @@
             android:layout_marginStart="8dp"
             android:tag="folderFootScanText"
             android:text="@string/scan_library"
-            android:textColor="#fff"
+            android:textAppearance="?attr/couiTextAppearanceButton"
+            android:textColor="?attr/couiColorPrimaryNeutral"
             android:textSize="14sp" />
     </LinearLayout>
 </LinearLayout>

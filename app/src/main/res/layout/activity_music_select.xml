@@ -3,156 +3,116 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:tag="activityBackgroundColor">
+    android:background="?attr/couiColorBackgroundWithCard"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <View
+        android:id="@+id/status_bar_space"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:tag="toolbarChrome" />
+
+    <com.coui.appcompat.toolbar.COUIToolbar
+        android:id="@+id/toolbar"
+        style="@style/Secondary.Toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:tag="titleBackgroundColor">
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:minHeight="@dimen/toolbar_min_height"
+        android:tag="toolbar"
+        app:supportNavigationIcon="@drawable/coui_back_arrow"
+        app:supportTitle="@string/add_songs"
+        app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+        app:titleCenter="false" />
 
-        <View
-            android:id="@+id/status_bar_space"
-            android:layout_width="match_parent"
-            android:layout_height="0dp" />
+    <com.coui.appcompat.searchview.COUISearchBar
+        android:id="@+id/search_bar"
+        style="@style/Widget.COUI.COUISearchBar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/coui_search_view_height"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="4dp"
+        app:couiHideFunctionalButton="true"
+        app:searchHint="@string/search_library" />
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/common_title_height"
-            android:minHeight="@dimen/common_title_height"
-            android:tag="toolbar"
-            app:contentInsetStartWithNavigation="0dp"
-            app:theme="@style/AppToolbar"
-            app:titleTextAppearance="@style/AppToolbarTitle.MusicSelect" />
+    <LinearLayout
+        android:id="@+id/select_all_banner"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/shape_search_bg"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
+            android:id="@+id/select_all_group"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
             android:gravity="center_vertical"
-            android:tag="editTextBackground">
+            android:orientation="horizontal">
 
-            <androidx.appcompat.widget.AppCompatImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_marginStart="18dp"
-                android:layout_marginEnd="8dp"
-                android:alpha="0.5"
-                android:scaleType="fitCenter"
-                android:tag="titleColor"
-                app:srcCompat="@drawable/vector_menu_search" />
-
-            <EditText
-                android:id="@+id/search_edit_text"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:background="@android:color/transparent"
-                android:gravity="center_vertical"
-                android:hint="@string/search_library"
-                android:selectAllOnFocus="true"
-                android:singleLine="true"
-                android:tag="titleColor"
-                android:textColor="#ffffff"
-                android:textColorHint="#80ffffff"
-                android:textCursorDrawable="@null"
-                android:textSize="14sp" />
-
-            <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/search_edit_clear"
+            <com.coui.appcompat.checkbox.COUICheckBox
+                android:id="@+id/main_info_selectall"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:alpha="0.5"
-                android:background="@drawable/b_selector_image_bg_aw"
-                android:focusable="true"
-                android:padding="8dp"
-                android:scaleType="centerInside"
-                android:tag="titleColor"
-                android:visibility="gone"
-                app:srcCompat="@drawable/vector_search_clear" />
-        </LinearLayout>
+                android:background="@null"
+                android:clickable="false"
+                android:focusable="false" />
 
-        <LinearLayout
-            android:id="@+id/select_all_banner"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            app:layout_scrollFlags="snap|enterAlways|scroll">
-
-            <LinearLayout
-                android:id="@+id/select_all_group"
+            <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/main_info_selectall"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:tag="selectAll"
-                    app:srcCompat="@drawable/vector_music_check_selector" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:singleLine="true"
-                    android:tag="titleColor"
-                    android:text="@string/select_all"
-                    android:textColor="@color/white"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <gd.app.musicplayer.core.designsystem.view.CustomSpinner
-                android:id="@+id/main_info_spinner"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:gravity="center_vertical"
-                android:maxWidth="160dp"
-                android:paddingStart="12dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
                 android:singleLine="true"
-                android:tag="titleColor"
-                android:textColor="@color/white"
+                android:text="@string/select_all"
+                android:textColor="?attr/couiColorPrimaryNeutral"
                 android:textSize="14sp" />
         </LinearLayout>
 
         <View
-            android:id="@+id/music_select_title_divider"
-            android:layout_width="match_parent"
-            android:layout_height="1px"
-            android:tag="musicSelectTitleDivider"
-            android:visibility="gone" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <gd.app.musicplayer.core.designsystem.view.CustomSpinner
+            android:id="@+id/main_info_spinner"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:gravity="center_vertical"
+            android:maxWidth="160dp"
+            android:paddingStart="12dp"
+            android:singleLine="true"
+            android:textColor="?attr/couiColorPrimaryNeutral"
+            android:textSize="14sp" />
     </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/couiColorDivider" />
 
     <include
         android:id="@+id/layout_recyclerview"
         layout="@layout/layout_recyclerview"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:background="?attr/couiColorCardBackground" />
 
-    <TextView
+    <com.coui.appcompat.button.COUIButton
         android:id="@+id/button_confirm"
-        style="@style/BottomConfirmButton"
-        android:text="@string/confirm" />
+        style="@style/Widget.COUI.Button.Large.ButtonNew"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/confirm"
+        android:textAllCaps="false"
+        android:visibility="gone" />
 </LinearLayout>
-

@@ -1,10 +1,12 @@
 package gd.app.musicplayer.ui.selection
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.stableId
 import gd.app.musicplayer.databinding.ActivityMusicSetEditGridBinding
 import gd.app.musicplayer.databinding.ActivityMusicSetEditItemBinding
@@ -18,6 +20,8 @@ import kotlin.math.absoluteValue
 internal class MusicSetEditAdapter(
     private val viewMode: Int,
     private val accentColor: Int,
+    private val usesCouiStyling: Boolean,
+    private val applyTheme: (View) -> Unit,
     private val onToggleSelection: (MusicSet) -> Unit
 ) : ListAdapter<MusicSetSelectionRow, RecyclerView.ViewHolder>(DiffCallback) {
 
@@ -44,25 +48,25 @@ internal class MusicSetEditAdapter(
 
         return when (viewType) {
             VIEW_TYPE_GRID -> {
+                val binding = ActivityMusicSetEditGridBinding.inflate(inflater, parent, false)
+                applyTheme(binding.root)
+
                 MusicSetEditGridViewHolder(
-                    binding = ActivityMusicSetEditGridBinding.inflate(
-                        inflater,
-                        parent,
-                        false
-                    ),
+                    binding = binding,
                     accentColor = accentColor,
                     onItemClick = onToggleSelection
                 )
             }
 
             else -> {
+                val binding = ActivityMusicSetEditItemBinding.inflate(inflater, parent, false)
+                applyTheme(binding.root)
+                if (usesCouiStyling) {
+                    binding.root.installCouiPressFeedback()
+                }
+
                 MusicSetEditListViewHolder(
-                    binding = ActivityMusicSetEditItemBinding.inflate(
-                        inflater,
-                        parent,
-                        false
-                    ),
-                    accentColor = accentColor,
+                    binding = binding,
                     onItemClick = onToggleSelection
                 )
             }

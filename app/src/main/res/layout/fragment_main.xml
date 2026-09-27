@@ -3,121 +3,166 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
 
     <LinearLayout
+        android:id="@+id/main_toolbar_chrome"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/main_actionbar"
-        android:orientation="vertical">
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:orientation="vertical"
+        android:tag="toolbarChrome">
 
         <View
             android:id="@+id/status_bar_space"
             android:layout_width="match_parent"
             android:layout_height="0dp" />
 
-        <androidx.appcompat.widget.Toolbar
+        <com.coui.appcompat.toolbar.COUIToolbar
             android:id="@+id/toolbar"
+            style="@style/Secondary.Toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:minHeight="?attr/actionBarSize"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:minHeight="@dimen/toolbar_min_height"
             android:tag="toolbar"
             app:menu="@menu/menu_fragment_main"
-            app:navigationIcon="@drawable/vector_menu_left"
-            app:theme="@style/AppToolbar"
-            app:title="@string/music_player"
-            app:titleTextAppearance="@style/AppToolbarTitle" />
+            app:supportNavigationIcon="@drawable/vector_menu_left"
+            app:supportTitle="@string/music_player"
+            app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+            app:titleCenter="false" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?attr/couiColorDivider"
+            android:tag="appBarDivider" />
     </LinearLayout>
 
-    <androidx.core.widget.NestedScrollView
+    <com.coui.appcompat.scrollview.COUINestedScrollView
+        android:id="@+id/main_scroll"
         android:layout_width="match_parent"
-        android:layout_height="0.0dip"
-        android:layout_weight="1.0"
-        android:scrollbarSize="0.0dip">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="always"
+        android:scrollbars="none">
 
         <LinearLayout
             android:id="@+id/main_info_parent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingBottom="16dp">
 
             <gd.app.lib.view.NoScrollGridView
                 android:id="@+id/main_info_grid"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:cacheColorHint="@android:color/transparent"
-                android:horizontalSpacing="@dimen/main_item_margin"
+                android:horizontalSpacing="12dp"
                 android:listSelector="@android:color/transparent"
                 android:nestedScrollingEnabled="false"
-                android:padding="@dimen/main_item_margin"
-                android:tag="contentBackground"
-                android:verticalSpacing="@dimen/main_item_margin" />
+                android:paddingStart="16dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="8dp"
+                android:verticalSpacing="12dp" />
 
             <LinearLayout
                 android:id="@+id/main_info_playlist"
                 android:layout_width="match_parent"
-                android:layout_height="?actionBarSize"
-                android:layout_marginTop="8.0dip"
-                android:layout_marginBottom="1.5dip"
-                android:background="@drawable/b_selector_item_bg_t_aw"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="?attr/selectableItemBackground"
                 android:clickable="true"
+                android:focusable="true"
                 android:gravity="center_vertical"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:tag="contentBackground">
+                android:paddingStart="20dp"
+                android:paddingEnd="12dp">
 
                 <TextView
+                    android:id="@+id/main_info_playlist_label"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:paddingStart="8.0dip"
+                    android:layout_height="wrap_content"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
+                    android:tag="itemTextExtraColor"
                     android:text="@string/playlist"
                     android:textAllCaps="true"
-                    android:textColor="@color/white"
-                    android:textSize="18.0sp" />
+                    android:textAppearance="?attr/couiTextAppearanceDescription"
+                    android:textColor="?attr/couiColorSecondNeutral" />
 
                 <TextView
                     android:id="@+id/main_info_playlist_count"
-                    android:layout_width="0.0dip"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1.0"
-                    android:drawablePadding="2.0dip"
-                    android:gravity="center_vertical"
-                    android:paddingEnd="6.0dip"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
-                    android:text="0"
-                    android:textColor="@color/white"
-                    android:textSize="16.0sp" />
+                    android:tag="itemTextExtraColor"
+                    android:text="(0)"
+                    android:textAppearance="?attr/couiTextAppearanceDescription"
+                    android:textColor="?attr/couiColorSecondNeutral" />
 
-                <androidx.appcompat.widget.AppCompatImageView
+                <FrameLayout
                     android:id="@+id/main_info_playlist_add"
-                    android:layout_width="40.0dip"
-                    android:layout_height="40.0dip"
-                    android:layout_marginEnd="16.0dip"
-                    android:background="@drawable/selector_image_bg_w"
-                    android:padding="8.0dip"
-                    android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
-                    app:srcCompat="@drawable/vector_add" />
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_main_playlist_header_action"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless">
 
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:layout_width="24.0dip"
-                    android:layout_height="24.0dip"
-                    android:layout_marginEnd="6.0dip"
-                    android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
-                    app:srcCompat="@drawable/vector_arrow_right" />
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:padding="8dp"
+                        android:scaleType="fitCenter"
+                        android:tag="itemTextExtraColor"
+                        app:srcCompat="@drawable/vector_add"
+                        app:tint="?attr/couiColorSecondNeutral" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/main_info_playlist_arrow"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_main_playlist_header_action"
+                    android:clickable="false"
+                    android:focusable="false">
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:padding="9dp"
+                        android:scaleType="fitCenter"
+                        android:tag="itemTextExtraColor"
+                        app:srcCompat="@drawable/vector_arrow_right"
+                        app:tint="?attr/couiColorSecondNeutral" />
+                </FrameLayout>
             </LinearLayout>
 
-            <androidx.recyclerview.widget.RecyclerView
+            <androidx.recyclerview.widget.COUIRecyclerView
                 android:id="@+id/main_info_playlist_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
                 android:orientation="horizontal"
-                android:padding="@dimen/main_item_margin"
-                android:tag="contentBackground" />
+                android:overScrollMode="always"
+                android:paddingStart="16dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="8dp" />
         </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+    </com.coui.appcompat.scrollview.COUINestedScrollView>
 </LinearLayout>

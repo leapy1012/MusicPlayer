@@ -14,22 +14,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"/>
     <androidx.appcompat.widget.AppCompatTextView
-        android:textSize="16sp"
-        android:textColor="@android:color/white"
         android:id="@+id/music_item_title"
         android:tag="itemTextColor"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:singleLine="true"
         android:layout_marginStart="16dp"
+        android:textAppearance="?attr/couiTextAppearanceHeadline6"
+        android:textColor="?attr/couiColorPrimaryNeutral"
+        android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/music_item_artist"
         app:layout_constraintEnd_toStartOf="@+id/music_item_des"
         app:layout_constraintStart_toEndOf="@+id/music_item_album"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed"/>
     <TextView
-        android:textSize="14sp"
-        android:textColor="@color/item_artist_color"
         android:id="@+id/music_item_des"
         android:tag="itemTextExtraColor"
         android:visibility="visible"
@@ -37,13 +36,14 @@
         android:layout_height="wrap_content"
         android:singleLine="true"
         android:layout_marginStart="8dp"
+        android:textAppearance="?attr/couiTextAppearanceDescription"
+        android:textColor="?attr/couiColorSecondNeutral"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="@+id/music_item_title"
         app:layout_constraintEnd_toStartOf="@+id/music_item_menu"
         app:layout_constraintStart_toEndOf="@+id/music_item_title"
         app:layout_constraintTop_toTopOf="@+id/music_item_title"/>
     <TextView
-        android:textSize="12sp"
-        android:textColor="@color/item_artist_color"
         android:ellipsize="start"
         android:id="@+id/music_item_artist"
         android:tag="itemTextExtraColor"
@@ -51,6 +51,9 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:singleLine="true"
+        android:textAppearance="?attr/couiTextAppearanceDescription"
+        android:textColor="?attr/couiColorSecondNeutral"
+        android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/music_item_des"
         app:layout_constraintStart_toStartOf="@+id/music_item_title"
@@ -58,7 +61,7 @@
         app:layout_constraintVertical_chainStyle="packed"/>
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/music_item_menu"
-        android:tag="itemTextColor"
+        android:tag="itemTextExtraColor"
         android:background="@drawable/selector_image_bg_w"
         android:layout_width="40dp"
         android:layout_height="40dp"
@@ -68,11 +71,14 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/music_item_des"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/vector_more"/>
+        app:srcCompat="@drawable/vector_more"
+        app:tint="?attr/couiColorHintNeutral"/>
     <View
         android:tag="recyclerDividerColor"
         android:layout_width="0dp"
-        android:layout_height="1px"
+        android:layout_height="1dp"
+        android:layout_marginStart="84dp"
+        android:background="?attr/couiColorDivider"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"/>

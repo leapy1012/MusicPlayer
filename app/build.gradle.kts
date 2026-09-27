@@ -13,7 +13,8 @@ android {
 
     defaultConfig {
         applicationId = "gd.app.musicplayer"
-        minSdk = 24
+        // COUI AppCompat AAR requires API 28+.
+        minSdk = 28
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -21,13 +22,27 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("platform") {
+            // Keystore lives at repo root (not app/).
+            storeFile = rootProject.file("platform.keystore")
+            storePassword = "123456"
+            keyAlias = "platform"
+            keyPassword = "123456"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("platform")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("platform")
         }
     }
     compileOptions {
@@ -54,16 +69,33 @@ tasks.configureEach {
 
 // Offline Maven mirror often lacks Gradle .module metadata for KMP artifacts.
 // Without it, both -android and -jvm variants can land on the classpath.
+// collection 1.4+ ships former collection-ktx APIs inside collection-jvm — exclude
+// the legacy artifact or checkDebugDuplicateClasses fails.
 configurations.configureEach {
     exclude(group = "androidx.datastore", module = "datastore-core-jvm")
     exclude(group = "androidx.datastore", module = "datastore-jvm")
     exclude(group = "androidx.datastore", module = "datastore-preferences-jvm")
+    exclude(group = "androidx.collection", module = "collection-ktx")
 }
 
 dependencies {
+    // Local AAR — does not pull Maven transitives; keep COUI deps below in sync.
+    implementation(files("libs/coui-1.0.0.aar"))
+    // COUI spring overscroll writes View.mScrollY via reflection; blocked on
+    // targetSdk 28+ for user apps (DuraSpeed is platform-exempt).
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.appcompat)
+    implementation("androidx.collection:collection:1.3.0")
+    implementation("androidx.fragment:fragment:1.6.2")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
+    implementation("androidx.preference:preference:1.2.1")
+    implementation("androidx.viewpager:viewpager:1.0.0")
+    implementation("androidx.viewpager2:viewpager2:1.0.0")
+    implementation("com.airbnb.android:lottie:6.0.0")
     implementation("androidx.asynclayoutinflater:asynclayoutinflater:1.0.0")
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.room.ktx)

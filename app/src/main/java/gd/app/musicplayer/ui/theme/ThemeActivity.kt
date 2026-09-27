@@ -12,13 +12,14 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
-import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyCachedStatusBarHeight
 import gd.app.musicplayer.core.common.extension.screenHeight
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityThemeBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.feature.library.artwork.ArtworkCropActivity
 import kotlinx.coroutines.launch
 
@@ -92,7 +93,13 @@ class ThemeActivity : BaseActivity() {
     }
 
     private fun setupToolbar() {
-        binding.themeBack.setOnClickListener { finish() }
+        setupEdgeToEdgeToolbar(
+            root = binding.root,
+            statusBarView = binding.statusBarSpace,
+            bottomPaddingView = binding.root,
+            toolbar = binding.toolbar,
+            titleRes = R.string.theme,
+        )
         binding.themeEdit.setOnClickListener { ThemeEditActivity.start(this) }
     }
 

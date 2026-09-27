@@ -3,80 +3,84 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/couiColorBackgroundWithCard"
     android:orientation="vertical"
     android:tag="activityBackgroundColor">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:tag="titleBackgroundColor">
-
-        <View
-            android:id="@+id/status_bar_space"
-            android:layout_width="match_parent"
-            android:layout_height="0dp" />
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/common_title_height"
-            android:minHeight="@dimen/common_title_height"
-            android:tag="toolbar"
-            app:theme="@style/AppToolbar"
-            app:titleTextAppearance="@style/AppToolbarTitle" />
-    </LinearLayout>
-
-    <include
-        android:id="@+id/layout_recyclerview"
-        layout="@layout/layout_recyclerview"
+    <View
+        android:id="@+id/status_bar_space"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:tag="toolbarChrome" />
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/app_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/couiColorBackgroundWithCard"
+            android:elevation="0dp"
+            android:tag="toolbarChrome"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true">
+
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                android:tag="toolbar"
+                app:supportNavigationIcon="@drawable/coui_back_arrow"
+                app:supportTitle="@string/batch_edit"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
+
+        <include
+            android:id="@+id/layout_recyclerview"
+            layout="@layout/layout_recyclerview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <LinearLayout
+        android:id="@+id/deleted_actions_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingTop="24dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="24dp">
+        android:paddingStart="24dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="16dp">
 
-        <androidx.appcompat.widget.AppCompatTextView
+        <com.coui.appcompat.button.COUIButton
             android:id="@+id/delete_source_file"
+            style="@style/Widget.COUI.Button.Large.ButtonNew.Secondary.NoMargin"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:gravity="center"
-            android:maxLines="2"
-            android:paddingStart="8dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="10dp"
-            android:tag="deleteButton"
-            android:text="@string/delete_source_file"
-            android:textAlignment="center"
-            android:textSize="16sp" />
+            android:maxLines="1"
+            android:text="@string/delete_source_file" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:layout_width="16dp"
-            android:layout_height="match_parent" />
-
-        <androidx.appcompat.widget.AppCompatTextView
+        <com.coui.appcompat.button.COUIButton
             android:id="@+id/restore_deleted_music"
+            style="@style/Widget.COUI.Button.Large.ButtonNew"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="0dp"
             android:layout_weight="1"
-            android:gravity="center"
-            android:maxLines="2"
-            android:paddingStart="8dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="10dp"
-            android:tag="restoreButton"
-            android:text="@string/restore_deleted_music"
-            android:textAlignment="center"
-            android:textSize="16sp" />
+            android:maxLines="1"
+            android:text="@string/restore_deleted_music" />
     </LinearLayout>
 </LinearLayout>

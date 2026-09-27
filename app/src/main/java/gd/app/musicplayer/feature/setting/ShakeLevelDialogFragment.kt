@@ -1,87 +1,95 @@
 package gd.app.musicplayer.feature.setting
 
+import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
-import gd.app.musicplayer.core.designsystem.view.SeekBar
+import androidx.appcompat.app.AlertDialog
+import androidx.core.os.bundleOf
+import androidx.fragment.app.DialogFragment
+import com.coui.appcompat.dialog.COUIAlertDialogBuilder
+import com.coui.appcompat.seekbar.COUISeekBar
+import gd.app.musicplayer.R
 import gd.app.musicplayer.databinding.DialogShakeLevelBinding
 import kotlin.math.max
 import kotlin.math.min
 
-class ShakeLevelDialogFragment : BaseDialogFragment() {
+class ShakeLevelDialogFragment : DialogFragment() {
 
-    private var _binding: DialogShakeLevelBinding? = null
-    private val binding: DialogShakeLevelBinding
-        get() = requireNotNull(_binding)
+    private var binding: DialogShakeLevelBinding? = null
 
-    private val onShakeLevelChange = object : SeekBar.OnSeekBarChangeListener {
-        override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-            updateShakeLevelNumber(progress)
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val contentBinding = DialogShakeLevelBinding.inflate(LayoutInflater.from(requireContext()))
+        binding = contentBinding
+        disableClipAlongParents(contentBinding.root)
+
+        val seek = contentBinding.shakeLevelSeek
+        val currentShakeLevel = requireArguments().getFloat(ARG_SHAKE_LEVEL, DEFAULT_SHAKE_LEVEL)
+        seek.progress = (currentShakeLevel * seek.max).toInt()
+        updateShakeLevelNumber(seek.progress)
+
+        seek.setOnSeekBarChangeListener(object : COUISeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: COUISeekBar, progress: Int, fromUser: Boolean) {
+                updateShakeLevelNumber(progress)
+            }
+
+            override fun onStartTrackingTouch(seekBar: COUISeekBar) = Unit
+
+            override fun onStopTrackingTouch(seekBar: COUISeekBar) = Unit
+        })
+
+        contentBinding.shakeLevelPlus.setOnClickListener {
+            seek.progress = min(seek.max, seek.progress + 1)
+        }
+        contentBinding.shakeLevelMinus.setOnClickListener {
+            seek.progress = max(0, seek.progress - 1)
+        }
+        contentBinding.shakeLevelReset.setOnClickListener {
+            seek.progress = (seek.max * 0.5f).toInt()
         }
 
-        override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
-
-        override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = DialogShakeLevelBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        applyDialogBackground(view)
-
-        binding.shakeLevelPlus.setOnClickListener { onShakeLevelPlus() }
-        binding.shakeLevelMinus.setOnClickListener { onShakeLevelMinus() }
-        binding.dialogButtonReset.setOnClickListener { onShakeLevelReset() }
-        binding.dialogButtonOk.setOnClickListener { onShakeLevelSave() }
-
-        binding.shakeLevelSeek.setOnSeekBarChangeListener (onShakeLevelChange)
-        val currentShakeLevel = requireArguments().getFloat(ARG_SHAKE_LEVEL, DEFAULT_SHAKE_LEVEL)
-        binding.shakeLevelSeek.setProgress((currentShakeLevel * binding.shakeLevelSeek.getMax()).toInt())
-    }
-
-    private fun onShakeLevelSave() {
-        val shakeLevel: Float =
-            binding.shakeLevelSeek.getProgress().toFloat() / binding.shakeLevelSeek.getMax()
-        parentFragmentManager.setFragmentResult(
-            RESULT_KEY,
-            Bundle().apply { putFloat(KEY_SHAKE_LEVEL, shakeLevel) }
+        val dialog = COUIAlertDialogBuilder(
+            requireContext(),
+            com.coui.appcompat.R.style.COUIAlertDialog_Center
         )
-        dismiss()
+            .setTitle(R.string.shake_level)
+            .setView(contentBinding.root)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.ok, null)
+            .create()
+
+        dialog.setOnShowListener {
+            disableClipAlongParents(contentBinding.root)
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+                val shakeLevel = seek.progress.toFloat() / seek.max.toFloat()
+                parentFragmentManager.setFragmentResult(
+                    RESULT_KEY,
+                    bundleOf(KEY_SHAKE_LEVEL to shakeLevel)
+                )
+                dismiss()
+            }
+        }
+        return dialog
     }
 
-    private fun onShakeLevelReset() {
-        val defaultProgress = (binding.shakeLevelSeek.getMax() * 0.5f).toInt()
-        binding.shakeLevelSeek.setProgress(defaultProgress)
+    override fun onDestroyView() {
+        binding = null
+        super.onDestroyView()
     }
 
-    private fun onShakeLevelPlus() {
-        val newProgress = min(
-            binding.shakeLevelSeek.getMax(),
-            binding.shakeLevelSeek.getProgress() + 1
-        )
-        binding.shakeLevelSeek.setProgress(newProgress)
-    }
-
-    private fun onShakeLevelMinus() {
-        val newProgress = max(
-            0,
-            binding.shakeLevelSeek.getProgress() - 1
-        )
-        binding.shakeLevelSeek.setProgress(newProgress)
+    private fun disableClipAlongParents(view: android.view.View) {
+        var current: android.view.View? = view
+        while (current != null) {
+            if (current is ViewGroup) {
+                current.clipChildren = false
+                current.clipToPadding = false
+            }
+            current = current.parent as? android.view.View
+        }
     }
 
     private fun updateShakeLevelNumber(progress: Int) {
-        binding.shakeLevelNumber.text = (progress + 1).toString()
+        binding?.shakeLevelNumber?.text = (progress + 1).toString()
     }
 
     companion object {
@@ -92,9 +100,7 @@ class ShakeLevelDialogFragment : BaseDialogFragment() {
 
         fun newInstance(currentShakeLevel: Float): ShakeLevelDialogFragment {
             return ShakeLevelDialogFragment().apply {
-                arguments = Bundle().apply {
-                    putFloat(ARG_SHAKE_LEVEL, currentShakeLevel)
-                }
+                arguments = bundleOf(ARG_SHAKE_LEVEL to currentShakeLevel)
             }
         }
     }

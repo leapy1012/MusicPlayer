@@ -1,5 +1,6 @@
 package gd.app.musicplayer.ui.theme
 
+import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -143,6 +144,17 @@ class ThemeItemAdapter(
         }
 
         private fun bindImage(item: ThemeItem) {
+            if (item.fileName == ThemeItemMapper.WHITE_THEME_TOKEN) {
+                Glide.with(binding.themeImage).clear(binding.themeImage)
+                val typed = binding.themeImage.context.obtainStyledAttributes(
+                    intArrayOf(com.coui.appcompat.R.attr.couiColorBackgroundWithCard)
+                )
+                val color = typed.getColor(0, 0xFFF0F1F2.toInt())
+                typed.recycle()
+                binding.themeImage.setImageDrawable(ColorDrawable(color))
+                return
+            }
+
             val source = if (File(item.fileName).isAbsolute) {
                 File(item.fileName)
             } else {

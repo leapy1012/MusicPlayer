@@ -15,6 +15,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
+import com.coui.appcompat.tablayout.COUITabLayout
 import com.google.android.material.tabs.TabLayout
 import gd.app.lib.model.lrc.view.LyricView
 import gd.app.lib.model.scan.MusicScanProgressView
@@ -43,6 +44,8 @@ import gd.app.musicplayer.core.designsystem.view.RotateStepBar
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.ui.editor.waveform.SoundWaveView
 import gd.app.musicplayer.ui.theme.ThemeTags
+
+private const val LIGHT_BANNER_BARS_ALPHA = 0x40
 
 class DefaultThemeBinder : ThemeViewBinder {
 
@@ -92,6 +95,16 @@ class DefaultThemeBinder : ThemeViewBinder {
             }
 
             ThemeTags.Core.BLUR_BACKGROUND -> {
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    view.setBackgroundColor(
+                        resolveCouiColor(
+                            view,
+                            com.coui.appcompat.R.attr.couiColorCardBackground,
+                            Color.WHITE,
+                        )
+                    )
+                    return true
+                }
                 val drawable = palette.getBlurredBackgroundDrawable(view.context)
                 view.background = drawable.constantState?.newDrawable()?.mutate()
                     ?: drawable.mutate()
@@ -109,16 +122,46 @@ class DefaultThemeBinder : ThemeViewBinder {
             }
 
             ThemeTags.Core.SCROLL_CONTENT -> {
-                view.setBackgroundColor(
-                    if (palette.isNightTheme()) Color.TRANSPARENT else 0x1A000000,
-                )
+                val transparent = palette.isNightTheme() ||
+                        palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+                view.setBackgroundColor(if (transparent) Color.TRANSPARENT else 0x1A000000)
                 return true
             }
 
             ThemeTags.Core.BOTTOM_CONTROL_BACKGROUND -> {
-                view.setBackgroundColor(
-                    if (theme.usesDarkForeground) 0x0D000000 else 0x1A000000,
-                )
+                // White theme: solid COUI card surface (hard COUI is critical).
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    val typed = view.context.obtainStyledAttributes(
+                        intArrayOf(com.coui.appcompat.R.attr.couiColorCardBackground)
+                    )
+                    val color = typed.getColor(0, 0xFFFFFFFF.toInt())
+                    typed.recycle()
+                    view.setBackgroundColor(color)
+                } else {
+                    view.setBackgroundColor(
+                        if (theme.usesDarkForeground) 0x0D000000 else 0x1A000000,
+                    )
+                }
+                return true
+            }
+
+            ThemeTags.Core.HOME_CARD_BACKGROUND -> {
+                // White: hard COUI card. Picture/Night: palette-tinted translucent surface.
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    view.background = AppCompatResources.getDrawable(
+                        view.context,
+                        R.drawable.bg_main_home_card_ripple,
+                    )
+                } else {
+                    val radius = view.context.resources.getDimension(
+                        com.coui.appcompat.R.dimen.coui_round_corner_m
+                    )
+                    view.background = roundedRippleDrawable(
+                        fillColor = if (theme.usesDarkForeground) 0x0D000000 else 0x1AFFFFFF,
+                        rippleColor = theme.rippleColor,
+                        cornerRadius = radius,
+                    )
+                }
                 return true
             }
 
@@ -143,9 +186,22 @@ class DefaultThemeBinder : ThemeViewBinder {
             }
 
             ThemeTags.Misc.SLEEP_CONTENT -> {
+                val fillColor = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorCardBackground,
+                        Color.WHITE,
+                    )
+                } else if (theme.usesDarkForeground) {
+                    0x0D000000
+                } else {
+                    0x1AFFFFFF
+                }
                 view.background = roundedDrawable(
-                    cornerRadius = view.context.dpToPx(4f).toFloat(),
-                    fillColor = if (theme.usesDarkForeground) 0x0D000000 else 0x0DFFFFFF,
+                    cornerRadius = view.context.resources.getDimension(
+                        com.coui.appcompat.R.dimen.coui_round_corner_m
+                    ),
+                    fillColor = fillColor,
                 )
                 return true
             }
@@ -426,7 +482,20 @@ class DefaultThemeBinder : ThemeViewBinder {
     ): Boolean {
         when {
             tag == ThemeTags.Navigation.TOOLBAR && view is Toolbar -> {
-                bindToolbar(view, theme.titleColor)
+                val iconColor = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+                        theme.titleColor,
+                    )
+                } else {
+                    theme.titleColor
+                }
+                bindToolbar(view, iconColor)
+                if (view is com.coui.appcompat.toolbar.COUIToolbar) {
+                    view.setIsTitleCenterStyle(false)
+                    view.couiTitleTextView?.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+                }
                 return true
             }
 
@@ -435,13 +504,78 @@ class DefaultThemeBinder : ThemeViewBinder {
                 return true
             }
 
+            tag == ThemeTags.Navigation.TOOLBAR_CHROME -> {
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    val typed = view.context.obtainStyledAttributes(
+                        intArrayOf(com.coui.appcompat.R.attr.couiColorBackgroundWithCard)
+                    )
+                    view.setBackgroundColor(typed.getColor(0, 0xFFF0F1F2.toInt()))
+                    typed.recycle()
+                } else {
+                    view.setBackgroundColor(Color.TRANSPARENT)
+                }
+                return true
+            }
+
+            tag == ThemeTags.Navigation.APP_BAR_DIVIDER -> {
+                view.visibility = View.VISIBLE
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    val typed = view.context.obtainStyledAttributes(
+                        intArrayOf(com.coui.appcompat.R.attr.couiColorDivider)
+                    )
+                    view.setBackgroundColor(typed.getColor(0, 0x1F000000))
+                    typed.recycle()
+                } else {
+                    view.setBackgroundColor(
+                        if (theme.usesDarkForeground) 0x1A000000 else 0x26FFFFFF,
+                    )
+                }
+                return true
+            }
+
             (tag == ThemeTags.Navigation.TAB_LAYOUT ||
                     tag == ThemeTags.Equalizer.TAB_LAYOUT) && view is TabLayout -> {
-                view.setTabTextColors(theme.itemTextColor, theme.accentColor)
-                view.setSelectedTabIndicatorColor(theme.accentColor)
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    val unselected = resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorSecondNeutral,
+                        theme.itemTextColor,
+                    )
+                    val selected = resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorLabelTheme,
+                        theme.accentColor,
+                    )
+                    view.setTabTextColors(unselected, selected)
+                    view.setSelectedTabIndicatorColor(selected)
+                } else {
+                    view.setTabTextColors(theme.itemTextColor, theme.accentColor)
+                    view.setSelectedTabIndicatorColor(theme.accentColor)
+                }
 
                 if (tag == ThemeTags.Equalizer.TAB_LAYOUT) {
                     applyEqualizerTabBackgrounds(view, palette)
+                }
+                return true
+            }
+
+            tag == ThemeTags.Navigation.TAB_LAYOUT && view is COUITabLayout -> {
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    val unselected = resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorSecondNeutral,
+                        theme.itemTextColor,
+                    )
+                    val selected = resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorLabelTheme,
+                        theme.accentColor,
+                    )
+                    view.setTabTextColors(unselected, selected)
+                    view.setSelectedTabIndicatorColor(selected)
+                } else {
+                    view.setTabTextColors(theme.itemTextColor, theme.accentColor)
+                    view.setSelectedTabIndicatorColor(theme.accentColor)
                 }
                 return true
             }
@@ -470,14 +604,32 @@ class DefaultThemeBinder : ThemeViewBinder {
         when (tag) {
             ThemeTags.Text.ITEM_TEXT_COLOR,
             ThemeTags.Text.BOTTOM_MENU_TEXT -> {
-                applyTextOrIconColor(view, theme.itemTextColor, theme.rippleColor)
+                val color = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+                        theme.itemTextColor,
+                    )
+                } else {
+                    theme.itemTextColor
+                }
+                applyTextOrIconColor(view, color, theme.rippleColor)
                 return true
             }
 
             ThemeTags.Text.ITEM_TEXT_SECONDARY,
             ThemeTags.Text.FOLDER_FOOT_DES,
             ThemeTags.Text.SETTING_SUMMARY -> {
-                applyTextOrIconColor(view, theme.secondaryTextColor, theme.rippleColor)
+                val color = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorSecondNeutral,
+                        theme.secondaryTextColor,
+                    )
+                } else {
+                    theme.secondaryTextColor
+                }
+                applyTextOrIconColor(view, color, theme.rippleColor)
                 return true
             }
 
@@ -506,22 +658,50 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             ThemeTags.Folder.FOLDER_FOOT_SCAN_TEXT -> {
                 if (view is TextView) {
-                    view.setTextColor(theme.titleColor)
+                    view.setTextColor(
+                        if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                            resolveCouiColor(
+                                view,
+                                com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+                                theme.titleColor,
+                            )
+                        } else {
+                            theme.titleColor
+                        },
+                    )
                 }
                 return true
             }
 
             ThemeTags.Color.THEME_COLOR -> {
+                val color = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorLabelTheme,
+                        theme.accentColor,
+                    )
+                } else {
+                    theme.accentColor
+                }
                 when (view) {
-                    is PlayStateView -> view.setColor(theme.accentColor)
-                    is TextView -> view.setTextColor(theme.accentColor)
-                    is ImageView -> view.imageTintList = ColorStateList.valueOf(theme.accentColor)
+                    is PlayStateView -> view.setColor(color)
+                    is TextView -> view.setTextColor(color)
+                    is ImageView -> view.imageTintList = ColorStateList.valueOf(color)
                 }
                 return true
             }
 
             ThemeTags.Color.TITLE_COLOR -> {
-                bindTitleColor(view, theme)
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    val color = resolveCouiColor(
+                        view,
+                        com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+                        theme.titleColor,
+                    )
+                    applyTextOrIconColor(view, color, theme.rippleColor)
+                } else {
+                    bindTitleColor(view, theme)
+                }
                 return true
             }
         }
@@ -537,11 +717,25 @@ class DefaultThemeBinder : ThemeViewBinder {
     ): Boolean {
         when (tag) {
             ThemeTags.Input.EDIT_TEXT_BACKGROUND,
-            ThemeTags.Input.SLEEP_EDIT_TEXT,
+            ThemeTags.Input.SLEEP_EDIT_TEXT -> {
+                // White keeps the COUI XML styling (container fill + COUI text/hint).
+                if (palette.getThemeType() != ThemeManager.THEME_TYPE_LIGHT && view is TextView) {
+                    view.background = roundedDrawable(
+                        cornerRadius = view.context.resources.displayMetrics.density * 8f,
+                        fillColor = if (theme.usesDarkForeground) 335544320 else 352321535,
+                    )
+                    view.setTextColor(theme.itemTextColor)
+                    view.setHintTextColor(
+                        ColorUtils.setAlphaComponent(theme.itemTextColor, 160),
+                    )
+                }
+                return true
+            }
+
             ThemeTags.Input.EDIT_TEXT -> {
                 val fillColor = if (theme.usesDarkForeground) 335544320 else 352321535
 
-                if (view is TextView && tag == ThemeTags.Input.EDIT_TEXT) {
+                if (view is TextView) {
                     bindEditableTextBackground(
                         textView = view,
                         textColor = theme.titleColor,
@@ -552,13 +746,6 @@ class DefaultThemeBinder : ThemeViewBinder {
                     view.background = roundedDrawable(
                         cornerRadius = view.context.resources.displayMetrics.density * 8f,
                         fillColor = fillColor,
-                    )
-                }
-
-                if (tag == ThemeTags.Input.SLEEP_EDIT_TEXT && view is TextView) {
-                    view.setTextColor(theme.itemTextColor)
-                    view.setHintTextColor(
-                        ColorUtils.setAlphaComponent(theme.itemTextColor, 160),
                     )
                 }
 
@@ -580,8 +767,17 @@ class DefaultThemeBinder : ThemeViewBinder {
             // translucent white/black stroke (not accent stroke).
             ThemeTags.Item.EMPTY_BUTTON -> {
                 if (view is TextView) {
-                    view.setTextColor(theme.accentColor)
-                    tintCompoundDrawables(view, theme.accentColor)
+                    val color = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                        resolveCouiColor(
+                            view,
+                            com.coui.appcompat.R.attr.couiColorLabelTheme,
+                            theme.accentColor,
+                        )
+                    } else {
+                        theme.accentColor
+                    }
+                    view.setTextColor(color)
+                    tintCompoundDrawables(view, color)
                     view.background = outlinedRoundedRippleDrawable(
                         cornerRadius = view.context.dpToPx(100f),
                         strokeWidth = view.context.dpToPx(1f),
@@ -671,14 +867,32 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             ThemeTags.Progress.MUSIC_SCAN_PROGRESS_VIEW -> {
                 if (view is MusicScanProgressView) {
-                    view.setColor(theme.accentColor)
+                    val color = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                        resolveCouiColor(
+                            view,
+                            com.coui.appcompat.R.attr.couiColorLabelTheme,
+                            theme.accentColor,
+                        )
+                    } else {
+                        theme.accentColor
+                    }
+                    view.setColor(color)
                 }
                 return true
             }
 
             ThemeTags.Progress.SEEK_BAR -> {
                 if (view is SeekBar) {
-                    view.setThumbColor(theme.accentColor)
+                    val accent = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                        resolveCouiColor(
+                            view,
+                            com.coui.appcompat.R.attr.couiColorLabelTheme,
+                            theme.accentColor,
+                        )
+                    } else {
+                        theme.accentColor
+                    }
+                    view.setThumbColor(accent)
                     view.setProgressDrawable(
                         roundedProgressDrawable(
                             backgroundColor = if (theme.usesDarkForeground) {
@@ -686,7 +900,7 @@ class DefaultThemeBinder : ThemeViewBinder {
                             } else {
                                 -2130706433
                             },
-                            progressColor = theme.accentColor,
+                            progressColor = accent,
                             cornerRadius = (view.context.resources.displayMetrics.density * 20f).toInt(),
                         ),
                     )
@@ -715,9 +929,25 @@ class DefaultThemeBinder : ThemeViewBinder {
             ThemeTags.Progress.SLEEP_DIVIDER_COLOR,
             ThemeTags.Item.ITEM_DIVIDER,
             ThemeTags.Core.UNDER_LINE -> {
-                view.setBackgroundColor(
-                    ColorUtils.setAlphaComponent(theme.itemTextColor, ThemeBindDefaults.DIVIDER_ALPHA),
-                )
+                if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                    view.setBackgroundColor(
+                        resolveCouiColor(
+                            view,
+                            com.coui.appcompat.R.attr.couiColorDivider,
+                            ColorUtils.setAlphaComponent(
+                                theme.itemTextColor,
+                                ThemeBindDefaults.DIVIDER_ALPHA,
+                            ),
+                        ),
+                    )
+                } else {
+                    view.setBackgroundColor(
+                        ColorUtils.setAlphaComponent(
+                            theme.itemTextColor,
+                            ThemeBindDefaults.DIVIDER_ALPHA,
+                        ),
+                    )
+                }
                 return true
             }
         }
@@ -876,7 +1106,22 @@ class DefaultThemeBinder : ThemeViewBinder {
                             )
                         }
 
-                        else -> ColorStateList.valueOf(theme.itemTextColor)
+                        else -> {
+                            val color = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                                resolveCouiColor(
+                                    view,
+                                    if (tag == ThemeTags.Folder.FOLDER_FOOT_SCAN_ICON) {
+                                        com.coui.appcompat.R.attr.couiColorPrimaryNeutral
+                                    } else {
+                                        com.coui.appcompat.R.attr.couiColorHintNeutral
+                                    },
+                                    theme.itemTextColor,
+                                )
+                            } else {
+                                theme.itemTextColor
+                            }
+                            ColorStateList.valueOf(color)
+                        }
                     }
                 }
                 return true
@@ -884,9 +1129,17 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             ThemeTags.Banner.BANNER_IMAGE -> {
                 if (view is ImageView) {
-                    // Original drawer title stays white in night mode (readable on dark header).
-                    // 0x66000000 was painting the logo near-black on dark blur — broken contrast.
-                    view.imageTintList = ColorStateList.valueOf(Color.WHITE)
+                    // Picture/Night headers are dark blur, so the logo must stay white there.
+                    val color = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                        resolveCouiColor(
+                            view,
+                            com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+                            theme.titleColor,
+                        )
+                    } else {
+                        Color.WHITE
+                    }
+                    view.imageTintList = ColorStateList.valueOf(color)
                 }
                 return true
             }
@@ -931,11 +1184,30 @@ class DefaultThemeBinder : ThemeViewBinder {
             ThemeTags.Banner.BANNER_IMAGE_BACKGROUND -> {
                 if (view is MaskImageView) {
                     view.setMaskColor(
-                        if (palette.isNightTheme()) 855638016 else 1291845632,
+                        when {
+                            palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT -> Color.TRANSPARENT
+                            palette.isNightTheme() -> 855638016
+                            else -> 1291845632
+                        },
                     )
-                    // Keep equalizer art visible in night mode (original). A dark
-                    // imageTint washed the bars out into a flat header.
-                    view.imageTintList = null
+                    // The bar art is white-on-transparent: on the White theme's white
+                    // surface it needs a neutral tint to stay visible. Picture/Night keep
+                    // it untinted — a dark tint washes the bars out on dark blur.
+                    view.imageTintList =
+                        if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+                            ColorStateList.valueOf(
+                                ColorUtils.setAlphaComponent(
+                                    resolveCouiColor(
+                                        view,
+                                        com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+                                        Color.BLACK,
+                                    ),
+                                    LIGHT_BANNER_BARS_ALPHA,
+                                )
+                            )
+                        } else {
+                            null
+                        }
                 }
                 return true
             }
@@ -1018,6 +1290,17 @@ class DefaultThemeBinder : ThemeViewBinder {
         }
 
         return false
+    }
+
+    private fun resolveCouiColor(
+        view: View,
+        attr: Int,
+        fallback: Int,
+    ): Int {
+        val typed = view.context.obtainStyledAttributes(intArrayOf(attr))
+        val color = typed.getColor(0, fallback)
+        typed.recycle()
+        return color
     }
 
     private fun applyContentBackground(

@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- Normal -->
+    <com.coui.appcompat.preference.COUIPreferenceCategory
+        android:key="category_normal"
+        android:title="@string/normal_setting"
+        app:isFirstCategory="true"
+        app:top_margin_type="none">
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="use_ten_band"
+            android:persistent="false"
+            android:title="@string/use_ten_band" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="show_hidden_folders"
+            android:persistent="false"
+            android:title="@string/show_hidden_folders" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_dark_mode"
+            android:persistent="false"
+            android:title="@string/night_mode" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="show_forward_backward"
+            android:persistent="false"
+            android:summary="@string/show_forward_backward_tip"
+            android:title="@string/show_forward_backward" />
+
+        <gd.app.musicplayer.feature.setting.preference.SettingsMenuPreference
+            android:key="preference_time_forward_backward"
+            android:persistent="false"
+            android:title="@string/time_forward_backward" />
+
+        <com.coui.appcompat.preference.COUIJumpPreference
+            android:key="preference_keep_alive_background"
+            android:persistent="false"
+            android:summary="@string/keep_alive_background_tip"
+            android:title="@string/keep_alive_background" />
+
+        <gd.app.musicplayer.feature.setting.preference.SettingsMenuPreference
+            android:key="preference_queue_for_searching"
+            android:persistent="false"
+            android:title="@string/queue_for_searching" />
+
+        <com.coui.appcompat.preference.COUIJumpPreference
+            android:key="preference_accent_color"
+            android:persistent="false"
+            android:summary="@string/accent_theme_color"
+            android:title="@string/accent_color" />
+
+        <com.coui.appcompat.preference.COUIJumpPreference
+            android:key="preference_library_order"
+            android:persistent="false"
+            android:title="@string/library_order" />
+
+        <com.coui.appcompat.preference.COUIJumpPreference
+            android:key="preference_find_duplicate"
+            android:persistent="false"
+            android:title="@string/music_find_duplicate" />
+    </com.coui.appcompat.preference.COUIPreferenceCategory>
+
+    <!-- Lyrics -->
+    <com.coui.appcompat.preference.COUIPreferenceCategory
+        android:key="category_lyrics"
+        android:title="@string/lyrics">
+
+        <gd.app.musicplayer.feature.setting.preference.DesktopLyricsPreference
+            android:key="preference_show_desk_lrc"
+            android:layout="@layout/preference_desktop_lyrics_row"
+            android:persistent="false"
+            android:selectable="false"
+            android:title="@string/desktop_lrc" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="bluetooth_lyric"
+            android:persistent="false"
+            android:title="@string/bluetooth_lyric" />
+
+        <com.coui.appcompat.preference.COUIJumpPreference
+            android:key="preference_status_bar_lyrics"
+            android:persistent="false"
+            android:title="@string/sbar_lyric" />
+    </com.coui.appcompat.preference.COUIPreferenceCategory>
+
+    <!-- Shake / Gesture + Playback (existing audio_settings category) -->
+    <com.coui.appcompat.preference.COUIPreferenceCategory
+        android:key="category_audio"
+        android:title="@string/audio_settings">
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_shake_change_music"
+            android:persistent="false"
+            android:title="@string/enable_shake" />
+
+        <com.coui.appcompat.preference.COUIJumpPreference
+            android:key="preference_shake_level"
+            android:persistent="false"
+            android:title="@string/shake_level" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="simultaneous_play"
+            android:persistent="false"
+            android:title="@string/simultaneous_play" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_volume_fade"
+            android:persistent="false"
+            android:summary="@string/play_pause_fade_tip"
+            android:title="@string/play_pause_fade" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="gapless_play"
+            android:persistent="false"
+            android:summary="@string/gapless_playback_tip"
+            android:title="@string/gapless_playback" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="fade_enable"
+            android:persistent="false"
+            android:summary="@string/cross_fade_tip"
+            android:title="@string/cross_fade" />
+
+        <gd.app.musicplayer.feature.setting.preference.FadeSeekPreference
+            android:key="preference_fade_seek"
+            android:layout="@layout/preference_fade_seek"
+            android:persistent="false"
+            android:selectable="false" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_track_click_operation"
+            android:persistent="false"
+            android:summary="@string/track_click_operation_tip"
+            android:title="@string/track_click_operation" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_replay_song"
+            android:persistent="false"
+            android:summary="@string/replay_song_summery"
+            android:title="@string/replay_song" />
+    </com.coui.appcompat.preference.COUIPreferenceCategory>
+
+    <!-- ReplayGain -->
+    <com.coui.appcompat.preference.COUIPreferenceCategory
+        android:key="category_replay_gain"
+        android:title="@string/replay_gain">
+
+        <gd.app.musicplayer.feature.setting.preference.SettingsMenuPreference
+            android:key="preference_replay_gain_mode"
+            android:persistent="false"
+            android:title="@string/replay_gain_mode" />
+
+        <com.coui.appcompat.preference.COUIJumpPreference
+            android:key="preference_replay_gain_preamp"
+            android:persistent="false"
+            android:title="@string/replay_gain_preamp" />
+    </com.coui.appcompat.preference.COUIPreferenceCategory>
+
+    <!-- Playlist -->
+    <com.coui.appcompat.preference.COUIPreferenceCategory
+        android:key="category_playlist"
+        android:title="@string/playlist_settings">
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_click_add_queue"
+            android:persistent="false"
+            android:summary="@string/click_add_queue_summary"
+            android:title="@string/click_add_queue" />
+
+        <gd.app.musicplayer.feature.setting.preference.SettingsMenuPreference
+            android:key="preference_playlist_add_position"
+            android:persistent="false"
+            android:summary="@string/add_music_position_summary"
+            android:title="@string/add_music_position" />
+
+        <com.coui.appcompat.preference.COUIJumpPreference
+            android:key="preference_playlist_track_limit"
+            android:persistent="false"
+            android:summary="@string/playlist_track_limit_summary"
+            android:title="@string/playlist_track_limit" />
+    </com.coui.appcompat.preference.COUIPreferenceCategory>
+
+    <!-- Notification -->
+    <com.coui.appcompat.preference.COUIPreferenceCategory
+        android:key="category_notification"
+        android:title="@string/notification_settings">
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_use_notification"
+            android:persistent="false"
+            android:title="@string/use_notification_bar" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="old_notification"
+            android:persistent="false"
+            android:title="@string/use_old_notification" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="color_notification"
+            android:persistent="false"
+            android:title="@string/use_color_notification" />
+    </com.coui.appcompat.preference.COUIPreferenceCategory>
+
+    <!-- Lock -->
+    <com.coui.appcompat.preference.COUIPreferenceCategory
+        android:key="category_lock"
+        android:title="@string/lockscreen_setting">
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_lock_screen"
+            android:persistent="false"
+            android:summary="@string/lock_screen_tip"
+            android:title="@string/lock_screen" />
+
+        <gd.app.musicplayer.feature.setting.preference.SettingsMenuPreference
+            android:key="preference_lock_background"
+            android:persistent="false"
+            android:title="@string/lock_screen_background" />
+    </com.coui.appcompat.preference.COUIPreferenceCategory>
+
+    <!-- Headset -->
+    <com.coui.appcompat.preference.COUIPreferenceCategory
+        android:key="category_headset"
+        android:title="@string/headset_setting">
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_headset_in_play"
+            android:persistent="false"
+            android:summary="@string/play_when_inserted_tip"
+            android:title="@string/play_when_inserted" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_headset_out_stop"
+            android:persistent="false"
+            android:summary="@string/pause_when_unplugged_tip"
+            android:title="@string/pause_when_unplugged" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_bluetooth_auto_start"
+            android:persistent="false"
+            android:summary="@string/bluetooth_auto_start_summary"
+            android:title="@string/bluetooth_auto_start" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_bluetooth_auto_stop"
+            android:persistent="false"
+            android:summary="@string/bluetooth_auto_stop_summary"
+            android:title="@string/bluetooth_auto_stop" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="preference_headset_control_allow"
+            android:persistent="false"
+            android:summary="@string/headset_control_allowed_summary"
+            android:title="@string/headset_control_allowed" />
+    </com.coui.appcompat.preference.COUIPreferenceCategory>
+</PreferenceScreen>

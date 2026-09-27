@@ -3,18 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="?android:attr/listPreferredItemHeight"
-    android:tag="itemBackground">
+    android:minHeight="@dimen/support_preference_min_height">
 
     <TextView
         android:id="@+id/title"
+        style="@style/COUIPreferenceTitleStyle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/support_preference_title_padding_start"
         android:layout_marginEnd="8dp"
-        android:tag="itemTextColor"
-        android:textColor="@color/item_title_color"
-        android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/summary"
         app:layout_constraintEnd_toStartOf="@+id/tips"
         app:layout_constraintStart_toStartOf="parent"
@@ -23,12 +20,11 @@
 
     <TextView
         android:id="@+id/summary"
+        style="@style/COUIPreferenceSummaryStyle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/support_preference_margin_between_line"
         android:maxLines="4"
-        android:tag="itemTextExtraColor"
-        android:textColor="@color/item_artist_color"
-        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/title"
         app:layout_constraintStart_toStartOf="@+id/title"
@@ -37,28 +33,39 @@
 
     <TextView
         android:id="@+id/tips"
+        style="@style/TextAppearance.COUI.List.Assignment"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:gravity="center_horizontal"
         android:singleLine="true"
-        android:tag="itemTextColor"
-        android:textColor="@color/item_artist_color"
-        android:textSize="14sp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/checkbox"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_goneMarginEnd="12dp" />
 
+    <!-- Toggle rows: real COUISwitch (Airplane-mode style). -->
+    <com.coui.appcompat.couiswitch.COUISwitch
+        android:id="@+id/coui_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/support_preference_title_padding_end"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Jump / chevron rows. -->
     <gd.app.musicplayer.core.designsystem.view.SelectBox
         android:id="@+id/checkbox"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_gravity="center"
-        android:padding="4dp"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="@dimen/support_preference_title_padding_end"
         android:scaleType="centerInside"
-        android:tag="selectBox"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

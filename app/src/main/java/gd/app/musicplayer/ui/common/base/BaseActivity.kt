@@ -75,11 +75,11 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Original [BMusicActivity.T0] → w0.c(this, false, true): transparent system bars
-        // before content. Dream uses enableEdgeToEdge for the same window flags.
+        // Follow COUI light/dark chrome (Theme.COUI.Main.*). SystemBarStyle.dark forced
+        // white icons and fought Settings / preference surfaces.
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
     }
 

@@ -9,22 +9,20 @@
 
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/main_actionbar"
+        android:background="?attr/couiColorBackground"
         >
         <View
             android:id="@+id/status_bar_space"
             android:layout_width="match_parent"
             android:layout_height="0dp"/>
-        <androidx.appcompat.widget.Toolbar
+        <com.coui.appcompat.toolbar.COUIToolbar
             android:id="@+id/toolbar"
-            android:tag="toolbar"
+            style="@style/Secondary.Toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:minHeight="?attr/actionBarSize"
-            app:theme="@style/AppToolbar"
-            app:navigationIcon="@drawable/vector_menu_back"
-            app:title="@string/add_to_list"
-            app:titleTextAppearance="@style/AppToolbarTitle"/>
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/toolbar_min_height"
+            app:supportTitle="@string/add_to_list"
+            app:supportTitleTextAppearance="@style/textAppearanceSecondTitle" />
     </LinearLayout>
     <include
         android:id="@+id/main_fragment_container"

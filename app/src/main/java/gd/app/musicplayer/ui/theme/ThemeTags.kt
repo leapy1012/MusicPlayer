@@ -10,6 +10,7 @@ object ThemeTags {
         const val SCROLL_CONTENT = "scrollContent"
         const val TITLE_BACKGROUND_COLOR = "titleBackgroundColor"
         const val BOTTOM_CONTROL_BACKGROUND = "bottomControlBackground"
+        const val HOME_CARD_BACKGROUND = "homeCardBackground"
         const val BOTTOM_ROOT_LAYOUT = "bottomRootLayout"
         const val MAIN_BOTTOM_CONTROL = "mainBottomControl"
         const val SHADOW_MARK = "shadowMark"
@@ -63,6 +64,8 @@ object ThemeTags {
     object Navigation {
         const val TOOLBAR = "toolbar"
         const val TOOLBAR_WHITE = "toolbarWhite"
+        const val TOOLBAR_CHROME = "toolbarChrome"
+        const val APP_BAR_DIVIDER = "appBarDivider"
         const val TAB_LAYOUT = "tabLayout"
         const val RECYCLER_INDEX_BAR = "recyclerIndexBar"
     }

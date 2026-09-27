@@ -96,7 +96,7 @@ open class BaseDialogFragment : DialogFragment(), ThemeObserver {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NO_TITLE, R.style.AppDialogTheme)
+        setStyle(STYLE_NO_TITLE, com.coui.appcompat.R.style.Theme_COUI_Dialog)
         showsDialog = true
         isCancelable = true
         isViewDestroyed = false

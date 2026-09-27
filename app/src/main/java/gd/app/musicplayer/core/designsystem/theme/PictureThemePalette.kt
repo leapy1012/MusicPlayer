@@ -146,7 +146,11 @@ open class PictureThemePalette : BaseThemePalette() {
     }
 
     fun copyAsThemeType(themeType: Int, reuseBitmaps: Boolean): PictureThemePalette {
-        val copy = if (themeType == ThemeManager.THEME_TYPE_DARK) DarkThemePalette() else PictureThemePalette()
+        val copy = when (themeType) {
+            ThemeManager.THEME_TYPE_DARK -> DarkThemePalette()
+            ThemeManager.THEME_TYPE_LIGHT -> LightThemePalette()
+            else -> PictureThemePalette()
+        }
         copy.themeImageName = themeImageName
         copy.themeAccentColor = themeAccentColor
         copy.themeBlurAmount = themeBlurAmount

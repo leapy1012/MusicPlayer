@@ -1,22 +1,24 @@
 package gd.app.musicplayer.feature.setting
 
-import android.content.res.Configuration
+import android.app.Dialog
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ImageSpan
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.os.bundleOf
+import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.dialog.COUIAlertDialogBuilder
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
@@ -24,24 +26,19 @@ import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.databinding.DialogTabManagerBinding
 import gd.app.musicplayer.databinding.DialogTabManagerItemBinding
-import gd.app.musicplayer.ui.selection.ItemMoveListener
-import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
-import gd.app.musicplayer.core.designsystem.theme.dialogTitleColor
-import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.domain.model.LibraryTabConfig
 import gd.app.musicplayer.domain.model.LibraryTabConfigStore
-import javax.inject.Inject
+import gd.app.musicplayer.ui.selection.ItemMoveListener
 import java.util.Collections
+import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
-
-    private var _binding: DialogTabManagerBinding? = null
-    private val binding: DialogTabManagerBinding
-        get() = requireNotNull(_binding)
+class LibraryTabManagerDialog : DialogFragment() {
 
     @Inject lateinit var settingPreferencesDataStore: SettingPreferencesDataStore
+
+    private var binding: DialogTabManagerBinding? = null
     private lateinit var adapter: LibraryTabManagerAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var items: MutableList<LibraryTabConfig> = mutableListOf()
@@ -51,29 +48,16 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
         items = restoreItems(savedInstanceState).toMutableList()
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = DialogTabManagerBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        applyDialogBackground(binding.root)
-        binding.tabManagerTitle.text = buildTitle()
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val contentBinding = DialogTabManagerBinding.inflate(LayoutInflater.from(requireContext()))
+        binding = contentBinding
 
         adapter = LibraryTabManagerAdapter(
             items = items,
-            applyTheme = ::applyThemeTo,
-            onStartDrag = { holder ->
-                itemTouchHelper.startDrag(holder)
-            }
+            onStartDrag = { holder -> itemTouchHelper.startDrag(holder) }
         )
-        binding.tabManagerRecycler.layoutManager = LinearLayoutManager(requireContext())
-        binding.tabManagerRecycler.adapter = adapter
+        contentBinding.tabManagerRecycler.layoutManager = LinearLayoutManager(requireContext())
+        contentBinding.tabManagerRecycler.adapter = adapter
 
         val callback = DragItemTouchHelperCallback.Builder(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN,
@@ -83,43 +67,34 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
             .onItemDragListener(adapter::onItemMove)
             .build()
         itemTouchHelper = ItemTouchHelper(callback)
-        itemTouchHelper.attachToRecyclerView(binding.tabManagerRecycler)
-
-        binding.dialogButtonCancel.setOnClickListener(this)
-        binding.dialogButtonOk.setOnClickListener(this)
+        itemTouchHelper.attachToRecyclerView(contentBinding.tabManagerRecycler)
 
         if (savedInstanceState == null) {
-            viewLifecycleOwner.lifecycleScope.launch {
+            lifecycleScope.launch {
                 adapter.replaceItems(settingPreferencesDataStore.getLibraryTabConfig())
             }
         }
-    }
 
-    override fun provideHeight(configuration: Configuration): Int {
-        if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            return ViewGroup.LayoutParams.WRAP_CONTENT
+        val dialog = COUIAlertDialogBuilder(
+            requireContext(),
+            com.coui.appcompat.R.style.COUIAlertDialog_List
+        )
+            .setTitle(buildTitle())
+            .setView(contentBinding.root)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.ok, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+                lifecycleScope.launch {
+                    saveSelection()
+                    parentFragmentManager.setFragmentResult(RESULT_KEY, bundleOf())
+                    dismiss()
+                }
+            }
         }
-
-        val density = resources.displayMetrics.density
-        val titleTextHeight = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_SP,
-            20f,
-            resources.displayMetrics
-        ).toInt()
-        val referenceHeight = (456f * density).toInt() + titleTextHeight + 20
-        val maxHeight = (resources.displayMetrics.heightPixels * 2) / 3
-        return if (referenceHeight > maxHeight) maxHeight else ViewGroup.LayoutParams.WRAP_CONTENT
-    }
-
-    override fun provideDimAmount(): Float {
-        return 0.5f
-    }
-
-    override fun onThemeChanged(palette: ThemePalette?) {
-        super.onThemeChanged(palette)
-        if (_binding != null) {
-            binding.tabManagerTitle.text = buildTitle()
-        }
+        return dialog
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -128,21 +103,8 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
         outState.putBooleanArray(STATE_VISIBLE, items.map(LibraryTabConfig::visible).toBooleanArray())
     }
 
-    override fun onClick(view: View) {
-        when (view.id) {
-            binding.dialogButtonCancel.id -> dismiss()
-            binding.dialogButtonOk.id -> {
-                viewLifecycleOwner.lifecycleScope.launch {
-                    saveSelection()
-                    parentFragmentManager.setFragmentResult(RESULT_KEY, bundleOf())
-                    dismiss()
-                }
-            }
-        }
-    }
-
     override fun onDestroyView() {
-        _binding = null
+        binding = null
         super.onDestroyView()
     }
 
@@ -164,7 +126,13 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
         val drawable = ContextCompat.getDrawable(requireContext(), R.drawable.vector_item_drag_black)
             ?: return title.replace("%s", "")
         val icon = DrawableCompat.wrap(drawable.mutate())
-        DrawableCompat.setTint(icon, currentTheme().dialogTitleColor)
+        val typedValue = android.util.TypedValue()
+        requireContext().theme.resolveAttribute(
+            com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+            typedValue,
+            true
+        )
+        DrawableCompat.setTint(icon, typedValue.data)
         val iconSize = requireContext().dpToPx(24f)
         icon.setBounds(0, 0, iconSize, iconSize)
         spannableTitle.setSpan(
@@ -187,22 +155,16 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
 
     private class LibraryTabManagerAdapter(
         private val items: MutableList<LibraryTabConfig>,
-        private val applyTheme: (View) -> Unit,
         private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
     ) : RecyclerView.Adapter<LibraryTabManagerAdapter.ViewHolder>(), ItemMoveListener {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val binding = DialogTabManagerItemBinding.inflate(
+            val itemBinding = DialogTabManagerItemBinding.inflate(
                 LayoutInflater.from(parent.context),
                 parent,
                 false
             )
-            applyTheme(binding.root)
-            return ViewHolder(
-                binding,
-                ::visibleCount,
-                onStartDrag
-            )
+            return ViewHolder(itemBinding, ::visibleCount, onStartDrag)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -270,4 +232,3 @@ class LibraryTabManagerDialog : BaseDialogFragment(), View.OnClickListener {
         private const val STATE_VISIBLE = "state_visible"
     }
 }
-

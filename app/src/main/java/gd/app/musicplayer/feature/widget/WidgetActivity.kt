@@ -13,6 +13,7 @@ import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.databinding.ActivityWidgetBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
+import gd.app.musicplayer.ui.common.base.applyCouiLeftTitle
 
 @AndroidEntryPoint
 class WidgetActivity : BaseActivity() {
@@ -64,21 +65,26 @@ class WidgetActivity : BaseActivity() {
         )
     }
 
-    private fun setupToolbar() = with(binding.toolbar) {
-        setNavigationOnClickListener {
+    private fun setupToolbar() = with(binding) {
+        toolbar.applyCouiLeftTitle()
+        toolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
+        appBar.bringToFront()
     }
 
     private fun setupWidgetList() = with(binding.recyclerView) {
         layoutManager = LinearLayoutManager(this@WidgetActivity)
         adapter = widgetAdapter
+        setOverScrollEnable(true)
 
         if (itemDecorationCount == 0) {
             addItemDecoration(
                 SpacingItemDecoration.all(dpToPx(WIDGET_ITEM_SPACING_DP))
             )
         }
+
+        binding.appBar.bindRecyclerView(this)
     }
 
     private fun requestAddWidget(item: WidgetProviderSpec) {

@@ -563,8 +563,9 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         val input = layoutInflater.inflate(
             R.layout.layout_edittext,
             null as ViewGroup?
-        ) as EditText
+        ) as com.coui.appcompat.edittext.COUIEditText
         input.applyLengthFilter(120)
+        input.setFastDeletable(true)
         input.setText(initialValue)
         applyThemeTo(input)
         input.showKeyboardDelayed()
@@ -574,7 +575,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     private fun showNameInputDialog(
         title: String,
         input: EditText,
-        onPositiveClick: (MessageDialog) -> Boolean
+        onPositiveClick: (DialogInterface) -> Boolean
     ) {
         val config = materialDialogConfigFactory
             .createMaterialMessageDialogConfig(requireContext())
@@ -584,7 +585,9 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                 positiveButtonText = getString(R.string.ok)
                 negativeButtonText = getString(R.string.cancel)
                 positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
-                    onPositiveClick(dialog as MessageDialog)
+                    if (onPositiveClick(dialog)) {
+                        dialog.dismiss()
+                    }
                 }
             }
 

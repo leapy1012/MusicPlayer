@@ -10,24 +10,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:tag="titleBackgroundColor">
+        android:background="?attr/couiColorBackground">
 
         <View
             android:id="@+id/status_bar_space"
             android:layout_width="match_parent"
             android:layout_height="0dp" />
 
-        <androidx.appcompat.widget.Toolbar
+        <com.coui.appcompat.toolbar.COUIToolbar
             android:id="@+id/toolbar"
+            style="@style/Secondary.Toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@android:color/transparent"
-            android:minHeight="@dimen/common_title_height"
-            android:tag="toolbar"
-            app:layout_scrollFlags="snap|enterAlways|scroll"
-            app:subtitleTextAppearance="@style/AppToolbarSubTitle"
-            app:theme="@style/AppToolbar"
-            app:titleTextAppearance="@style/AppToolbarTitle" />
+            android:minHeight="@dimen/toolbar_min_height"
+            app:supportTitleTextAppearance="@style/textAppearanceSecondTitle" />
     </LinearLayout>
 
     <include

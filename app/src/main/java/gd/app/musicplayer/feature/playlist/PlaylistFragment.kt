@@ -16,6 +16,7 @@ import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.datastore.GuidePreferenceStore
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
@@ -28,6 +29,7 @@ import gd.app.musicplayer.feature.search.SearchActivity
 import gd.app.musicplayer.ui.selection.PlaylistEditActivity
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
+import gd.app.musicplayer.ui.common.base.applyCouiLeftTitle
 import gd.app.musicplayer.ui.common.guide.DragGuideDialogFragment
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
@@ -93,12 +95,13 @@ class PlaylistFragment :
         )
     }
 
-    private fun setupToolbar(binding: FragmentPlaylistBinding) = with(binding.toolbar) {
-        title = getString(R.string.playlist).uppercase()
-
-        inflateMenu(R.menu.menu_fragment_playlist)
-        navigateBack(this@PlaylistFragment)
-        setOnMenuItemClickListener(::onMenuItemClick)
+    private fun setupToolbar(binding: FragmentPlaylistBinding) = with(binding) {
+        toolbar.applyCouiLeftTitle()
+        toolbar.navigateBack(this@PlaylistFragment)
+        toolbar.menu.clear()
+        toolbar.inflateMenu(R.menu.menu_fragment_playlist)
+        toolbar.setOnMenuItemClickListener(::onMenuItemClick)
+        appBar.bringToFront()
     }
 
     private fun setupRecyclerView(binding: FragmentPlaylistBinding) {
@@ -114,6 +117,8 @@ class PlaylistFragment :
                     PlaylistItemDecoration(requireContext())
                 )
             }
+
+            binding.appBar.bindRecyclerView(this)
         }
     }
 
@@ -187,10 +192,9 @@ class PlaylistFragment :
             }
 
             R.id.menu_more -> {
-                val anchor = requireBinding()
-                    .toolbar
-                    .findViewById<View>(item.itemId)
-
+                val binding = requireBinding()
+                val anchor = binding.toolbar.findViewById<View>(R.id.menu_more)
+                    ?: binding.toolbar
                 showMoreMenu(anchor)
                 true
             }
@@ -286,6 +290,7 @@ class PlaylistFragment :
                 false
             )
 
+            binding.root.installCouiPressFeedback()
             binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
             return ViewHolder(

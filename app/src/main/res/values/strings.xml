@@ -139,7 +139,6 @@
     <string name="bluetooth_lyric">Car bluetooth lyrics</string>
     <string name="bluetooth_lyric_dialog_msg">Turn on this setting to display car lyrics. Please drive carefully for your driving safety.</string>
     <string name="bluetooth_lyric_dialog_title">Disclaimer</string>
-    <string name="bottom_sheet_behavior">com.google.android.material.bottomsheet.BottomSheetBehavior</string>
     <string name="bottomsheet_action_collapse">Collapse the bottom sheet</string>
     <string name="bottomsheet_action_expand">Expand the bottom sheet</string>
     <string name="bottomsheet_action_expand_halfway">Expand halfway</string>

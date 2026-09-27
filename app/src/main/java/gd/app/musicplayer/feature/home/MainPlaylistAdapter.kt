@@ -26,7 +26,8 @@ import java.util.Collections
 class MainPlaylistAdapter(
     private val onPlaylistClick: (MusicSet.Playlist) -> Unit,
     private val onAddClick: () -> Unit,
-    private val onPlaylistOrderChanged: (List<Long>) -> Unit
+    private val onPlaylistOrderChanged: (List<Long>) -> Unit,
+    private val applyTheme: (View) -> Unit = {}
 ) : RecyclerView.Adapter<MainPlaylistAdapter.ViewHolder>() {
 
     private val playlists = mutableListOf<MusicSet.Playlist>()
@@ -56,7 +57,8 @@ class MainPlaylistAdapter(
                 false
             ),
             onPlaylistClick = onPlaylistClick,
-            onAddClick = onAddClick
+            onAddClick = onAddClick,
+            applyTheme = applyTheme
         )
     }
 
@@ -78,8 +80,8 @@ class MainPlaylistAdapter(
 
     fun canMove(fromPosition: Int, toPosition: Int): Boolean {
         return isPlaylistPosition(fromPosition) &&
-                isPlaylistPosition(toPosition) &&
-                fromPosition != toPosition
+            isPlaylistPosition(toPosition) &&
+            fromPosition != toPosition
     }
 
     fun startDrag() {
@@ -143,14 +145,18 @@ class MainPlaylistAdapter(
     class ViewHolder(
         private val binding: FragmentMainPlaylistItemBinding,
         private val onPlaylistClick: (MusicSet.Playlist) -> Unit,
-        private val onAddClick: () -> Unit
+        private val onAddClick: () -> Unit,
+        private val applyTheme: (View) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         private val playlistPlaceholder by lazy(LazyThreadSafetyMode.NONE) {
             PlaylistCardPlaceholderDrawable(
                 context = binding.root.context,
                 iconResId = R.drawable.main_list,
-                backgroundColor = PLAYLIST_BACKGROUND_COLOR
+                iconTint = resolveThemeColor(
+                    com.coui.appcompat.R.attr.couiColorLabelTheme,
+                    0xFF2660F5.toInt()
+                )
             )
         }
 
@@ -158,7 +164,10 @@ class MainPlaylistAdapter(
             PlaylistCardPlaceholderDrawable(
                 context = binding.root.context,
                 iconResId = R.drawable.main_new_list,
-                backgroundColor = ADD_BACKGROUND_COLOR
+                iconTint = resolveThemeColor(
+                    com.coui.appcompat.R.attr.couiColorSecondNeutral,
+                    0xFF8A9199.toInt()
+                )
             )
         }
 
@@ -169,11 +178,13 @@ class MainPlaylistAdapter(
                     calculateItemSize(binding.root.context)
                 )
             )
-            binding.root.applyRoundedOutline(R.dimen.item_image_corner_radius)
+            binding.root.applyRoundedOutline(com.coui.appcompat.R.dimen.coui_round_corner_m)
         }
 
         fun bindPlaylist(playlist: MusicSet.Playlist) = with(binding) {
-            mainItemBanner.visibility = View.VISIBLE
+            mainItemName.visibility = View.VISIBLE
+            mainItemLabelDivider.visibility = View.VISIBLE
+            mainItemExtra.visibility = View.VISIBLE
             mainItemName.text = playlist.name
             mainItemExtra.text = playlist.musicCount.toString()
             root.contentDescription = playlist.name
@@ -181,8 +192,12 @@ class MainPlaylistAdapter(
             val artwork = playlist.albumArt?.takeIf { it.isNotBlank() }
             if (artwork == null) {
                 Glide.with(mainItemImage).clear(mainItemImage)
+                applyIconSizedImage(mainItemImage)
+                mainItemImage.scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
                 mainItemImage.setImageDrawable(playlistPlaceholder)
             } else {
+                applyFillImage(mainItemImage)
+                mainItemImage.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
                 Glide.with(mainItemImage)
                     .load(artwork)
                     .placeholder(playlistPlaceholder)
@@ -192,17 +207,51 @@ class MainPlaylistAdapter(
             }
 
             root.setOnClickListener { onPlaylistClick(playlist) }
+            applyTheme(root)
         }
 
         fun bindAdd() = with(binding) {
-            mainItemBanner.visibility = View.GONE
+            mainItemName.visibility = View.GONE
+            mainItemLabelDivider.visibility = View.GONE
+            mainItemExtra.visibility = View.GONE
             mainItemName.text = null
             mainItemExtra.text = null
             root.contentDescription = "Create playlist"
 
             Glide.with(mainItemImage).clear(mainItemImage)
+            applyIconSizedImage(mainItemImage)
+            mainItemImage.scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
             mainItemImage.setImageDrawable(addPlaceholder)
             root.setOnClickListener { onAddClick() }
+            applyTheme(root)
+        }
+
+        private fun applyIconSizedImage(imageView: android.widget.ImageView) {
+            val size = imageView.resources.getDimensionPixelSize(R.dimen.main_item_image_size)
+            val params = imageView.layoutParams
+            if (params.width != size || params.height != size) {
+                params.width = size
+                params.height = size
+                imageView.layoutParams = params
+            }
+        }
+
+        private fun applyFillImage(imageView: android.widget.ImageView) {
+            val params = imageView.layoutParams
+            if (params.width != ViewGroup.LayoutParams.MATCH_PARENT ||
+                params.height != ViewGroup.LayoutParams.MATCH_PARENT
+            ) {
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT
+                params.height = ViewGroup.LayoutParams.MATCH_PARENT
+                imageView.layoutParams = params
+            }
+        }
+
+        private fun resolveThemeColor(attr: Int, fallback: Int): Int {
+            val typed = binding.root.context.obtainStyledAttributes(intArrayOf(attr))
+            val color = typed.getColor(0, fallback)
+            typed.recycle()
+            return color
         }
 
         private fun calculateItemSize(context: Context): Int {
@@ -237,18 +286,20 @@ class MainPlaylistAdapter(
         }
     }
 
+    /** Transparent fill — card ripple bg shows through; only the tinted icon is drawn. */
     private class PlaylistCardPlaceholderDrawable(
         context: Context,
         iconResId: Int,
-        private val backgroundColor: Int
+        iconTint: Int
     ) : Drawable() {
 
-        private val iconDrawable = AppCompatResources.getDrawable(context, iconResId)?.mutate()
+        private val iconDrawable = AppCompatResources.getDrawable(context, iconResId)?.mutate()?.also {
+            it.setTint(iconTint)
+        }
         private val iconBounds = Rect()
-        private val iconSize = context.resources.getDimensionPixelOffset(R.dimen.main_image_size)
+        private val iconSize = context.resources.getDimensionPixelOffset(R.dimen.main_item_image_size)
 
         override fun draw(canvas: Canvas) {
-            canvas.drawColor(backgroundColor)
             iconDrawable?.let { drawable ->
                 drawable.bounds = iconBounds
                 drawable.draw(canvas)
@@ -282,9 +333,6 @@ class MainPlaylistAdapter(
 
         private const val PHONE_COLUMN_COUNT = 3
         private const val TABLET_COLUMN_COUNT = 6
-        private const val GRID_SPACING_DP = 8f
-
-        private const val PLAYLIST_BACKGROUND_COLOR = 0xCC88C6EC.toInt()
-        private const val ADD_BACKGROUND_COLOR = 0x997CAACA.toInt()
+        private const val GRID_SPACING_DP = 12f
     }
 }

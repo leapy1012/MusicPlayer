@@ -3,208 +3,137 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/couiColorBackgroundWithCard"
     android:orientation="vertical"
     android:tag="activityBackgroundColor">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/main_actionbar"
-        android:orientation="vertical">
-
-        <View
-            android:id="@+id/status_bar_space"
-            android:layout_width="match_parent"
-            android:layout_height="0dp" />
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:minHeight="?attr/actionBarSize"
-            android:tag="toolbar"
-            app:theme="@style/AppToolbar"
-            app:titleTextAppearance="@style/AppToolbarTitle" />
-    </LinearLayout>
-
-    <include
-        android:id="@+id/layout_recyclerview"
-        layout="@layout/layout_recyclerview"
+    <View
+        android:id="@+id/status_bar_space"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:tag="toolbarChrome" />
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/app_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/couiColorBackgroundWithCard"
+            android:elevation="0dp"
+            android:tag="toolbarChrome"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true">
+
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                android:tag="toolbar"
+                app:supportNavigationIcon="@drawable/coui_back_arrow"
+                app:supportTitle="@string/batch_edit"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
+
+        <include
+            android:id="@+id/layout_recyclerview"
+            layout="@layout/layout_recyclerview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
+        android:background="?attr/couiColorDivider"
         android:tag="bottomDivider" />
 
     <LinearLayout
         android:id="@+id/music_edit_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/main_actionbar"
+        android:background="?attr/couiColorBottomBar"
+        android:baselineAligned="false"
         android:minHeight="56dp"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:tag="bottomControlBackground">
 
         <LinearLayout
             android:id="@+id/main_info_play"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:tag="bottomMenuItem">
+            style="@style/EditBottomMenuItem">
 
             <androidx.appcompat.widget.AppCompatImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginTop="10dp"
-                android:scaleType="fitCenter"
-                android:tag="bottomMenuText"
+                style="@style/EditBottomMenuIcon"
                 app:srcCompat="@drawable/vector_edit_play" />
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="10dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:maxLines="2"
-                android:tag="bottomMenuText"
-                android:text="@string/operation_play"
-                android:textAlignment="center"
-                android:textColor="@color/white"
-                android:textSize="12sp" />
+                style="@style/EditBottomMenuLabel"
+                android:text="@string/operation_play" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/main_info_add"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:tag="bottomMenuItem">
+            style="@style/EditBottomMenuItem">
 
             <androidx.appcompat.widget.AppCompatImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginTop="10dp"
-                android:scaleType="fitCenter"
-                android:tag="bottomMenuText"
+                style="@style/EditBottomMenuIcon"
                 app:srcCompat="@drawable/vector_editor_add" />
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="10dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:maxLines="2"
-                android:tag="bottomMenuText"
-                android:text="@string/add_to"
-                android:textAlignment="center"
-                android:textColor="@color/white"
-                android:textSize="12sp" />
+                style="@style/EditBottomMenuLabel"
+                android:text="@string/add_to" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/main_info_enqueue"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:tag="bottomMenuItem">
+            style="@style/EditBottomMenuItem">
 
             <androidx.appcompat.widget.AppCompatImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginTop="10dp"
-                android:scaleType="fitCenter"
-                android:tag="bottomMenuText"
+                style="@style/EditBottomMenuIcon"
                 app:srcCompat="@drawable/vector_editor_enqueue" />
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="10dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:maxLines="2"
-                android:tag="bottomMenuText"
-                android:text="@string/operation_enqueue"
-                android:textAlignment="center"
-                android:textColor="@color/white"
-                android:textSize="12sp" />
+                style="@style/EditBottomMenuLabel"
+                android:text="@string/operation_enqueue" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/main_info_share"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:tag="bottomMenuItem">
+            style="@style/EditBottomMenuItem">
 
             <androidx.appcompat.widget.AppCompatImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginTop="10dp"
-                android:scaleType="fitCenter"
-                android:tag="bottomMenuText"
+                style="@style/EditBottomMenuIcon"
                 app:srcCompat="@drawable/vector_editor_share" />
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="10dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:maxLines="2"
-                android:tag="bottomMenuText"
-                android:text="@string/share"
-                android:textAlignment="center"
-                android:textColor="@color/white"
-                android:textSize="12sp" />
+                style="@style/EditBottomMenuLabel"
+                android:text="@string/share" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/main_info_delete"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:tag="bottomMenuItem">
+            style="@style/EditBottomMenuItem">
 
             <androidx.appcompat.widget.AppCompatImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginTop="10dp"
-                android:scaleType="fitCenter"
-                android:tag="bottomMenuText"
+                style="@style/EditBottomMenuIcon"
                 app:srcCompat="@drawable/vector_editor_delete" />
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="10dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:maxLines="2"
-                android:tag="bottomMenuText"
-                android:text="@string/delete"
-                android:textAlignment="center"
-                android:textColor="@color/white"
-                android:textSize="12sp" />
+                style="@style/EditBottomMenuLabel"
+                android:text="@string/delete" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

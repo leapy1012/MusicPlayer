@@ -23,11 +23,12 @@
         android:layout_marginEnd="4dp"
         android:background="@drawable/selector_image_bg_w"
         android:scaleType="centerInside"
-        android:tag="itemTextColor"
+        android:tag="itemTextExtraColor"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/vector_more" />
+        app:srcCompat="@drawable/vector_more"
+        app:tint="?attr/couiColorHintNeutral" />
 
     <gd.app.musicplayer.core.designsystem.view.PlayStateView
         android:id="@+id/music_item_state"
@@ -50,11 +51,12 @@
         android:paddingStart="8dp"
         android:tag="itemTextExtraColor"
         android:text="0"
-        android:textColor="@color/item_artist_color"
+        android:textAppearance="?attr/couiTextAppearanceDescription"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="14sp"
         android:visibility="gone"
         app:drawableStartCompat="@drawable/vector_play_count_icon"
-        app:drawableTint="@color/item_artist_color"
+        app:drawableTint="?attr/couiColorSecondNeutral"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/music_item_state"
         app:layout_constraintTop_toTopOf="parent" />
@@ -66,7 +68,8 @@
         android:layout_marginStart="16dp"
         android:singleLine="true"
         android:tag="itemTextColor"
-        android:textColor="@android:color/white"
+        android:textAppearance="?attr/couiTextAppearanceHeadline6"
+        android:textColor="?attr/couiColorPrimaryNeutral"
         android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/music_item_artist"
         app:layout_constraintEnd_toStartOf="@+id/music_item_count"
@@ -82,7 +85,8 @@
         android:singleLine="true"
         android:tag="itemTextExtraColor"
         android:text="0 musics"
-        android:textColor="@color/item_artist_color"
+        android:textAppearance="?attr/couiTextAppearanceDescription"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="14sp"
         app:layout_constrainedWidth="true"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -99,7 +103,7 @@
         android:layout_marginStart="8dp"
         android:singleLine="true"
         android:tag="itemTextExtraColor"
-        android:textColor="@color/item_artist_color"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="@+id/music_item_artist"
         app:layout_constraintEnd_toEndOf="@+id/music_item_title"
@@ -108,9 +112,10 @@
 
     <View
         android:layout_width="0dp"
-        android:layout_height="1px"
-        android:background="@color/list_divider_color"
+        android:layout_height="1dp"
+        android:background="?attr/couiColorDivider"
         android:tag="recyclerDividerColor"
+        android:layout_marginStart="84dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

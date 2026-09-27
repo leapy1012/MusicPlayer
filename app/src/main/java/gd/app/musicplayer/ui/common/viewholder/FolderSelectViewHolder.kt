@@ -17,7 +17,7 @@ class FolderSelectViewHolder(
         binding.musicItemTitle.text = musicSet.name.highlight(highlightQuery, accentColor)
         musicSet.loadArtwork(binding.musicItemImage, musicSet.resolvePlaceholderRes(false))
         binding.musicItemArtist.text = musicSet.folderPath.highlight(highlightQuery, accentColor)
-        binding.musicItemMenu.visibility = View.GONE
+        binding.musicItemCheckbox.visibility = View.GONE
 
         itemView.setOnClickListener { onItemClick?.invoke(musicSet) }
 

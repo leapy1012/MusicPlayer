@@ -1,31 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tab_manager_recycler"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <TextView
-        android:id="@+id/tab_manager_title"
-        style="@style/DialogTitle"
-        android:text="@string/tab_manager_title" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/tab_manager_recycler"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="20dp"
-        android:layout_weight="1" />
-
-    <LinearLayout style="@style/DialogButtonLayout">
-
-        <TextView
-            android:id="@+id/dialog_button_cancel"
-            style="@style/DialogButton.Cancel"
-            android:text="@string/cancel" />
-
-        <TextView
-            android:id="@+id/dialog_button_ok"
-            style="@style/DialogButton.Confirm"
-            android:text="@string/ok" />
-    </LinearLayout>
-</LinearLayout>
+    android:layout_height="360dp"
+    android:clipToPadding="false"
+    android:overScrollMode="ifContentScrolls"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp" />

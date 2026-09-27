@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:icon="@drawable/vector_menu_search"
         android:id="@+id/menu_search"
-        android:title=""
-        app:showAsAction="ifRoom"/>
+        android:icon="@drawable/coui_toolbar_menu_icon_search"
+        android:title="@string/search_menu_title"
+        app:showAsAction="always" />
     <item
-        android:icon="@drawable/vector_menu_more"
         android:id="@+id/menu_more"
-        android:title=""
-        app:showAsAction="ifRoom"/>
+        android:icon="@drawable/coui_toolbar_menu_icon_more"
+        android:title="@string/more"
+        app:showAsAction="always" />
 </menu>

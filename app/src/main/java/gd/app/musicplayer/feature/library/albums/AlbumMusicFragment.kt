@@ -9,14 +9,16 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
 import androidx.fragment.app.commit
 import androidx.fragment.app.setFragmentResultListener
+import androidx.recyclerview.widget.COUIRecyclerView
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.appbar.AppBarLayout
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.lib.view.MaskImageView
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.screenHeight
@@ -33,6 +35,7 @@ import gd.app.musicplayer.ui.selection.MusicSelectActivity
 import gd.app.musicplayer.ui.selection.MusicEditActivity
 import gd.app.musicplayer.ui.shortcut.MusicSetShortcutHelper
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
+import gd.app.musicplayer.ui.common.base.applyCouiLeftTitle
 import gd.app.musicplayer.ui.common.menu.ContextMenu
 import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
@@ -77,61 +80,43 @@ class AlbumMusicFragment :
     ) {
         super.onBindingCreated(binding, savedInstanceState)
 
-        applyInsets(binding)
+        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
+        applyMiniPlayerBottomInset(binding)
         setupToolbar(binding)
         setupHeader(binding)
         registerRenameResultListener()
         registerArtworkResultListener()
         setupChildFragment()
+        binding.mainChildFragmentContainer.post { bindAppBarToList() }
     }
 
-    private fun applyInsets(binding: FragmentAlbumMusicBinding) {
-        val toolbarBaseHeight =
-            resources.getDimensionPixelSize(R.dimen.common_title_height)
-
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+    private fun applyMiniPlayerBottomInset(binding: FragmentAlbumMusicBinding) {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.coordinatorLayout) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val toolbarHeight = toolbarBaseHeight + systemBars.top
-
-            binding.toolbar.updateLayoutParams {
-                height = toolbarHeight
-            }
-
-            binding.toolbar.updatePadding(
-                top = systemBars.top
-            )
-
-            if (isCompactHeader) {
-                binding.collapsingToolbar.updateLayoutParams {
-                    height = toolbarHeight
-                }
-            }
-
-            binding.root.updatePadding(
-                bottom = systemBars.bottom
-            )
-
+            view.setPadding(0, 0, 0, 0)
+            binding.root.setPadding(0, binding.root.paddingTop, 0, systemBars.bottom)
             insets
         }
-
-        ViewCompat.requestApplyInsets(binding.root)
+        ViewCompat.requestApplyInsets(binding.coordinatorLayout)
     }
 
     private fun setupToolbar(binding: FragmentAlbumMusicBinding) {
         binding.toolbar.apply {
+            applyCouiLeftTitle()
             navigateBack(this@AlbumMusicFragment)
-            // Original l5.f.f0: inflateMenu in code (no app:menu on Toolbar XML).
+            menu.clear()
             inflateMenu(R.menu.menu_fragment_music)
             title = musicSet.toolbarTitle
             menu.findItem(R.id.menu_add)?.isVisible = musicSet.supportsAddTracks
             setOnMenuItemClickListener(this@AlbumMusicFragment)
         }
+        binding.appbarLayout.bringToFront()
 
         binding.collapsingToolbar.apply {
             setContentScrimColor(0)
             setStatusBarScrimColor(0)
-            isTitleEnabled = !isCompactHeader
-            title = if (isCompactHeader) null else musicSet.name
+            isTitleEnabled = false
+            title = null
         }
     }
 
@@ -156,14 +141,31 @@ class AlbumMusicFragment :
         }
     }
 
-    private fun applyCompactHeader(binding: FragmentAlbumMusicBinding) {
-        binding.appbarLayout.setExpanded(false, false)
-
-        binding.collapsingToolbar.updateLayoutParams {
-            height = resources.getDimensionPixelSize(R.dimen.common_title_height)
+    private fun bindAppBarToList() {
+        val binding = binding ?: return
+        val list = childTrackListFragment?.view
+            ?.findViewById<RecyclerView>(R.id.recyclerview)
+            ?: return
+        list.isNestedScrollingEnabled = true
+        list.overScrollMode = View.OVER_SCROLL_ALWAYS
+        if (list is COUIRecyclerView) {
+            list.setOverScrollEnable(true)
         }
+        binding.appbarLayout.bindRecyclerView(list)
+    }
 
+    private fun applyCompactHeader(binding: FragmentAlbumMusicBinding) {
+        binding.collapsingToolbar.updateLayoutParams<AppBarLayout.LayoutParams> {
+            height = resources.getDimensionPixelSize(
+                com.coui.appcompat.R.dimen.toolbar_min_height
+            )
+            scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS or
+                AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP
+        }
+        binding.musicsetAlbum.visibility = View.GONE
         binding.musicsetAlbum.alpha = 0f
+        binding.appbarLayout.setExpanded(true, false)
     }
 
     private fun applyExpandedHeader(binding: FragmentAlbumMusicBinding) {
@@ -173,9 +175,14 @@ class AlbumMusicFragment :
 
         binding.collapsingToolbar.updateLayoutParams<AppBarLayout.LayoutParams> {
             height = heroHeight
+            scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED or
+                AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP
         }
 
+        binding.musicsetAlbum.visibility = View.VISIBLE
         binding.collapsingToolbar.title = musicSet.name
+        binding.collapsingToolbar.isTitleEnabled = true
 
         bindHeaderImage(
             albumImage = binding.musicsetAlbum,
@@ -229,10 +236,8 @@ class AlbumMusicFragment :
             }
 
             R.id.menu_more -> {
-                val anchor = requireBinding()
-                    .toolbar
-                    .findViewById<View>(item.itemId)
-
+                val toolbar = requireBinding().toolbar
+                val anchor = toolbar.findViewById<View>(item.itemId) ?: toolbar
                 showMoreMenu(anchor)
                 true
             }
@@ -444,10 +449,10 @@ class AlbumMusicFragment :
     private val MusicSet.toolbarTitle: String
         get() {
             return when (this) {
-                is MusicSet.Favorites -> getString(R.string.favorite).uppercase()
-                is MusicSet.RecentlyPlayed -> getString(R.string.recent_play).uppercase()
-                is MusicSet.RecentlyAdded -> getString(R.string.recent_add).uppercase()
-                is MusicSet.MostPlayed -> getString(R.string.most_play).uppercase()
+                is MusicSet.Favorites -> getString(R.string.favorite)
+                is MusicSet.RecentlyPlayed -> getString(R.string.recent_play)
+                is MusicSet.RecentlyAdded -> getString(R.string.recent_add)
+                is MusicSet.MostPlayed -> getString(R.string.most_play)
                 else -> name
             }
         }
@@ -488,6 +493,11 @@ class AlbumMusicFragment :
                 }
             }
         }
+    }
+
+    override fun onDestroyView() {
+        binding?.appbarLayout?.bindRecyclerView(null)
+        super.onDestroyView()
     }
 }
 

@@ -52,6 +52,36 @@
         <item name="titleTextAppearance">@style/AppToolbarTitle</item>
     </style>
 
+    <!-- Secondary-page chrome: COUI toolbar (DreamLauncher HomeSettings pattern). -->
+    <style name="Secondary.Toolbar" parent="@style/Widget.COUI.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:minHeight">@dimen/toolbar_min_height</item>
+        <item name="supportTitleTextAppearance">@style/textAppearanceSecondTitle</item>
+        <item name="supportPopupTheme">@style/Widget.COUI.PopupMenu</item>
+        <item name="titleCenter">false</item>
+    </style>
+
+    <!-- Alias kept for Settings call sites / docs. -->
+    <style name="Settings.Toolbar" parent="@style/Secondary.Toolbar" />
+
+    <!--
+      Align with preference title text (coui_preference paddingStart = 32dp).
+      Parent Widget.COUI.List.Category uses 16dp side margins (card edge) — override so
+      labels line up with row titles like MtkSettings.
+      Extra top margin separates the previous card from the next section header.
+    -->
+    <!-- Align with card row titles (32dp). Extra top margin matches Mtk gap under prior card. -->
+    <style name="Settings.Category.Title" parent="@style/Widget.COUI.List.Category.Title">
+        <item name="android:layout_marginLeft">@dimen/support_preference_title_padding_start</item>
+        <item name="android:layout_marginRight">@dimen/support_preference_title_padding_start</item>
+        <item name="android:layout_marginStart">@dimen/support_preference_title_padding_start</item>
+        <item name="android:layout_marginEnd">@dimen/support_preference_title_padding_start</item>
+        <item name="android:layout_marginTop">32dp</item>
+        <item name="android:layout_marginBottom">@dimen/coui_common_category_text_padding_bottom</item>
+        <item name="android:paddingStart">0dp</item>
+        <item name="android:paddingEnd">0dp</item>
+    </style>
+
     <style name="AppToolbarPopup" parent="@style/ThemeOverlay.AppCompat.Light" />
 
     <style name="AppToolbarTitle" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
@@ -565,6 +595,80 @@
         <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">
             @android:color/transparent
         </item>
+    </style>
+
+    <!-- Sleep timer: COUI card list rows. -->
+    <style name="SleepRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+
+    <style name="SleepRowTitle">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:tag">itemTextColor</item>
+        <item name="android:textAppearance">?attr/couiTextAppearanceHeadline6</item>
+        <item name="android:textColor">?attr/couiColorPrimaryNeutral</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="SleepRowRadio" parent="@style/Widget.COUI.CompoundButton.RadioButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">12dp</item>
+        <item name="android:clickable">false</item>
+        <item name="android:focusable">false</item>
+        <item name="android:background">@null</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+    </style>
+
+    <style name="SleepRowDivider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1px</item>
+        <item name="android:layout_marginStart">16dp</item>
+        <item name="android:layout_marginEnd">16dp</item>
+        <item name="android:background">?attr/couiColorDivider</item>
+        <item name="android:tag">item_divider</item>
+    </style>
+
+    <style name="EditBottomMenuItem">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:tag">bottomMenuItem</item>
+    </style>
+
+    <style name="EditBottomMenuIcon">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:importantForAccessibility">no</item>
+        <item name="android:tint">?attr/couiColorPrimaryNeutral</item>
+        <item name="android:tag">bottomMenuText</item>
+    </style>
+
+    <style name="EditBottomMenuLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:textColor">?attr/couiColorPrimaryNeutral</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:tag">bottomMenuText</item>
     </style>
 
 </resources>

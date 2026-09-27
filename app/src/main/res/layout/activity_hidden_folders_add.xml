@@ -3,96 +3,78 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/couiColorBackgroundWithCard"
     android:orientation="vertical"
     android:tag="activityBackgroundColor">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@color/main_actionbar"
-        >
-
-        <View
-            android:id="@+id/status_bar_space"
-            android:layout_width="match_parent"
-            android:layout_height="0dp" />
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:minHeight="?attr/actionBarSize"
-            android:tag="toolbar"
-            app:layout_scrollFlags="snap|enterAlways|scroll"
-            app:theme="@style/AppToolbar"
-            app:titleTextAppearance="@style/AppToolbarTitle" />
-
-        <LinearLayout
-            android:id="@+id/search_container"
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/shape_search_bg"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:gravity="center_vertical"
-            android:tag="editTextBackground"
-            android:visibility="gone">
-
-            <androidx.appcompat.widget.AppCompatImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_marginStart="18dp"
-                android:layout_marginEnd="8dp"
-                android:alpha="0.5"
-                android:scaleType="fitCenter"
-                android:tag="titleColor"
-                app:srcCompat="@drawable/vector_menu_search" />
-
-            <EditText
-                android:id="@+id/search_edit_text"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:background="@android:color/transparent"
-                android:gravity="center_vertical"
-                android:hint="@string/search_library"
-                android:selectAllOnFocus="true"
-                android:singleLine="true"
-                android:tag="titleColor"
-                android:textColor="#ffffff"
-                android:textColorHint="#80ffffff"
-                android:textCursorDrawable="@null"
-                android:textSize="14sp" />
-
-            <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/search_edit_clear"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:alpha="0.5"
-                android:background="@drawable/b_selector_image_bg_aw"
-                android:focusable="true"
-                android:padding="8dp"
-                android:scaleType="centerInside"
-                android:tag="titleColor"
-                android:visibility="gone"
-                app:srcCompat="@drawable/vector_search_clear" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <include
-        layout="@layout/layout_recyclerview"
+    <View
+        android:id="@+id/status_bar_space"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:tag="toolbarChrome" />
 
-    <TextView
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/app_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/couiColorBackgroundWithCard"
+            android:elevation="0dp"
+            android:tag="toolbarChrome"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true">
+
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                android:tag="toolbar"
+                app:supportNavigationIcon="@drawable/coui_back_arrow"
+                app:supportTitle="@string/add_files"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
+
+            <com.coui.appcompat.searchview.COUISearchBar
+                android:id="@+id/search_bar"
+                style="@style/Widget.COUI.COUISearchBar"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/coui_search_view_height"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"
+                app:couiHideFunctionalButton="true"
+                app:searchHint="@string/search_library" />
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
+
+        <include
+            layout="@layout/layout_recyclerview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <com.coui.appcompat.button.COUIButton
         android:id="@+id/button_confirm"
-        style="@style/BottomConfirmButton"
-        android:text="@string/confirm" />
+        style="@style/Widget.COUI.Button.Large.ButtonNew"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/confirm"
+        android:textAllCaps="false"
+        android:visibility="gone" />
 </LinearLayout>

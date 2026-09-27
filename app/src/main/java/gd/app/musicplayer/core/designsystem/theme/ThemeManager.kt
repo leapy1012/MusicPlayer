@@ -46,7 +46,7 @@ class ThemeManager @Inject constructor(
     }
 
     override fun createFallbackTheme(): ThemePalette {
-        return PictureThemePalette().apply {
+        return LightThemePalette().apply {
             setImageName(ThemeSettingPreferenceStore.DEFAULT_THEME_IMAGE)
             setBlurAmount(ThemeSettingPreferenceStore.DEFAULT_THEME_BLUR)
             setBackgroundOverlayColor(ThemeSettingPreferenceStore.DEFAULT_THEME_OVERLAY_COLOR)
@@ -149,12 +149,16 @@ class ThemeManager @Inject constructor(
 
     /**
      * Original [o7.f.u]: clone with shared bitmaps ([O] reuse), [H] on bg, notify on main.
+     * Night off restores the last non-dark type (White or Picture), defaulting to White.
      */
     fun toggleDarkMode(enabled: Boolean) {
         val themeType = if (enabled) {
+            if (cachedSettings.themeType != THEME_TYPE_DARK) {
+                persistLastNonDarkType(cachedSettings.themeType)
+            }
             THEME_TYPE_DARK
         } else {
-            THEME_TYPE_PICTURE
+            resolveLastNonDarkType()
         }
 
         cachedSettings = cachedSettings.copy(themeType = themeType)
@@ -172,7 +176,6 @@ class ThemeManager @Inject constructor(
         }
 
         appScope.launch(Dispatchers.Default) {
-            // Original o7.f.l: H() off main, then j(notify) on main.
             if (!cloned.ensureResourcesLoaded(appContext, themeBitmapLoader())) {
                 return@launch
             }
@@ -192,6 +195,31 @@ class ThemeManager @Inject constructor(
      */
     fun isUserDarkModePreferred(): Boolean {
         return cachedSettings.themeType == THEME_TYPE_DARK
+    }
+
+    fun isUserLightModePreferred(): Boolean {
+        return cachedSettings.themeType == THEME_TYPE_LIGHT
+    }
+
+    /**
+     * Switch to solid White (COUI light). Clears user Night if it was on.
+     */
+    fun applyLightTheme() {
+        persistLastNonDarkType(THEME_TYPE_LIGHT)
+        cachedSettings = cachedSettings.copy(themeType = THEME_TYPE_LIGHT)
+        appScope.launch {
+            themeSettingPreferenceStore.setThemeType(THEME_TYPE_LIGHT)
+        }
+        val current = getCurrentTheme() as? PictureThemePalette
+        val resolvedType = resolveThemeType(appContext, THEME_TYPE_LIGHT)
+        val cloned = current?.copyAsThemeType(resolvedType, reuseBitmaps = true)
+            ?: createPalette(resolvedType)
+        appScope.launch(Dispatchers.Default) {
+            if (!cloned.ensureResourcesLoaded(appContext, themeBitmapLoader())) return@launch
+            withContext(Dispatchers.Main.immediate) {
+                updateCurrentTheme(palette = cloned, persist = false, notify = true)
+            }
+        }
     }
 
     /**
@@ -243,7 +271,7 @@ class ThemeManager @Inject constructor(
 
     /**
      * User night (99) always wins. Otherwise follow system UI night mode so
-     * picture theme (2) still paints dark when the device is in dark mode —
+     * picture/white still paint dark when the device is in dark mode —
      * without selecting the night switch in settings.
      */
     private fun resolveThemeType(
@@ -256,16 +284,20 @@ class ThemeManager @Inject constructor(
         if (context.isDarkTheme()) {
             return THEME_TYPE_DARK
         }
-        return THEME_TYPE_PICTURE
+        return when (preferredType) {
+            THEME_TYPE_LIGHT -> THEME_TYPE_LIGHT
+            THEME_TYPE_PICTURE -> THEME_TYPE_PICTURE
+            else -> THEME_TYPE_LIGHT
+        }
     }
 
     private fun createPalette(themeType: Int): PictureThemePalette {
         val settings = cachedSettings
 
-        return if (themeType == THEME_TYPE_DARK) {
-            DarkThemePalette()
-        } else {
-            PictureThemePalette()
+        return when (themeType) {
+            THEME_TYPE_DARK -> DarkThemePalette()
+            THEME_TYPE_LIGHT -> LightThemePalette()
+            else -> PictureThemePalette()
         }.apply {
             setImageName(settings.imageName)
             setAccentColor(settings.themeColor)
@@ -274,7 +306,25 @@ class ThemeManager @Inject constructor(
         }
     }
 
+    private fun persistLastNonDarkType(themeType: Int) {
+        if (themeType == THEME_TYPE_DARK) return
+        cachedSettings = cachedSettings.copy(lastNonDarkThemeType = themeType)
+        appScope.launch {
+            themeSettingPreferenceStore.setLastNonDarkThemeType(themeType)
+        }
+    }
+
+    private fun resolveLastNonDarkType(): Int {
+        val stored = cachedSettings.lastNonDarkThemeType
+        return when (stored) {
+            THEME_TYPE_PICTURE, THEME_TYPE_LIGHT -> stored
+            else -> THEME_TYPE_LIGHT
+        }
+    }
+
     companion object {
+        /** Solid White / COUI light — default out-of-box theme. */
+        const val THEME_TYPE_LIGHT = 1
         const val THEME_TYPE_PICTURE = 2
         const val THEME_TYPE_DARK = 99
     }

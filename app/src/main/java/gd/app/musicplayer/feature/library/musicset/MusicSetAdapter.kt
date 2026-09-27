@@ -123,11 +123,14 @@ class MusicSetAdapter(
         position: Int
     ) {
         when (holder) {
-            is FolderFooterViewHolder -> Unit
-            is BaseViewHolder -> bindHolder(
-                holder = holder,
-                item = folderOrListItem(position)
-            )
+            is FolderFooterViewHolder -> applyTheme?.invoke(holder.itemView)
+            is BaseViewHolder -> {
+                bindHolder(
+                    holder = holder,
+                    item = folderOrListItem(position)
+                )
+                applyTheme?.invoke(holder.itemView)
+            }
         }
     }
 
@@ -220,6 +223,7 @@ class MusicSetAdapter(
         )
 
         binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
+        applyTheme?.invoke(binding.root)
 
         return FolderListMusicSetViewHolder(binding)
     }
@@ -235,6 +239,7 @@ class MusicSetAdapter(
         )
 
         binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
+        applyTheme?.invoke(binding.root)
 
         return MusicSetGridViewHolder(binding)
     }
@@ -250,6 +255,7 @@ class MusicSetAdapter(
         )
 
         binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
+        applyTheme?.invoke(binding.root)
 
         return MusicSetListViewHolder(binding)
     }

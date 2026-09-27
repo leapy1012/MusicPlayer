@@ -15,6 +15,7 @@
 .cxx
 .android
 local.properties
+keystore.properties
 /.idea/
 /wrapper
 /Reference

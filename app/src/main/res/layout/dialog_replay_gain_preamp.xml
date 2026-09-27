@@ -1,49 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <androidx.appcompat.widget.AppCompatTextView
-        style="@style/DialogTitle"
-        android:text="@string/replay_gain_preamp" />
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
-        android:layout_marginTop="24dp"
         android:layout_marginEnd="24dp"
         android:singleLine="true"
-        android:tag="dialogMessage"
         android:text="@string/replay_gain_with_tags"
-        android:textAlignment="viewStart"
-        android:textColor="@color/i_black_m"
-        android:textSize="16sp" />
+        android:textAppearance="?attr/couiTextAppearanceHeadline6"
+        android:textColor="?attr/couiColorPrimaryNeutral" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="12dp"
         android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="20dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <gd.app.musicplayer.core.designsystem.view.SeekBar
+        <com.coui.appcompat.seekbar.COUISeekBar
             android:id="@+id/with_tag_seek"
             android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:tag="dialogSeekBar"
-            app:seekMax="300"
-            app:seekProgressHeight="3dp"
-            app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+            android:clipToPadding="false"
+            android:max="300"
+            android:min="0"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
 
         <TextView
             android:id="@+id/with_tag_text"
@@ -52,11 +48,9 @@
             android:gravity="end"
             android:minWidth="64sp"
             android:singleLine="true"
-            android:tag="dialogMessage"
             android:text="0dB"
-            android:textAlignment="viewEnd"
-            android:textColor="@color/i_black_m"
-            android:textSize="14sp" />
+            android:textAppearance="?attr/couiTextAppearanceBody"
+            android:textColor="?attr/couiColorSecondNeutral" />
     </LinearLayout>
 
     <TextView
@@ -66,34 +60,32 @@
         android:layout_marginTop="20dp"
         android:layout_marginEnd="24dp"
         android:singleLine="true"
-        android:tag="dialogMessage"
         android:text="@string/replay_gain_without_tags"
-        android:textAlignment="viewStart"
-        android:textColor="@color/i_black_m"
-        android:textSize="16sp" />
+        android:textAppearance="?attr/couiTextAppearanceHeadline6"
+        android:textColor="?attr/couiColorPrimaryNeutral" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="12dp"
         android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="20dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <gd.app.musicplayer.core.designsystem.view.SeekBar
+        <com.coui.appcompat.seekbar.COUISeekBar
             android:id="@+id/without_tag_seek"
             android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:tag="dialogSeekBar"
-            app:seekMax="300"
-            app:seekProgressHeight="3dp"
-            app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+            android:clipToPadding="false"
+            android:max="300"
+            android:min="0"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
 
         <TextView
             android:id="@+id/without_tag_text"
@@ -102,41 +94,21 @@
             android:gravity="end"
             android:minWidth="64sp"
             android:singleLine="true"
-            android:tag="dialogMessage"
             android:text="0dB"
-            android:textAlignment="viewEnd"
-            android:textColor="@color/i_black_m"
-            android:textSize="14sp" />
+            android:textAppearance="?attr/couiTextAppearanceBody"
+            android:textColor="?attr/couiColorSecondNeutral" />
     </LinearLayout>
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/replay_gain_reset"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="8dp"
-        android:gravity="end|center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="8dp">
-
-        <TextView
-            android:id="@+id/dialog_button_reset"
-            style="@style/DialogButton.Old"
-            android:text="@string/reset" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
-        <TextView
-            android:id="@+id/dialog_button_cancel"
-            style="@style/DialogButton.Old"
-            android:text="@string/cancel" />
-
-        <TextView
-            android:id="@+id/dialog_button_ok"
-            style="@style/DialogButton.Old"
-            android:text="@string/confirm" />
-    </LinearLayout>
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp"
+        android:text="@string/reset"
+        android:textAppearance="?attr/couiTextAppearanceButton"
+        android:textColor="?attr/couiColorError" />
 </LinearLayout>

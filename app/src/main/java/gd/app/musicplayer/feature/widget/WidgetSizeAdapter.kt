@@ -10,20 +10,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.button.COUIButton
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
 
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.contentSurfaceLight
 import gd.app.musicplayer.core.designsystem.theme.rippleColor
 import gd.app.musicplayer.databinding.ActivityWidgetItemBinding
 import androidx.core.graphics.withClip
-import gd.app.musicplayer.core.designsystem.drawable.outlinedRoundedRippleDrawable
 import gd.app.musicplayer.core.designsystem.drawable.roundedRippleDrawable
 
 internal class WidgetSizeAdapter(
@@ -130,34 +130,38 @@ internal class WidgetSizeAdapter(
     }
 }
 
+/**
+ * White theme: hard COUI card + default HalfColor [COUIButton] styling from XML.
+ * Picture/Night: palette-tinted translucent card and accent-tinted button.
+ */
 private fun ActivityWidgetItemBinding.applyReferenceItemTheme(theme: ThemePalette) {
     val context = root.context
-    val fillColor = if (theme.contentSurfaceLight) {
-        0x0D000000
-    } else {
-        0x0DFFFFFF
+
+    if (theme.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+        root.background = AppCompatResources.getDrawable(
+            context,
+            R.drawable.bg_main_home_card_ripple
+        )
+        return
     }
 
     root.background = roundedRippleDrawable(
-        fillColor = fillColor,
+        fillColor = if (theme.contentSurfaceLight) 0x0D000000 else 0x1AFFFFFF,
         rippleColor = theme.rippleColor,
-        cornerRadius = context.dpToPx(12f).toFloat()
+        cornerRadius = context.resources.getDimension(
+            com.coui.appcompat.R.dimen.coui_round_corner_m
+        )
     )
 
-    itemAdd.applyReferenceAddTheme(theme)
+    itemAdd.applyPaletteAddTheme(theme)
 }
 
-private fun TextView.applyReferenceAddTheme(theme: ThemePalette) {
-    val context = this.context
+private fun COUIButton.applyPaletteAddTheme(theme: ThemePalette) {
     setTextColor(theme.accentColor)
-    background = outlinedRoundedRippleDrawable(
-        cornerRadius = context.dpToPx(50f),
-        strokeWidth = context.dpToPx(1.5f).coerceAtLeast(1),
-        strokeColor = theme.accentColor,
-        fillColor = 0x33FFFFFF,
-        rippleColor = ColorUtils.setAlphaComponent(theme.accentColor, 38)
-    )
+    drawableColor = ColorUtils.setAlphaComponent(theme.accentColor, PALETTE_ADD_FILL_ALPHA)
 }
+
+private const val PALETTE_ADD_FILL_ALPHA = 0x33
 
 private class WidgetPreviewDrawable(
     private val drawable: Drawable,

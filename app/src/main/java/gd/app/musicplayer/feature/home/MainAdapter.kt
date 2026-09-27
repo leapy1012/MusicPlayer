@@ -1,24 +1,26 @@
 package gd.app.musicplayer.feature.home
 
 import android.content.res.ColorStateList
-import android.graphics.Color
-import android.graphics.drawable.RippleDrawable
-import android.graphics.drawable.ShapeDrawable
-import android.graphics.drawable.shapes.RectShape
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
-import androidx.core.graphics.drawable.toDrawable
+import androidx.core.widget.ImageViewCompat
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.databinding.FragmentMainItemBinding
 
 class MainAdapter(
-    private val onItemClick: (MainItem) -> Unit
+    private val onItemClick: (MainItem) -> Unit,
+    private val applyTheme: (View) -> Unit = {}
 ) : BaseAdapter() {
 
     private var items: List<MainItem> = emptyList()
+
+    private companion object {
+        /** Keyed tag so XML [android:tag] (theme binder) is not overwritten. */
+        private val HOLDER_KEY = R.id.main_item_image
+    }
 
     override fun hasStableIds(): Boolean = true
 
@@ -38,10 +40,10 @@ class MainAdapter(
                 )
             )
         } else {
-            convertView.tag as ViewHolder
+            convertView.getTag(HOLDER_KEY) as ViewHolder
         }
 
-        holder.bind(getItem(position), onItemClick)
+        holder.bind(getItem(position), onItemClick, applyTheme)
         return holder.itemView
     }
 
@@ -57,33 +59,24 @@ class MainAdapter(
         val itemView: View = binding.root
 
         init {
-            binding.root.applyRoundedOutline(R.dimen.item_image_corner_radius)
-            binding.root.tag = this
+            binding.root.applyRoundedOutline(com.coui.appcompat.R.dimen.coui_round_corner_m)
+            binding.root.setTag(HOLDER_KEY, this)
         }
 
         fun bind(
             item: MainItem,
-            onItemClick: (MainItem) -> Unit
+            onItemClick: (MainItem) -> Unit,
+            applyTheme: (View) -> Unit
         ) = with(binding) {
             mainItemImage.setImageResource(item.iconRes)
+            ImageViewCompat.setImageTintList(
+                mainItemImage,
+                ColorStateList.valueOf(item.bgColor)
+            )
             mainItemName.setText(item.titleRes)
             mainItemCount.text = item.count.toString()
-            root.background = item.bgColor.asRippleBackground()
             root.setOnClickListener { onItemClick(item) }
-        }
-    }
-
-    private companion object {
-        val RIPPLE_COLOR: ColorStateList = ColorStateList.valueOf(0x33FFFFFF)
-
-        fun Int.asRippleBackground(): RippleDrawable {
-            return RippleDrawable(
-                RIPPLE_COLOR,
-                this.toDrawable(),
-                ShapeDrawable(RectShape()).apply {
-                    paint.color = Color.WHITE
-                }
-            )
+            applyTheme(root)
         }
     }
 }

@@ -7,6 +7,7 @@ import gd.app.musicplayer.core.common.extension.formatAddedDate
 import gd.app.musicplayer.core.common.extension.formatFileSize
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.toDurationString
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.itemTextColor
@@ -127,7 +128,7 @@ class MusicViewHolder(
         isPlaying: Boolean
     ) {
 
-        binding.musicItemState.setColor(theme.accentColor)
+        binding.musicItemState.setColor(playingHighlightColor())
         binding.musicItemState.visibility =
             if (isCurrentTrack) View.VISIBLE else View.GONE
 
@@ -192,16 +193,17 @@ class MusicViewHolder(
     }
 
     private fun renderTextColors(isCurrentTrack: Boolean) {
+        val highlight = playingHighlightColor()
         val primaryTextColor =
             if (isCurrentTrack) {
-                theme.accentColor
+                highlight
             } else {
                 theme.itemTextColor
             }
 
         val secondaryTextColor =
             if (isCurrentTrack) {
-                theme.accentColor
+                highlight
             } else {
                 ColorUtils.setAlphaComponent(
                     theme.itemTextColor,
@@ -213,6 +215,19 @@ class MusicViewHolder(
         binding.musicItemArtist.setTextColor(secondaryTextColor)
         binding.musicItemCount.setTextColor(secondaryTextColor)
         binding.musicItemSize.setTextColor(secondaryTextColor)
+    }
+
+    /** White theme: hard COUI label/theme blue. Picture/Night: palette accent. */
+    private fun playingHighlightColor(): Int {
+        if (theme.getThemeType() != ThemeManager.THEME_TYPE_LIGHT) {
+            return theme.accentColor
+        }
+        val typed = itemView.context.obtainStyledAttributes(
+            intArrayOf(com.coui.appcompat.R.attr.couiColorLabelTheme)
+        )
+        val color = typed.getColor(0, theme.accentColor)
+        typed.recycle()
+        return color
     }
 
     override fun onItemSelected() {

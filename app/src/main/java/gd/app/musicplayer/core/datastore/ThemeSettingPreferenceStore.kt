@@ -21,7 +21,9 @@ data class ThemeSettings(
     val themeColor: Int = ThemeSettingPreferenceStore.DEFAULT_THEME_COLOR,
     val themeDialogEnabled: Boolean = ThemeSettingPreferenceStore.DEFAULT_THEME_DIALOG_ENABLED,
     val imageName: String = ThemeSettingPreferenceStore.DEFAULT_THEME_IMAGE,
-    val imageUris: List<String> = emptyList()
+    val imageUris: List<String> = emptyList(),
+    /** Last White/Picture choice — restored when Night mode is turned off. */
+    val lastNonDarkThemeType: Int = ThemeSettingPreferenceStore.DEFAULT_THEME_TYPE
 )
 
 @Singleton
@@ -45,6 +47,14 @@ class ThemeSettingPreferenceStore @Inject constructor(
 
     suspend fun setThemeType(themeType: Int) {
         set(KEY_THEME_TYPE, themeType)
+        if (themeType != ThemeManager.THEME_TYPE_DARK) {
+            set(KEY_LAST_NON_DARK_THEME_TYPE, themeType)
+        }
+    }
+
+    suspend fun setLastNonDarkThemeType(themeType: Int) {
+        if (themeType == ThemeManager.THEME_TYPE_DARK) return
+        set(KEY_LAST_NON_DARK_THEME_TYPE, themeType)
     }
 
     suspend fun getThemeOverlayColor(): Int {
@@ -121,14 +131,18 @@ class ThemeSettingPreferenceStore @Inject constructor(
     }
 
     private fun Preferences.toThemeSettings(): ThemeSettings {
+        val themeType = this[KEY_THEME_TYPE] ?: DEFAULT_THEME_TYPE
         return ThemeSettings(
-            themeType = this[KEY_THEME_TYPE] ?: DEFAULT_THEME_TYPE,
+            themeType = themeType,
             overlayColor = this[KEY_THEME_OVERLAY_COLOR] ?: DEFAULT_THEME_OVERLAY_COLOR,
             blur = this[KEY_THEME_BLUR] ?: DEFAULT_THEME_BLUR,
             themeColor = this[KEY_THEME_COLOR] ?: DEFAULT_THEME_COLOR,
             themeDialogEnabled = this[KEY_THEME_DIALOG] ?: DEFAULT_THEME_DIALOG_ENABLED,
             imageName = this[KEY_IMAGE_NAME] ?: DEFAULT_THEME_IMAGE,
-            imageUris = getThemeImageUris()
+            imageUris = getThemeImageUris(),
+            lastNonDarkThemeType = this[KEY_LAST_NON_DARK_THEME_TYPE]
+                ?: themeType.takeUnless { it == ThemeManager.THEME_TYPE_DARK }
+                ?: DEFAULT_THEME_TYPE
         )
     }
 
@@ -187,7 +201,7 @@ class ThemeSettingPreferenceStore @Inject constructor(
     }
 
     companion object {
-        const val DEFAULT_THEME_TYPE = ThemeManager.THEME_TYPE_PICTURE
+        const val DEFAULT_THEME_TYPE = ThemeManager.THEME_TYPE_LIGHT
         const val DEFAULT_THEME_IMAGE = "nature_01.webp"
         const val DEFAULT_THEME_OVERLAY_COLOR = 855638016
         const val DEFAULT_THEME_BLUR = 0
@@ -199,6 +213,7 @@ class ThemeSettingPreferenceStore @Inject constructor(
         private val KEY_THEME_SKIN_URIS = stringPreferencesKey("skin_uris")
         private val KEY_THEME_OVERLAY_COLOR = intPreferencesKey("theme_overlay_color")
         private val KEY_THEME_TYPE = intPreferencesKey("theme_type")
+        private val KEY_LAST_NON_DARK_THEME_TYPE = intPreferencesKey("last_non_dark_theme_type")
         private val KEY_THEME_BLUR = intPreferencesKey("theme_blur")
         private val KEY_THEME_COLOR = intPreferencesKey("theme_color")
         private val KEY_THEME_DIALOG = booleanPreferencesKey("theme_dialog")

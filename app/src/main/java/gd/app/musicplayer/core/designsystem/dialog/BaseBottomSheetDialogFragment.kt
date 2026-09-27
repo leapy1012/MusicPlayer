@@ -12,12 +12,12 @@ import android.view.Window
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.coui.appcompat.panel.COUIBottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
-import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
@@ -41,7 +41,10 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
     private var originalRootPaddingBottom = 0
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return BottomSheetDialog(requireContext(), theme).apply {
+        return COUIBottomSheetDialog(
+            requireContext(),
+            com.coui.appcompat.R.style.DefaultBottomSheetDialog
+        ).apply {
             setOnShowListener {
                 setupEdgeToEdgeBottomSheet(this)
             }
@@ -55,7 +58,7 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
     }
 
     override fun getTheme(): Int {
-        return R.style.ThemeOverlay_MyApp_BottomSheetDialog
+        return com.coui.appcompat.R.style.DefaultBottomSheetDialog
     }
 
     override fun onStart() {

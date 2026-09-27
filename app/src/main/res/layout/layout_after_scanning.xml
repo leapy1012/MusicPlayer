@@ -17,7 +17,7 @@
         android:singleLine="true"
         android:tag="itemTextExtraColor"
         android:text="@string/scan"
-        android:textColor="@color/white"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="15sp" />
 
     <TextView
@@ -28,7 +28,7 @@
         android:singleLine="true"
         android:tag="itemTextExtraColor"
         android:text="@string/scan"
-        android:textColor="@color/white"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="15sp" />
 
     <TextView
@@ -39,7 +39,7 @@
         android:singleLine="true"
         android:tag="itemTextExtraColor"
         android:text="@string/scan"
-        android:textColor="@color/white"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="15sp" />
 
     <LinearLayout
@@ -57,7 +57,7 @@
             android:singleLine="true"
             android:tag="itemTextExtraColor"
             android:text="@string/scan_ignore"
-            android:textColor="@color/white"
+            android:textColor="?attr/couiColorSecondNeutral"
             android:textSize="15sp" />
 
         <LinearLayout
@@ -79,7 +79,7 @@
                 android:singleLine="true"
                 android:tag="themeColor"
                 android:text="@string/hidden_folders"
-                android:textColor="@color/white"
+                android:textColor="?attr/couiColorLabelTheme"
                 android:textSize="15sp" />
 
             <androidx.appcompat.widget.AppCompatImageView
@@ -110,7 +110,7 @@
             android:singleLine="true"
             android:tag="themeColor"
             android:text="@string/scan"
-            android:textColor="@color/white"
+            android:textColor="?attr/couiColorLabelTheme"
             android:textSize="15sp" />
 
         <androidx.appcompat.widget.AppCompatImageView

@@ -1,68 +1,84 @@
 package gd.app.musicplayer.feature.playlist
 
+import android.app.Dialog
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.fragment.app.viewModels
+import android.view.WindowManager
+import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.setFragmentResult
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.coui.appcompat.dialog.COUIAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyLengthFilter
+import gd.app.musicplayer.core.common.extension.hideKeyboard
+import gd.app.musicplayer.core.common.extension.parcelable
+import gd.app.musicplayer.core.common.extension.parcelableArrayList
+import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.databinding.DialogNewPlaylistBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.databinding.DialogNewPlaylistBinding
-import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
-import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.common.extension.applyLengthFilter
-import gd.app.musicplayer.core.common.extension.parcelableArrayList
-import gd.app.musicplayer.core.common.extension.parcelable
-import gd.app.musicplayer.core.common.extension.hideKeyboard
-import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class PlaylistInputDialog : BaseDialogFragment() {
+class PlaylistInputDialog : DialogFragment() {
     private val viewModel: PlaylistInputViewModel by viewModels()
 
-    private lateinit var binding: DialogNewPlaylistBinding
     private var actionMode: Int = MODE_CREATE_AND_RETURN
     private var pendingTracks: List<Music> = emptyList()
     private var targetSet: MusicSet? = null
+    private var editBinding: DialogNewPlaylistBinding? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
             actionMode = it.getInt(ARG_TARGET, MODE_CREATE_AND_RETURN)
             targetSet = it.parcelable(ARG_SET)
-            pendingTracks = it.parcelableArrayList<Music>(ARG_PENDING_TRACKS)
+            pendingTracks = it.parcelableArrayList(ARG_PENDING_TRACKS)
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        state: Bundle?
-    ): View {
-
-        binding = DialogNewPlaylistBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding.dialogButtonOk.setOnClickListener {
-            viewModel.submit(binding.newPlaylistEdittext.text.toString())
-        }
-        binding.dialogButtonCancel.setOnClickListener { dismiss() }
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val binding = DialogNewPlaylistBinding.inflate(LayoutInflater.from(requireContext()))
+        editBinding = binding
 
         binding.newPlaylistEdittext.apply {
             applyLengthFilter(120)
+            setFastDeletable(true)
             showKeyboardDelayed()
+        }
+
+        val titleRes = if (actionMode == MODE_RENAME_SET) {
+            R.string.list_rename
+        } else {
+            R.string.create_playlist
+        }
+
+        val builder = COUIAlertDialogBuilder(
+            requireContext(),
+            com.coui.appcompat.R.style.COUIAlertDialog_BottomAssignment
+        )
+            .setTitle(titleRes)
+            .setView(binding.root)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.ok, null)
+
+        val dialog = builder.create()
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+                viewModel.submit(binding.newPlaylistEdittext.text?.toString().orEmpty())
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
+                dismiss()
+            }
+            builder.updateViewAfterShown()
         }
 
         observeViewModel()
@@ -72,16 +88,12 @@ class PlaylistInputDialog : BaseDialogFragment() {
             pendingTracks = pendingTracks,
             newListLabel = getString(R.string.new_list)
         )
-        binding.newPlaylistTitle.setText(
-            if (actionMode == MODE_RENAME_SET) R.string.list_rename else R.string.create_playlist
-        )
-
-        applyDialogWidth(0.88f)
-        applyDialogBackground(view)
+        return dialog
     }
 
     override fun onDismiss(dialog: DialogInterface) {
-        binding.newPlaylistEdittext.hideKeyboard()
+        editBinding?.newPlaylistEdittext?.hideKeyboard()
+        editBinding = null
         super.onDismiss(dialog)
     }
 
@@ -90,17 +102,20 @@ class PlaylistInputDialog : BaseDialogFragment() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.uiState.collect { state ->
-                        val currentInput = binding.newPlaylistEdittext.text?.toString().orEmpty()
+                        val edit = editBinding?.newPlaylistEdittext ?: return@collect
+                        val currentInput = edit.text?.toString().orEmpty()
                         if (currentInput.isBlank() && state.suggestedName.isNotBlank()) {
-                            binding.newPlaylistEdittext.setText(state.suggestedName)
-                            binding.newPlaylistEdittext.setSelection(state.suggestedName.length)
+                            edit.setText(state.suggestedName)
+                            edit.setSelection(state.suggestedName.length)
                         }
                     }
                 }
                 launch {
                     viewModel.events.collect { event ->
                         when (event) {
-                            is PlaylistInputEvent.ShowToast -> ToastUtil.show(requireContext(), event.messageRes)
+                            is PlaylistInputEvent.ShowToast ->
+                                ToastUtil.show(requireContext(), event.messageRes)
+
                             is PlaylistInputEvent.ReturnCreatedPlaylist -> {
                                 setFragmentResult(
                                     RESULT_REQUEST_KEY,
@@ -110,6 +125,7 @@ class PlaylistInputDialog : BaseDialogFragment() {
                                     }
                                 )
                             }
+
                             is PlaylistInputEvent.ReturnRenamedSet -> {
                                 setFragmentResult(
                                     RESULT_REQUEST_KEY,
@@ -118,6 +134,7 @@ class PlaylistInputDialog : BaseDialogFragment() {
                                     }
                                 )
                             }
+
                             PlaylistInputEvent.Dismiss -> dismissAllowingStateLoss()
                         }
                     }

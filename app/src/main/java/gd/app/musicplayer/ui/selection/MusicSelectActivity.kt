@@ -3,27 +3,27 @@ package gd.app.musicplayer.ui.selection
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import androidx.activity.addCallback
 import androidx.activity.viewModels
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.coui.appcompat.searchview.COUISearchBar
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyLengthFilter
 import gd.app.musicplayer.core.common.extension.hideKeyboard
 import gd.app.musicplayer.core.common.extension.parcelable
-import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.designsystem.theme.accentColor
-import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.titleColor
 import gd.app.musicplayer.databinding.ActivityMusicSelectBinding
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -79,12 +79,12 @@ class MusicSelectActivity : BaseActivity() {
         super.onWindowFocusChanged(hasFocus)
 
         if (!hasFocus) {
-            binding.searchEditText.hideKeyboard()
+            binding.searchBar.searchEditText?.hideKeyboard()
         }
     }
 
     override fun onDestroy() {
-        binding.searchEditText.removeTextChangedListener(searchWatcher)
+        binding.searchBar.searchEditText?.removeTextChangedListener(searchWatcher)
         binding.layoutRecyclerview.recyclerviewIndex.submitLabels(emptyList())
         super.onDestroy()
     }
@@ -132,17 +132,15 @@ class MusicSelectActivity : BaseActivity() {
         )
     }
 
-    private fun setupSearch() = with(binding) {
-        searchEditText.applyLengthFilter(MAX_SEARCH_LENGTH)
-        searchEditText.addTextChangedListener(searchWatcher)
-        searchEditText.setOnEditorActionListener { _, _, _ ->
-            searchEditText.hideKeyboard()
+    private fun setupSearch() {
+        val editText = binding.searchBar.searchEditText ?: return
+        editText.applyLengthFilter(MAX_SEARCH_LENGTH)
+        editText.addTextChangedListener(searchWatcher)
+        editText.setOnEditorActionListener { _, _, _ ->
+            editText.hideKeyboard()
             false
         }
-
-        searchEditClear.setOnClickListener {
-            searchEditText.text = null
-        }
+        binding.searchBar.setSearchAnimateType(COUISearchBar.TYPE_INSTANT_SEARCH)
     }
 
     private fun setupActions() = with(binding) {
@@ -185,7 +183,6 @@ class MusicSelectActivity : BaseActivity() {
 
     private fun render(state: MusicSelectUiState) {
         renderList(state)
-        renderSearch(state)
         renderActions(state)
         renderToolbar(state)
         renderSpinner(state)
@@ -237,10 +234,6 @@ class MusicSelectActivity : BaseActivity() {
         emptyStateController.setEmptyMessage(getString(R.string.music_empty))
     }
 
-    private fun renderSearch(state: MusicSelectUiState) {
-        binding.searchEditClear.isVisible = state.header.query.isNotEmpty()
-    }
-
     private fun renderActions(state: MusicSelectUiState) = with(binding) {
         val isSongMode = !state.header.isBrowsingFolders
         val hasSongs = state.content.songItems.isNotEmpty()
@@ -262,15 +255,41 @@ class MusicSelectActivity : BaseActivity() {
             )
         }
 
-        menu.findItem(R.id.menu_switch)?.setIcon(
-            if (state.shouldShowMusicSwitchIcon()) {
-                R.drawable.vector_menu_switch_music
-            } else {
-                R.drawable.vector_menu_switch_folder
-            }
-        )
+        menu.findItem(R.id.menu_switch)?.let { item ->
+            item.icon = tintedMenuIcon(
+                if (state.shouldShowMusicSwitchIcon()) {
+                    R.drawable.vector_menu_switch_music
+                } else {
+                    R.drawable.vector_menu_switch_folder
+                }
+            )
+        }
 
-        menu.findItem(R.id.menu_sort)?.isVisible = state.shouldShowSortMenu()
+        menu.findItem(R.id.menu_sort)?.let { item ->
+            item.isVisible = state.shouldShowSortMenu()
+            item.icon = tintedMenuIcon(R.drawable.vector_sort_by)
+        }
+    }
+
+    private fun tintedMenuIcon(iconRes: Int): android.graphics.drawable.Drawable? {
+        val drawable = AppCompatResources.getDrawable(this, iconRes)?.mutate() ?: return null
+        val color = resolveToolbarIconColor()
+        DrawableCompat.setTint(drawable, color)
+        return drawable
+    }
+
+    private fun resolveToolbarIconColor(): Int {
+        val palette = themeRepo.getCorePalette()
+        return if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+            val typed = obtainStyledAttributes(
+                intArrayOf(com.coui.appcompat.R.attr.couiColorPrimaryNeutral)
+            )
+            val color = typed.getColor(0, 0xE6000000.toInt())
+            typed.recycle()
+            color
+        } else {
+            palette.titleColor
+        }
     }
 
     private fun renderSpinner(state: MusicSelectUiState) {
@@ -325,7 +344,7 @@ class MusicSelectActivity : BaseActivity() {
         return when (item.itemId) {
             R.id.menu_switch -> {
                 viewModel.onSwitchSourceClicked()
-                binding.searchEditText.hideKeyboard()
+                binding.searchBar.searchEditText?.hideKeyboard()
                 true
             }
 
@@ -339,11 +358,9 @@ class MusicSelectActivity : BaseActivity() {
     }
 
     private fun showSortMenu(item: MenuItem) {
-        binding.searchEditText.hideKeyboard()
+        binding.searchBar.searchEditText?.hideKeyboard()
 
         val state = viewModel.uiState.value
-        val palette = themeRepo.getCorePalette()
-
         SortByContextMenu(
             context = this,
             musicSet = if (state.header.isBrowsingFolders) {
@@ -351,15 +368,9 @@ class MusicSelectActivity : BaseActivity() {
             } else {
                 state.header.selectedMusicSet
             },
-            selectionMode = true,
             currentSortStyle = state.header.currentSortStyle,
             currentSortDescending = state.header.currentSortDescending,
-            onSortChanged = viewModel::onSortChanged,
-            accentColor = palette.accentColor,
-            popupTextColor = palette.popupTitleColor,
-            popupBackgroundProvider = { menuContext ->
-                palette.getPopupBackgroundDrawable(menuContext)
-            }
+            onSortChanged = viewModel::onSortChanged
         ).show(binding.toolbar.findViewById(item.itemId) ?: binding.toolbar)
     }
 

@@ -4,55 +4,52 @@
     android:id="@+id/scan_music_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:tag="activityBackgroundColor">
+    android:background="?attr/couiColorBackgroundWithCard"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <View
+        android:id="@+id/status_bar_space"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:tag="toolbarChrome" />
+
+    <com.coui.appcompat.toolbar.COUIToolbar
+        android:id="@+id/toolbar"
+        style="@style/Secondary.Toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        >
-
-        <View
-            android:id="@+id/status_bar_space"
-            android:layout_width="match_parent"
-            android:layout_height="0dp" />
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/common_title_height"
-            android:minHeight="@dimen/common_title_height"
-            android:tag="toolbar"
-            app:layout_scrollFlags="snap|enterAlways|scroll"
-            app:menu="@menu/menu_activity_scan_menu"
-            app:navigationIcon="@drawable/vector_menu_back"
-            app:theme="@style/AppToolbar"
-            app:title="@string/scan_library"
-            app:titleTextAppearance="@style/AppToolbarTitle" />
-    </LinearLayout>
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:minHeight="@dimen/toolbar_min_height"
+        android:tag="toolbar"
+        app:menu="@menu/menu_activity_scan_menu"
+        app:supportNavigationIcon="@drawable/coui_back_arrow"
+        app:supportTitle="@string/scan"
+        app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+        app:titleCenter="false" />
 
     <LinearLayout
+        android:id="@+id/background"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:baselineAligned="false"
         android:orientation="horizontal"
         android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:tag="shadowMark">
+        android:paddingEnd="10dp">
 
-        <gd.app.lib.view.square.AspectRatioFrameLayout
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:layout_weight="1"
-            app:squareRatio="0.6">
-            <!--            <com.ijoysoft.music.model.scan.MusicScanProgressView-->
-            <!--                android:id="@+id/music_scan_progress"-->
-            <!--                android:tag="MusicScanProgressView"-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="match_parent"/>-->
-        </gd.app.lib.view.square.AspectRatioFrameLayout>
+            android:padding="16dp">
+
+            <gd.app.lib.model.scan.MusicScanProgressView
+                android:id="@+id/music_scan_progress"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:tag="MusicScanProgressView" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -70,11 +67,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:singleLine="true"
-                android:tag="itemTextColor"
                 android:text="@string/common_loading"
                 android:textAlignment="center"
-                android:textColor="@color/white"
+                android:textColor="?attr/couiColorPrimaryNeutral"
                 android:textSize="16sp" />
 
             <Space
@@ -87,11 +82,17 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <include layout="@layout/layout_before_scanning" />
+                <include
+                    android:id="@+id/layout_before_scanning"
+                    layout="@layout/layout_before_scanning" />
 
-                <include layout="@layout/layout_scanning" />
+                <include
+                    android:id="@+id/layout_scanning"
+                    layout="@layout/layout_scanning" />
 
-                <include layout="@layout/layout_after_scanning" />
+                <include
+                    android:id="@+id/layout_after_scanning"
+                    layout="@layout/layout_after_scanning" />
             </ViewFlipper>
 
             <Space
@@ -99,23 +100,17 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <TextView
+            <com.coui.appcompat.button.COUIButton
                 android:id="@+id/scan_start_stop"
+                style="@style/Widget.COUI.Button.Large.ButtonNew"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginStart="@dimen/scan_result_padding"
-                android:layout_marginEnd="@dimen/scan_result_padding"
+                android:layout_marginStart="32dp"
+                android:layout_marginEnd="32dp"
                 android:layout_marginBottom="20dp"
-                android:gravity="center"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:singleLine="true"
-                android:tag="themeStrokeButton"
                 android:text="@string/scan_start"
-                android:textAlignment="center"
-                android:textColor="@color/white"
-                android:textSize="17sp" />
+                android:textAllCaps="false" />
 
             <Space
                 android:layout_width="match_parent"

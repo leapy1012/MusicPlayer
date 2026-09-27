@@ -6,26 +6,21 @@
     android:layout_height="match_parent">
     <LinearLayout
         android:orientation="vertical"
-        android:tag="titleBackgroundColor"
+        android:background="?attr/couiColorBackground"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <View
             android:id="@+id/status_bar_space"
             android:layout_width="match_parent"
             android:layout_height="0dp"/>
-        <androidx.appcompat.widget.Toolbar
+        <com.coui.appcompat.toolbar.COUIToolbar
             android:id="@+id/toolbar"
-            android:tag="toolbar"
-            android:background="@android:color/transparent"
+            style="@style/Secondary.Toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="@dimen/common_title_height"
-            app:layout_scrollFlags="snap|enterAlways|scroll"
-            app:navigationIcon="@drawable/vector_menu_back"
-            app:subtitleTextAppearance="@style/AppToolbarSubTitle"
-            app:theme="@style/AppToolbar"
-            app:title="@string/music_find_duplicate"
-            app:titleTextAppearance="@style/AppToolbarTitle"/>
+            android:minHeight="@dimen/toolbar_min_height"
+            app:supportTitle="@string/music_find_duplicate"
+            app:supportTitleTextAppearance="@style/textAppearanceSecondTitle" />
     </LinearLayout>
     <ViewFlipper
         android:id="@+id/duplicated_finder_flipper"

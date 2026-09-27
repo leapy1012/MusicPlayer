@@ -42,8 +42,7 @@
             android:layout_height="wrap_content"
             android:singleLine="true"
             android:tag="itemTextColor"
-            android:text="Album"
-            android:textColor="@color/item_title_color"
+            android:textColor="?attr/couiColorPrimaryNeutral"
             android:textSize="16sp" />
 
         <androidx.appcompat.widget.AppCompatTextView
@@ -53,9 +52,8 @@
             android:layout_marginTop="2dp"
             android:ellipsize="middle"
             android:singleLine="true"
-            android:tag="itemTextColor"
-            android:text="0 musics"
-            android:textColor="@color/item_artist_color"
+            android:tag="itemTextExtraColor"
+            android:textColor="?attr/couiColorSecondNeutral"
             android:textSize="14sp" />
     </LinearLayout>
 </LinearLayout>

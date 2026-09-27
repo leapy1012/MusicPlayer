@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:icon="@drawable/vector_add"
         android:id="@+id/menu_add"
+        android:icon="@drawable/vector_add"
+        android:title="@string/add_songs"
         android:visible="false"
-        android:title=""
-        app:showAsAction="always"/>
+        app:showAsAction="always" />
     <item
-        android:icon="@drawable/vector_menu_search"
         android:id="@+id/menu_search"
-        android:title=""
-        app:showAsAction="always"/>
+        android:icon="@drawable/coui_toolbar_menu_icon_search"
+        android:title="@string/search_menu_title"
+        app:showAsAction="always" />
     <item
-        android:icon="@drawable/vector_menu_more"
         android:id="@+id/menu_more"
-        android:title=""
-        app:showAsAction="always"/>
+        android:icon="@drawable/coui_toolbar_menu_icon_more"
+        android:title="@string/more"
+        app:showAsAction="always" />
 </menu>

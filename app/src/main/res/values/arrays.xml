@@ -43,6 +43,55 @@
         <item>@string/related_lyrics</item>
         <item>@string/all_lyrics</item>
     </array>
+
+    <string-array name="settings_queue_for_searching_entries">
+        <item>@string/queue_all_songs</item>
+        <item>@string/queue_search_result</item>
+    </string-array>
+    <string-array name="settings_queue_for_searching_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+
+    <string-array name="settings_replay_gain_mode_entries">
+        <item>@string/replay_gain_none</item>
+        <item>@string/replay_gain_track</item>
+        <item>@string/replay_gain_album</item>
+    </string-array>
+    <string-array name="settings_replay_gain_mode_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="settings_playlist_add_position_entries">
+        <item>@string/add_music_position_top</item>
+        <item>@string/add_music_position_end</item>
+    </string-array>
+    <string-array name="settings_playlist_add_position_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+
+    <string-array name="settings_lock_background_entries">
+        <item>@string/lock_screen_theme</item>
+        <item>@string/lock_screen_artwork</item>
+    </string-array>
+    <string-array name="settings_lock_background_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+
+    <string-array name="settings_playlist_limit_entries">
+        <item>@string/playlist_limit_day</item>
+        <item>@string/playlist_limit_week</item>
+        <item>@string/playlist_limit_month</item>
+        <item>@string/playlist_limit_month_3</item>
+        <item>@string/playlist_limit_month_6</item>
+        <item>@string/playlist_limit_year</item>
+        <item>@string/playlist_limit_forever</item>
+        <item>@string/playlist_limit_custom</item>
+    </string-array>
 <!--    <array name="time_format_array">-->
 <!--        <item>@string/time_format_12</item>-->
 <!--        <item>@string/time_format_24</item>-->

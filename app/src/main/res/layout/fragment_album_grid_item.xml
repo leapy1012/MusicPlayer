@@ -21,8 +21,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/music_item_album"/>
     <androidx.appcompat.widget.AppCompatTextView
-        android:textSize="16sp"
-        android:textColor="@android:color/white"
         android:id="@+id/music_item_title"
         android:tag="itemTextColor"
         android:layout_width="0dp"
@@ -31,28 +29,32 @@
         android:singleLine="true"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="4dp"
+        android:textAppearance="?attr/couiTextAppearanceHeadline6"
+        android:textColor="?attr/couiColorPrimaryNeutral"
+        android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@id/music_item_artist"
         app:layout_constraintEnd_toStartOf="@id/music_item_menu"
         app:layout_constraintStart_toStartOf="@id/music_item_sub_bg"
         app:layout_constraintTop_toTopOf="@id/music_item_sub_bg"
         app:layout_constraintVertical_chainStyle="packed"/>
     <TextView
-        android:textSize="14sp"
-        android:textColor="@color/item_artist_color"
-        android:ellipsize="middle"
         android:id="@+id/music_item_artist"
         android:tag="itemTextExtraColor"
+        android:ellipsize="middle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:singleLine="true"
+        android:textAppearance="?attr/couiTextAppearanceDescription"
+        android:textColor="?attr/couiColorSecondNeutral"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="@id/music_item_sub_bg"
         app:layout_constraintEnd_toEndOf="@id/music_item_title"
         app:layout_constraintStart_toStartOf="@id/music_item_title"
         app:layout_constraintTop_toBottomOf="@id/music_item_title"/>
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/music_item_menu"
-        android:tag="itemTextColor"
+        android:tag="itemTextExtraColor"
         android:background="@drawable/selector_image_bg_w"
         android:layout_width="40dp"
         android:layout_height="40dp"
@@ -61,5 +63,6 @@
         app:layout_constraintBottom_toBottomOf="@id/music_item_sub_bg"
         app:layout_constraintEnd_toEndOf="@id/music_item_sub_bg"
         app:layout_constraintTop_toTopOf="@id/music_item_sub_bg"
-        app:srcCompat="@drawable/vector_more"/>
+        app:srcCompat="@drawable/vector_more"
+        app:tint="?attr/couiColorHintNeutral"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -9,10 +9,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="?attr/couiColorBackground"
         android:gravity="center_vertical"
         android:orientation="vertical"
-        android:background="@color/main_actionbar"
-        >
+        android:tag="toolbarChrome">
 
         <View
             android:id="@+id/status_bar_space"
@@ -21,35 +21,28 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="wrap_content"
             android:gravity="center_vertical"
+            android:minHeight="@dimen/toolbar_min_height"
             android:orientation="horizontal">
 
-            <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/theme_back"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/b_selector_image_bg_aw"
-                android:padding="8dp"
-                android:scaleType="fitCenter"
-                app:srcCompat="@drawable/vector_menu_back" />
-
-            <androidx.appcompat.widget.AppCompatTextView
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="16dp"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="start|center_vertical"
-                android:text="@string/theme"
-                android:textAppearance="@style/AppToolbarTitle" />
+                android:minHeight="@dimen/toolbar_min_height"
+                android:tag="toolbar"
+                app:supportTitle="@string/theme"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
 
             <FrameLayout
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp">
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="40dp"
@@ -73,8 +66,8 @@
                 android:id="@+id/theme_edit"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="4dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/b_selector_image_bg_aw"
                 android:padding="8dp"
                 android:scaleType="fitCenter"

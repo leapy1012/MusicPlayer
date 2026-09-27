@@ -11,21 +11,31 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.recyclerview.widget.COUIRecyclerView
 import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.button.COUIButton
+import dagger.hilt.android.EntryPointAccessors
 import gd.app.lib.configuration.ConfigurationLinearLayout
 import gd.app.musicplayer.R
 
 import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.designsystem.drawable.outlinedRoundedRippleDrawable
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
-import gd.app.musicplayer.core.designsystem.theme.rippleColor
 import gd.app.musicplayer.core.designsystem.theme.titleColor
+import gd.app.musicplayer.di.ThemeEntryPoint
+import gd.app.musicplayer.ui.common.hostStaticContent
 
+/**
+ * @param onDarkSurface host is always dark regardless of app theme (e.g. lock screen), so the
+ * empty state keeps light-on-dark styling even on the White theme.
+ */
 class RecyclerEmptyStateController(
     private val recyclerView: RecyclerView,
-    private val emptyViewStub: ViewStub
+    private val emptyViewStub: ViewStub,
+    private val onDarkSurface: Boolean = false
 ) : ConfigurationLinearLayout.OnSizeChangedListener {
 
     private var emptyRootView: View? = null
@@ -49,8 +59,13 @@ class RecyclerEmptyStateController(
         val parent = recyclerView.parent as? View
         loadingProgressBar = parent?.findViewById(R.id.loading_progress_bar)
 
+        val progressColor = if (usesCouiStyling(resolveTheme())) {
+            resolveAttrColor(com.coui.appcompat.R.attr.couiColorPrimary, Color.BLUE)
+        } else {
+            recyclerView.context.getColor(R.color.white)
+        }
         loadingProgressBar?.indeterminateDrawable?.let { drawable ->
-            DrawableCompat.setTintList(drawable, ColorStateList.valueOf(recyclerView.context.getColor(R.color.white)))
+            DrawableCompat.setTintList(drawable, ColorStateList.valueOf(progressColor))
         }
     }
 
@@ -63,22 +78,57 @@ class RecyclerEmptyStateController(
         }
     }
 
+    /**
+     * White theme: COUI defaults from `layout_list_empty.xml` (hint-gray art, secondary text,
+     * HalfColor [COUIButton]). Picture/Night and dark hosts: palette-driven tint.
+     */
     fun applyTheme(theme: ThemePalette) {
         this.theme = theme
-        val root = emptyRootView ?: return
-        val button = root.findViewById<TextView>(R.id.empty_button)
-        val usesDarkForegroundPalette = theme.titleColor != Color.WHITE
-        button.setTextColor(theme.accentColor)
-        tintCompoundDrawables(button, theme.accentColor)
-        button.background = outlinedRoundedRippleDrawable(
-            cornerRadius = button.context.dpToPx(100f),
-            strokeWidth = button.context.dpToPx(1f),
-            strokeColor = if (usesDarkForegroundPalette) 0x1A000000 else 0x33FFFFFF,
-            rippleColor = theme.rippleColor
+        val root = emptyContainer ?: return
+        val image = root.findViewById<ImageView>(R.id.empty_image)
+        val texts = listOfNotNull(
+            root.findViewById<TextView>(R.id.empty_text),
+            root.findViewById<TextView>(R.id.empty_text_extra)
         )
+        val button = root.findViewById<COUIButton>(R.id.empty_button)
 
-        root.findViewById<ImageView>(R.id.empty_image)?.imageTintList =
-            ColorStateList.valueOf((if (usesDarkForegroundPalette) 0x33000000 else 0x80FFFFFF).toInt())
+        if (usesCouiStyling(theme)) {
+            image?.imageTintList = ColorStateList.valueOf(
+                resolveAttrColor(com.coui.appcompat.R.attr.couiColorHintNeutral, 0x4D000000)
+            )
+            val secondary = resolveAttrColor(
+                com.coui.appcompat.R.attr.couiColorSecondNeutral,
+                0x8C000000.toInt()
+            )
+            texts.forEach { it.setTextColor(secondary) }
+            return
+        }
+
+        val usesDarkForeground = !onDarkSurface && theme.titleColor != Color.WHITE
+        image?.imageTintList = ColorStateList.valueOf(
+            (if (usesDarkForeground) 0x33000000 else 0x80FFFFFF).toInt()
+        )
+        val secondary = (if (usesDarkForeground) 0x8C000000 else 0x80FFFFFF).toInt()
+        texts.forEach { it.setTextColor(secondary) }
+
+        val accent = if (onDarkSurface) Color.WHITE else theme.accentColor
+        button?.setTextColor(accent)
+        button?.drawableColor = ColorUtils.setAlphaComponent(accent, PALETTE_BUTTON_FILL_ALPHA)
+    }
+
+    private fun usesCouiStyling(theme: ThemePalette): Boolean =
+        !onDarkSurface && theme.getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+
+    private fun resolveTheme(): ThemePalette = theme ?: EntryPointAccessors
+        .fromApplication(recyclerView.context.applicationContext, ThemeEntryPoint::class.java)
+        .themeRepo
+        .getCorePalette()
+
+    private fun resolveAttrColor(attr: Int, fallback: Int): Int {
+        val typed = recyclerView.context.obtainStyledAttributes(intArrayOf(attr))
+        val color = typed.getColor(0, fallback)
+        typed.recycle()
+        return color
     }
 
     fun setActionClickListener(listener: View.OnClickListener) {
@@ -91,7 +141,7 @@ class RecyclerEmptyStateController(
 
     fun setEmptyImage(imageResId: Int) {
         emptyImageResId = imageResId
-        emptyRootView?.findViewById<ImageView>(R.id.empty_image)?.let { imageView ->
+        emptyContainer?.findViewById<ImageView>(R.id.empty_image)?.let { imageView ->
             if (imageResId != 0) {
                 imageView.setImageResource(imageResId)
             } else {
@@ -102,12 +152,12 @@ class RecyclerEmptyStateController(
 
     fun setEmptyMessage(text: String) {
         emptyMessage = text
-        emptyRootView?.findViewById<TextView>(R.id.empty_text)?.text = text
+        emptyContainer?.findViewById<TextView>(R.id.empty_text)?.text = text
     }
 
     fun setExtraText(text: String) {
         extraText = text
-        emptyRootView?.findViewById<TextView>(R.id.empty_text_extra)?.text = text
+        emptyContainer?.findViewById<TextView>(R.id.empty_text_extra)?.text = text
     }
 
     fun setVisible(showEmpty: Boolean) {
@@ -141,10 +191,12 @@ class RecyclerEmptyStateController(
 
             val container = inflated.findViewById<ConfigurationLinearLayout>(R.id.empty_linear_layout)
             emptyContainer = container
+            inflated.findViewById<COUIRecyclerView>(R.id.empty_spring_host)
+                ?.hostStaticContent(container)
             container.visibility = View.INVISIBLE
             container.setOnViewSizeChangeListener(this)
 
-            val actionButton = inflated.findViewById<TextView>(R.id.empty_button)
+            val actionButton = container.findViewById<TextView>(R.id.empty_button)
             if (showActionButton) {
                 actionButtonText?.let(actionButton::setText)
                 actionButton.visibility = View.VISIBLE
@@ -154,21 +206,22 @@ class RecyclerEmptyStateController(
             }
 
             extraText?.let {
-                inflated.findViewById<TextView>(R.id.empty_text_extra).text = it
+                container.findViewById<TextView>(R.id.empty_text_extra).text = it
             }
 
-            inflated.findViewById<View>(R.id.empty_text_extra).visibility =
+            container.findViewById<View>(R.id.empty_text_extra).visibility =
                 if (showExtraText) View.VISIBLE else View.GONE
 
             emptyMessage?.let {
-                inflated.findViewById<TextView>(R.id.empty_text).text = it
+                container.findViewById<TextView>(R.id.empty_text).text = it
             }
 
             if (emptyImageResId != 0) {
-                inflated.findViewById<ImageView>(R.id.empty_image).setImageResource(emptyImageResId)
+                container.findViewById<ImageView>(R.id.empty_image).setImageResource(emptyImageResId)
             }
 
-            theme?.let(::applyTheme)
+            // The stub inflates after the screen's theme pass, so theme it here.
+            applyTheme(resolveTheme())
         }
 
         recyclerView.post {
@@ -210,12 +263,7 @@ class RecyclerEmptyStateController(
         }
     }
 
-    private fun tintCompoundDrawables(textView: TextView, color: Int) {
-        textView.compoundDrawables.filterNotNull().forEach { drawable ->
-            DrawableCompat.setTint(drawable.mutate(), color)
-        }
-        textView.compoundDrawablesRelative.filterNotNull().forEach { drawable ->
-            DrawableCompat.setTint(drawable.mutate(), color)
-        }
+    private companion object {
+        const val PALETTE_BUTTON_FILL_ALPHA = 0x33
     }
 }

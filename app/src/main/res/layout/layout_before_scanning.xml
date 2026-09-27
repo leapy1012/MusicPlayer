@@ -14,24 +14,19 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <com.coui.appcompat.checkbox.COUICheckBox
             android:id="@+id/scan_checkbox"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:scaleType="centerInside"
-            android:tag="selectBox"
-            app:srcCompat="@drawable/vector_music_check_selector" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@null" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:singleLine="true"
-            android:tag="itemTextColor"
             android:text="@string/scan_ignore_message"
-            android:textColor="@color/white"
+            android:textColor="?attr/couiColorPrimaryNeutral"
             android:textSize="16sp" />
 
         <LinearLayout
@@ -50,26 +45,23 @@
                 android:inputType="number"
                 android:minWidth="30dp"
                 android:singleLine="true"
-                android:tag="itemTextColor"
                 android:text="60"
-                android:textColor="@color/white"
+                android:textColor="?attr/couiColorPrimaryNeutral"
                 android:textCursorDrawable="@null"
                 android:textSize="16sp" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="@color/white"
-                android:tag="underLine" />
+                android:background="?attr/couiColorLabelTheme" />
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:singleLine="true"
-            android:tag="itemTextColor"
             android:text="@string/scan_ignore_message_x"
-            android:textColor="@color/white"
+            android:textColor="?attr/couiColorPrimaryNeutral"
             android:textSize="16sp" />
     </LinearLayout>
 
@@ -81,24 +73,19 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <com.coui.appcompat.checkbox.COUICheckBox
             android:id="@+id/scan_checkbox2"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:scaleType="centerInside"
-            android:tag="selectBox"
-            app:srcCompat="@drawable/vector_music_check_selector" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@null" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:singleLine="true"
-            android:tag="itemTextColor"
             android:text="@string/scan_ignore_message"
-            android:textColor="@color/white"
+            android:textColor="?attr/couiColorPrimaryNeutral"
             android:textSize="16sp" />
 
         <LinearLayout
@@ -115,26 +102,23 @@
                 android:inputType="number"
                 android:minWidth="30dp"
                 android:singleLine="true"
-                android:tag="itemTextColor"
                 android:text="50"
-                android:textColor="@color/white"
+                android:textColor="?attr/couiColorPrimaryNeutral"
                 android:textCursorDrawable="@null"
                 android:textSize="16sp" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="@color/white"
-                android:tag="underLine" />
+                android:background="?attr/couiColorLabelTheme" />
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:singleLine="true"
-            android:tag="itemTextColor"
             android:text="@string/scan_ignore_message_x_2"
-            android:textColor="@color/white"
+            android:textColor="?attr/couiColorPrimaryNeutral"
             android:textSize="16sp" />
     </LinearLayout>
 
@@ -146,24 +130,19 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <com.coui.appcompat.checkbox.COUICheckBox
             android:id="@+id/scan_checkbox3"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:scaleType="centerInside"
-            android:tag="selectBox"
-            app:srcCompat="@drawable/vector_music_check_selector" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@null" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:singleLine="true"
-            android:tag="itemTextColor"
             android:text="@string/scan_ignore_message_3"
-            android:textColor="@color/white"
+            android:textColor="?attr/couiColorPrimaryNeutral"
             android:textSize="16sp" />
     </LinearLayout>
 </LinearLayout>

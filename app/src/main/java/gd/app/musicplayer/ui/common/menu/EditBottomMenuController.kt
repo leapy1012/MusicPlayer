@@ -6,8 +6,11 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.lifecycleScope
+import com.coui.appcompat.poplist.COUIPopupListWindow
+import com.coui.appcompat.poplist.PopupListItem
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.isFavorite
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
 import gd.app.musicplayer.domain.model.MenuItemModel
@@ -26,10 +29,10 @@ import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.feature.library.options.DeleteConfirmDialogFragment
 import gd.app.musicplayer.ui.selection.MusicEditActivity
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.selection.MusicShareSupport
 import kotlinx.coroutines.launch
+import java.util.ArrayList
 
 /** c9.a **/
 interface OnItemClickListener<T> {
@@ -145,15 +148,23 @@ class EditBottomMenuController(
 
         if (actionId == R.string.more) {
             val extraItems = menuItems.subList(5, menuItems.size)
-            EditMorePopupMenu(
-                context = activity,
-                items = extraItems,
-                theme = activity.themeRepo.getCorePalette(),
-                itemClickListener = this
-            ).show(
-                anchor = clickedView,
-                yOff = -calculateMorePopupOffsetPx(extraItems.size)
+            val popupItems = ArrayList(
+                extraItems.mapIndexed { index, item ->
+                    PopupListItem.Builder()
+                        .setId(index)
+                        .setTitle(item.getTitle(activity))
+                        .setIsEnable(true)
+                        .build()
+                }
             )
+            val popup = COUIPopupListWindow(activity)
+            popup.setItemList(popupItems)
+            popup.setOnItemClickListener { _, _, position, _ ->
+                val item = extraItems.getOrNull(position) ?: return@setOnItemClickListener
+                popup.dismiss()
+                onItemClick(item, clickedView, position)
+            }
+            popup.show(clickedView)
             return
         }
 
@@ -348,17 +359,15 @@ class EditBottomMenuController(
             val itemView = menuContainer.getChildAt(index) as ViewGroup
             val menuItem = menuItems[index]
 
-            (itemView.getChildAt(0) as ImageView).setImageResource(menuItem.getIconResId())
-            (itemView.getChildAt(1) as TextView).text = menuItem.getTitle(activity)
+            (itemView.findViewById(R.id.menu_icon) as? ImageView)
+                ?.setImageResource(menuItem.getIconResId())
+            (itemView.findViewById(R.id.menu_label) as? TextView)
+                ?.text = menuItem.getTitle(activity)
 
+            itemView.installCouiPressFeedback()
             itemView.setOnClickListener { view ->
                 onItemClick(menuItem, view, 0)
             }
         }
-    }
-
-    private fun calculateMorePopupOffsetPx(itemCount: Int): Int {
-        val itemHeightPx = activity.dpToPx(48f)
-        return (itemHeightPx * itemCount) + 10
     }
 }

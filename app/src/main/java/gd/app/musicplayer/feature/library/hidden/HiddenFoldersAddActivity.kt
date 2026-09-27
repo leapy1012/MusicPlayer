@@ -10,25 +10,25 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.viewModels
 import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat
-import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.SimpleItemAnimator
+import com.coui.appcompat.checkbox.COUICheckBox
+import com.coui.appcompat.searchview.COUISearchBar
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
+import gd.app.musicplayer.core.common.extension.hideKeyboard
 import gd.app.musicplayer.core.common.extension.highlight
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.drawable.rectRippleDrawable
-import gd.app.musicplayer.core.designsystem.drawable.roundedRippleDrawable
-
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.rippleColor
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersAddBinding
@@ -38,7 +38,10 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.ui.common.enableTapToEdit
+import gd.app.musicplayer.ui.common.exitEditMode
 import gd.app.musicplayer.ui.common.model.loadArtwork
+import gd.app.musicplayer.util.SimpleTextWatcher
 import java.io.File
 import kotlinx.coroutines.launch
 
@@ -57,6 +60,13 @@ class HiddenFoldersAddActivity :
 
     private val rippleColor: Int
         get() = currentTheme.rippleColor
+
+    private val usesCouiStyling: Boolean
+        get() = currentTheme.getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+
+    private val searchWatcher = SimpleTextWatcher {
+        applyCurrentList()
+    }
 
     private lateinit var binding: ActivityHiddenFoldersAddBinding
     private lateinit var adapter: HiddenFoldersAddAdapter
@@ -94,14 +104,20 @@ class HiddenFoldersAddActivity :
         binding.toolbar.inflateMenu(R.menu.menu_activity_hidden_folders_add)
         binding.toolbar.setOnMenuItemClickListener(this)
         updateModeMenuTitle()
+        binding.appBar.bringToFront()
     }
 
     private fun setupRecyclerView() {
         recyclerView = binding.root.findViewById(R.id.recyclerview)
 
         adapter = HiddenFoldersAddAdapter(
-            accentColor = accentColor,
+            accentColor = if (usesCouiStyling) {
+                resolveAttrColor(com.coui.appcompat.R.attr.couiColorPrimary, accentColor)
+            } else {
+                accentColor
+            },
             rippleColor = rippleColor,
+            usesCouiStyling = usesCouiStyling,
             applyTheme = { root ->
                 themeEngine.apply(root)
             }
@@ -117,7 +133,22 @@ class HiddenFoldersAddActivity :
             setHasFixedSize(true)
 
             itemAnimator = null
+
+            if (usesCouiStyling) {
+                setBackgroundColor(
+                    resolveAttrColor(com.coui.appcompat.R.attr.couiColorCardBackground, Color.WHITE)
+                )
+            }
         }
+
+        binding.appBar.bindRecyclerView(recyclerView)
+    }
+
+    private fun resolveAttrColor(attr: Int, fallback: Int): Int {
+        val typed = obtainStyledAttributes(intArrayOf(attr))
+        val color = typed.getColor(0, fallback)
+        typed.recycle()
+        return color
     }
 
     private fun setupEmptyStateController() {
@@ -128,21 +159,21 @@ class HiddenFoldersAddActivity :
     }
 
     private fun setupSearch() {
-        binding.searchEditText.doAfterTextChanged {
-            applyCurrentList()
+        val editText = binding.searchBar.searchEditText ?: return
+        editText.addTextChangedListener(searchWatcher)
+        editText.setOnEditorActionListener { _, _, _ ->
+            editText.hideKeyboard()
+            false
         }
-
-        binding.searchEditClear.setOnClickListener {
-            binding.searchEditText.text?.clear()
-        }
+        // Instant type slides the bar up over the toolbar; this screen filters in place.
+        binding.searchBar.setSearchAnimateType(COUISearchBar.TYPE_NON_INSTANT_SEARCH)
+        binding.searchBar.enableTapToEdit()
     }
 
     private fun setupConfirmButton() {
-        binding.buttonConfirm.background = roundedRippleDrawable(
-            accentColor,
-            getColor(R.color.ripple_material_dark),
-            CONFIRM_BUTTON_RADIUS
-        )
+        if (!usesCouiStyling) {
+            binding.buttonConfirm.drawableColor = accentColor
+        }
 
         binding.buttonConfirm.setOnClickListener {
             applyHideAndFinish()
@@ -164,7 +195,7 @@ class HiddenFoldersAddActivity :
     private fun applyCurrentList() {
         val query = currentQuery()
 
-        updateSearchUi(query)
+        updateSearchUi()
 
         val visibleCount = adapter.submitData(
             mode = currentMode,
@@ -194,18 +225,9 @@ class HiddenFoldersAddActivity :
         refreshUi()
     }
 
-    private fun updateSearchUi(query: String) {
-        val inSongMode = currentMode == HiddenAddMode.SONGS
-
-        binding.searchContainer.visibility =
-            if (inSongMode) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
-
-        binding.searchEditClear.visibility =
-            if (inSongMode && query.isNotEmpty()) {
+    private fun updateSearchUi() {
+        binding.searchBar.visibility =
+            if (currentMode == HiddenAddMode.SONGS) {
                 View.VISIBLE
             } else {
                 View.GONE
@@ -247,11 +269,13 @@ class HiddenFoldersAddActivity :
                 R.drawable.vector_menu_switch_folder
             }
         )
+        // The swapped-in icon is untinted (white in XML); re-run the toolbar tag binding.
+        themeEngine.apply(binding.toolbar)
     }
 
     private fun currentQuery(): String {
-        return binding.searchEditText
-            .text
+        return binding.searchBar.searchEditText
+            ?.text
             ?.toString()
             .orEmpty()
             .trim()
@@ -267,8 +291,12 @@ class HiddenFoldersAddActivity :
                  * If there is text, clearing it will trigger applyCurrentList() once.
                  * If already empty, manually apply.
                  */
-                if (binding.searchEditText.text?.isNotEmpty() == true) {
-                    binding.searchEditText.text?.clear()
+                binding.searchBar.searchEditText?.hideKeyboard()
+                binding.searchBar.exitEditMode()
+
+                val searchText = binding.searchBar.searchEditText?.text
+                if (searchText?.isNotEmpty() == true) {
+                    searchText.clear()
                 } else {
                     applyCurrentList()
                 }
@@ -281,8 +309,6 @@ class HiddenFoldersAddActivity :
     }
 
     companion object {
-        private const val CONFIRM_BUTTON_RADIUS = 1000.0f
-
         fun start(context: Context) {
             context.startActivityCompat(
                 Intent(context, HiddenFoldersAddActivity::class.java)
@@ -347,6 +373,7 @@ private sealed class HiddenSelectionItem(
 private class HiddenFoldersAddAdapter(
     private val accentColor: Int,
     private val rippleColor: Int,
+    private val usesCouiStyling: Boolean,
     private val applyTheme: (View) -> Unit
 ) : RecyclerView.Adapter<HiddenFoldersAddAdapter.ItemViewHolder>() {
 
@@ -533,10 +560,14 @@ private class HiddenFoldersAddAdapter(
         private var boundItem: HiddenSelectionItem? = null
 
         init {
-            binding.root.background = rectRippleDrawable(
-                fillColor = Color.TRANSPARENT,
-                rippleColor = rippleColor
-            )
+            if (usesCouiStyling) {
+                binding.root.installCouiPressFeedback()
+            } else {
+                binding.root.background = rectRippleDrawable(
+                    fillColor = Color.TRANSPARENT,
+                    rippleColor = rippleColor
+                )
+            }
 
             binding.root.setOnClickListener(this)
         }
@@ -554,28 +585,30 @@ private class HiddenFoldersAddAdapter(
                 }
             }
 
-            updateSelectionTint()
         }
 
         override fun onClick(v: View) {
             when (val item = boundItem) {
                 is HiddenSelectionItem.FolderItem -> {
                     toggleFolderSelection(item.folder.folderPath)
-                    binding.musicItemSelect.isSelected =
-                        selectedFolderPaths.contains(item.folder.folderPath)
+                    setChecked(selectedFolderPaths.contains(item.folder.folderPath))
                 }
 
                 is HiddenSelectionItem.SongItem -> {
                     toggleSongSelection(item.song.id)
-                    binding.musicItemSelect.isSelected =
-                        selectedSongIds.contains(item.song.id)
+                    setChecked(selectedSongIds.contains(item.song.id))
                 }
 
                 null -> Unit
             }
 
-            updateSelectionTint()
             selectionCountListener?.invoke(getSelectionCount())
+        }
+
+        private fun setChecked(checked: Boolean) {
+            binding.musicItemCheckbox.setState(
+                if (checked) COUICheckBox.SELECT_ALL else COUICheckBox.SELECT_NONE
+            )
         }
 
         private fun bindFolder(folder: MusicSet.Folder) {
@@ -596,8 +629,7 @@ private class HiddenFoldersAddAdapter(
 
             binding.musicItemDes.visibility = View.VISIBLE
 
-            binding.musicItemSelect.isSelected =
-                selectedFolderPaths.contains(folder.folderPath)
+            setChecked(selectedFolderPaths.contains(folder.folderPath))
         }
 
         private fun bindSong(song: Music) {
@@ -617,8 +649,7 @@ private class HiddenFoldersAddAdapter(
 
             binding.musicItemDes.visibility = View.GONE
 
-            binding.musicItemSelect.isSelected =
-                selectedSongIds.contains(song.id)
+            setChecked(selectedSongIds.contains(song.id))
         }
 
         private fun toggleFolderSelection(folderPath: String) {
@@ -631,19 +662,6 @@ private class HiddenFoldersAddAdapter(
             if (!selectedSongIds.add(songId)) {
                 selectedSongIds.remove(songId)
             }
-        }
-
-        private fun updateSelectionTint() {
-            binding.musicItemSelect.setColorFilter(
-                if (binding.musicItemSelect.isSelected) {
-                    accentColor
-                } else {
-                    ContextCompat.getColor(
-                        binding.root.context,
-                        R.color.white
-                    )
-                }
-            )
         }
     }
 

@@ -8,6 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.FragmentThemePagerItemBinding
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
@@ -67,7 +68,9 @@ class ThemePagerFragment : ViewBindingFragment<FragmentThemePagerItemBinding>() 
                         selectedImageName = state.settings?.imageName.orEmpty(),
                         customImageNames = state.settings?.imageUris.orEmpty(),
                         selectedTabIndex = state.selectedTabIndex,
-                        tabIndex = tabIndex
+                        tabIndex = tabIndex,
+                        themeType = state.settings?.themeType
+                            ?: ThemeManager.THEME_TYPE_LIGHT
                     )
                     adapter.submitList(items)
                 }

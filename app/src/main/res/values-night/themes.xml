@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Night = COUI Main Dark (same thin overlay pattern as light AppTheme). -->
+    <style name="AppTheme" parent="@style/Theme.COUI.Main.Dark">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+
+        <item name="android:windowBackground">?attr/couiColorBackgroundWithCard</item>
+        <item name="android:statusBarColor">?attr/couiColorBackgroundWithCard</item>
+        <item name="android:navigationBarColor">?attr/couiColorBackgroundWithCard</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+
+        <item name="android:colorAccent">?attr/couiColorPrimary</item>
+        <item name="colorAccent">?attr/couiColorPrimary</item>
+
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.COUITheme</item>
+
+        <item name="android:windowAnimationStyle">@style/AppAnimationStyle</item>
+        <item name="android:windowSoftInputMode">adjustPan</item>
+        <item name="android:splitMotionEvents">false</item>
+        <item name="android:windowEnableSplitTouch">false</item>
+
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
+    </style>
+
+</resources>

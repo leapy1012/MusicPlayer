@@ -119,8 +119,9 @@
                     android:layout_marginEnd="8dp"
                     android:maxWidth="80dp"
                     android:singleLine="true"
+                    android:tag="itemTextExtraColor"
                     android:text="@string/close"
-                    android:textColor="#80ffffff"
+                    android:textColor="?attr/couiColorSecondNeutral"
                     android:textSize="12sp" />
             </LinearLayout>
 
@@ -258,8 +259,9 @@
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="8dp"
                     android:singleLine="true"
+                    android:tag="itemTextExtraColor"
                     android:text="@string/close"
-                    android:textColor="#80ffffff"
+                    android:textColor="?attr/couiColorSecondNeutral"
                     android:textSize="12sp" />
             </LinearLayout>
 

@@ -3,9 +3,6 @@ package gd.app.musicplayer.feature.library.options
 import android.app.Activity
 import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
@@ -15,9 +12,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
+import gd.app.musicplayer.core.designsystem.dialog.CouiConfirmDialogFragment
 import gd.app.musicplayer.core.mediastore.MediaStoreDeleteRequests
-import gd.app.musicplayer.databinding.DialogCommonBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
@@ -29,11 +25,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
-
-    private var _binding: DialogCommonBinding? = null
-    private val binding: DialogCommonBinding
-        get() = requireNotNull(_binding)
+class DeleteConfirmDialogFragment : CouiConfirmDialogFragment() {
 
     @Inject
     lateinit var deleteTracksUseCase: DeleteTracksUseCase
@@ -57,7 +49,7 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
         pendingSourceDeleteTracks = emptyList()
         waitingForSystemDeleteResult = false
 
-        viewLifecycleOwner.lifecycleScope.launch {
+        lifecycleScope.launch {
             if (result.resultCode == Activity.RESULT_OK && tracks.isNotEmpty()) {
                 deleteTracksFromLibraryUseCase(tracks.map(Music::id))
                 ToastUtil.show(requireContext(), R.string.succeed)
@@ -128,70 +120,28 @@ class DeleteConfirmDialogFragment : BaseDialogFragment(), View.OnClickListener {
             )
         }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = DialogCommonBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    override fun provideTitle(): CharSequence = getString(spec.titleRes)
+    override fun provideMessage(): CharSequence = spec.message
+    override fun providePositiveText(): CharSequence = getString(spec.confirmTextRes)
+    override fun showExtraCheckbox(): Boolean = spec.showExtra
+    override fun extraCheckboxCheckedByDefault(): Boolean = spec.extraCheckedDefault
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        applyDialogBackground(binding.root)
-
-        binding.dialogTitle.setText(spec.titleRes)
-        binding.dialogMessage.text = spec.message
-        binding.dialogButtonOk.setText(spec.confirmTextRes)
-        binding.dialogButtonCancel.setOnClickListener(this)
-        binding.dialogButtonOk.setOnClickListener(this)
-
-        binding.dialogCommenExtraLayout.visibility = if (spec.showExtra) View.VISIBLE else View.GONE
-        binding.dialogCommenDeleteSelect.isSelected = spec.extraCheckedDefault
-        binding.dialogCommenExtraLayout.setOnClickListener(this)
-        binding.dialogCommenDeleteSelect.setOnClickListener(this)
-    }
-
-    override fun onStart() {
-        super.onStart()
-        applyDialogWidth(0.9f)
-    }
-
-    override fun onDestroyView() {
-        _binding = null
-        super.onDestroyView()
-    }
-
-    override fun onClick(v: View) {
-        when (v.id) {
-            R.id.dialog_commen_extra_layout,
-            R.id.dialog_commen_delete_select -> {
-                binding.dialogCommenDeleteSelect.isSelected = !binding.dialogCommenDeleteSelect.isSelected
-            }
-
-            R.id.dialog_button_ok -> {
-                val deleteSourceFile = binding.dialogCommenDeleteSelect.isSelected
-                if (executionMode == EXECUTION_INTERNAL) {
-                    executeConfirmedDelete(deleteSourceFile)
-                } else {
-                    setFragmentResult(
-                        requireArguments().getString(ARG_RESULT_KEY).orEmpty(),
-                        bundleOf(RESULT_CONFIRMED to true, RESULT_EXTRA_CHECKED to deleteSourceFile)
-                    )
-                    dismiss()
-                }
-            }
-
-            R.id.dialog_button_cancel -> dismiss()
+    override fun onPositiveClicked(extraChecked: Boolean) {
+        if (executionMode == EXECUTION_INTERNAL) {
+            executeConfirmedDelete(extraChecked)
+        } else {
+            setFragmentResult(
+                requireArguments().getString(ARG_RESULT_KEY).orEmpty(),
+                bundleOf(RESULT_CONFIRMED to true, RESULT_EXTRA_CHECKED to extraChecked)
+            )
+            dismiss()
         }
     }
 
     private fun executeConfirmedDelete(deleteSourceFile: Boolean) {
-        binding.dialogButtonOk.isEnabled = false
-        binding.dialogButtonCancel.isEnabled = false
+        setPositiveEnabled(false)
 
-        viewLifecycleOwner.lifecycleScope.launch {
+        lifecycleScope.launch {
             val success = when (dialogType) {
                 TYPE_TRACK_DELETE -> deleteTrack(deleteSourceFile)
                 TYPE_SET_DELETE_PLAYLIST,

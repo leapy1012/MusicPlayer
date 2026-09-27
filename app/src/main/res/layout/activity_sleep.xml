@@ -9,353 +9,217 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/main_actionbar"
-        android:orientation="vertical">
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:orientation="vertical"
+        android:tag="toolbarChrome">
 
         <View
             android:id="@+id/status_bar_space"
             android:layout_width="match_parent"
             android:layout_height="0dp" />
 
-        <androidx.appcompat.widget.Toolbar
+        <com.coui.appcompat.toolbar.COUIToolbar
             android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:minHeight="?attr/actionBarSize"
-            android:tag="toolbar"
-            app:theme="@style/AppToolbar"
-            app:titleTextAppearance="@style/AppToolbarTitle" />
-    </LinearLayout>
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="10dp">
-
-        <LinearLayout
+            style="@style/Secondary.Toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:minHeight="@dimen/toolbar_min_height"
+            app:supportTitleTextAppearance="@style/textAppearanceSecondTitle" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Hosts sleep_content at runtime (see hostStaticContent) for COUI spring overscroll. -->
+        <androidx.recyclerview.widget.COUIRecyclerView
+            android:id="@+id/sleep_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:overScrollMode="always"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="16dp"
+            android:scrollbars="none" />
+
+        <LinearLayout
+            android:id="@+id/sleep_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
 
             <LinearLayout
+                android:id="@+id/sleep_card_duration"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#0dffffff"
+                android:background="?attr/couiColorCardBackground"
                 android:orientation="vertical"
                 android:tag="sleepContent">
 
                 <LinearLayout
                     android:id="@+id/sleep_item_close"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="50dp"
-                    android:orientation="horizontal"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
                         android:id="@+id/sleep_item_close_text"
+                        style="@style/SleepRowTitle"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
                         android:layout_weight="1"
                         android:maxLines="2"
-                        android:tag="itemTextColor"
-                        android:text="@string/sleep_close"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        android:singleLine="false"
+                        android:text="@string/sleep_close" />
 
-                    <androidx.appcompat.widget.AppCompatImageView
+                    <androidx.appcompat.widget.AppCompatRadioButton
                         android:id="@+id/sleep_item_close_check"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="12dp"
-                        android:tag="selectBox"
-                        app:srcCompat="@drawable/vector_single_check_selector" />
+                        style="@style/SleepRowRadio" />
                 </LinearLayout>
 
-                <View
-                    android:id="@+id/sleep_divider_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginTop="-1px"
-                    android:layout_marginEnd="12dp"
-                    android:background="@color/list_divider_color" />
+                <View style="@style/SleepRowDivider" />
 
-                <RelativeLayout
+                <LinearLayout
                     android:id="@+id/sleep_item_10"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
                         android:id="@+id/sleep_item_10_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:singleLine="true"
-                        android:tag="itemTextColor"
-                        android:text="@string/minutes_10"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/minutes_10" />
 
-                    <androidx.appcompat.widget.AppCompatImageView
+                    <androidx.appcompat.widget.AppCompatRadioButton
                         android:id="@+id/sleep_item_10_check"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="12dp"
-                        android:tag="selectBox"
-                        app:srcCompat="@drawable/vector_single_check_selector" />
-                </RelativeLayout>
+                        style="@style/SleepRowRadio" />
+                </LinearLayout>
 
-                <View
-                    android:id="@+id/sleep_divider_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginTop="-1px"
-                    android:layout_marginEnd="12dp"
-                    android:background="@color/list_divider_color"
-                    android:tag="item_divider" />
+                <View style="@style/SleepRowDivider" />
 
-                <RelativeLayout
+                <LinearLayout
                     android:id="@+id/sleep_item_20"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
                         android:id="@+id/sleep_item_20_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:singleLine="true"
-                        android:tag="itemTextColor"
-                        android:text="@string/minutes_20"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/minutes_20" />
 
-                    <androidx.appcompat.widget.AppCompatImageView
+                    <androidx.appcompat.widget.AppCompatRadioButton
                         android:id="@+id/sleep_item_20_check"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="12dp"
-                        android:tag="selectBox"
-                        app:srcCompat="@drawable/vector_single_check_selector" />
-                </RelativeLayout>
+                        style="@style/SleepRowRadio" />
+                </LinearLayout>
 
-                <View
-                    android:id="@+id/sleep_divider_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginTop="-1px"
-                    android:layout_marginEnd="12dp"
-                    android:background="@color/list_divider_color"
-                    android:tag="item_divider" />
+                <View style="@style/SleepRowDivider" />
 
-                <RelativeLayout
+                <LinearLayout
                     android:id="@+id/sleep_item_30"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
                         android:id="@+id/sleep_item_30_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:singleLine="true"
-                        android:tag="itemTextColor"
-                        android:text="@string/minutes_30"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/minutes_30" />
 
-                    <androidx.appcompat.widget.AppCompatImageView
+                    <androidx.appcompat.widget.AppCompatRadioButton
                         android:id="@+id/sleep_item_30_check"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="12dp"
-                        android:tag="selectBox"
-                        app:srcCompat="@drawable/vector_single_check_selector" />
-                </RelativeLayout>
+                        style="@style/SleepRowRadio" />
+                </LinearLayout>
 
-                <View
-                    android:id="@+id/sleep_divider_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginTop="-1px"
-                    android:layout_marginEnd="12dp"
-                    android:background="@color/list_divider_color"
-                    android:tag="item_divider" />
+                <View style="@style/SleepRowDivider" />
 
-                <RelativeLayout
+                <LinearLayout
                     android:id="@+id/sleep_item_60"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
                         android:id="@+id/sleep_item_60_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:singleLine="true"
-                        android:tag="itemTextColor"
-                        android:text="@string/minutes_60"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/minutes_60" />
 
-                    <androidx.appcompat.widget.AppCompatImageView
+                    <androidx.appcompat.widget.AppCompatRadioButton
                         android:id="@+id/sleep_item_60_check"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="12dp"
-                        android:tag="selectBox"
-                        app:srcCompat="@drawable/vector_single_check_selector" />
-                </RelativeLayout>
+                        style="@style/SleepRowRadio" />
+                </LinearLayout>
 
-                <View
-                    android:id="@+id/sleep_divider_5"
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginTop="-1px"
-                    android:layout_marginEnd="12dp"
-                    android:background="@color/list_divider_color"
-                    android:tag="item_divider" />
+                <View style="@style/SleepRowDivider" />
 
-                <RelativeLayout
+                <LinearLayout
                     android:id="@+id/sleep_item_90"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
                         android:id="@+id/sleep_item_90_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:singleLine="true"
-                        android:tag="itemTextColor"
-                        android:text="@string/minutes_90"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/minutes_90" />
 
-                    <androidx.appcompat.widget.AppCompatImageView
+                    <androidx.appcompat.widget.AppCompatRadioButton
                         android:id="@+id/sleep_item_90_check"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="12dp"
-                        android:tag="selectBox"
-                        app:srcCompat="@drawable/vector_single_check_selector" />
-                </RelativeLayout>
+                        style="@style/SleepRowRadio" />
+                </LinearLayout>
 
-                <View
-                    android:id="@+id/sleep_divider_6"
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginTop="-1px"
-                    android:layout_marginEnd="12dp"
-                    android:background="@color/list_divider_color"
-                    android:tag="item_divider" />
+                <View style="@style/SleepRowDivider" />
 
-                <RelativeLayout
+                <LinearLayout
                     android:id="@+id/sleep_item_custom"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
                         android:id="@+id/sleep_item_custom_text_1"
+                        style="@style/SleepRowTitle"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:singleLine="true"
-                        android:tag="itemTextColor"
-                        android:text="@string/manual_input"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        android:text="@string/manual_input" />
 
                     <EditText
                         android:id="@+id/sleep_item_custom_edit"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="4dp"
-                        android:layout_marginEnd="4dp"
-                        android:layout_toEndOf="@+id/sleep_item_custom_text_1"
-                        android:background="@drawable/edit_bg"
-                        android:gravity="center_horizontal"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_sleep_minutes_input"
+                        android:gravity="center"
                         android:hint="1-9999"
+                        android:imeOptions="actionDone"
+                        android:importantForAutofill="no"
                         android:inputType="number"
-                        android:minWidth="80dp"
+                        android:maxLength="4"
+                        android:minWidth="72dp"
+                        android:paddingHorizontal="12dp"
                         android:tag="sleepEditText"
                         android:text="15"
-                        android:textColor="#ffffff"
-                        android:textColorHint="@color/extra_text"
-                        android:textCursorDrawable="@null"
-                        android:textSize="15sp" />
+                        android:textColor="?attr/couiColorPrimaryNeutral"
+                        android:textColorHint="?attr/couiColorHintNeutral"
+                        android:textSize="16sp" />
 
                     <TextView
                         android:id="@+id/sleep_item_custom_text_2"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:layout_toEndOf="@+id/sleep_item_custom_edit"
-                        android:singleLine="true"
-                        android:tag="itemTextColor"
-                        android:text="@string/minutes"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/minutes" />
 
-                    <androidx.appcompat.widget.AppCompatImageView
+                    <androidx.appcompat.widget.AppCompatRadioButton
                         android:id="@+id/sleep_item_custom_check"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="12dp"
-                        android:tag="selectBox"
-                        app:srcCompat="@drawable/vector_single_check_selector" />
-                </RelativeLayout>
+                        style="@style/SleepRowRadio" />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/sleep_card_behavior"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="#0dffffff"
+                android:layout_marginTop="16dp"
+                android:background="?attr/couiColorCardBackground"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:orientation="vertical"
@@ -363,78 +227,62 @@
 
                 <LinearLayout
                     android:id="@+id/sleep_item_operation_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="12dp"
-                    android:paddingTop="14dp"
-                    android:paddingEnd="12dp"
-                    android:paddingBottom="14dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
+                        style="@style/SleepRowTitle"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:maxLines="2"
-                        android:tag="itemTextColor"
-                        android:text="@string/sleep_operation_1"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        android:singleLine="false"
+                        android:text="@string/sleep_operation_1" />
 
                     <TextView
                         android:id="@+id/sleep_item_operation_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
                         android:maxWidth="120dp"
                         android:maxLines="2"
                         android:tag="itemTextExtraColor"
                         android:text="@string/sleep_exit_player"
-                        android:textColor="#b3ffffff"
-                        android:textSize="12sp" />
+                        android:textAppearance="?attr/couiTextAppearanceDescription"
+                        android:textColor="?attr/couiColorSecondNeutral"
+                        android:textSize="14sp" />
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="4dp"
+                        android:importantForAccessibility="no"
+                        android:tag="itemTextExtraColor"
+                        app:srcCompat="@drawable/coui_btn_next"
+                        app:tint="?attr/couiColorSecondNeutral" />
                 </LinearLayout>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginEnd="12dp"
-                    android:background="@color/list_divider_color"
-                    android:tag="sleepDividerColor" />
+                <View style="@style/SleepRowDivider" />
 
                 <LinearLayout
                     android:id="@+id/sleep_item_operation_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="12dp"
-                    android:paddingTop="6dp"
-                    android:paddingEnd="4dp"
-                    android:paddingBottom="6dp"
-                    android:tag="itemBackground">
+                    style="@style/SleepRow">
 
                     <TextView
+                        style="@style/SleepRowTitle"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:maxLines="2"
-                        android:tag="itemTextColor"
-                        android:text="@string/sleep_operation_2"
-                        android:textColor="#ffffff"
-                        android:textSize="16sp" />
+                        android:singleLine="false"
+                        android:text="@string/sleep_operation_2" />
 
-                    <gd.app.musicplayer.core.designsystem.view.SelectBox
+                    <com.coui.appcompat.couiswitch.COUISwitch
                         android:id="@+id/sleep_item_operation_select"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="8dp"
-                        android:scaleType="centerInside"
-                        android:tag="selectBox"
-                        app:srcCompat="@drawable/vector_toggle_selector" />
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:clickable="false"
+                        android:focusable="false" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-    </ScrollView>
+    </FrameLayout>
 </LinearLayout>

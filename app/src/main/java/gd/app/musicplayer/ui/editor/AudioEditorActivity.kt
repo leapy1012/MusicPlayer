@@ -11,7 +11,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.Toolbar
 import androidx.core.widget.ImageViewCompat
 import androidx.lifecycle.lifecycleScope
@@ -516,10 +515,11 @@ class AudioEditorActivity : BaseActivity(),
             R.layout.layout_edittext,
             null,
             false
-        ) as AppCompatEditText
+        ) as com.coui.appcompat.edittext.COUIEditText
 
         input.apply {
             val defaultName = (track?.title ?: "Clip") + getString(R.string.audio_editor_extension)
+            setFastDeletable(true)
             setText(defaultName)
             applyLengthFilter(MAX_FILE_NAME_LENGTH)
             applyThemeTo(this)

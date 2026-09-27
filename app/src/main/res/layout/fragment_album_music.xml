@@ -1,55 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/coordinator_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="?attr/couiColorBackgroundWithCard"
+    android:orientation="vertical">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/appbar_layout"
+    <View
+        android:id="@+id/status_bar_space"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/main_actionbar"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        app:elevation="0dp">
+        android:layout_height="0dp"
+        android:background="?attr/couiColorBackgroundWithCard"
+        android:tag="toolbarChrome" />
 
-        <com.google.android.material.appbar.CollapsingToolbarLayout
-            android:id="@+id/collapsing_toolbar"
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/coordinator_layout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/appbar_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/couiColorBackgroundWithCard"
+            android:elevation="0dp"
+            android:tag="toolbarChrome"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true">
+
+            <com.google.android.material.appbar.CollapsingToolbarLayout
+                android:id="@+id/collapsing_toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:collapsedTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:contentScrim="@android:color/transparent"
+                app:expandedTitleMarginStart="24dp"
+                app:expandedTitleMarginBottom="16dp"
+                app:expandedTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:layout_scrollFlags="scroll|exitUntilCollapsed|snap"
+                app:maxLines="2"
+                app:titleEnabled="false">
+
+                <gd.app.lib.view.MaskImageView
+                    android:id="@+id/musicset_album"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    app:layout_collapseMode="parallax"
+                    app:layout_collapseParallaxMultiplier="0.8" />
+
+                <com.coui.appcompat.toolbar.COUIToolbar
+                    android:id="@+id/toolbar"
+                    style="@style/Secondary.Toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:minHeight="@dimen/toolbar_min_height"
+                    android:tag="toolbar"
+                    app:layout_collapseMode="pin"
+                    app:supportNavigationIcon="@drawable/coui_back_arrow"
+                    app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                    app:titleCenter="false" />
+            </com.google.android.material.appbar.CollapsingToolbarLayout>
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
+
+        <FrameLayout
+            android:id="@+id/main_child_fragment_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:theme="@style/Theme.AppCompat"
-            app:collapsedTitleTextAppearance="@style/AppToolbarTitle"
-            app:contentScrim="@color/i_black_4D"
-            app:expandedTitleMargin="25dp"
-            app:expandedTitleTextAppearance="@style/AppToolbarTitleExpend"
-            app:layout_scrollFlags="exitUntilCollapsed|scroll"
-            app:maxLines="2">
-
-            <gd.app.lib.view.MaskImageView
-                android:id="@+id/musicset_album"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                app:layout_collapseMode="parallax"
-                app:layout_collapseParallaxMultiplier="0.8"
-                app:theme="@style/ThemeOverlay.AppCompat.Light" />
-
-            <androidx.appcompat.widget.Toolbar
-                android:id="@+id/toolbar"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/common_title_height"
-                android:background="@android:color/transparent"
-                android:minHeight="@dimen/common_title_height"
-                android:theme="@style/AppToolbar"
-                app:layout_collapseMode="pin"
-                app:navigationIcon="@drawable/vector_menu_back"
-                app:titleTextAppearance="@style/AppToolbarTitle" />
-        </com.google.android.material.appbar.CollapsingToolbarLayout>
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <FrameLayout
-        android:id="@+id/main_child_fragment_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+            android:background="?attr/couiColorCardBackground"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

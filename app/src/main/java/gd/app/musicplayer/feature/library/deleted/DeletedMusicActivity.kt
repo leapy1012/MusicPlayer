@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.widget.ImageView
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -18,6 +17,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.mediastore.MediaStoreDeleteRequests
 import gd.app.musicplayer.databinding.ActivityDeletedMusicBinding
 import gd.app.musicplayer.domain.model.Music
@@ -25,9 +26,9 @@ import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.selection.SelectionUiState
-import gd.app.musicplayer.ui.selection.installSelectAllAction
+import gd.app.musicplayer.ui.selection.installSelectAllMenu
 import gd.app.musicplayer.ui.selection.musicSelectionTitle
-import gd.app.musicplayer.ui.selection.renderSelectAllState
+import gd.app.musicplayer.ui.selection.renderSelectAllMenu
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -38,7 +39,6 @@ class DeletedMusicActivity : BaseActivity() {
     private lateinit var binding: ActivityDeletedMusicBinding
     private lateinit var adapter: DeletedMusicAdapter
     private lateinit var emptyStateController: RecyclerEmptyStateController
-    private lateinit var selectAllView: ImageView
 
     private var pendingDeleteSourceFiles: List<Music> = emptyList()
 
@@ -73,9 +73,9 @@ class DeletedMusicActivity : BaseActivity() {
             titleRes = R.string.batch_edit
         )
 
-        selectAllView = binding.toolbar.installSelectAllAction(layoutInflater) {
-            toggleSelectAll()
-        }
+        binding.toolbar.installSelectAllMenu(::toggleSelectAll)
+        themeEngine.apply(binding.toolbar)
+        binding.appBar.bringToFront()
     }
 
     private fun setupRecyclerView() = with(recyclerView) {
@@ -91,6 +91,7 @@ class DeletedMusicActivity : BaseActivity() {
         setHasFixedSize(true)
 
         (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+        binding.appBar.bindRecyclerView(this)
 
         emptyStateController = RecyclerEmptyStateController(
             recyclerView = this,
@@ -101,6 +102,9 @@ class DeletedMusicActivity : BaseActivity() {
     }
 
     private fun setupActions() {
+        if (themeEngine.currentTheme().getThemeType() != ThemeManager.THEME_TYPE_LIGHT) {
+            binding.restoreDeletedMusic.drawableColor = themeEngine.currentTheme().accentColor
+        }
         binding.restoreDeletedMusic.setOnClickListener {
             restoreSelected()
         }
@@ -148,7 +152,7 @@ class DeletedMusicActivity : BaseActivity() {
     }
 
     private fun renderSelection(selectedCount: Int) {
-        selectAllView.renderSelectAllState(
+        binding.toolbar.renderSelectAllMenu(
             SelectionUiState(
                 selectedCount = selectedCount,
                 selectableCount = adapter.itemCount

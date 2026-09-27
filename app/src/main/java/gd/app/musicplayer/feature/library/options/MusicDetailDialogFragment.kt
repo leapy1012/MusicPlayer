@@ -1,21 +1,22 @@
 package gd.app.musicplayer.feature.library.options
 
+import android.app.Dialog
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
+import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
+import com.coui.appcompat.dialog.COUIAlertDialogBuilder
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.formatFileSize
-import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.databinding.DialogMusicDetailBinding
-import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
-import gd.app.musicplayer.ui.tags.EditTagsActivity
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.toDurationString
+import gd.app.musicplayer.databinding.DialogMusicDetailBinding
+import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.ui.tags.EditTagsActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,12 +24,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
+class MusicDetailDialogFragment : DialogFragment() {
 
-    private var _binding: DialogMusicDetailBinding? = null
-    private val binding: DialogMusicDetailBinding
-        get() = checkNotNull(_binding)
-
+    private var binding: DialogMusicDetailBinding? = null
     private lateinit var track: Music
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,56 +34,60 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
         track = requireArguments().parcelable(ARG_TRACK) ?: error("Missing track")
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = DialogMusicDetailBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val content = DialogMusicDetailBinding.inflate(LayoutInflater.from(requireContext()))
+        binding = content
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        applyDialogWidth(0.9f)
-        applyDialogBackground(binding.root)
+        content.musicEditName.text = track.title
+        content.musicEditAlbum.text = track.album.ifBlank { getString(android.R.string.unknownName) }
+        content.musicEditArtist.text = track.artist.ifBlank { getString(android.R.string.unknownName) }
+        content.musicEditGenre.text = track.genres.ifBlank { unknown() }
+        content.tvMusicDetailPath.text = track.data.orEmpty().ifBlank { getString(android.R.string.unknownName) }
+        content.tvMusicDetailDuration.text = track.durationMs.toDurationString()
+        content.tvMusicDetailSize.text = track.formatFileSize(requireContext())
+        content.tvMusicDetailDate.text = formatDetailDate(track.date)
+        content.tvMusicDetailBit.text = formatBitRateOrUnknown(track.bitRate)
+        content.tvMusicDetailSample.text = formatSampleRateOrUnknown(track.sampleRate)
 
-        binding.dialogTitle.text = requireArguments().getString(ARG_TITLE) ?: getString(R.string.details)
-        binding.dialogButtonCancel.setOnClickListener(this)
-        binding.dialogButtonEdit.setOnClickListener(this)
+        val title = requireArguments().getString(ARG_TITLE) ?: getString(R.string.details)
+        val builder = COUIAlertDialogBuilder(
+            requireContext(),
+            com.coui.appcompat.R.style.COUIAlertDialog_Center
+        )
+            .setTitle(title)
+            .setView(content.root)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.equalizer_edit, null)
 
-        binding.musicEditName.text = track.title
-        binding.musicEditAlbum.text = track.album.ifBlank { getString(android.R.string.unknownName) }
-        binding.musicEditArtist.text = track.artist.ifBlank { getString(android.R.string.unknownName) }
-        binding.musicEditGenre.text = track.genres.ifBlank { unknown() }
-        binding.tvMusicDetailPath.text = track.data.orEmpty().ifBlank { getString(android.R.string.unknownName) }
-        binding.tvMusicDetailDuration.text = track.durationMs.toDurationString()
-        binding.tvMusicDetailSize.text = track.formatFileSize(requireContext())
-        binding.tvMusicDetailDate.text = formatDetailDate(track.date)
-        binding.tvMusicDetailBit.text = formatBitRateOrUnknown(track.bitRate)
-        binding.tvMusicDetailSample.text = formatSampleRateOrUnknown(track.sampleRate)
-
-        loadAudioInfo()
-    }
-
-    override fun onClick(v: View) {
-        when (v.id) {
-            R.id.dialog_button_edit -> {
+        val dialog = builder.create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 dismiss()
                 EditTagsActivity.start(requireContext(), track)
             }
-
-            R.id.dialog_button_cancel -> dismiss()
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
+                dismiss()
+            }
+            builder.updateViewAfterShown()
         }
+
+        loadAudioInfo()
+        return dialog
+    }
+
+    override fun onDestroyView() {
+        binding = null
+        super.onDestroyView()
     }
 
     private fun loadAudioInfo() {
         if (track.bitRate != -1 && track.sampleRate != -1) return
         val dataSource = track.data ?: return
-        viewLifecycleOwner.lifecycleScope.launch {
+        lifecycleScope.launch {
             val info = withContext(Dispatchers.IO) { extractAudioInfo(dataSource) }
-            binding.tvMusicDetailBit.text = info.bitRate
-            binding.tvMusicDetailSample.text = info.sampleRate
+            if (!isAdded) return@launch
+            binding?.tvMusicDetailBit?.text = info.bitRate
+            binding?.tvMusicDetailSample?.text = info.sampleRate
         }
     }
 
@@ -127,11 +129,6 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
 
     private fun unknown(): String = getString(android.R.string.unknownName)
 
-    override fun onDestroyView() {
-        _binding = null
-        super.onDestroyView()
-    }
-
     private data class AudioInfo(
         val bitRate: String = "unknown",
         val sampleRate: String = "unknown"
@@ -155,4 +152,3 @@ class MusicDetailDialogFragment : BaseDialogFragment(), View.OnClickListener {
         }
     }
 }
-

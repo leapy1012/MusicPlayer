@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- White circular chip for playlist header actions on gray page bg. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/couiColorPress">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="?attr/couiColorCardBackground" />
+        </shape>
+    </item>
+</ripple>

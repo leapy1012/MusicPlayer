@@ -16,8 +16,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.applySystemBarInsets
-import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.readLongOrNull
 import gd.app.musicplayer.core.common.extension.setTextIfDifferent
 import gd.app.musicplayer.core.common.extension.startActivityCompat
@@ -25,9 +23,10 @@ import gd.app.musicplayer.databinding.ActivityScanMusicBinding
 import gd.app.musicplayer.domain.model.scan.ScanLibraryInfo
 import gd.app.musicplayer.domain.model.scan.ScanOptions
 import gd.app.musicplayer.domain.model.scan.ScanResultSummary
-import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.feature.library.deleted.DeletedMusicActivity
 import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity
+import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -90,29 +89,21 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun setupSystemBars() {
-        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.background)
+        setupEdgeToEdgeToolbar(
+            root = binding.root,
+            statusBarView = binding.statusBarSpace,
+            bottomPaddingView = binding.background,
+            toolbar = binding.toolbar
+        )
     }
 
     private fun setupToolbar() {
-        binding.toolbar.navigateBack(this)
         binding.toolbar.setOnMenuItemClickListener(this)
     }
 
     private fun setupViews() {
         binding.scanStartStop.setOnClickListener {
             onPrimaryActionClick()
-        }
-
-        beforeBinding.scanCheckbox.setOnClickListener {
-            toggleDurationFilter()
-        }
-
-        beforeBinding.scanCheckbox2.setOnClickListener {
-            toggleSizeFilter()
-        }
-
-        beforeBinding.scanCheckbox3.setOnClickListener {
-            beforeBinding.scanCheckbox3.isSelected = !beforeBinding.scanCheckbox3.isSelected
         }
 
         resultBinding.scanHideClickParent.setOnClickListener {
@@ -145,9 +136,9 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun renderOptions(options: ScanOptions) = with(beforeBinding) {
-        scanCheckbox.isSelected = options.excludeBySeconds
-        scanCheckbox2.isSelected = options.excludeBySize
-        scanCheckbox3.isSelected = options.excludeRingtone
+        scanCheckbox.isChecked = options.excludeBySeconds
+        scanCheckbox2.isChecked = options.excludeBySize
+        scanCheckbox3.isChecked = options.excludeRingtone
 
         excludeDurationEditText.setTextIfDifferent(options.excludeSeconds.toString())
         excludeSizeEditText.setTextIfDifferent(options.excludeSizeKb.toString())
@@ -281,8 +272,8 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun readScanOptionsOrNull(): ScanOptions? = with(beforeBinding) {
-        val excludeBySeconds = scanCheckbox.isSelected
-        val excludeBySize = scanCheckbox2.isSelected
+        val excludeBySeconds = scanCheckbox.isChecked
+        val excludeBySize = scanCheckbox2.isChecked
 
         val excludeSeconds = excludeDurationEditText.readLongOrNull(
             required = excludeBySeconds,
@@ -301,20 +292,13 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         ScanOptions(
             excludeBySeconds = excludeBySeconds,
             excludeBySize = excludeBySize,
-            excludeRingtone = scanCheckbox3.isSelected,
+            excludeRingtone = scanCheckbox3.isChecked,
             excludeSeconds = excludeSeconds,
             excludeSizeKb = excludeSizeKb,
             selectedScanPaths = viewModel.uiState.value.options.selectedScanPaths
         )
     }
 
-    private fun toggleDurationFilter() = with(beforeBinding) {
-        scanCheckbox.isSelected = !scanCheckbox.isSelected
-    }
-
-    private fun toggleSizeFilter() = with(beforeBinding) {
-        scanCheckbox2.isSelected = !scanCheckbox2.isSelected
-    }
 
     private fun setSettingsMenuVisible(visible: Boolean) {
         binding.toolbar.menu.findItem(R.id.menu_setting)?.isVisible = visible

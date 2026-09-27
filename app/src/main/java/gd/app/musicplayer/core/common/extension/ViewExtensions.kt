@@ -17,6 +17,8 @@ import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
+import com.coui.appcompat.poplist.DefaultAdapter
+import com.coui.appcompat.state.COUIMaskEffectDrawable
 import gd.app.lib.view.RoundedOutlineProvider
 import jp.wasabeef.glide.transformations.BlurTransformation
 
@@ -107,6 +109,28 @@ fun View.applyRoundedOutline(radiusRes: Int) {
         outlineProvider = RoundedOutlineProvider(radius)
         clipToOutline = true
         invalidateOutline()
+    }
+}
+
+/**
+ * Installs COUI list/container press feedback ([COUIMaskEffectDrawable] + touch enter/exit).
+ * Safe to call repeatedly; skips if a mask is already installed.
+ */
+fun View.installCouiPressFeedback(
+    maskType: Int = COUIMaskEffectDrawable.MASK_EFFECT_TYPE_CONTAINER_WIDGET,
+    roundStyle: Boolean = false
+) {
+    isClickable = true
+    if (background is COUIMaskEffectDrawable) return
+
+    val mask = COUIMaskEffectDrawable(context, maskType).apply {
+        enableFocusedState(false)
+        setIsRoundStyle(roundStyle)
+        setTouchExited()
+    }
+    background = mask
+    setOnTouchListener { view, event ->
+        DefaultAdapter.onStateEffectTouchEvent(view, event)
     }
 }
 

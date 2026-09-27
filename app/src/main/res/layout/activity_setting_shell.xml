@@ -1,37 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fast first frame for Settings open. Preference body is AsyncLayoutInflater'd. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- DuraSpeed / OPPO SettingsBaseFragment host: Coordinator + COUIDividerAppBar + ScrollingViewBehavior. -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/skin_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:tag="activityBackgroundColor">
+    android:background="?attr/couiColorBackgroundWithCard"
+    android:fitsSystemWindows="false">
 
-    <LinearLayout
+    <com.google.android.material.appbar.COUIDividerAppBarLayout
+        android:id="@+id/abl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/main_actionbar"
-        android:orientation="vertical">
+        android:background="?attr/couiColorBackground"
+        android:elevation="0dp"
+        app:dividerEndAlpha="1"
+        app:dividerStartAlpha="0"
+        app:elevation="0dp"
+        app:hasDivider="true">
 
-        <View
-            android:id="@+id/status_bar_space"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:tag="toolbarChrome">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:minHeight="?attr/actionBarSize"
-            android:tag="toolbar"
-            app:theme="@style/AppToolbar"
-            app:titleTextAppearance="@style/AppToolbarTitle" />
-    </LinearLayout>
+            <View
+                android:id="@+id/status_bar_space"
+                android:layout_width="match_parent"
+                android:layout_height="0dp" />
+
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                android:tag="toolbar"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
+        </LinearLayout>
+    </com.google.android.material.appbar.COUIDividerAppBarLayout>
 
     <FrameLayout
         android:id="@+id/settings_body_host"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-</LinearLayout>
+        android:layout_height="match_parent"
+        android:background="?attr/couiColorBackgroundWithCard"
+        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

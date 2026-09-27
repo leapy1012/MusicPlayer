@@ -9,28 +9,25 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.coui.appcompat.checkbox.COUICheckBox
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
-import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.ActivityPlaylistEditBinding
 import gd.app.musicplayer.databinding.ActivityPlaylistEditItemBinding
 import gd.app.musicplayer.domain.model.MenuItemModel
@@ -69,7 +66,6 @@ class PlaylistEditActivity : BaseActivity() {
     private lateinit var binding: ActivityPlaylistEditBinding
     private lateinit var adapter: PlaylistEditAdapter
     private lateinit var emptyStateController: RecyclerEmptyStateController
-    private lateinit var selectAllImage: ImageView
     private lateinit var itemTouchHelper: ItemTouchHelper
 
     private val selectedIds = linkedSetOf<Long>()
@@ -102,22 +98,31 @@ class PlaylistEditActivity : BaseActivity() {
             toolbar = binding.toolbar
         )
 
-        selectAllImage = binding.toolbar.installSelectAllAction(layoutInflater) {
-            toggleSelectAll()
-        }
+        binding.toolbar.installSelectAllMenu(::toggleSelectAll)
+        themeEngine.apply(binding.toolbar)
+        binding.appBar.bringToFront()
     }
 
     private fun setupRecycler() {
+        val usesCouiStyling =
+            themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT
         adapter = PlaylistEditAdapter(
             onToggleSelection = ::toggleSelection,
             onOrderChanged = ::onOrderChanged,
             startDrag = { holder -> itemTouchHelper.startDrag(holder) },
-            accentColor = themeRepo.getCorePalette().accentColor
+            usesCouiStyling = usesCouiStyling,
+            applyTheme = themeEngine::apply
         )
-        binding.layoutRecyclerview.recyclerview.layoutManager =
-            LinearLayoutManager(this, RecyclerView.VERTICAL, false)
-        binding.layoutRecyclerview.recyclerview.adapter = adapter
-        (binding.layoutRecyclerview.recyclerview.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+        val recyclerView = binding.layoutRecyclerview.recyclerview
+        recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+        recyclerView.adapter = adapter
+        (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+        if (usesCouiStyling) {
+            recyclerView.setBackgroundColor(
+                resolveAttrColor(com.coui.appcompat.R.attr.couiColorCardBackground, Color.WHITE)
+            )
+        }
+        binding.appBar.bindRecyclerView(recyclerView)
 
         val callback = DragItemTouchHelperCallback.Builder(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN,
@@ -136,6 +141,13 @@ class PlaylistEditActivity : BaseActivity() {
         ).apply {
             setEmptyMessage(getString(R.string.playlist_is_empty))
         }
+    }
+
+    private fun resolveAttrColor(attr: Int, fallback: Int): Int {
+        val typed = obtainStyledAttributes(intArrayOf(attr))
+        val color = typed.getColor(0, fallback)
+        typed.recycle()
+        return color
     }
 
     private fun setupBottomActions() {
@@ -189,7 +201,7 @@ class PlaylistEditActivity : BaseActivity() {
 
     private fun renderSelectionUi() {
         val count = selectedIds.size
-        selectAllImage.renderSelectAllState(
+        binding.toolbar.renderSelectAllMenu(
             SelectionUiState(
                 selectedCount = count,
                 selectableCount = currentItems.size
@@ -451,7 +463,8 @@ private class PlaylistEditAdapter(
     private val onToggleSelection: (MusicSet.Playlist) -> Unit,
     private val onOrderChanged: (List<MusicSet.Playlist>) -> Unit,
     private val startDrag: (RecyclerView.ViewHolder) -> Unit,
-    private val accentColor: Int
+    private val usesCouiStyling: Boolean,
+    private val applyTheme: (View) -> Unit
 ) : RecyclerView.Adapter<PlaylistEditAdapter.ViewHolder>() {
 
     private val selectedIds = linkedSetOf<Long>()
@@ -493,12 +506,19 @@ private class PlaylistEditAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val inflater = LayoutInflater.from(parent.context)
+        val binding = ActivityPlaylistEditItemBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        applyTheme(binding.root)
+        if (usesCouiStyling) {
+            binding.root.installCouiPressFeedback()
+        }
         return ViewHolder(
-            binding = ActivityPlaylistEditItemBinding.inflate(inflater, parent, false),
+            binding = binding,
             onToggleSelection = onToggleSelection,
-            startDrag = startDrag,
-            accentColor = accentColor
+            startDrag = startDrag
         )
     }
 
@@ -516,8 +536,7 @@ private class PlaylistEditAdapter(
     class ViewHolder(
         private val binding: ActivityPlaylistEditItemBinding,
         private val onToggleSelection: (MusicSet.Playlist) -> Unit,
-        private val startDrag: (RecyclerView.ViewHolder) -> Unit,
-        private val accentColor: Int
+        private val startDrag: (RecyclerView.ViewHolder) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(
             item: MusicSet.Playlist,
@@ -526,20 +545,11 @@ private class PlaylistEditAdapter(
             binding.musicItemTitle.text = item.name
             binding.musicItemExtra.text =
                 "${item.musicCount} ${itemView.context.getString(R.string.songs)}"
-            binding.musicItemCheckbox.setImageResource(
-                if (selected) R.drawable.vector_multi_checked else R.drawable.vector_multi_unchecked
-            )
             item.loadArtwork(binding.musicItemAlbum, item.resolvePlaceholderRes(false))
-            binding.musicItemCheckbox.isSelected = selected
-            binding.musicItemCheckbox.setColorFilter(
-                if (selected) {
-                    accentColor
-                } else {
-                    Color.WHITE
-                }
+            binding.musicItemCheckbox.setState(
+                if (selected) COUICheckBox.SELECT_ALL else COUICheckBox.SELECT_NONE
             )
             binding.root.setOnClickListener { onToggleSelection(item) }
-            binding.musicItemCheckbox.setOnClickListener { onToggleSelection(item) }
             binding.musicItemDrag.setOnTouchListener { _, event ->
                 if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                     startDrag(this)

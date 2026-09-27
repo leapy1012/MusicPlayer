@@ -74,6 +74,8 @@ class HiddenFoldersActivity : BaseActivity() {
                 false
             }
         }
+
+        binding.appBar.bringToFront()
     }
 
     private fun setupRecyclerView() {
@@ -96,6 +98,8 @@ class HiddenFoldersActivity : BaseActivity() {
 
             (itemAnimator as? SimpleItemAnimator)
                 ?.supportsChangeAnimations = false
+
+            binding.appBar.bindRecyclerView(this)
         }
     }
 

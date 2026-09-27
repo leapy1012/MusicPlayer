@@ -1,64 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_gravity="center_vertical">
 
+    <!-- RecyclerEmptyStateController moves empty_linear_layout in here for COUI spring overscroll. -->
+    <gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
+        android:id="@+id/empty_spring_host"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:tag="ignore" />
+
+    <!-- Defaults are COUI (White theme); RecyclerEmptyStateController re-tints for Picture/Night. -->
     <gd.app.lib.configuration.ConfigurationLinearLayout
         android:id="@+id/empty_linear_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:gravity="center_horizontal"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/empty_image"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:importantForAccessibility="no"
             android:src="@drawable/music_empty_image"
-            android:tag="itemTextExtraColor" />
+            android:tint="?attr/couiColorHintNeutral" />
 
         <TextView
             android:id="@+id/empty_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:gravity="center"
             android:tag="itemTextExtraColor"
             android:text="@string/music_empty"
-            android:textColor="@color/item_artist_color"
-            android:textSize="15sp" />
+            android:textAppearance="?attr/couiTextAppearanceDescription"
+            android:textColor="?attr/couiColorSecondNeutral"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/empty_text_extra"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
             android:tag="itemTextExtraColor"
             android:text="@string/music_empty_add"
-            android:textColor="@color/item_artist_color"
-            android:textSize="15sp"
+            android:textAppearance="?attr/couiTextAppearanceDescription"
+            android:textColor="?attr/couiColorSecondNeutral"
+            android:textSize="14sp"
             android:visibility="gone" />
 
-        <androidx.appcompat.widget.AppCompatTextView
+        <com.coui.appcompat.button.COUIButton
             android:id="@+id/empty_button"
+            style="@style/Widget.COUI.Button.Small.ButtonNew.HalfColor"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/selector_scan_btn_bg_w"
-            android:drawablePadding="8dp"
-            android:gravity="center"
-            android:paddingStart="24dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="8dp"
+            android:layout_marginTop="24dp"
+            android:minWidth="96dp"
             android:singleLine="true"
-            android:tag="emptyButton"
             android:text="@string/add_songs"
-            android:textColor="#ffffff"
-            android:textSize="16sp"
-            android:visibility="gone"
-            app:drawableStartCompat="@drawable/vector_add_songs" />
+            android:textAllCaps="false"
+            android:visibility="gone" />
     </gd.app.lib.configuration.ConfigurationLinearLayout>
-</ScrollView>
+</FrameLayout>

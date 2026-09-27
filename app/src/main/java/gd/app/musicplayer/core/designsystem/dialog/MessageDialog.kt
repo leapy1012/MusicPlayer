@@ -244,9 +244,7 @@ class MessageDialog(
 
     companion object {
         fun show(activity: Activity, config: Config) {
-            if (activity.isFinishing) return
-            val dialog = MessageDialog(activity, config)
-            dialog.show()
+            CouiDialogs.showMessage(activity, config)
         }
     }
 }

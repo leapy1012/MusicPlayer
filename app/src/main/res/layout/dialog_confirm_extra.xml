@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dialog_commen_extra_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="4dp">
+
+    <com.coui.appcompat.checkbox.COUICheckBox
+        android:id="@+id/dialog_commen_delete_select"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@null" />
+
+    <TextView
+        android:id="@+id/dialog_commen_delete_tip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="@string/delete_source_file"
+        android:textColor="?attr/couiColorSecondNeutral"
+        android:textSize="15sp" />
+</LinearLayout>

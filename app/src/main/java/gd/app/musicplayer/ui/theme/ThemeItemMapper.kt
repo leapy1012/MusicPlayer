@@ -1,27 +1,41 @@
 package gd.app.musicplayer.ui.theme
 
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.domain.model.ThemeGroup
 import gd.app.musicplayer.domain.model.ThemeItem
 import java.io.File
 
 object ThemeItemMapper {
 
+    /** Sentinel filename for the solid White / COUI light theme tile. */
+    const val WHITE_THEME_TOKEN = "__theme_white__"
+
     fun buildItems(
         themes: List<ThemeGroup>,
         selectedImageName: String,
         customImageNames: List<String>,
         selectedTabIndex: Int,
-        tabIndex: Int
+        tabIndex: Int,
+        themeType: Int = ThemeManager.THEME_TYPE_PICTURE
     ): List<ThemeItem> {
+        val pictureSelected = themeType == ThemeManager.THEME_TYPE_PICTURE
         return if (tabIndex == 0) {
             buildList {
+                add(
+                    ThemeItem(
+                        id = WHITE_THEME_ID,
+                        fileName = WHITE_THEME_TOKEN,
+                        isSelected = themeType == ThemeManager.THEME_TYPE_LIGHT
+                    )
+                )
+
                 themes.forEachIndexed { groupIndex, group ->
                     group.imageNames.forEachIndexed { itemIndex, imageName ->
                         add(
                             ThemeItem(
                                 id = stableId(0, groupIndex, itemIndex, imageName),
                                 fileName = imageName,
-                                isSelected = imageName == selectedImageName
+                                isSelected = pictureSelected && imageName == selectedImageName
                             )
                         )
                     }
@@ -35,7 +49,7 @@ object ThemeItemMapper {
                                 ThemeItem(
                                     id = stableId(0, themes.size, itemIndex, imagePath),
                                     fileName = imagePath,
-                                    isSelected = imagePath == selectedImageName
+                                    isSelected = pictureSelected && imagePath == selectedImageName
                                 )
                             )
                         }
@@ -49,7 +63,7 @@ object ThemeItemMapper {
                         ThemeItem(
                             id = stableId(0, themes.size + 1, 0, selectedCustomImage),
                             fileName = selectedCustomImage,
-                            isSelected = true
+                            isSelected = pictureSelected
                         )
                     )
                 }
@@ -63,14 +77,17 @@ object ThemeItemMapper {
                         ThemeItem(
                             id = stableId(tabIndex, tabIndex - 1, itemIndex, imageName),
                             fileName = imageName,
-                            isSelected = imageName == selectedImageName &&
-                                    tabIndex == selectedTabIndex
+                            isSelected = pictureSelected &&
+                                imageName == selectedImageName &&
+                                tabIndex == selectedTabIndex
                         )
                     )
                 }
             }
         }
     }
+
+    private const val WHITE_THEME_ID = Long.MIN_VALUE + 1
 
     private fun stableId(
         tabIndex: Int,

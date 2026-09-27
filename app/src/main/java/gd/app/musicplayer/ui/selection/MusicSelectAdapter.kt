@@ -4,8 +4,11 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.databinding.ActivityMusicSelectItemBinding
 import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.R
 import gd.app.musicplayer.ui.common.viewholder.MusicSelectViewHolder
 
 class MusicSelectAdapter(
@@ -22,6 +25,8 @@ class MusicSelectAdapter(
             parent,
             false
         )
+        binding.musicItemImage.applyRoundedOutline(R.dimen.item_image_corner_radius)
+        binding.root.installCouiPressFeedback()
 
         return MusicSelectViewHolder(
             binding = binding, onSelectionToggle

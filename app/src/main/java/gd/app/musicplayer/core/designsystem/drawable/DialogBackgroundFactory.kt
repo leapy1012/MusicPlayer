@@ -11,6 +11,7 @@ import gd.app.musicplayer.core.common.extension.dpToPx
 object DialogBackgroundFactory {
 
     // Theme types from project behavior
+    const val THEME_TYPE_LIGHT = 1
     const val THEME_TYPE_PICTURE = 2
     const val THEME_TYPE_NIGHT = 99
 

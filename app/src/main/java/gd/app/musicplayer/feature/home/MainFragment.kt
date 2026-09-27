@@ -21,6 +21,7 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
+import gd.app.musicplayer.ui.common.base.applyCouiLeftTitle
 import gd.app.musicplayer.ui.common.guide.DragGuideDialogFragment
 import gd.app.musicplayer.feature.library.albums.AlbumActivity
 import gd.app.musicplayer.feature.library.albums.AlbumMusicActivity
@@ -39,14 +40,18 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
     lateinit var guidePreferenceStore: GuidePreferenceStore
 
     private val mainAdapter by lazy(LazyThreadSafetyMode.NONE) {
-        MainAdapter(::onMainCategoryClick)
+        MainAdapter(
+            onItemClick = ::onMainCategoryClick,
+            applyTheme = ::applyThemeTo
+        )
     }
 
     private val playlistAdapter by lazy(LazyThreadSafetyMode.NONE) {
         MainPlaylistAdapter(
             onPlaylistClick = ::openPlaylist,
             onAddClick = ::openCreatePlaylistDialog,
-            onPlaylistOrderChanged = viewModel::updatePlaylistOrder
+            onPlaylistOrderChanged = viewModel::updatePlaylistOrder,
+            applyTheme = ::applyThemeTo
         )
     }
 
@@ -70,6 +75,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
     }
 
     private fun setupToolbar(binding: FragmentMainBinding) = with(binding.toolbar) {
+        applyCouiLeftTitle()
         setOnMenuItemClickListener(::onMenuItemClick)
         setNavigationOnClickListener {
             (activity as? MainActivity)?.openDrawer()
@@ -90,6 +96,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
             )
             adapter = playlistAdapter
             setHasFixedSize(true)
+            setOverScrollEnable(true)
 
             (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
 
@@ -234,7 +241,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
 
     private companion object {
         const val MAIN_GRID_COLUMN_COUNT = 3
-        const val PLAYLIST_ITEM_SPACING_DP = 8f
+        const val PLAYLIST_ITEM_SPACING_DP = 12f
         const val CREATE_PLAYLIST_DIALOG_TAG = "main_create_playlist_dialog"
         const val DRAG_GUIDE_TAG = "home_playlist_drag_guide"
     }

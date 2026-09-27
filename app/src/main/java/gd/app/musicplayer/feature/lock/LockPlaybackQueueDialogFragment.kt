@@ -86,7 +86,8 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
         (binding.dialogRecycler.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         emptyStateController = RecyclerEmptyStateController(
             recyclerView = binding.dialogRecycler,
-            emptyViewStub = binding.layoutListEmpty
+            emptyViewStub = binding.layoutListEmpty,
+            onDarkSurface = true
         ).apply {
             setEmptyMessage(getString(R.string.music_empty))
             setActionButtonVisible(false)

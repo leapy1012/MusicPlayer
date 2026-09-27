@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.core.datastore.ThemeSettings
 import gd.app.musicplayer.domain.model.ThemeGroup
 import gd.app.musicplayer.domain.usecase.theme.AddThemeImageNameUseCase
+import gd.app.musicplayer.domain.usecase.theme.ApplyLightThemeUseCase
 import gd.app.musicplayer.domain.usecase.theme.ApplyPictureThemeUseCase
 import gd.app.musicplayer.domain.usecase.theme.ObserveThemeSettingsUseCase
 import gd.app.musicplayer.domain.usecase.theme.ParseThemesUseCase
@@ -51,7 +52,8 @@ class ThemeViewModel @Inject constructor(
     private val parseThemesUseCase: ParseThemesUseCase,
     private val observeThemeSettingsUseCase: ObserveThemeSettingsUseCase,
     private val addThemeImageNameUseCase: AddThemeImageNameUseCase,
-    private val applyPictureThemeUseCase: ApplyPictureThemeUseCase
+    private val applyPictureThemeUseCase: ApplyPictureThemeUseCase,
+    private val applyLightThemeUseCase: ApplyLightThemeUseCase
 ) : ViewModel() {
 
     /**
@@ -129,11 +131,15 @@ class ThemeViewModel @Inject constructor(
 
     fun onThemeSelected(fileName: String, tabIndex: Int) {
         viewModelScope.launch {
-            applyPictureThemeUseCase(
-                imageName = fileName,
-                overlayColor = DEFAULT_THEME_OVERLAY_COLOR,
-                blur = 0
-            )
+            if (fileName == ThemeItemMapper.WHITE_THEME_TOKEN) {
+                applyLightThemeUseCase()
+            } else {
+                applyPictureThemeUseCase(
+                    imageName = fileName,
+                    overlayColor = DEFAULT_THEME_OVERLAY_COLOR,
+                    blur = 0
+                )
+            }
             if (selectedTabIndex.value != tabIndex) {
                 selectedTabIndex.value = tabIndex
             }

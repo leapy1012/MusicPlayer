@@ -330,9 +330,7 @@ class OptionsListDialog(
 
     companion object {
         fun show(activity: Activity, config: Config) {
-            if (activity.isFinishing) return
-            val dialog = OptionsListDialog(activity, config)
-            dialog.show()
+            CouiDialogs.showOptionsList(activity, config)
         }
     }
 }

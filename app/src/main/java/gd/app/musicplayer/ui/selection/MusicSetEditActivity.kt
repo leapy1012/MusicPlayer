@@ -4,10 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.view.ViewStub
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.os.bundleOf
@@ -27,6 +27,7 @@ import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.smallestScreenWidthDp
 import gd.app.musicplayer.core.common.extension.stableId
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.databinding.ActivityMusicSetEditBinding
 import gd.app.musicplayer.domain.model.Music
@@ -64,7 +65,6 @@ class MusicSetEditActivity : BaseActivity() {
     private lateinit var sessionId: String
 
     private var emptyView: View? = null
-    private var selectAllView: ImageView? = null
 
     private var currentItems: List<MusicSet> = emptyList()
     private val selectedKeys = linkedSetOf<String>()
@@ -75,6 +75,9 @@ class MusicSetEditActivity : BaseActivity() {
 
     private val recyclerView: RecyclerView
         get() = binding.layoutRecyclerview.recyclerview
+
+    private val usesCouiStyling: Boolean
+        get() = themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -155,17 +158,32 @@ class MusicSetEditActivity : BaseActivity() {
             toolbar = binding.toolbar
         )
 
-        selectAllView = binding.toolbar.installSelectAllAction(layoutInflater) {
-            toggleSelectAll()
-        }
+        binding.toolbar.installSelectAllMenu(::toggleSelectAll)
+        themeEngine.apply(binding.toolbar)
+        binding.appBar.bringToFront()
+        binding.appBar.bindRecyclerView(recyclerView)
     }
 
     private fun setupAdapter() {
+        val accentColor = themeEngine.currentTheme().accentColor
         adapter = MusicSetEditAdapter(
             viewMode = viewMode,
-            accentColor = themeEngine.currentTheme().accentColor,
+            accentColor = if (usesCouiStyling) {
+                resolveAttrColor(com.coui.appcompat.R.attr.couiColorPrimary, accentColor)
+            } else {
+                accentColor
+            },
+            usesCouiStyling = usesCouiStyling,
+            applyTheme = themeEngine::apply,
             onToggleSelection = ::toggleSelection
         )
+    }
+
+    private fun resolveAttrColor(attr: Int, fallback: Int): Int {
+        val typed = obtainStyledAttributes(intArrayOf(attr))
+        val color = typed.getColor(0, fallback)
+        typed.recycle()
+        return color
     }
 
     private fun setupRecyclerView() = with(recyclerView) {
@@ -202,6 +220,12 @@ class MusicSetEditActivity : BaseActivity() {
     private fun RecyclerView.setupListRecycler() {
         layoutManager = LinearLayoutManager(this@MusicSetEditActivity)
         setPadding(0, 0, 0, 0)
+
+        if (usesCouiStyling) {
+            setBackgroundColor(
+                resolveAttrColor(com.coui.appcompat.R.attr.couiColorCardBackground, Color.WHITE)
+            )
+        }
     }
 
     private fun setupBottomMenu() {
@@ -387,7 +411,7 @@ class MusicSetEditActivity : BaseActivity() {
             emptyTitleRes = R.string.batch_edit
         )
 
-        selectAllView?.renderSelectAllState(
+        binding.toolbar.renderSelectAllMenu(
             SelectionUiState(
                 selectedCount = selectedCount,
                 selectableCount = selectableCount

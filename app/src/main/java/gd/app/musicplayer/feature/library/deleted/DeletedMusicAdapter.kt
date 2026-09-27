@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.isRtl
 import gd.app.musicplayer.core.common.extension.isRtlLayoutSupported
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
@@ -35,6 +36,7 @@ class DeletedMusicAdapter(
             parent,
             false
         )
+        binding.root.installCouiPressFeedback()
         return ViewHolder(binding)
     }
 
@@ -143,12 +145,11 @@ class DeletedMusicAdapter(
         fun bindSelection(music: Music) {
             boundMusic = music
             val selected = music.id in selectedIds
-            binding.musicItemMenu.isSelected = selected
-            binding.musicItemMenu.setColorFilter(
+            binding.musicItemCheckbox.setState(
                 if (selected) {
-                    accentColor
+                    com.coui.appcompat.checkbox.COUICheckBox.SELECT_ALL
                 } else {
-                    ContextCompat.getColor(binding.root.context, R.color.item_artist_color)
+                    com.coui.appcompat.checkbox.COUICheckBox.SELECT_NONE
                 }
             )
         }
