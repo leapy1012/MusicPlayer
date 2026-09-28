@@ -16,6 +16,7 @@
     <dimen name="scan_result_padding">24dp</dimen>
     <dimen name="scan_checkbox_margin_top">0dp</dimen>
     <dimen name="scan_result_margin">1dp</dimen>
+    <dimen name="equalizer_band_card_height">280dp</dimen>
     <dimen name="equalizer_bass_height">100dp</dimen>
     <dimen name="equalizer_box_margin_top">16dp</dimen>
     <dimen name="equalizer_effect_width">80dp</dimen>

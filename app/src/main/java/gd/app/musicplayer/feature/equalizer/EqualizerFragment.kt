@@ -1,13 +1,11 @@
 package gd.app.musicplayer.feature.equalizer
 
 import android.content.DialogInterface
-import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.AdapterView
-import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -17,17 +15,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyLengthFilter
-import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.extractValidatedText
-import gd.app.musicplayer.core.common.extension.isLandscape
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialog
 import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
 import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
-import gd.app.musicplayer.core.designsystem.view.RotateStepBar
-import gd.app.musicplayer.core.designsystem.view.SelectBox
 import gd.app.musicplayer.core.datastore.EqualizerPreference
 import gd.app.musicplayer.domain.repository.EqualizerPresetRecord
 import gd.app.musicplayer.databinding.FragmentEqualizerBinding
@@ -41,7 +36,6 @@ import gd.app.musicplayer.playback.effects.AudioEffectsManager
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import javax.inject.Inject
-import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -91,17 +85,11 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         setupBassAndVirtualizer(binding)
         setupEnableTipGuard(binding)
         observeSettings()
-        updateContentHeight()
     }
 
     override fun onDestroyView() {
         (activity as? EqualizerActivity)?.equalizerTipGuard()?.clearShieldViews()
         super.onDestroyView()
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        updateContentHeight()
     }
 
     fun reloadFromSettings() {
@@ -129,25 +117,25 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     }
 
     private fun setupEqualizerSwitch(binding: FragmentEqualizerBinding) = with(binding) {
-        equalizerBox.setOnSelectChangedListener(
-            object : SelectBox.OnSelectChangedListener {
-                override fun onSelectChanged(
-                    selectBox: SelectBox,
-                    fromUser: Boolean,
-                    isSelected: Boolean
-                ) {
-                    if (!fromUser || isRendering) return
+        equalizerSwitchRow.bindSwitchRow(equalizerBox)
+        equalizerBox.setOnCheckedChangeListener { _, isChecked ->
+            if (isRendering) return@setOnCheckedChangeListener
 
-                    latestSettings = latestSettings.copy(equalizerEnabled = isSelected)
-                    persistAndApply {
-                        equalizerViewModel.persistEqualizerEnabled(isSelected)
-                    }
-                }
+            latestSettings = latestSettings.copy(equalizerEnabled = isChecked)
+            renderMainEnabledState(requireBinding(), latestSettings)
+            equalizerBandAdapter.submit(
+                labels = EqualizerPresets.frequencies(latestSettings.bandMode == TEN_BAND_MODE),
+                levels = currentBandLevels.toIntArray(),
+                enabled = isChecked
+            )
+            persistAndApply {
+                equalizerViewModel.persistEqualizerEnabled(isChecked)
             }
-        )
+        }
     }
 
     private fun setupPresetSelector(binding: FragmentEqualizerBinding) = with(binding) {
+        equalizerEffectLayout.installCouiPressFeedback()
         equalizerEffectLayout.setOnClickListener {
             if (isRendering || !latestSettings.equalizerEnabled) return@setOnClickListener
             showPresetPickerDialog()
@@ -167,7 +155,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     }
 
     private fun setupBandRecycler(binding: FragmentEqualizerBinding) = with(binding) {
-        equalizerSeekParent.equalizerRecycler.apply {
+        equalizerRecycler.apply {
             layoutManager = LinearLayoutManager(
                 requireContext(),
                 LinearLayoutManager.HORIZONTAL,
@@ -202,96 +190,63 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         guard.setEqualizerToggle(binding.equalizerBox)
         guard.addShieldViews(
             binding.equalizerEffectLayout,
-            binding.equalizerSeekParent.equalizerRecycler
+            binding.equalizerRecycler
         )
     }
 
     private fun setupBassAndVirtualizer(binding: FragmentEqualizerBinding) = with(binding) {
-        equalizerBassParent.equalizerBassBox.setOnSelectChangedListener(
-            object : SelectBox.OnSelectChangedListener {
-                override fun onSelectChanged(
-                    selectBox: SelectBox,
-                    fromUser: Boolean,
-                    isSelected: Boolean
-                ) {
-                    if (!fromUser || isRendering) return
+        equalizerBassRow.bindSwitchRow(equalizerBassBox)
+        equalizerVirtualRow.bindSwitchRow(equalizerVirtualBox)
 
-                    latestSettings = latestSettings.copy(bassEnabled = isSelected)
-                    renderBassAndVirtualizerEnabledState(requireBinding(), latestSettings)
-                    persistAndApply {
-                        equalizerViewModel.persistBassEnabled(isSelected)
-                    }
-                }
+        equalizerBassBox.setOnCheckedChangeListener { _, isChecked ->
+            if (isRendering) return@setOnCheckedChangeListener
+
+            latestSettings = latestSettings.copy(bassEnabled = isChecked)
+            renderBassAndVirtualizerEnabledState(requireBinding(), latestSettings)
+            persistAndApply {
+                equalizerViewModel.persistBassEnabled(isChecked)
             }
-        )
+        }
 
-        equalizerBassParent.equalizerVirtualBox.setOnSelectChangedListener(
-            object : SelectBox.OnSelectChangedListener {
-                override fun onSelectChanged(
-                    selectBox: SelectBox,
-                    fromUser: Boolean,
-                    isSelected: Boolean
-                ) {
-                    if (!fromUser || isRendering) return
+        equalizerVirtualBox.setOnCheckedChangeListener { _, isChecked ->
+            if (isRendering) return@setOnCheckedChangeListener
 
-                    latestSettings = latestSettings.copy(virtualizerEnabled = isSelected)
-                    renderBassAndVirtualizerEnabledState(requireBinding(), latestSettings)
-                    persistAndApply {
-                        equalizerViewModel.persistVirtualizerEnabled(isSelected)
-                    }
-                }
+            latestSettings = latestSettings.copy(virtualizerEnabled = isChecked)
+            renderBassAndVirtualizerEnabledState(requireBinding(), latestSettings)
+            persistAndApply {
+                equalizerViewModel.persistVirtualizerEnabled(isChecked)
             }
-        )
+        }
 
-        equalizerBassParent.equalizerBassRotate.setOnRotateChangedListener(
-            object : RotateStepBar.OnRotateChangedListener {
-                override fun onRotationTrackingChanged(
-                    view: RotateStepBar,
-                    isTracking: Boolean
-                ) {
-                    updateGestureInterception(isTracking)
-                }
+        equalizerBassProgress.setOnSliderChangeListener(
+            onTrackingChanged = ::updateGestureInterception
+        ) { progress, _ ->
+            val max = equalizerBassProgress.max
+            equalizerBassProgressDes.text = progress.toPercentText(max)
+            if (isRendering) return@setOnSliderChangeListener
 
-                override fun onRotationChanged(
-                    view: RotateStepBar,
-                    progress: Int
-                ) {
-                    if (isRendering) return
-
-                    val value = progress / view.getMax().toFloat()
-                    latestSettings = latestSettings.copy(bassProgress = value)
-                    bassApplyJob?.cancel()
-                    bassApplyJob = persistAndApplyDelayed(BASS_VIRTUALIZER_APPLY_DELAY_MS) {
-                        equalizerViewModel.persistBassProgress(value)
-                    }
-                }
+            val value = progress / max.toFloat()
+            latestSettings = latestSettings.copy(bassProgress = value)
+            bassApplyJob?.cancel()
+            bassApplyJob = persistAndApplyDelayed(BASS_VIRTUALIZER_APPLY_DELAY_MS) {
+                equalizerViewModel.persistBassProgress(value)
             }
-        )
+        }
 
-        equalizerBassParent.equalizerVirtualRotate.setOnRotateChangedListener(
-            object : RotateStepBar.OnRotateChangedListener {
-                override fun onRotationTrackingChanged(
-                    view: RotateStepBar,
-                    isTracking: Boolean
-                ) {
-                    updateGestureInterception(isTracking)
-                }
+        equalizerVirtualProgress.setOnSliderChangeListener(
+            onTrackingChanged = ::updateGestureInterception
+        ) { progress, _ ->
+            val max = equalizerVirtualProgress.max
+            equalizerVirtualProgressDes.text = progress.toPercentText(max)
+            if (isRendering) return@setOnSliderChangeListener
 
-                override fun onRotationChanged(
-                    view: RotateStepBar,
-                    progress: Int
-                ) {
-                    if (isRendering) return
-
-                    val value = progress / view.getMax().toFloat()
-                    latestSettings = latestSettings.copy(virtualizerProgress = value)
-                    virtualizerApplyJob?.cancel()
-                    virtualizerApplyJob = persistAndApplyDelayed(BASS_VIRTUALIZER_APPLY_DELAY_MS) {
-                        equalizerViewModel.persistVirtualizerProgress(value)
-                    }
-                }
+            val value = progress / max.toFloat()
+            latestSettings = latestSettings.copy(virtualizerProgress = value)
+            virtualizerApplyJob?.cancel()
+            virtualizerApplyJob = persistAndApplyDelayed(BASS_VIRTUALIZER_APPLY_DELAY_MS) {
+                equalizerViewModel.persistVirtualizerProgress(value)
             }
-        )
+        }
     }
 
     private fun renderAll(
@@ -300,7 +255,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     ) = with(binding) {
         isRendering = true
 
-        equalizerBox.isSelected = settings.equalizerEnabled
+        equalizerBox.isChecked = settings.equalizerEnabled
         equalizerText.text = resolveEffectName(settings.selectedEffectId)
         equalizerSave.isSelected = settings.selectedEffectId == USER_PRESET_ID
 
@@ -315,15 +270,16 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         binding: FragmentEqualizerBinding,
         settings: EqualizerPreference
     ) = with(binding) {
-        equalizerEditParent.isEnabled = settings.equalizerEnabled
-        equalizerEffectLayout.isEnabled = settings.equalizerEnabled
-        equalizerText.isEnabled = settings.equalizerEnabled
-        equalizerTextArrow.isEnabled = settings.equalizerEnabled
-        equalizerEdit.isEnabled = settings.equalizerEnabled
-        equalizerSave.isEnabled = settings.equalizerEnabled
+        val enabled = settings.equalizerEnabled
+        equalizerEffectLayout.isEnabled = enabled
+        equalizerEffectTitle.isEnabled = enabled
+        equalizerText.isEnabled = enabled
+        equalizerTextArrow.isEnabled = enabled
+        equalizerEdit.isEnabled = enabled
+        equalizerSave.isEnabled = enabled
 
-        equalizerSeekParent.equalizerSeekGroup.isEnabled = settings.equalizerEnabled
-        equalizerSeekParent.equalizerRecycler.isEnabled = settings.equalizerEnabled
+        equalizerSeekGroup.isEnabled = enabled
+        equalizerRecycler.isEnabled = enabled
     }
 
     private fun renderBandRecycler(
@@ -349,17 +305,19 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     private fun renderBassAndVirtualizer(
         binding: FragmentEqualizerBinding,
         settings: EqualizerPreference
-    ) = with(binding.equalizerBassParent) {
-        equalizerBassBox.isSelected = settings.bassEnabled
-        equalizerVirtualBox.isSelected = settings.virtualizerEnabled
+    ) = with(binding) {
+        equalizerBassBox.isChecked = settings.bassEnabled
+        equalizerVirtualBox.isChecked = settings.virtualizerEnabled
 
-        equalizerBassRotate.setProgress(
-            settings.bassProgress.toProgress(equalizerBassRotate.getMax())
-        )
+        val bassProgress = settings.bassProgress.toSliderProgress(equalizerBassProgress.max)
+        equalizerBassProgress.setProgress(bassProgress)
+        equalizerBassProgressDes.text = bassProgress.toPercentText(equalizerBassProgress.max)
 
-        equalizerVirtualRotate.setProgress(
-            settings.virtualizerProgress.toProgress(equalizerVirtualRotate.getMax())
-        )
+        val virtualProgress =
+            settings.virtualizerProgress.toSliderProgress(equalizerVirtualProgress.max)
+        equalizerVirtualProgress.setProgress(virtualProgress)
+        equalizerVirtualProgressDes.text =
+            virtualProgress.toPercentText(equalizerVirtualProgress.max)
 
         renderBassAndVirtualizerEnabledState(binding, settings)
     }
@@ -367,15 +325,12 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     private fun renderBassAndVirtualizerEnabledState(
         binding: FragmentEqualizerBinding,
         settings: EqualizerPreference
-    ) = with(binding.equalizerBassParent) {
-        equalizerBassBox.isEnabled = true
-        equalizerVirtualBox.isEnabled = true
+    ) = with(binding) {
+        equalizerBassProgress.isEnabled = settings.bassEnabled
+        equalizerBassProgressDes.isEnabled = settings.bassEnabled
 
-        equalizerBassRotate.isEnabled = settings.bassEnabled
-        equalizerBassText.isEnabled = settings.bassEnabled
-
-        equalizerVirtualRotate.isEnabled = settings.virtualizerEnabled
-        equalizerVirtualText.isEnabled = settings.virtualizerEnabled
+        equalizerVirtualProgress.isEnabled = settings.virtualizerEnabled
+        equalizerVirtualProgressDes.isEnabled = settings.virtualizerEnabled
     }
 
     private fun resolveEffectName(effectId: Int): String {
@@ -706,8 +661,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
 
     private fun updateGestureInterception(intercept: Boolean) {
         val binding = binding ?: return
-        binding.equalizerSeekParent.equalizerRecycler.requestDisallowInterceptTouchEvent(intercept)
-        (binding.root as? NestedScrollView)?.requestDisallowInterceptTouchEvent(intercept)
+        binding.equalizerRecycler.requestDisallowInterceptTouchEvent(intercept)
         binding.root.requestDisallowInterceptTouchEvent(intercept)
         (activity as? EqualizerActivity)?.requestPagerDisallowInterceptTouchEvent(intercept)
     }
@@ -725,36 +679,6 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
             add(updatedCustom)
             addAll(presetRecords.drop(1))
         }
-    }
-
-    private fun updateContentHeight() {
-        val binding = binding ?: return
-        val landscape = requireContext().isLandscape()
-
-        binding.root.post {
-            val rootHeight = binding.root.height
-            if (rootHeight <= 0) return@post
-
-            // Original l5.i.a0(landscape): add stacked chrome so NestedScrollView can scroll
-            // bass/virtualizer into view when the pager is short in landscape.
-            var height = rootHeight
-            if (landscape) {
-                val context = requireContext()
-                height += context.dpToPx(64f) +
-                    resources.getDimensionPixelSize(R.dimen.equalizer_title_margin_bottom) +
-                    resources.getDimensionPixelSize(R.dimen.equalizer_rotate_margin_bottom) +
-                    resources.getDimensionPixelSize(R.dimen.equalizer_toggle_height) +
-                    resources.getDimensionPixelSize(R.dimen.equalizer_box_margin_top) +
-                    resources.getDimensionPixelSize(R.dimen.equalizer_bass_height) +
-                    resources.getDimensionPixelSize(R.dimen.equalizer_rotate_text_margin) +
-                    context.dpToPx(16f)
-            }
-            binding.equalizerContentView.setFixedHeight(height)
-        }
-    }
-
-    private fun Float.toProgress(max: Int): Int {
-        return (coerceIn(0f, 1f) * max).roundToInt()
     }
 
     companion object {

@@ -1,13 +1,15 @@
 package gd.app.musicplayer.feature.equalizer
 
+import android.animation.ValueAnimator
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.animation.PathInterpolatorCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.seekbar.COUIVerticalSeekBar
 import gd.app.musicplayer.core.common.extension.isRtl
 import gd.app.musicplayer.core.designsystem.view.EqualizerItemLayout
 import gd.app.musicplayer.databinding.ItemEqualizerSeekbarBinding
-import gd.app.musicplayer.core.designsystem.view.SeekBar
 
 internal class EqualizerBandAdapter(
     private val layoutInflater: LayoutInflater,
@@ -18,6 +20,7 @@ internal class EqualizerBandAdapter(
     private companion object {
         const val PAYLOAD_LEVEL = "payload_level"
         const val PAYLOAD_ENABLED = "payload_enabled"
+        const val LEVEL_ANIM_DURATION_MS = 300L
     }
 
     private var labels: List<String> = emptyList()
@@ -92,9 +95,13 @@ internal class EqualizerBandAdapter(
 
     inner class BandViewHolder(
         private val binding: ItemEqualizerSeekbarBinding
-    ) : RecyclerView.ViewHolder(binding.root), SeekBar.OnSeekBarChangeListener {
+    ) : RecyclerView.ViewHolder(binding.root), COUIVerticalSeekBar.OnSeekBarChangeListener {
+
+        private var tracking = false
+        private var levelAnimator: ValueAnimator? = null
 
         init {
+            binding.equalizerItemSeek.claimSliderDrags(vertical = true)
             binding.equalizerItemSeek.setOnSeekBarChangeListener(this)
         }
 
@@ -106,14 +113,31 @@ internal class EqualizerBandAdapter(
         }
 
         fun bindLevel(position: Int) {
+            if (tracking) return
             val level = levels[position]
             binding.equalizerItemSeekText.text = formatBandValue(level)
             val progress = EqualizerPresets.levelMbToProgress(level)
-            if (animateOnNextBind.getOrNull(position) == true) {
-                binding.equalizerItemSeek.j(progress, true)
-                animateOnNextBind[position] = false
+            val animate = animateOnNextBind.getOrNull(position) == true
+            if (animate) animateOnNextBind[position] = false
+            if (animate && binding.equalizerItemSeek.isLaidOut) {
+                animateProgressTo(progress)
             } else {
+                levelAnimator?.cancel()
                 binding.equalizerItemSeek.setProgress(progress)
+            }
+        }
+
+        // COUIVerticalSeekBar's own setProgress(p, true) never refreshes its pixels-per-step
+        // after layout and jumps to 0, so step it with plain setProgress calls instead.
+        private fun animateProgressTo(target: Int) {
+            val seekBar = binding.equalizerItemSeek
+            levelAnimator?.cancel()
+            if (seekBar.progress == target) return
+            levelAnimator = ValueAnimator.ofInt(seekBar.progress, target).apply {
+                duration = LEVEL_ANIM_DURATION_MS
+                interpolator = PathInterpolatorCompat.create(0.3f, 0f, 0.1f, 1f)
+                addUpdateListener { seekBar.setProgress(it.animatedValue as Int) }
+                start()
             }
         }
 
@@ -123,19 +147,27 @@ internal class EqualizerBandAdapter(
             binding.equalizerItemSeekText.isEnabled = enabled
         }
 
-        override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+        override fun onProgressChanged(
+            seekBar: COUIVerticalSeekBar,
+            progress: Int,
+            fromUser: Boolean
+        ) {
             val position = bindingAdapterPosition
             if (position == RecyclerView.NO_POSITION) return
             val level = EqualizerPresets.progressToLevelMb(progress)
             binding.equalizerItemSeekText.text = formatBandValue(level)
+            if (fromUser && position in levels.indices) levels[position] = level
             onBandChanged(position, level, fromUser)
         }
 
-        override fun onStartTrackingTouch(seekBar: SeekBar) {
+        override fun onStartTrackingTouch(seekBar: COUIVerticalSeekBar) {
+            levelAnimator?.cancel()
+            tracking = true
             onTrackingChanged(true)
         }
 
-        override fun onStopTrackingTouch(seekBar: SeekBar) {
+        override fun onStopTrackingTouch(seekBar: COUIVerticalSeekBar) {
+            tracking = false
             onTrackingChanged(false)
         }
 

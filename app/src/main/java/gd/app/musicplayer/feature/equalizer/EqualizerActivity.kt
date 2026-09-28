@@ -10,12 +10,11 @@ import android.widget.AdapterView
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.google.android.material.tabs.TabLayout
+import androidx.viewpager2.widget.ViewPager2
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.datastore.SoundEffectPreferences
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialog
@@ -26,8 +25,10 @@ import gd.app.musicplayer.core.designsystem.theme.titleColor
 import gd.app.musicplayer.databinding.ActivityEqualizerBinding
 import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
-import gd.app.musicplayer.ui.common.MusicTabLayoutMediator
+import gd.app.musicplayer.ui.common.CouiTabLayoutMediator
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.applyCouiLeftTitle
+import gd.app.musicplayer.ui.common.installEqualWidthTabs
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -41,7 +42,8 @@ class EqualizerActivity : BaseActivity() {
     private lateinit var binding: ActivityEqualizerBinding
     private val equalizerFragment = EqualizerFragment()
     private val soundEffectFragment = SoundEffectFragment()
-    private var tabMediator: MusicTabLayoutMediator? = null
+    private var tabMediator: CouiTabLayoutMediator? = null
+    private var equalWidthListener: View.OnLayoutChangeListener? = null
     private lateinit var tipGuard: EqualizerEnableTipGuard
 
     companion object {
@@ -75,6 +77,8 @@ class EqualizerActivity : BaseActivity() {
     override fun onDestroy() {
         tabMediator?.detach()
         tabMediator = null
+        equalWidthListener?.let(binding.equalizerTabLayout::removeOnLayoutChangeListener)
+        equalWidthListener = null
         tipGuard.clearShieldViews()
         super.onDestroy()
     }
@@ -113,46 +117,46 @@ class EqualizerActivity : BaseActivity() {
             }
         }
 
-        tabMediator = MusicTabLayoutMediator(
-            binding.equalizerTabLayout,
-            binding.equalizerViewPager
+        tabMediator = CouiTabLayoutMediator(
+            tabLayout = binding.equalizerTabLayout,
+            viewPager = binding.equalizerViewPager
         ) { tab, position ->
             tab.text = if (position == 0) "EQ" else "VOL"
         }.also { mediator ->
             mediator.attach()
         }
+        equalWidthListener = binding.equalizerTabLayout.installEqualWidthTabs()
 
         lifecycleScope.launch {
             binding.equalizerViewPager.setCurrentItem(
                 soundEffectPreferences.getEqualizerLastTab().coerceIn(0, 1),
                 false
             )
-        }
-
-        binding.equalizerTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                lifecycleScope.launch {
-                    soundEffectPreferences.setEqualizerLastTab(tab.position)
+            binding.equalizerViewPager.registerOnPageChangeCallback(
+                object : ViewPager2.OnPageChangeCallback() {
+                    override fun onPageSelected(position: Int) {
+                        lifecycleScope.launch {
+                            soundEffectPreferences.setEqualizerLastTab(position)
+                        }
+                    }
                 }
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
-            override fun onTabReselected(tab: TabLayout.Tab) = Unit
-        })
+            )
+        }
     }
 
-    private fun setupActions() {
-        binding.equalizerBack.navigateBack(this)
+    private fun setupActions() = with(binding.toolbar) {
+        applyCouiLeftTitle()
+        setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        val supportsTenBand = SoundEffectPreferences.supportsTenBandEqualizer()
-        binding.equalizerType.visibility = if (supportsTenBand) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-        if (supportsTenBand) {
-            binding.equalizerType.setOnClickListener {
+        inflateMenu(R.menu.menu_equalizer)
+        menu.findItem(R.id.menu_equalizer_band_type)?.isVisible =
+            SoundEffectPreferences.supportsTenBandEqualizer()
+        setOnMenuItemClickListener { item ->
+            if (item.itemId == R.id.menu_equalizer_band_type) {
                 showBandTypeDialog()
+                true
+            } else {
+                false
             }
         }
     }

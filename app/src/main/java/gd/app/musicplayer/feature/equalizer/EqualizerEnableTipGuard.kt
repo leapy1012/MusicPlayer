@@ -6,11 +6,11 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.widget.CompoundButton
 import android.widget.PopupWindow
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.isRtl
-import gd.app.musicplayer.core.designsystem.view.SelectBox
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import kotlin.math.sqrt
 
@@ -24,7 +24,7 @@ class EqualizerEnableTipGuard(
     private val activity: BaseActivity
 ) {
     private val shieldViews = mutableListOf<View>()
-    private var equalizerToggle: SelectBox? = null
+    private var equalizerToggle: CompoundButton? = null
     private var tipAccentColor: Int = 0
     private var enabled: Boolean = true
     private var pendingTapInShield: Boolean = false
@@ -32,7 +32,7 @@ class EqualizerEnableTipGuard(
     private var downRawY: Float = 0f
     private val touchSlop = ViewConfiguration.get(activity).scaledTouchSlop.toFloat()
 
-    fun setEqualizerToggle(toggle: SelectBox) {
+    fun setEqualizerToggle(toggle: CompoundButton) {
         equalizerToggle = toggle
     }
 
@@ -54,7 +54,7 @@ class EqualizerEnableTipGuard(
 
     fun onTouchEvent(event: MotionEvent): Boolean {
         val toggle = equalizerToggle
-        if (!enabled || toggle == null || toggle.isSelected) {
+        if (!enabled || toggle == null || toggle.isChecked) {
             return false
         }
 
@@ -101,8 +101,7 @@ class EqualizerEnableTipGuard(
     }
 
     private fun isInToolbarArea(rawX: Float, rawY: Float): Boolean {
-        val toolbar = activity.findViewById<View>(R.id.equalizer_back)?.parent as? View
-            ?: return false
+        val toolbar = activity.findViewById<View>(R.id.equalizer_app_bar) ?: return false
         if (!toolbar.isShown) return false
         val location = IntArray(2)
         toolbar.getLocationOnScreen(location)

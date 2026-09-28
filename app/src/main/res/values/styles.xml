@@ -639,6 +639,88 @@
         <item name="android:tag">item_divider</item>
     </style>
 
+    <style name="EqualizerCard">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/setting_catory_bg</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="EqualizerRow" parent="@style/SleepRow" />
+
+    <style name="EqualizerRowSwitch">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">12dp</item>
+        <item name="android:clickable">false</item>
+        <item name="android:focusable">false</item>
+    </style>
+
+    <style name="EqualizerRowDivider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1px</item>
+        <item name="android:layout_marginStart">16dp</item>
+        <item name="android:layout_marginEnd">16dp</item>
+        <item name="android:background">?attr/couiColorDivider</item>
+    </style>
+
+    <style name="EqualizerRowTitle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAppearance">?attr/couiTextAppearanceHeadline6</item>
+        <item name="android:textColor">@color/equalizer_primary_text</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="EqualizerSliderRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:clipChildren">false</item>
+        <item name="android:clipToPadding">false</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+
+    <style name="EqualizerSlider">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:clipToPadding">false</item>
+        <item name="android:max">100</item>
+        <item name="android:min">0</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+    </style>
+
+    <style name="EqualizerSliderValue">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">end</item>
+        <item name="android:minWidth">44sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAppearance">?attr/couiTextAppearanceBody</item>
+        <item name="android:textColor">@color/equalizer_secondary_text</item>
+    </style>
+
+    <style name="EqualizerSliderLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">16dp</item>
+        <item name="android:minWidth">48sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAppearance">?attr/couiTextAppearanceBody</item>
+        <item name="android:textColor">@color/equalizer_primary_text</item>
+    </style>
+
+    <style name="EqualizerReverbChip" parent="@style/Widget.COUI.Chip.Selection">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
     <style name="EditBottomMenuItem">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">match_parent</item>

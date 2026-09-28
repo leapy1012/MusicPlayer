@@ -4,8 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
-import android.widget.LinearLayout
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
@@ -16,7 +14,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.COUIRecyclerView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.coui.appcompat.tablayout.COUITabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
@@ -26,6 +23,7 @@ import gd.app.musicplayer.domain.model.LibraryTabConfig
 import gd.app.musicplayer.domain.model.LibraryTabConfigStore
 import gd.app.musicplayer.feature.search.SearchActivity
 import gd.app.musicplayer.ui.common.CouiTabLayoutMediator
+import gd.app.musicplayer.ui.common.installEqualWidthTabs
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.base.applyCouiLeftTitle
 import kotlinx.coroutines.launch
@@ -121,7 +119,8 @@ class LibraryFragment :
             mediator.attach()
         }
 
-        installEqualWidthTabs(binding.tabLayout)
+        equalWidthListener?.let(binding.tabLayout::removeOnLayoutChangeListener)
+        equalWidthListener = binding.tabLayout.installEqualWidthTabs()
 
         val callback = object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -156,92 +155,6 @@ class LibraryFragment :
     private fun findCurrentRecyclerView(): RecyclerView? {
         val fragment = getCurrentLibraryChildFragment() ?: return null
         return fragment.view?.findViewById(R.id.recyclerview)
-    }
-
-    private fun installEqualWidthTabs(tabLayout: COUITabLayout) {
-        equalWidthListener?.let { tabLayout.removeOnLayoutChangeListener(it) }
-        val listener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            applyEqualWidthTabs(tabLayout)
-        }
-        equalWidthListener = listener
-        tabLayout.addOnLayoutChangeListener(listener)
-        tabLayout.post { applyEqualWidthTabs(tabLayout) }
-    }
-
-    private fun applyEqualWidthTabs(tabLayout: COUITabLayout) {
-        val strip = tabLayout.getChildAt(0) as? ViewGroup ?: return
-        val count = strip.childCount
-        val totalWidth = tabLayout.width
-        if (count <= 0 || totalWidth <= 0) return
-
-        // COUI FIXED mode does not distribute equal widths. When content is
-        // shorter than the strip, measureShortChild centers wrap-content tabs.
-        // Force each tab's minimumWidth to fill equally so measure keeps them
-        // edge-to-edge (layoutParams.width alone is overwritten on remeasure).
-        val baseWidth = totalWidth / count
-        val remainder = totalWidth % count
-        tabLayout.setRequestedTabMaxWidth(baseWidth + if (remainder > 0) 1 else 0)
-        tabLayout.setPadding(0, tabLayout.paddingTop, 0, tabLayout.paddingBottom)
-        // Indicator tracks TextView bounds (not tab bounds); ratio attr is unused
-        // in this COUI strip. Stretch the label so the underline spans the tab.
-        tabLayout.setIndicatorWidthRatio(1f)
-
-        var changed = false
-        for (index in 0 until count) {
-            val child = strip.getChildAt(index)
-            val tabWidth = baseWidth + if (index < remainder) 1 else 0
-            if (child.minimumWidth != tabWidth) {
-                child.minimumWidth = tabWidth
-                changed = true
-            }
-            val params = child.layoutParams as LinearLayout.LayoutParams
-            if (params.weight != 0f ||
-                params.marginStart != 0 ||
-                params.marginEnd != 0 ||
-                params.leftMargin != 0 ||
-                params.rightMargin != 0
-            ) {
-                params.weight = 0f
-                params.marginStart = 0
-                params.marginEnd = 0
-                params.leftMargin = 0
-                params.rightMargin = 0
-                child.layoutParams = params
-                changed = true
-            }
-            if (child.paddingStart != 0 || child.paddingEnd != 0) {
-                child.setPadding(0, child.paddingTop, 0, child.paddingBottom)
-                changed = true
-            }
-            if (stretchTabLabel(child, tabWidth)) {
-                changed = true
-            }
-        }
-        if (changed) {
-            strip.requestLayout()
-            tabLayout.post { tabLayout.tabStrip?.updateIndicatorPosition() }
-        }
-    }
-
-    private fun stretchTabLabel(tabView: View, tabWidth: Int): Boolean {
-        val label = (tabView as? com.coui.appcompat.tablayout.COUITabView)?.textView
-            ?: return false
-        var changed = false
-        val params = label.layoutParams
-        if (params != null && params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
-            params.width = ViewGroup.LayoutParams.MATCH_PARENT
-            label.layoutParams = params
-            changed = true
-        }
-        if (label.minimumWidth != tabWidth) {
-            label.minimumWidth = tabWidth
-            changed = true
-        }
-        if (label is android.widget.TextView && label.gravity != android.view.Gravity.CENTER) {
-            label.gravity = android.view.Gravity.CENTER
-            changed = true
-        }
-        return changed
     }
 
     private fun setupBackPressHandler() {
