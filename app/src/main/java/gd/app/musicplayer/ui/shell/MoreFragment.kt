@@ -54,37 +54,37 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
 
         binding.slidingmenuScan.setOnClickListener {
             ScanMusicActivity.start(requireContext())
-            closeDrawer()
+            closeDrawerWhenCovered()
         }
         binding.slidingmenuEqualizer.setOnClickListener {
             EqualizerActivity.start(requireContext())
-            closeDrawer()
+            closeDrawerWhenCovered()
         }
         binding.slidingmenuSkin.setOnClickListener {
             ThemeActivity.start(requireContext())
-            closeDrawer()
+            closeDrawerWhenCovered()
         }
         binding.slidingmenuWidget.setOnClickListener {
             WidgetActivity.start(requireContext())
-            closeDrawer()
+            closeDrawerWhenCovered()
         }
         binding.slidingmenuSleep.setOnClickListener {
             SleepActivity.start(requireContext())
-            closeDrawer()
+            closeDrawerWhenCovered()
         }
         binding.slidingmenuDriveMode.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
                 driveModeLauncher.start(requireContext())
             }
-            closeDrawer()
+            closeDrawerWhenCovered()
         }
         binding.slidingmenuHiddenFolders.setOnClickListener {
             HiddenFoldersActivity.start(requireContext())
-            closeDrawer()
+            closeDrawerWhenCovered()
         }
         binding.slidingmenuSetting.setOnClickListener {
             SettingActivity.start(requireContext())
-            closeDrawer()
+            closeDrawerWhenCovered()
         }
         binding.slidingmenuQuit.setOnClickListener {
             closeDrawer()
@@ -137,6 +137,10 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
 
     private fun closeDrawer() {
         drawerLayout?.closeDrawer(GravityCompat.START)
+    }
+
+    private fun closeDrawerWhenCovered() {
+        (activity as? MainActivity)?.closeDrawerWhenCovered() ?: closeDrawer()
     }
 
     private fun positionDrawerTitle(binding: FragmentMoreBinding) {

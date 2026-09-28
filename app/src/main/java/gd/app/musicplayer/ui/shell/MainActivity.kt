@@ -74,6 +74,7 @@ class MainActivity : BasePlayerSheetActivity() {
     @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
     private var lastHandledExternalIntentKey: String? = null
+    private var closeDrawerOnStop = false
 
     override val playerSheet: FrameLayout
         get() = binding.playerSheet
@@ -101,6 +102,28 @@ class MainActivity : BasePlayerSheetActivity() {
     }
 
     fun drawerLayout(): DrawerLayout = navigationDrawer
+
+    /**
+     * For drawer items that open another screen. Animating the drawer closed while the
+     * new activity is created competes with it for the main thread (skipped frames,
+     * slower launch), so the drawer is closed without animation once it's covered.
+     */
+    fun closeDrawerWhenCovered() {
+        closeDrawerOnStop = true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        closeDrawerOnStop = false
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (closeDrawerOnStop) {
+            closeDrawerOnStop = false
+            navigationDrawer.closeDrawer(GravityCompat.START, false)
+        }
+    }
 
     fun showQuitConfirmDialog() {
         val config = materialDialogConfigFactory
