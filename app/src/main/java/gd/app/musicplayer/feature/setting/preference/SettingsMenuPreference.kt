@@ -5,16 +5,11 @@ import android.util.AttributeSet
 import com.coui.appcompat.preference.COUIMenuPreference
 
 /**
- * App-side [COUIMenuPreference] that can force a rebind after [setEntries].
- * Needed because entries are applied in code after the first Preference bind —
- * without [notifyChanged], the click helper stays unregistered and the popup never opens.
+ * App-side [COUIMenuPreference]. Entries must be set before the first bind
+ * (SettingsPreferenceFragment does it in onCreatePreferences); otherwise the popup
+ * click helper never registers and the menu doesn't open.
  */
 class SettingsMenuPreference @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : COUIMenuPreference(context, attrs) {
-
-    fun refreshBoundMenu() {
-        notifyChanged()
-    }
-}
+) : COUIMenuPreference(context, attrs)

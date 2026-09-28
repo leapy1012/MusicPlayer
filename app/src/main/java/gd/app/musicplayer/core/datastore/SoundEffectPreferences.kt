@@ -1,6 +1,5 @@
 package gd.app.musicplayer.core.datastore
 
-import android.content.Context
 import android.os.Build
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -8,7 +7,6 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
-import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.di.SoundEffectPreferences
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,7 +17,6 @@ import kotlinx.coroutines.flow.map
 
 @Singleton
 class SoundEffectPreferences @Inject constructor(
-    @ApplicationContext private val appContext: Context,
     @param:SoundEffectPreferences
     private val dataStore: DataStore<Preferences>
 ) {
@@ -209,17 +206,6 @@ class SoundEffectPreferences @Inject constructor(
         dataStore.edit { preferences ->
             preferences[key] = value
         }
-        if (key == KEY_USE_TEN_BAND && value is Boolean) {
-            PreferenceSharedStore(PreferenceSharedStore.MUSIC)
-                .putBoolean(appContext, key.name, value)
-        }
-    }
-
-    suspend fun syncBooleansToSharedPreferences() {
-        val preferences = dataStore.data.first()
-        val useTenBand = preferences[KEY_USE_TEN_BAND] ?: false
-        PreferenceSharedStore(PreferenceSharedStore.MUSIC)
-            .putBoolean(appContext, KEY_USE_TEN_BAND.name, useTenBand)
     }
 
     companion object {

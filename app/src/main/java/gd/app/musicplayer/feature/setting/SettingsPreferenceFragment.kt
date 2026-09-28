@@ -33,10 +33,10 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.feature.lyrics.StatusBarLyricsActivity
-import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import gd.app.musicplayer.feature.setting.preference.DesktopLyricsPreference
 import gd.app.musicplayer.feature.setting.preference.FadeSeekPreference
 import gd.app.musicplayer.feature.setting.preference.SettingsMenuPreference
+import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.playback.lock.LockScreenController
 import gd.app.musicplayer.ui.duplicate.DuplicateFinderActivity
 import gd.app.musicplayer.ui.theme.SelectAccentColorDialog
@@ -47,16 +47,17 @@ import kotlinx.coroutines.launch
 class SettingsPreferenceFragment : COUIPreferenceFragment() {
 
     private val viewModel: SettingsViewModel by activityViewModels()
-    private val playerViewModel: PlayerViewModel by activityViewModels()
 
     @Inject lateinit var lockScreenController: LockScreenController
     @Inject lateinit var themeRepo: ThemeRepo
+    @Inject lateinit var playbackController: PlaybackController
 
     private var pendingBluetoothAutoStartEnable = false
     private var pendingNotificationBarEnable = false
     private var pendingOldNotificationEnable = false
     private var pendingLockScreenEnable = false
-    private var listenersBound = false
+    private var appliedState: SettingsUiState? = null
+    private var ignoringBatteryOptimizations = false
 
     private val bluetoothPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -74,6 +75,13 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings_preferences, rootKey)
+        // The adapter is created in super.onViewCreated. Everything set before that —
+        // menu entries, visibility, checked state — lands in the first bind, with no
+        // hierarchy rebuild, switch animation or second layout pass.
+        bindPreferenceListeners()
+        ignoringBatteryOptimizations = isIgnoringBatteryOptimizations()
+        renderNotificationPermissionPrompt()
+        viewModel.initialStateBlocking(INITIAL_STATE_TIMEOUT_MS)?.let(::applyState)
     }
 
     override fun onCreateRecyclerView(
@@ -94,7 +102,6 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        bindPreferenceListeners()
         setupFragmentResultListeners()
         observeUiState()
     }
@@ -128,9 +135,6 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
     }
 
     private fun bindPreferenceListeners() {
-        if (listenersBound) return
-        listenersBound = true
-
         switchPref(KEY_USE_TEN_BAND)?.setOnPreferenceChangeListener { _, newValue ->
             viewModel.setUseTenBand(newValue as Boolean)
             true
@@ -172,11 +176,11 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         deskLrcPref()?.apply {
             onVisibleChanged = { visible ->
                 viewModel.setDesktopLyricsVisible(visible)
-                playerViewModel.refreshNotificationStyle(requireContext())
+                playbackController.refreshNotificationStyle()
             }
             onLockedChanged = { locked ->
                 viewModel.setDesktopLyricsLocked(locked)
-                playerViewModel.refreshNotificationStyle(requireContext())
+                playbackController.refreshNotificationStyle()
             }
             onPendingEnableAfterPermissionChanged = { pending ->
                 viewModel.setDesktopLyricsPendingEnableAfterPermission(pending)
@@ -203,28 +207,28 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         }
         switchPref(KEY_SIMULTANEOUS)?.setOnPreferenceChangeListener { _, newValue ->
             viewModel.setSimultaneousPlayEnabled(newValue as Boolean)
-            playerViewModel.applyPlaybackTuning(requireContext())
+            playbackController.applyPlaybackTuning()
             true
         }
         switchPref(KEY_VOLUME_FADE)?.setOnPreferenceChangeListener { _, newValue ->
             viewModel.setVolumeFadeEnabled(newValue as Boolean)
-            playerViewModel.applyPlaybackTuning(requireContext())
+            playbackController.applyPlaybackTuning()
             true
         }
         switchPref(KEY_GAPLESS)?.setOnPreferenceChangeListener { _, newValue ->
             viewModel.setGaplessPlaybackEnabled(newValue as Boolean)
-            playerViewModel.applyPlaybackTuning(requireContext())
+            playbackController.applyPlaybackTuning()
             true
         }
         switchPref(KEY_CROSS_FADE)?.setOnPreferenceChangeListener { _, newValue ->
             viewModel.setCrossFadeEnabled(newValue as Boolean)
-            playerViewModel.applyPlaybackTuning(requireContext())
+            playbackController.applyPlaybackTuning()
             true
         }
         fadeSeekPref()?.onFadeDurationChanged =
             FadeSeekPreference.OnFadeDurationChangedListener { seconds ->
                 viewModel.setFadeDurationSeconds(seconds)
-                playerViewModel.applyPlaybackTuning(requireContext())
+                playbackController.applyPlaybackTuning()
             }
         switchPref(KEY_TRACK_CLICK)?.setOnPreferenceChangeListener { _, newValue ->
             viewModel.setTrackClickOperationEnabled(newValue as Boolean)
@@ -263,7 +267,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         switchPref(KEY_COLOR_NOTIFICATION)?.setOnPreferenceChangeListener { _, newValue ->
             lifecycleScope.launch {
                 viewModel.setColorNotificationEnabled(newValue as Boolean).join()
-                playerViewModel.refreshNotificationStyle(requireContext())
+                playbackController.refreshNotificationStyle()
             }
             true
         }
@@ -318,7 +322,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
                 withTag = bundle.getFloat(ReplayGainPreampDialogFragment.KEY_WITH_TAG),
                 withoutTag = bundle.getFloat(ReplayGainPreampDialogFragment.KEY_WITHOUT_TAG)
             )
-            playerViewModel.applyPlaybackTuning(requireContext())
+            playbackController.applyPlaybackTuning()
         }
         parentFragmentManager.setFragmentResultListener(
             SmartPlaylistLimitDialogFragment.RESULT_KEY,
@@ -342,6 +346,8 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
     }
 
     private fun applyState(state: SettingsUiState) {
+        if (state == appliedState) return
+        appliedState = state
         switchPref(KEY_USE_TEN_BAND)?.apply {
             isChecked = state.useTenBand
             isEnabled = state.useTenBandAvailable
@@ -390,17 +396,15 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         }
         jumpPref(KEY_PLAYLIST_TRACK_LIMIT)?.assignment = state.playlistTrackLimitLabel
 
-        renderNotificationPermissionPrompt()
         switchPref(KEY_OLD_NOTIFICATION)?.isChecked = state.oldNotificationEnabled
         switchPref(KEY_COLOR_NOTIFICATION)?.apply {
             isChecked = state.colorNotificationEnabled
             isEnabled = state.colorNotificationEnabledAvailable
         }
-        renderOldNotificationAvailability()
 
         deskLrcPref()?.render(state.desktopLyricPreference)
         jumpPref(KEY_STATUS_BAR_LYRICS)?.assignment = getString(
-            if (state.statusBarLyricPreference.enabled) {
+            if (state.statusBarLyricEnabled) {
                 R.string.sbar_lyric_opened
             } else {
                 R.string.sbar_lyric_closed
@@ -419,7 +423,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         switchPref(KEY_BLUETOOTH_AUTO_STOP)?.isChecked = state.bluetoothAutoStopEnabled
         switchPref(KEY_HEADSET_CONTROL)?.isChecked = state.headsetControlAllowed
 
-        renderKeepAlivePermission()
+        renderKeepAlive(state.showKeepAliveDot)
     }
 
     private fun renderPostAnimationResumeWork() {
@@ -427,7 +431,8 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         deskLrcPref()?.resumeDesktopLyricsAfterOverlayPermissionChange()
         deskLrcPref()?.disableDesktopLyricsIfOverlayPermissionWasRevoked()
         resumeLockScreenAfterOverlayPermissionChange()
-        renderKeepAlivePermission()
+        ignoringBatteryOptimizations = isIgnoringBatteryOptimizations()
+        renderKeepAlive(currentUiState().showKeepAliveDot)
     }
 
     private fun onNotificationBarChanged(enabled: Boolean) {
@@ -445,7 +450,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         if (!enabled) {
             lifecycleScope.launch {
                 viewModel.setOldNotificationEnabled(false).join()
-                playerViewModel.refreshNotificationStyle(requireContext())
+                playbackController.refreshNotificationStyle()
             }
             switchPref(KEY_OLD_NOTIFICATION)?.isChecked = false
             return
@@ -458,7 +463,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         }
         lifecycleScope.launch {
             viewModel.setOldNotificationEnabled(true).join()
-            playerViewModel.refreshNotificationStyle(requireContext())
+            playbackController.refreshNotificationStyle()
         }
         switchPref(KEY_OLD_NOTIFICATION)?.isChecked = true
     }
@@ -497,7 +502,6 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         menuPref(KEY_TIME_FORWARD_BACKWARD)?.apply {
             setEntries(forwardValues.map { formatSecondsLabel(it) }.toTypedArray())
             setEntryValues(forwardValues.map { it.toString() }.toTypedArray())
-            refreshBoundMenu()
             setOnPreferenceChangeListener { pref, newValue ->
                 val seconds = (newValue as? String)?.toIntOrNull()
                     ?: return@setOnPreferenceChangeListener false
@@ -522,7 +526,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
             valuesRes = R.array.settings_replay_gain_mode_values
         ) { index, label ->
             viewModel.setReplayGainMode(index)
-            playerViewModel.applyPlaybackTuning(requireContext())
+            playbackController.applyPlaybackTuning()
             label
         }
 
@@ -556,9 +560,6 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         val entries = resources.getStringArray(entriesRes)
         pref.setEntries(entries)
         pref.setEntryValues(resources.getStringArray(valuesRes))
-        // Entries are set after the first Preference bind; force rebind so the
-        // click helper registers with a non-empty popup list.
-        pref.refreshBoundMenu()
         pref.setOnPreferenceChangeListener { preference, newValue ->
             val index = (newValue as? String)?.toIntOrNull()
                 ?: return@setOnPreferenceChangeListener false
@@ -627,9 +628,10 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
     }
 
     private fun onKeepAliveBackgroundClicked() {
-        setKeepAliveTipSeen()
-        renderKeepAlivePermission()
-        if (isIgnoringBatteryOptimizations()) {
+        viewModel.setKeepAliveTipSeen()
+        ignoringBatteryOptimizations = isIgnoringBatteryOptimizations()
+        renderKeepAlive(showDot = false)
+        if (ignoringBatteryOptimizations) {
             ToastUtil.show(requireContext(), Toast.LENGTH_SHORT, getString(R.string.succeed))
             return
         }
@@ -725,17 +727,12 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         (activity as? SettingActivity)?.requestSettingsNotificationPermission()
     }
 
-    private fun renderKeepAlivePermission() {
-        val shouldHide = isIgnoringBatteryOptimizations()
+    private fun renderKeepAlive(showDot: Boolean) {
         val pref = jumpPref(KEY_KEEP_ALIVE) ?: return
-        pref.isVisible = !shouldHide
-        if (shouldHide) return
+        pref.isVisible = !ignoringBatteryOptimizations
+        if (ignoringBatteryOptimizations) return
         pref.setEndRedDotMode(
-            if (shouldShowKeepAliveTip()) {
-                COUIHintRedDot.POINT_ONLY_MODE
-            } else {
-                COUIHintRedDot.NO_POINT_MODE
-            }
+            if (showDot) COUIHintRedDot.POINT_ONLY_MODE else COUIHintRedDot.NO_POINT_MODE
         )
     }
 
@@ -743,20 +740,6 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         val powerManager =
             requireContext().getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return false
         return powerManager.isIgnoringBatteryOptimizations(requireContext().packageName)
-    }
-
-    private fun shouldShowKeepAliveTip(): Boolean {
-        return requireContext()
-            .getSharedPreferences(MUSIC_PREFERENCE_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_SHOW_KEEP_ALIVE_DOT, true)
-    }
-
-    private fun setKeepAliveTipSeen() {
-        requireContext()
-            .getSharedPreferences(MUSIC_PREFERENCE_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(KEY_SHOW_KEEP_ALIVE_DOT, false)
-            .apply()
     }
 
     private fun isMiuiDevice(): Boolean {
@@ -770,11 +753,6 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
             isVisible = showPermissionPrompt
             isChecked = hasNotificationPermission()
         }
-    }
-
-    private fun renderOldNotificationAvailability() {
-        switchPref(KEY_OLD_NOTIFICATION)?.isVisible =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
     }
 
     private fun currentUiState(): SettingsUiState = viewModel.uiState.value ?: SettingsUiState()
@@ -799,8 +777,9 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         findPreference(KEY_FADE_SEEK)
 
     companion object {
-        private const val MUSIC_PREFERENCE_NAME = "music_preference"
-        private const val KEY_SHOW_KEEP_ALIVE_DOT = "show_keep_alive_dot"
+        // Upper bound on blocking the main thread for the first DataStore snapshot;
+        // past it the list paints defaults and the collector applies values later.
+        private const val INITIAL_STATE_TIMEOUT_MS = 300L
         private val FORWARD_BACKWARD_SECONDS = intArrayOf(5, 10, 15, 20, 30, 60)
 
         const val KEY_USE_TEN_BAND = "use_ten_band"

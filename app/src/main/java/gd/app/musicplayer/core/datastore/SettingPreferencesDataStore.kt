@@ -1,5 +1,6 @@
 package gd.app.musicplayer.core.datastore
 
+import androidx.datastore.preferences.core.Preferences
 import gd.app.musicplayer.domain.model.LibraryTabConfig
 import kotlinx.coroutines.flow.Flow
 
@@ -11,6 +12,8 @@ interface SettingPreferencesDataStore {
     val libraryTabConfig: Flow<List<LibraryTabConfig>>
 
     fun observeSettingPreferences(): Flow<SettingPreferences>
+
+    fun fromPreferences(preferences: Preferences): SettingPreferences
     fun observePlayMode(): Flow<Int>
 
     suspend fun getPlayMode(): Int

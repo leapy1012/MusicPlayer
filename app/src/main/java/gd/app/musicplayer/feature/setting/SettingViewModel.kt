@@ -8,26 +8,34 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.datastore.DesktopLyricPreference
 import gd.app.musicplayer.core.datastore.DesktopLyricPreferenceStore
+import gd.app.musicplayer.core.datastore.MusicDataStore
 import gd.app.musicplayer.core.datastore.PlaylistPreferenceDataStore
 import gd.app.musicplayer.core.datastore.SettingPreferences
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.musicplayer.core.datastore.SoundEffectPreferences
-import gd.app.musicplayer.core.datastore.StatusBarLyricPreference
 import gd.app.musicplayer.core.datastore.StatusBarLyricPreferenceStore
 import gd.app.musicplayer.domain.model.SmartPlaylistConfig
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.round
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
+    musicDataStore: MusicDataStore,
     private val settingPreferences: SettingPreferencesDataStore,
     private val desktopLyricPreferenceStore: DesktopLyricPreferenceStore,
     private val statusBarLyricPreferenceStore: StatusBarLyricPreferenceStore,
@@ -36,28 +44,33 @@ class SettingsViewModel @Inject constructor(
     private val themeRepo: ThemeRepo
 ) : ViewModel() {
 
+    // Shared off the main thread so initialStateBlocking() can wait on it from main
+    // without deadlocking.
     val uiState: StateFlow<SettingsUiState?> =
         combine(
-            settingPreferences.observeSettingPreferences(),
-            soundEffectPreferences.equalizerPreference,
-            desktopLyricPreferenceStore.desktopLyricPreference,
-            statusBarLyricPreferenceStore.preference,
-            playlistPreferenceDataStore.observeSmartPlaylistConfig()
-        ) { preferences, equalizer, desktopLyricPreference, statusBarLyricPreference, smartPlaylistConfig ->
-            preferences.toUiState(
+            musicDataStore.data,
+            soundEffectPreferences.equalizerPreference
+        ) { preferences, equalizer ->
+            settingPreferences.fromPreferences(preferences).toUiState(
                 useTenBand = equalizer.bandMode == SoundEffectPreferences.TEN_BAND_MODE,
-                desktopLyricPreference = desktopLyricPreference,
-                statusBarLyricPreference = statusBarLyricPreference,
-                smartPlaylistConfig = smartPlaylistConfig
+                desktopLyricPreference = desktopLyricPreferenceStore.fromPreferences(preferences),
+                statusBarLyricEnabled = statusBarLyricPreferenceStore.isEnabled(preferences),
+                smartPlaylistConfig = playlistPreferenceDataStore.smartPlaylistSettingsFrom(preferences)
             )
         }
+            .distinctUntilChanged()
             .stateIn(
-                scope = viewModelScope,
-                // Eagerly so DataStore is already warm when Settings body attaches.
-                // initialValue null: never paint placeholder defaults over PreferenceItemView SP.
+                scope = viewModelScope + Dispatchers.Default,
                 started = SharingStarted.Eagerly,
                 initialValue = null
             )
+
+    fun initialStateBlocking(timeoutMs: Long): SettingsUiState? {
+        uiState.value?.let { return it }
+        return runBlocking {
+            withTimeoutOrNull(timeoutMs) { uiState.filterNotNull().first() }
+        }
+    }
 
 
     fun setUseTenBand(enabled: Boolean) = update {
@@ -223,15 +236,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun SettingPreferences.toUiState(
-        useTenBand: Boolean = false,
-        desktopLyricPreference: DesktopLyricPreference =
-            DesktopLyricPreference(),
-        statusBarLyricPreference: StatusBarLyricPreference = StatusBarLyricPreference(),
-        smartPlaylistConfig: SmartPlaylistConfig = SmartPlaylistConfig(
-            windowStartMs = 0L,
-            windowDurationMs = PlaylistPreferenceDataStore.MONTH_MS_6,
-            trackLimit = -1
-        )
+        useTenBand: Boolean,
+        desktopLyricPreference: DesktopLyricPreference,
+        statusBarLyricEnabled: Boolean,
+        smartPlaylistConfig: SmartPlaylistConfig
     ): SettingsUiState {
         return SettingsUiState(
             useTenBand = useTenBand,
@@ -273,7 +281,7 @@ class SettingsViewModel @Inject constructor(
             colorNotificationEnabledAvailable =
                 !supportsModernMediaStyleNotification() || notification.oldNotificationEnabled,
             desktopLyricPreference = desktopLyricPreference,
-            statusBarLyricPreference = statusBarLyricPreference,
+            statusBarLyricEnabled = statusBarLyricEnabled,
             lockScreenEnabled = lockscreen.lockScreenEnabled,
             lockBackgroundMode = lockscreen.backgroundMode,
             lockBackgroundLabel = lockBackgroundLabel(lockscreen.backgroundMode),

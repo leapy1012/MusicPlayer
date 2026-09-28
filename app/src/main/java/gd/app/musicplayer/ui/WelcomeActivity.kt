@@ -9,8 +9,6 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.extension.isMediaOpenIntent
 import gd.app.musicplayer.core.datastore.AppStartupPreferenceDataStore
-import gd.app.musicplayer.core.datastore.MusicDataStore
-import gd.app.musicplayer.core.datastore.SoundEffectPreferences
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.ActivityWelcomeBinding
 import gd.app.musicplayer.domain.usecase.database.RunMusicDatabaseStartupSyncUseCase
@@ -28,8 +26,6 @@ class WelcomeActivity : BaseActivity() {
     @Inject lateinit var runMusicDatabaseStartupSyncUseCase: RunMusicDatabaseStartupSyncUseCase
     @Inject lateinit var appStartupPreferenceDataStore: AppStartupPreferenceDataStore
     @Inject lateinit var themeManager: ThemeManager
-    @Inject lateinit var musicDataStore: MusicDataStore
-    @Inject lateinit var soundEffectPreferences: SoundEffectPreferences
 
     private lateinit var binding: ActivityWelcomeBinding
 
@@ -62,7 +58,6 @@ class WelcomeActivity : BaseActivity() {
                 // Still preload theme like original cold-start H(); skip only branding delay.
                 withContext(Dispatchers.IO) {
                     themeManager.warmUp()
-                    syncPreferenceMirrors()
                 }
                 openMainAndFinish()
                 return@launch
@@ -107,16 +102,10 @@ class WelcomeActivity : BaseActivity() {
         withContext(Dispatchers.IO) {
             // Original WelcomeActivity.c Thread: f.i().k().c(appCtx) before UI proceeds.
             themeManager.warmUp()
-            syncPreferenceMirrors()
             runMusicDatabaseStartupSyncUseCase()
         }
 
         delayRemainingSplashTime(startTime)
-    }
-
-    private suspend fun syncPreferenceMirrors() {
-        musicDataStore.syncBooleansToSharedPreferences()
-        soundEffectPreferences.syncBooleansToSharedPreferences()
     }
 
     private suspend fun delayRemainingSplashTime(startTimeMillis: Long) {

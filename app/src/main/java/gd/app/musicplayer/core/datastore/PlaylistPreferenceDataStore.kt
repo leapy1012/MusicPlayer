@@ -37,6 +37,17 @@ class PlaylistPreferenceDataStore @Inject constructor(
         }
     }
 
+    /** Window start is left at 0 so equal settings map to equal values. */
+    fun smartPlaylistSettingsFrom(preferences: Preferences): SmartPlaylistConfig {
+        val timeLimit = preferences[KEY_PLAYLIST_TRACK_LIMIT_TIME] ?: MONTH_MS_6
+        val trackLimit = preferences[KEY_PLAYLIST_TRACK_LIMIT] ?: DEFAULT_TRACK_LIMIT
+        return SmartPlaylistConfig(
+            windowDurationMs = timeLimit,
+            windowStartMs = 0L,
+            trackLimit = if (timeLimit == 0L) trackLimit else -1
+        )
+    }
+
     fun observePlaylistAddPosition(): Flow<Int> {
         return dataStore.data.map { preferences ->
             preferences[KEY_PLAYLIST_ADD_POSITION] ?: 0

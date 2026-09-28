@@ -128,6 +128,9 @@ class DesktopLyricPreferenceStore @Inject constructor(
         setPendingEnableAfterPermission(false)
     }
 
+    fun fromPreferences(preferences: Preferences): DesktopLyricPreference =
+        preferences.toDesktopLyricPreference()
+
     private fun Preferences.toDesktopLyricPreference(): DesktopLyricPreference {
         return DesktopLyricPreference(
             visible = this[SettingsKeys.KEY_DESKTOP_LYRIC_VISIBLE] ?: DEFAULT_VISIBLE,

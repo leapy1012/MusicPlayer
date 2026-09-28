@@ -87,7 +87,7 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
 
 
     override fun observeSettingPreferences(): Flow<SettingPreferences> {
-        return dataStore.data.map(::toSettingPreferences)
+        return dataStore.data.map(::fromPreferences).distinctUntilChanged()
     }
 
     override fun observePlayMode(): Flow<Int> {
@@ -280,7 +280,7 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
         dataStore.set(SettingsKeys.CLICK_ADD_QUEUE, enabled)
     }
 
-    private fun toSettingPreferences(preferences: Preferences): SettingPreferences {
+    override fun fromPreferences(preferences: Preferences): SettingPreferences {
         return SettingPreferences(
             playMode = preferences[SettingsKeys.PLAY_MODE] ?: 1,
             normal = NormalSettingPreference(

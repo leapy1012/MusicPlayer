@@ -32,6 +32,8 @@ class StatusBarLyricPreferenceStore @Inject constructor(
             }
             .distinctUntilChanged()
 
+    fun isEnabled(preferences: Preferences): Boolean = preferences[KEY_ENABLED] ?: false
+
     suspend fun getSnapshot(): StatusBarLyricPreference {
         return dataStore.data.first().toStatusBarLyricPreference()
     }
@@ -202,7 +204,7 @@ class StatusBarLyricPreferenceStore @Inject constructor(
             fontSizeRatio = (this[KEY_FONT_SIZE_RATIO] ?: DEFAULT_FONT_SIZE).asRatio(),
             alphaRatio = (this[KEY_ALPHA_RATIO] ?: DEFAULT_ALPHA).asRatio(),
 
-            enabled = this[KEY_ENABLED] ?: false,
+            enabled = isEnabled(this),
             contentType = this[KEY_CONTENT_TYPE] ?: CONTENT_TYPE_LYRIC,
             gravity = this[KEY_GRAVITY] ?: Gravity.CENTER,
             clickable = this[KEY_CLICKABLE] ?: false,
