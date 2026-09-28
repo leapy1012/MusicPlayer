@@ -1,9 +1,11 @@
 package gd.app.musicplayer.feature.home
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
+import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -84,11 +86,19 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
 
     private fun setupMainGrid(binding: FragmentMainBinding) = with(binding.mainInfoGrid) {
         adapter = mainAdapter
-        numColumns = MAIN_GRID_COLUMN_COUNT
+        numColumns = columnCount(resources.configuration)
     }
 
     private fun setupPlaylistCarousel(binding: FragmentMainBinding) = with(binding) {
         mainInfoPlaylistContainer.apply {
+            updatePlaylistItemSize(resources.displayMetrics.widthPixels)
+            addOnLayoutChangeListener { view, left, _, right, _, oldLeft, _, oldRight, _ ->
+                val width = right - left
+                if (width != oldRight - oldLeft) {
+                    view.post { updatePlaylistItemSize(width) }
+                }
+            }
+
             layoutManager = WrapContentLinearLayoutManager(
                 requireContext(),
                 RecyclerView.HORIZONTAL,
@@ -101,9 +111,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
             (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
 
             if (itemDecorationCount == 0) {
-                addItemDecoration(
-                    SpacingItemDecoration.right(requireContext().dpToPx(PLAYLIST_ITEM_SPACING_DP))
-                )
+                addItemDecoration(SpacingItemDecoration.right(playlistItemSpacingPx()))
             }
 
             ItemTouchHelper(PlaylistDragCallback(playlistAdapter)).attachToRecyclerView(this)
@@ -114,6 +122,32 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
         }
 
         mainInfoPlaylist.setOnClickListener(::openAllPlaylists)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val binding = binding ?: return
+        binding.mainInfoGrid.numColumns = columnCount(newConfig)
+        binding.mainInfoPlaylistContainer.doOnNextLayout { updatePlaylistItemSize(it.width) }
+    }
+
+    /** Sized so playlist cards line up with the category grid columns above. */
+    private fun updatePlaylistItemSize(availableWidth: Int) {
+        val recycler = binding?.mainInfoPlaylistContainer ?: return
+        if (availableWidth <= 0) return
+        val columns = columnCount(resources.configuration)
+        val contentWidth = availableWidth - recycler.paddingStart - recycler.paddingEnd
+        playlistAdapter.setItemSize((contentWidth - playlistItemSpacingPx() * (columns - 1)) / columns)
+    }
+
+    private fun playlistItemSpacingPx(): Int = requireContext().dpToPx(PLAYLIST_ITEM_SPACING_DP)
+
+    private fun columnCount(configuration: Configuration): Int {
+        return if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            LANDSCAPE_COLUMN_COUNT
+        } else {
+            PORTRAIT_COLUMN_COUNT
+        }
     }
 
     private fun observeUiState() {
@@ -195,11 +229,23 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
             recyclerView: RecyclerView,
             viewHolder: RecyclerView.ViewHolder
         ): Int {
-            val position = viewHolder.bindingAdapterPosition
-            if (position == RecyclerView.NO_POSITION) return 0
+            if (!adapter.canDrag(viewHolder.bindingAdapterPosition)) return 0
 
             val dragFlags = ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
             return makeMovementFlags(dragFlags, 0)
+        }
+
+        override fun getAnimationDuration(
+            recyclerView: RecyclerView,
+            animationType: Int,
+            animateDx: Float,
+            animateDy: Float
+        ): Long {
+            return if (animationType == ItemTouchHelper.ANIMATION_TYPE_DRAG) {
+                DRAG_SETTLE_DURATION_MS
+            } else {
+                super.getAnimationDuration(recyclerView, animationType, animateDx, animateDy)
+            }
         }
 
         override fun canDropOver(
@@ -216,6 +262,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
         override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
             super.onSelectedChanged(viewHolder, actionState)
             if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                viewHolder?.itemView?.alpha = DRAGGING_ALPHA
                 adapter.startDrag()
             }
         }
@@ -233,6 +280,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
 
         override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
             super.clearView(recyclerView, viewHolder)
+            viewHolder.itemView.alpha = 1f
             adapter.finishDrag()
         }
 
@@ -240,8 +288,11 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
     }
 
     private companion object {
-        const val MAIN_GRID_COLUMN_COUNT = 3
+        const val PORTRAIT_COLUMN_COUNT = 3
+        const val LANDSCAPE_COLUMN_COUNT = 6
         const val PLAYLIST_ITEM_SPACING_DP = 12f
+        const val DRAGGING_ALPHA = 0.8f
+        const val DRAG_SETTLE_DURATION_MS = 300L
         const val CREATE_PLAYLIST_DIALOG_TAG = "main_create_playlist_dialog"
         const val DRAG_GUIDE_TAG = "home_playlist_drag_guide"
     }

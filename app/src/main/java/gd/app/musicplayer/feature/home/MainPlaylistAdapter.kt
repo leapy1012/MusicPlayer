@@ -16,9 +16,6 @@ import com.bumptech.glide.Glide
 import gd.app.lib.view.square.FixedSizeMeasurePolicy
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
-import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.common.extension.isTablet
-import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.databinding.FragmentMainPlaylistItemBinding
 import gd.app.musicplayer.domain.model.MusicSet
 import java.util.Collections
@@ -34,6 +31,7 @@ class MainPlaylistAdapter(
     private var pendingExternalList: List<MusicSet.Playlist>? = null
     private var isDragging = false
     private var hasPendingOrderChange = false
+    private var itemSizePx = 0
 
     init {
         setHasStableIds(true)
@@ -63,11 +61,26 @@ class MainPlaylistAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.applySize(itemSizePx)
         if (isPlaylistPosition(position)) {
             holder.bindPlaylist(playlists[position])
         } else {
             holder.bindAdd()
         }
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty() && payloads.all { it == PAYLOAD_SIZE }) {
+            holder.applySize(itemSizePx)
+        } else {
+            onBindViewHolder(holder, position)
+        }
+    }
+
+    fun setItemSize(sizePx: Int) {
+        if (sizePx <= 0 || sizePx == itemSizePx) return
+        itemSizePx = sizePx
+        notifyItemRangeChanged(0, itemCount, PAYLOAD_SIZE)
     }
 
     fun submitPlaylists(newItems: List<MusicSet.Playlist>) {
@@ -77,6 +90,8 @@ class MainPlaylistAdapter(
         }
         submitPlaylistsInternal(newItems)
     }
+
+    fun canDrag(position: Int): Boolean = isPlaylistPosition(position)
 
     fun canMove(fromPosition: Int, toPosition: Int): Boolean {
         return isPlaylistPosition(fromPosition) &&
@@ -171,14 +186,16 @@ class MainPlaylistAdapter(
             )
         }
 
+        private var appliedSizePx = 0
+
         init {
-            binding.root.setSquare(
-                FixedSizeMeasurePolicy(
-                    calculateItemSize(binding.root.context),
-                    calculateItemSize(binding.root.context)
-                )
-            )
             binding.root.applyRoundedOutline(com.coui.appcompat.R.dimen.coui_round_corner_m)
+        }
+
+        fun applySize(sizePx: Int) {
+            if (sizePx <= 0 || sizePx == appliedSizePx) return
+            appliedSizePx = sizePx
+            binding.root.setSquare(FixedSizeMeasurePolicy(sizePx, sizePx))
         }
 
         fun bindPlaylist(playlist: MusicSet.Playlist) = with(binding) {
@@ -253,12 +270,6 @@ class MainPlaylistAdapter(
             typed.recycle()
             return color
         }
-
-        private fun calculateItemSize(context: Context): Int {
-            val columnCount = if (context.isTablet()) TABLET_COLUMN_COUNT else PHONE_COLUMN_COUNT
-            val spacingPx = context.dpToPx(GRID_SPACING_DP)
-            return (context.screenWidth - spacingPx * (columnCount + 1)) / columnCount
-        }
     }
 
     private class PlaylistDiffCallback(
@@ -330,9 +341,6 @@ class MainPlaylistAdapter(
         private const val VIEW_TYPE_ADD = 1
         private const val ADD_ITEM_COUNT = 1
         private const val ADD_ITEM_ID = Long.MIN_VALUE
-
-        private const val PHONE_COLUMN_COUNT = 3
-        private const val TABLET_COLUMN_COUNT = 6
-        private const val GRID_SPACING_DP = 12f
+        private const val PAYLOAD_SIZE = "size"
     }
 }
