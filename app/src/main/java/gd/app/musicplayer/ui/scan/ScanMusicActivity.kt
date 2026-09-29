@@ -98,6 +98,10 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun setupToolbar() {
+        // Not app:menu — COUIToolbar builds that menu view before its click listener exists.
+        binding.toolbar.inflateMenu(R.menu.menu_activity_scan_menu)
+        // The content theme pass ran before the menu existed; tint its icon now.
+        applyThemeTo(binding.toolbar)
         binding.toolbar.setOnMenuItemClickListener(this)
     }
 

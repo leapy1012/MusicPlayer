@@ -12,7 +12,6 @@
             android:textColor="#de000000"
             android:gravity="center"
             android:id="@+id/dialog_title"
-            android:tag="dialogTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -23,7 +22,6 @@
             android:textSize="14sp"
             android:textColor="#8a000000"
             android:id="@+id/tips"
-            android:tag="dialogMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -49,7 +47,6 @@
                 android:layout_weight="1">
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/dialog_widget_left"
-                    android:tag="dialogArrow"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="centerCrop"
@@ -61,7 +58,6 @@
                     android:layout_weight="1"/>
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/dialog_widget_right"
-                    android:tag="dialogArrow"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="centerCrop"

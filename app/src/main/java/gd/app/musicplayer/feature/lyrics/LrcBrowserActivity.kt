@@ -5,12 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
+import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -21,12 +23,15 @@ import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.itemTextColor
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
 import gd.app.musicplayer.databinding.ActivityLrcBrowserBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.applyCouiListBackground
+import gd.app.musicplayer.ui.common.applyListRowFeedback
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.util.TrackLyricsStore
 import java.io.File
@@ -102,7 +107,11 @@ class LrcBrowserActivity : BaseActivity() {
         binding.toolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
+        binding.appBar.bringToFront()
     }
+
+    private val isLightTheme: Boolean
+        get() = themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT
 
     private fun setupList() {
         layoutManager = LinearLayoutManager(this)
@@ -115,6 +124,7 @@ class LrcBrowserActivity : BaseActivity() {
             layoutManager = this@LrcBrowserActivity.layoutManager
             adapter = this@LrcBrowserActivity.adapter
             setHasFixedSize(true)
+            applyCouiListBackground(isLightTheme)
         }
 
         emptyStateController = RecyclerEmptyStateController(
@@ -233,7 +243,7 @@ class LrcBrowserActivity : BaseActivity() {
                         parentDirectory = directory,
                         title = file.name,
                         path = file.absolutePath,
-                        iconRes = R.drawable.main_folder_simple_t
+                        iconRes = R.drawable.main_folder_simple
                     )
 
                     file.isFile && file.name.endsWith(LRC_EXTENSION, ignoreCase = true) ->
@@ -262,7 +272,23 @@ class LrcBrowserActivity : BaseActivity() {
 
         binding.toolbar.title = directory.title
         binding.toolbar.subtitle = directory.path
-        binding.toolbar.setSubtitleTextColor(themeEngine.currentTheme().itemTextColor)
+        // setSubtitle re-applies VIEW_END alignment each call, and COUIToolbar has no
+        // subtitle view getter.
+        binding.toolbar.children
+            .filterIsInstance<TextView>()
+            .firstOrNull { it !== binding.toolbar.getCOUITitleTextView() && it.text == directory.path }
+            ?.apply {
+                textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+                ellipsize = TextUtils.TruncateAt.MIDDLE
+            }
+        binding.toolbar.setSubtitleTextColor(
+            if (isLightTheme) {
+                val typed = obtainStyledAttributes(intArrayOf(com.coui.appcompat.R.attr.couiColorSecondNeutral))
+                typed.getColor(0, themeEngine.currentTheme().itemTextColor).also { typed.recycle() }
+            } else {
+                themeEngine.currentTheme().itemTextColor
+            }
+        )
     }
 
     private fun saveScrollPosition(directory: BrowserDirectory?) {
@@ -345,10 +371,11 @@ class LrcBrowserActivity : BaseActivity() {
         private val items = mutableListOf<BrowserItem>()
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            return ViewHolder(
-                LayoutInflater.from(parent.context)
-                    .inflate(R.layout.activity_lrc_browser_list_item, parent, false)
-            )
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.activity_lrc_browser_list_item, parent, false)
+            applyThemeTo(view)
+            view.applyListRowFeedback(isLightTheme)
+            return ViewHolder(view)
         }
 
         override fun getItemCount(): Int = items.size
@@ -381,7 +408,6 @@ class LrcBrowserActivity : BaseActivity() {
                     )
                 )
                 title.text = item.title
-                title.setTextColor(themeEngine.currentTheme().itemTextColor)
                 itemView.setOnClickListener { onItemClick(item) }
                 itemView.setOnLongClickListener { onItemLongClick(item) }
             }

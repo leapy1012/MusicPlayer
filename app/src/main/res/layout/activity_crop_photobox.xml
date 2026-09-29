@@ -10,45 +10,45 @@
     <View
         android:id="@+id/status_bar_space"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:tag="titleBackgroundColor" />
+        android:layout_height="0dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:minHeight="?attr/actionBarSize"
+        android:minHeight="@dimen/toolbar_min_height"
         android:orientation="horizontal"
         android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:tag="titleBackgroundColor">
+        android:paddingEnd="8dp">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/crop_close"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cancel"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:tag="titleColor"
             app:srcCompat="@drawable/vector_crop_close" />
 
         <TextView
             android:id="@+id/crop_title"
-            style="@style/TextAppearance.Widget.AppCompat.Toolbar.Title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:gravity="center"
-            android:tag="titleColor"
-            android:text="@string/edit_photo" />
+            android:ellipsize="end"
+            android:text="@string/edit_photo"
+            android:textAppearance="@style/textAppearanceSecondTitle" />
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/crop_save"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/save"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:tag="titleColor"
             app:srcCompat="@drawable/vector_crop_save" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -57,7 +57,6 @@
             android:layout_height="40dp"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:tag="titleColor"
             android:visibility="gone"
             app:srcCompat="@drawable/vector_crop_loader_animated" />
     </LinearLayout>

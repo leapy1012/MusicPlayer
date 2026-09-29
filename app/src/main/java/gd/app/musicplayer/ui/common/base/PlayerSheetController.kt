@@ -29,6 +29,8 @@ class PlayerSheetController(
     private val expandedHeight: Int
         get() = resources.getDimensionPixelSize(R.dimen.player_sheet_height)
 
+    private var navigationBarInset: Int = 0
+
     fun setup() {
         setupBehavior()
         setupInsets()
@@ -82,6 +84,7 @@ class PlayerSheetController(
             val navBottom = insets
                 .getInsets(WindowInsetsCompat.Type.systemBars())
                 .bottom
+            navigationBarInset = navBottom
 
             val collapsedSheetHeight = collapsedHeight + navBottom
             val expandedSheetHeight = expandedHeight + navBottom
@@ -155,7 +158,8 @@ class PlayerSheetController(
         val target = insetTarget ?: return
 
         val extraOffset = ((expandedHeight - collapsedHeight) * progress).roundToInt()
-        val bottomMargin = collapsedHeight + extraOffset
+        // Include nav inset so content clears the glass that draws behind the nav bar.
+        val bottomMargin = collapsedHeight + navigationBarInset + extraOffset
 
         target.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             if (this.bottomMargin != bottomMargin) {

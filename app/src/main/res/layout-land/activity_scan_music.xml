@@ -4,29 +4,37 @@
     android:id="@+id/scan_music_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/couiColorBackgroundWithCard"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
 
-    <View
-        android:id="@+id/status_bar_space"
+    <LinearLayout
+
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="?attr/couiColorBackgroundWithCard"
-        android:tag="toolbarChrome" />
+        android:layout_height="wrap_content"
 
-    <com.coui.appcompat.toolbar.COUIToolbar
+        android:orientation="vertical"
+        android:tag="titleBackgroundColor">
+
+        <View
+
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+
+            android:layout_height="0dp" />
+
+        <com.coui.appcompat.toolbar.COUIToolbar
         android:id="@+id/toolbar"
         style="@style/Secondary.Toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/couiColorBackgroundWithCard"
+        android:background="@android:color/transparent"
         android:minHeight="@dimen/toolbar_min_height"
-        android:tag="toolbar"
-        app:menu="@menu/menu_activity_scan_menu"
         app:supportNavigationIcon="@drawable/coui_back_arrow"
         app:supportTitle="@string/scan"
         app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
         app:titleCenter="false" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/background"
@@ -47,8 +55,7 @@
             <gd.app.lib.model.scan.MusicScanProgressView
                 android:id="@+id/music_scan_progress"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:tag="MusicScanProgressView" />
+                android:layout_height="match_parent" />
         </FrameLayout>
 
         <LinearLayout

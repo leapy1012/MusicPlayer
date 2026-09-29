@@ -3,20 +3,19 @@ package gd.app.musicplayer.ui.editor
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Selection
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
+import androidx.core.graphics.ColorUtils
 import androidx.core.widget.ImageViewCompat
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.applyLengthFilter
 import gd.app.musicplayer.core.common.extension.extractValidatedText
 import gd.app.musicplayer.core.common.extension.hideKeyboard
@@ -28,6 +27,8 @@ import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.itemPrimaryTextColor
 import gd.app.musicplayer.core.mediastore.MediaStoreMusicImporter
 import gd.app.musicplayer.databinding.ActivityAudioEditorBinding
 import gd.app.musicplayer.domain.model.Music
@@ -207,13 +208,14 @@ class AudioEditorActivity : BaseActivity(),
             root = binding.root,
             statusBarView = binding.statusBarSpace,
             toolbar = binding.toolbar,
-            bottomPaddingView = binding.bottomControl as View
+            bottomPaddingView = binding.bottomControl
         )
 
         binding.toolbar.title = track?.title ?: getString(R.string.audio_editor_title)
         binding.toolbar.menu.clear()
         binding.toolbar.inflateMenu(R.menu.menu_activity_audio_editor)
         binding.toolbar.setOnMenuItemClickListener(this)
+        applyThemeTo(binding.toolbar)
     }
 
     private fun pauseCurrentPlaybackIfNeeded() {
@@ -302,26 +304,40 @@ class AudioEditorActivity : BaseActivity(),
     }
 
     private fun applyReferenceControlRendering() {
-        binding.audioEditorStart.background = createClipMarkerButtonBackground()
-        binding.audioEditorEnd.background = createClipMarkerButtonBackground()
+        val palette = themeEngine.currentTheme()
+        val isLightTheme = palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+        val foreground = if (isLightTheme) {
+            resolveAttrColor(com.coui.appcompat.R.attr.couiColorPrimaryNeutral, Color.BLACK)
+        } else {
+            palette.itemPrimaryTextColor
+        }
 
-        val zoomTint = AppCompatResources.getColorStateList(
-            this,
-            R.drawable.selector_image_disable
+        val zoomTint = ColorStateList(
+            arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),
+            intArrayOf(ColorUtils.setAlphaComponent(foreground, DISABLED_ALPHA), foreground)
         )
         ImageViewCompat.setImageTintList(binding.audioEditorZoomIn, zoomTint)
         ImageViewCompat.setImageTintList(binding.audioEditorZoomOut, zoomTint)
 
-        binding.audioEditorPlay.setImageResource(R.drawable.vector_trim_play_pause_selector)
+        val underline = ColorStateList.valueOf(
+            ColorUtils.setAlphaComponent(foreground, UNDERLINE_ALPHA)
+        )
+        binding.audioEditorStartTime.backgroundTintList = underline
+        binding.audioEditorEndTime.backgroundTintList = underline
+
+        if (!isLightTheme) {
+            listOf(binding.audioEditorStart, binding.audioEditorEnd).forEach { button ->
+                button.setDrawableColor(ColorUtils.setAlphaComponent(foreground, MARK_BUTTON_ALPHA))
+                button.setTextColor(foreground)
+            }
+        }
     }
 
-    private fun createClipMarkerButtonBackground(): GradientDrawable {
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(4f).toFloat()
-            setColor(0x33FFFFFF)
-            setStroke(dpToPx(1.5f).coerceAtLeast(1), Color.WHITE)
-        }
+    private fun resolveAttrColor(attr: Int, fallback: Int): Int {
+        val typed = obtainStyledAttributes(intArrayOf(attr))
+        val color = typed.getColor(0, fallback)
+        typed.recycle()
+        return color
     }
 
     private fun loadWaveform() {
@@ -637,6 +653,9 @@ class AudioEditorActivity : BaseActivity(),
         private const val LARGE_STEP_MS = 2_000
         private const val MIN_CLIP_DURATION_MS = 39
         private const val MAX_FILE_NAME_LENGTH = 120
+        private const val DISABLED_ALPHA = 77
+        private const val UNDERLINE_ALPHA = 77
+        private const val MARK_BUTTON_ALPHA = 51
 
         private const val REPEATED_SEEK_DELAY_MS = 120L
 

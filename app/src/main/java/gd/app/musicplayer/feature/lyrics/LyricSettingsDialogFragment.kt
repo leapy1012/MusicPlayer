@@ -23,7 +23,6 @@ import gd.app.musicplayer.core.datastore.DesktopLyricPreferenceStore
 import gd.app.musicplayer.core.datastore.LyricSettingPreferenceStore
 import gd.app.musicplayer.core.datastore.LyricsSettingPreference
 import gd.app.musicplayer.databinding.DialogLyricSettingBinding
-import gd.app.musicplayer.ui.theme.ThemeTags
 import gd.app.musicplayer.util.TrackLyricsStore
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -200,9 +199,9 @@ class LyricSettingsDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
 
         binding.lyricFeedback.visibility = View.GONE
 
-        bindTaggedButtonGroup(
-            container = binding.lyricAlignLayout,
-            tag = ThemeTags.Lyric.ALIGN_BUTTON,
+        val styleButtons = collectStyleButtons(binding.lyricAlignLayout)
+        bindButtonGroup(
+            buttons = styleButtons.filterIsInstance<android.widget.ImageView>(),
             selectedIndex = lyricPreference.lyricAlign
         ) { index ->
             lyricPreference = lyricPreference.copy(
@@ -215,9 +214,8 @@ class LyricSettingsDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
             }
         }
 
-        bindTaggedButtonGroup(
-            container = binding.lyricAlignLayout,
-            tag = ThemeTags.Lyric.TYPEFACE_BUTTON,
+        bindButtonGroup(
+            buttons = styleButtons.filterIsInstance<android.widget.TextView>(),
             selectedIndex = lyricPreference.lyricStyle
         ) { index ->
             lyricPreference = lyricPreference.copy(
@@ -248,49 +246,46 @@ class LyricSettingsDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
         }
     }
 
-    private fun bindTaggedButtonGroup(
-        container: ViewGroup,
-        tag: String,
+    private fun bindButtonGroup(
+        buttons: List<View>,
         selectedIndex: Int,
         onSelected: (Int) -> Unit
     ) {
-        val buttons = mutableListOf<View>()
-
-        collectTaggedChildren(
-            root = container,
-            tag = tag,
-            target = buttons
-        )
-
         buttons.forEachIndexed { index, child ->
             child.isSelected = index == selectedIndex
-
             child.setOnClickListener {
                 buttons.forEachIndexed { innerIndex, innerChild ->
                     innerChild.isSelected = innerIndex == index
                 }
-
                 onSelected(index)
             }
         }
     }
 
-    private fun collectTaggedChildren(
-        root: View,
-        tag: String,
-        target: MutableList<View>
-    ) {
-        if (root.tag == tag) {
-            target += root
-        }
+    private fun collectStyleButtons(root: View): List<View> {
+        val scroll = findHorizontalScroll(root) ?: return emptyList()
+        val target = mutableListOf<View>()
+        collectStyleButtons(scroll, target)
+        return target
+    }
 
+    private fun findHorizontalScroll(root: View): android.widget.HorizontalScrollView? {
+        if (root is android.widget.HorizontalScrollView) return root
         if (root is ViewGroup) {
             for (index in 0 until root.childCount) {
-                collectTaggedChildren(
-                    root = root.getChildAt(index),
-                    tag = tag,
-                    target = target
-                )
+                findHorizontalScroll(root.getChildAt(index))?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun collectStyleButtons(root: View, target: MutableList<View>) {
+        when (root) {
+            is android.widget.ImageView, is android.widget.TextView -> target += root
+            is ViewGroup -> {
+                for (index in 0 until root.childCount) {
+                    collectStyleButtons(root.getChildAt(index), target)
+                }
             }
         }
     }

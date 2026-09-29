@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.core.datastore.ThemeSettings
 import gd.app.musicplayer.domain.model.ThemeGroup
 import gd.app.musicplayer.domain.usecase.theme.AddThemeImageNameUseCase
+import gd.app.musicplayer.domain.usecase.theme.ApplyDarkThemeUseCase
 import gd.app.musicplayer.domain.usecase.theme.ApplyLightThemeUseCase
 import gd.app.musicplayer.domain.usecase.theme.ApplyPictureThemeUseCase
 import gd.app.musicplayer.domain.usecase.theme.ObserveThemeSettingsUseCase
@@ -53,7 +54,8 @@ class ThemeViewModel @Inject constructor(
     private val observeThemeSettingsUseCase: ObserveThemeSettingsUseCase,
     private val addThemeImageNameUseCase: AddThemeImageNameUseCase,
     private val applyPictureThemeUseCase: ApplyPictureThemeUseCase,
-    private val applyLightThemeUseCase: ApplyLightThemeUseCase
+    private val applyLightThemeUseCase: ApplyLightThemeUseCase,
+    private val applyDarkThemeUseCase: ApplyDarkThemeUseCase
 ) : ViewModel() {
 
     /**
@@ -131,10 +133,10 @@ class ThemeViewModel @Inject constructor(
 
     fun onThemeSelected(fileName: String, tabIndex: Int) {
         viewModelScope.launch {
-            if (fileName == ThemeItemMapper.WHITE_THEME_TOKEN) {
-                applyLightThemeUseCase()
-            } else {
-                applyPictureThemeUseCase(
+            when (fileName) {
+                ThemeItemMapper.WHITE_THEME_TOKEN -> applyLightThemeUseCase()
+                ThemeItemMapper.BLACK_THEME_TOKEN -> applyDarkThemeUseCase()
+                else -> applyPictureThemeUseCase(
                     imageName = fileName,
                     overlayColor = DEFAULT_THEME_OVERLAY_COLOR,
                     blur = 0

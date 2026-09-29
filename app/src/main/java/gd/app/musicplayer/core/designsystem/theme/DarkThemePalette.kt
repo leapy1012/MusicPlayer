@@ -18,9 +18,6 @@ class DarkThemePalette : PictureThemePalette() {
 
     override fun isDarkMode(): Boolean = true
 
-    override fun getPopupBackgroundDrawable(context: Context): Drawable =
-        AppCompatResources.getDrawable(context, R.drawable.popup_bg_night) ?: DARK_SURFACE.toDrawable()
-
     override fun getHeaderBackgroundDrawable(context: Context): Drawable =
         getHeaderOverlayColor().toDrawable()
 
@@ -34,8 +31,6 @@ class DarkThemePalette : PictureThemePalette() {
 
     override fun getBottomDialogSurfaceDrawable(context: Context): Drawable =
         DARK_SURFACE.toDrawable()
-
-    override fun isPopupSurfaceLight(): Boolean = false
 
     override fun isHeaderSurfaceLight(): Boolean = false
 

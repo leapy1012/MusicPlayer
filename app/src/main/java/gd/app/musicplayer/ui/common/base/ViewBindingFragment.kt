@@ -74,25 +74,17 @@ abstract class ViewBindingFragment<VB : ViewBinding> : Fragment(), ThemeObserver
         super.onViewCreated(view, savedInstanceState)
         // Configure binding
         onBindingCreated(requireBinding(), savedInstanceState)
-        // Original fragment path: theme once after view created (not on every resume).
+        // Stay registered while stopped (same as activity) so Theme notify reaches us.
+        themeRegistry.registerObserver(this)
+        // Theme once after view created (not on every resume).
         applyThemeAndInsets()
     }
 
-    override fun onStart() {
-        super.onStart()
-        // Original y.Y().L(this) — register only.
-        themeRegistry.registerObserver(this)
-    }
-
-    override fun onStop() {
-        themeRegistry.unregisterObserver(this)
-        super.onStop()
-    }
-
     override fun onDestroyView() {
-        super.onDestroyView()
-        // Clear binding
+        themeRegistry.unregisterObserver(this)
+        binding?.let { onDestroyBinding(it) }
         _binding = null
+        super.onDestroyView()
     }
 
     override fun onThemeChanged(palette: ThemePalette?) {

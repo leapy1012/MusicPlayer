@@ -4,13 +4,14 @@
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp">
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp">
 
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/drive_mode_cover"
         android:layout_width="196dp"
         android:layout_height="196dp"
+        android:importantForAccessibility="no"
         android:scaleType="centerCrop"
         android:src="@drawable/default_album_identify" />
 
@@ -18,20 +19,22 @@
         android:id="@+id/drive_mode_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
+        android:ellipsize="end"
         android:gravity="center"
         android:singleLine="true"
-        android:tag="itemTextColor"
-        android:textColor="#ffffff"
-        android:textSize="30sp" />
+        android:textColor="?attr/couiColorPrimaryNeutral"
+        android:textSize="28sp"
+        android:textStyle="bold" />
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/drive_mode_artist"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:gravity="center"
         android:singleLine="true"
-        android:tag="itemTextExtraColor"
-        android:textColor="#b3ffffff"
-        android:textSize="20sp" />
+        android:textColor="?attr/couiColorSecondNeutral"
+        android:textSize="18sp" />
 </LinearLayout>

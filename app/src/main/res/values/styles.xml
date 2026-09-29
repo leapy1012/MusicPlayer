@@ -39,11 +39,6 @@
         <item name="android:windowExitAnimation">@anim/b_popupwindow_out</item>
     </style>
 
-    <style name="EditMorePopupAnim" parent="@android:style/Animation">
-        <item name="android:windowEnterAnimation">@anim/popup_fade_in</item>
-        <item name="android:windowExitAnimation">@anim/b_popupwindow_out</item>
-    </style>
-
     <!-- Toolbar / tabs -->
     <style name="AppToolbar" parent="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="android:background">@android:color/transparent</item>
@@ -685,6 +680,44 @@
         <item name="android:paddingBottom">12dp</item>
     </style>
 
+    <style name="AudioEditorIconButton">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:tag">itemTextColor</item>
+    </style>
+
+    <style name="AudioEditorTimeField">
+        <item name="android:layout_width">72dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/edit_bg</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:tag">itemTextColor</item>
+        <item name="android:text">0.00</item>
+        <item name="android:textColor">?attr/couiColorPrimaryNeutral</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="AudioEditorMarkButton" parent="@style/Widget.COUI.Button.Small.ButtonNew.HalfColor">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minWidth">96dp</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="ThemeEditSliderLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:shadowColor">#66000000</item>
+        <item name="android:shadowRadius">4</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
     <style name="EqualizerSlider">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
@@ -716,6 +749,83 @@
         <item name="android:textColor">@color/equalizer_primary_text</item>
     </style>
 
+    <style name="StatusBarLyricSliderLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:maxWidth">120dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:textAppearance">?attr/couiTextAppearanceHeadline6</item>
+        <item name="android:textColor">?attr/couiColorPrimaryNeutral</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="StatusBarLyricSlider">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:clipToPadding">false</item>
+        <item name="android:min">0</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+    </style>
+
+    <style name="DriveModeTimeText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layoutDirection">ltr</item>
+        <item name="android:tag">itemTextExtraColor</item>
+        <item name="android:text">00:00</item>
+        <item name="android:textColor">?attr/couiColorSecondNeutral</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <style name="DriveModeBadgeIcon">
+        <item name="android:layout_width">20dp</item>
+        <item name="android:layout_height">20dp</item>
+        <item name="android:importantForAccessibility">no</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:tag">itemTextExtraColor</item>
+        <item name="tint">?attr/couiColorSecondNeutral</item>
+    </style>
+
+    <style name="DriveModeBadgeText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">4dp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:tag">itemTextExtraColor</item>
+        <item name="android:textColor">?attr/couiColorSecondNeutral</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="WidgetConfigSectionTitle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">32dp</item>
+        <item name="android:layout_marginTop">20dp</item>
+        <item name="android:layout_marginEnd">32dp</item>
+        <item name="android:layout_marginBottom">12dp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:tag">itemTextExtraColor</item>
+        <item name="android:textColor">?attr/couiColorSecondNeutral</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="TagEditField" parent="@style/Widget.COUI.EditText.HintAnim.Line">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:cursorVisible">true</item>
+        <item name="android:imeOptions">actionNext</item>
+        <item name="android:inputType">textCapSentences</item>
+        <item name="android:selectAllOnFocus">true</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:tag">couiEditText</item>
+    </style>
+
     <style name="EqualizerReverbChip" parent="@style/Widget.COUI.Chip.Selection">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
@@ -736,7 +846,7 @@
         <item name="android:layout_marginTop">8dp</item>
         <item name="android:scaleType">fitCenter</item>
         <item name="android:importantForAccessibility">no</item>
-        <item name="android:tint">?attr/couiColorPrimaryNeutral</item>
+        <item name="android:tint">@color/white</item>
         <item name="android:tag">bottomMenuText</item>
     </style>
 
@@ -748,7 +858,7 @@
         <item name="android:gravity">center</item>
         <item name="android:maxLines">2</item>
         <item name="android:textAlignment">center</item>
-        <item name="android:textColor">?attr/couiColorPrimaryNeutral</item>
+        <item name="android:textColor">@color/white</item>
         <item name="android:textSize">12sp</item>
         <item name="android:tag">bottomMenuText</item>
     </style>

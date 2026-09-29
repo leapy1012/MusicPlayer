@@ -9,7 +9,6 @@
     <TextView
         android:textSize="16sp"
         android:id="@+id/dialog_message"
-        android:tag="dialogMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
@@ -29,7 +28,6 @@
         android:paddingEnd="24dp">
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/dialog_commen_delete_select"
-            android:tag="dialogSelectBox"
             android:padding="1dp"
             android:layout_width="24dp"
             android:layout_height="24dp"
@@ -39,7 +37,6 @@
             android:textSize="15sp"
             android:textColor="#61000000"
             android:id="@+id/dialog_commen_delete_tip"
-            android:tag="dialogMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/delete_source_file"

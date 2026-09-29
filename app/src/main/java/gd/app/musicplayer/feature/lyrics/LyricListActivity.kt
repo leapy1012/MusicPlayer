@@ -3,7 +3,7 @@ package gd.app.musicplayer.feature.lyrics
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
@@ -17,29 +17,22 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.MenuItem
-import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
-import android.widget.AdapterView
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.searchview.COUISearchBar
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.hideKeyboard
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.accentColor
-import gd.app.musicplayer.core.designsystem.theme.itemTextColor
-import gd.app.musicplayer.core.designsystem.view.CustomSpinner
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
 import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
 import gd.app.musicplayer.databinding.ActivityLyricListBinding
@@ -48,6 +41,9 @@ import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.ui.common.applyCouiListBackground
+import gd.app.musicplayer.ui.common.applyListRowFeedback
+import gd.app.musicplayer.ui.common.enableTapToEdit
 import gd.app.musicplayer.util.TrackLyricsStore
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -58,7 +54,6 @@ import kotlinx.coroutines.withContext
 class LyricListActivity :
     BaseActivity(),
     TextWatcher,
-    AdapterView.OnItemClickListener,
     Toolbar.OnMenuItemClickListener {
 
     private lateinit var binding: ActivityLyricListBinding
@@ -68,6 +63,12 @@ class LyricListActivity :
 
     private var track: Music? = null
     private var searchText = ""
+    private val isLightTheme: Boolean
+        get() = themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+    private val highlightColor: Int by lazy {
+        if (isLightTheme) resolveAttrColor(com.coui.appcompat.R.attr.couiColorLabelTheme)
+        else themeEngine.currentTheme().accentColor
+    }
 
     private val lrcBrowserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -94,7 +95,7 @@ class LyricListActivity :
         setupToolbar()
         setupList()
         setupSearch()
-        setupSpinner()
+        setupScopeChips()
 
         loadLyrics()
     }
@@ -124,22 +125,12 @@ class LyricListActivity :
         }
     }
 
-    override fun onItemClick(
-        parent: AdapterView<*>?,
-        view: View?,
-        position: Int,
-        id: Long
-    ) {
-        loadLyrics()
-    }
-
     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
 
     override fun afterTextChanged(editable: Editable?) {
         searchText = editable?.toString().orEmpty().lowercase()
-        binding.searchCloseBtn.isVisible = searchText.isNotEmpty()
         adapter.filter(searchText)
     }
 
@@ -154,12 +145,7 @@ class LyricListActivity :
 
         binding.toolbar.inflateMenu(R.menu.menu_activity_lyric_list)
         binding.toolbar.setOnMenuItemClickListener(this)
-        binding.toolbar.menu.findItem(R.id.menu_folder)?.icon?.let { icon ->
-            DrawableCompat.setTintList(
-                icon.mutate(),
-                ColorStateList.valueOf(themeEngine.currentTheme().accentColor)
-            )
-        }
+        binding.appBar.bringToFront()
     }
 
     private fun setupList() {
@@ -173,6 +159,12 @@ class LyricListActivity :
             layoutManager = this@LyricListActivity.layoutManager
             adapter = this@LyricListActivity.adapter
             setHasFixedSize(true)
+            applyCouiListBackground(isLightTheme)
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    if (newState == RecyclerView.SCROLL_STATE_DRAGGING) hideKeyboard()
+                }
+            })
         }
 
         emptyStateController = RecyclerEmptyStateController(
@@ -199,16 +191,19 @@ class LyricListActivity :
     }
 
     private fun setupSearch() {
-        binding.searchEditText.addTextChangedListener(this)
-        binding.searchCloseBtn.setOnClickListener {
-            binding.searchEditText.setText("")
+        val editText = binding.searchBar.searchEditText ?: return
+        editText.addTextChangedListener(this)
+        editText.setOnEditorActionListener { _, _, _ ->
+            hideKeyboard()
+            false
         }
+        binding.searchBar.setSearchAnimateType(COUISearchBar.TYPE_NON_INSTANT_SEARCH)
+        binding.searchBar.enableTapToEdit()
     }
 
-    private fun setupSpinner() {
-        binding.mainInfoSpinner.setEntriesResourceId(R.array.search_lyric_array)
-        binding.mainInfoSpinner.setSelection(0)
-        binding.mainInfoSpinner.setOnItemClickListener(this)
+    private fun setupScopeChips() {
+        binding.lyricScopeGroup.check(R.id.lyric_scope_related)
+        binding.lyricScopeGroup.setOnCheckedStateChangeListener { _, _ -> loadLyrics() }
     }
 
     private fun loadLyrics() {
@@ -216,7 +211,7 @@ class LyricListActivity :
         emptyStateController.setLoadingEnabled(true)
         lifecycleScope.launch {
             val files = withContext(Dispatchers.IO) {
-                if (binding.mainInfoSpinner.getSelection() == 0) {
+                if (binding.lyricScopeGroup.checkedChipId != R.id.lyric_scope_all) {
                     findRelatedLyrics(currentTrack)
                 } else {
                     findAllLyrics()
@@ -387,8 +382,14 @@ class LyricListActivity :
     }
 
     private fun hideKeyboard() {
-        val imm = ContextCompat.getSystemService(this, InputMethodManager::class.java)
-        imm?.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
+        binding.searchBar.searchEditText?.hideKeyboard()
+    }
+
+    private fun resolveAttrColor(attr: Int): Int {
+        val typed = obtainStyledAttributes(intArrayOf(attr))
+        val color = typed.getColor(0, Color.WHITE)
+        typed.recycle()
+        return color
     }
 
     private inner class LyricFileAdapter(
@@ -407,6 +408,8 @@ class LyricListActivity :
                 parent,
                 false
             )
+            applyThemeTo(binding.root)
+            binding.root.applyListRowFeedback(isLightTheme)
             return ViewHolder(binding)
         }
 
@@ -451,7 +454,6 @@ class LyricListActivity :
                 )
                 binding.musicItemTitle.text = highlightedTitle(file.title)
                 binding.musicItemArtist.text = file.folder
-                binding.musicItemTitle.setTextColor(themeEngine.currentTheme().itemTextColor)
 
                 binding.root.setOnClickListener { onItemClick(file) }
                 binding.root.setOnLongClickListener {
@@ -469,7 +471,7 @@ class LyricListActivity :
 
                 return SpannableString(title).apply {
                     setSpan(
-                        ForegroundColorSpan(themeEngine.currentTheme().accentColor),
+                        ForegroundColorSpan(highlightColor),
                         start,
                         start + query.length,
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE

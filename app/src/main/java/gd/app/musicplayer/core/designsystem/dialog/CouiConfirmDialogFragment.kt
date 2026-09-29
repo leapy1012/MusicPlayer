@@ -10,6 +10,7 @@ import androidx.fragment.app.DialogFragment
 import com.coui.appcompat.checkbox.COUICheckBox
 import com.coui.appcompat.dialog.COUIAlertDialogBuilder
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.databinding.DialogConfirmExtraBinding
 
 /**
@@ -56,6 +57,7 @@ open class CouiConfirmDialogFragment : DialogFragment() {
                 dismiss()
             }
             builder.updateViewAfterShown()
+            CouiAlertDialogSurface.apply(dialog)
         }
         return dialog
     }

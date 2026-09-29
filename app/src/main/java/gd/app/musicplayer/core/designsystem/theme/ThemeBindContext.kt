@@ -36,9 +36,6 @@ internal data class ThemeBindContext(
 }
 
 internal object ThemeBindDefaults {
-    const val FULL_ROUND_RADIUS = 1000f
     const val HINT_ALPHA = 128
     const val TEXT_SECONDARY_ALPHA = 180
-    const val DISABLED_ALPHA = 77
-    const val DIVIDER_ALPHA = 36
 }

@@ -29,7 +29,8 @@ import gd.app.musicplayer.playback.queue.hasSameQueueIdentity
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
-import gd.app.musicplayer.core.designsystem.view.SeekBar
+import com.coui.appcompat.seekbar.COUISeekBar
+import gd.app.lib.view.RoundedOutlineProvider
 import gd.app.musicplayer.feature.player.queue.PlayQueueActivity
 import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
@@ -41,7 +42,7 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     private var pagerSyncFromState = false
     private var forwardBackwardSeconds = DEFAULT_FORWARD_BACKWARD_SECONDS
     private var currentQueue: List<Music> = emptyList()
-    private val pagerAdapter = DriveModePagerAdapter()
+    private val pagerAdapter = DriveModePagerAdapter(applyTheme = { applyThemeTo(it) })
     private val viewModel: PlayerViewModel by viewModels()
     private val playModeViewModel: PlayModeViewModel by viewModels()
 
@@ -111,19 +112,19 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
             playModeViewModel.cyclePlayMode()
         }
 
-        binding.driveModeProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+        binding.driveModeProgress.setOnSeekBarChangeListener(object : COUISeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: COUISeekBar, progress: Int, fromUser: Boolean) {
                 if (!fromUser) return
 
                 requireBinding().driveModeCurrTime.text = progress.toLong().toDurationString()
                 viewModel.seekTo(requireContext(), progress)
             }
 
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
+            override fun onStopTrackingTouch(seekBar: COUISeekBar) {
                 userSeeking = false
             }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
+            override fun onStartTrackingTouch(seekBar: COUISeekBar) {
                 userSeeking = true
             }
         })
@@ -245,8 +246,6 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
                 bottom = basePadding
             )
             resizeControlButton(binding.driveModePlayPause, defaultSize.toInt(), 0, 0, 0, 0)
-            binding.driveModePrevious.tag = "previousView"
-            binding.driveModeNext.tag = "nextView"
         }
     }
 
@@ -303,7 +302,9 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
     }
 }
 
-private class DriveModePagerAdapter : PagerAdapter() {
+private class DriveModePagerAdapter(
+    private val applyTheme: (View) -> Unit
+) : PagerAdapter() {
     private val queue = mutableListOf<Music>()
 
     fun getItemOrNull(position: Int): Music? = queue.getOrNull(position)
@@ -352,7 +353,12 @@ private class DriveModePagerAdapter : PagerAdapter() {
         )
         binding.driveModeTitle.text = item.title
         binding.driveModeArtist.text = item.artist.ifBlank { binding.root.context.getString(R.string.artist) }
+        binding.driveModeCover.outlineProvider = RoundedOutlineProvider(
+            binding.root.resources.getDimension(com.coui.appcompat.R.dimen.coui_round_corner_l)
+        )
+        binding.driveModeCover.clipToOutline = true
         binding.driveModeCover.loadMusicArtwork(item.albumArtSource())
+        applyTheme(binding.root)
         container.addView(binding.root)
         return binding.root
     }

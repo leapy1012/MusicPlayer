@@ -2,6 +2,7 @@ package gd.app.musicplayer.feature.player.common
 
 import android.view.View
 import android.widget.TextView
+import com.coui.appcompat.seekbar.COUISeekBar
 import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 
@@ -44,6 +45,57 @@ object PlaybackProgressBinder {
         totalTimeView: TextView? = null,
         minDurationMs: Long = 1L,
         displayedPositionMs: Long? = null
+    ): Metrics = bind(
+        setMax = seekBar::setMax,
+        setProgress = seekBar::setProgress,
+        durationMs = durationMs,
+        positionMs = positionMs,
+        userSeeking = userSeeking,
+        isPlaying = isPlaying,
+        playPauseView = playPauseView,
+        currentTimeView = currentTimeView,
+        totalTimeView = totalTimeView,
+        minDurationMs = minDurationMs,
+        displayedPositionMs = displayedPositionMs
+    )
+
+    fun bind(
+        seekBar: COUISeekBar,
+        durationMs: Long,
+        positionMs: Long,
+        userSeeking: Boolean,
+        isPlaying: Boolean = false,
+        playPauseView: View? = null,
+        currentTimeView: TextView? = null,
+        totalTimeView: TextView? = null,
+        minDurationMs: Long = 1L,
+        displayedPositionMs: Long? = null
+    ): Metrics = bind(
+        setMax = { seekBar.max = it },
+        setProgress = { seekBar.progress = it },
+        durationMs = durationMs,
+        positionMs = positionMs,
+        userSeeking = userSeeking,
+        isPlaying = isPlaying,
+        playPauseView = playPauseView,
+        currentTimeView = currentTimeView,
+        totalTimeView = totalTimeView,
+        minDurationMs = minDurationMs,
+        displayedPositionMs = displayedPositionMs
+    )
+
+    private fun bind(
+        setMax: (Int) -> Unit,
+        setProgress: (Int) -> Unit,
+        durationMs: Long,
+        positionMs: Long,
+        userSeeking: Boolean,
+        isPlaying: Boolean,
+        playPauseView: View?,
+        currentTimeView: TextView?,
+        totalTimeView: TextView?,
+        minDurationMs: Long,
+        displayedPositionMs: Long?
     ): Metrics {
         val metrics = metrics(durationMs, positionMs, minDurationMs)
         val displayPosition = displayedPositionMs
@@ -53,10 +105,10 @@ object PlaybackProgressBinder {
         playPauseView?.isSelected = isPlaying
         totalTimeView?.text = metrics.durationMs.toDurationString()
         currentTimeView?.text = displayPosition.toDurationString()
-        seekBar.setMax(metrics.durationInt)
+        setMax(metrics.durationInt)
 
         if (!userSeeking) {
-            seekBar.setProgress(displayPosition.toInt())
+            setProgress(displayPosition.toInt())
         }
 
         return metrics

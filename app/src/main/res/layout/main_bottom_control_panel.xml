@@ -4,36 +4,38 @@
     android:id="@+id/main_bottom_control_panel"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_main_mini_player"
-    android:elevation="6dp"
-    android:orientation="vertical"
-    android:tag="bottomControlBackground">
+    android:background="@android:color/transparent"
+    android:elevation="0dp"
+    android:orientation="vertical">
 
     <View
+        android:id="@+id/main_bottom_control_divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="?attr/couiColorDivider" />
+        android:background="@android:color/transparent"
+        android:tag="bottomControlDivider" />
 
     <RelativeLayout
         android:id="@+id/main_bottom_control_content"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/main_control_banner_height">
+        android:layout_height="@dimen/main_control_banner_height"
+        android:tag="bottomControlBackground">
 
         <gd.app.musicplayer.core.designsystem.view.SeekBar
             android:id="@+id/main_music_progress"
             android:layout_width="match_parent"
-            android:layout_height="2dp"
+            android:layout_height="3dp"
             android:layout_alignParentTop="true"
+            android:tag="seekBar"
             app:seekMax="100"
             app:seekProgress="0"
-            app:seekProgressHeight="2dp"
+            app:seekProgressHeight="3dp"
             app:seekRtlEnable="false" />
 
         <LinearLayout
             android:id="@+id/background"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_below="@id/main_music_progress"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="8dp"
@@ -95,7 +97,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="8dp"
                 android:scaleType="centerInside"
-                android:tag="itemTextExtraColor"
+                android:tag="itemTextColor"
                 app:srcCompat="@drawable/vector_mini_play_pause_selector"
                 app:tint="?attr/couiColorSecondNeutral" />
 
@@ -107,7 +109,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="8dp"
                 android:scaleType="centerInside"
-                android:tag="itemTextExtraColor"
+                android:tag="itemTextColor"
                 app:srcCompat="@drawable/vector_mini_play_next"
                 app:tint="?attr/couiColorSecondNeutral" />
 
@@ -119,7 +121,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="8dp"
                 android:scaleType="centerInside"
-                android:tag="itemTextExtraColor"
+                android:tag="itemTextColor"
                 app:srcCompat="@drawable/vector_mini_queue"
                 app:tint="?attr/couiColorSecondNeutral" />
         </LinearLayout>
@@ -128,6 +130,7 @@
     <View
         android:id="@+id/navigation_bar_spacer"
         android:layout_width="match_parent"
-        android:layout_height="0dp" />
+        android:layout_height="0dp"
+        android:tag="bottomControlBackground" />
 
 </LinearLayout>

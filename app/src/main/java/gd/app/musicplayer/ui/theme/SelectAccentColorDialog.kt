@@ -14,6 +14,7 @@ import com.coui.appcompat.dialog.COUIAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.core.designsystem.view.ColorPickerView
 import gd.app.musicplayer.databinding.DialogAccentColorPickerBinding
 import gd.app.musicplayer.domain.repository.ThemeRepo
@@ -70,6 +71,7 @@ class SelectAccentColorDialog : DialogFragment(),
             .create()
 
         dialog.setOnShowListener {
+            CouiAlertDialogSurface.apply(dialog)
             dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 applySelectionAndDismiss()
             }

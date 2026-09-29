@@ -46,7 +46,7 @@ class BottomMiniPlayerFragment : ViewBindingFragment<MainBottomControlPanelBindi
         super.onBindingCreated(binding, savedInstanceState)
 
         if (shouldApplyInsets) {
-//            setupInsets(binding)
+            setupInsets(binding)
         }
         setupControls(binding)
         // Sync first paint from process singleton (original e0 → y6.y).

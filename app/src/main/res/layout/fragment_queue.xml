@@ -3,83 +3,71 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <View
-        android:id="@+id/status_bar_space"
-        android:layout_width="match_parent"
-        android:layout_height="0dp" />
-
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
+    android:orientation="vertical">    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:id="@+id/coordinator_layout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <com.google.android.material.appbar.AppBarLayout
-            android:id="@+id/appbar_layout"
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/app_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
-            app:elevation="0dp">
+            android:elevation="0dp"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true"
+            android:tag="titleBackgroundColor">
 
-            <com.google.android.material.appbar.CollapsingToolbarLayout
-                android:id="@+id/collapsing_toolbar"
+            <View
+
+                android:id="@+id/status_bar_space"
+                android:layout_width="match_parent"
+
+                android:layout_height="0dp" />
+
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:theme="@style/Theme.AppCompat"
-                app:collapsedTitleTextAppearance="@style/AppToolbarTitle"
-                app:contentScrim="#00000000"
-                app:expandedTitleMarginBottom="32dp"
-                app:expandedTitleMarginStart="24dp"
-                app:expandedTitleMarginTop="32dp"
-                app:expandedTitleTextAppearance="@style/AppToolbarTitleExpend.Queue"
-                app:layout_scrollFlags="exitUntilCollapsed|scroll"
-                app:maxLines="2"
-                app:title="@string/playing_queue_2">
-
-                <androidx.appcompat.widget.Toolbar
-                    android:id="@+id/toolbar"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/common_title_height"
-                    android:minHeight="@dimen/common_title_height"
-                    android:tag="ignore"
-                    app:contentInsetStartWithNavigation="0dp"
-                    app:layout_collapseMode="pin"
-                    app:navigationIcon="@drawable/vector_menu_back"
-                    app:theme="@style/AppToolbar"
-                    app:title="@string/playing_queue_2"
-                    app:titleTextAppearance="@style/AppToolbarTitle" />
-            </com.google.android.material.appbar.CollapsingToolbarLayout>
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                app:supportNavigationIcon="@drawable/coui_back_arrow"
+                app:supportTitle="@string/playing_queue_2"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
 
             <LinearLayout
                 android:id="@+id/queue_banner_layout"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="24dp"
-                android:paddingEnd="4dp"
-                android:tag="ignore">
+                android:paddingStart="16dp"
+                android:paddingEnd="8dp">
 
                 <TextView
                     android:id="@+id/queue_info"
                     android:layout_width="0dp"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:gravity="start|center_vertical"
-                    android:textColor="@color/i_white_m"
+                    android:textColor="?attr/couiColorSecondNeutral"
                     android:textSize="14sp" />
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/queue_clear"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/b_selector_image_bg_aw"
-                    android:padding="7dp"
+                    android:contentDescription="@string/clear"
+                    android:padding="8dp"
                     android:scaleType="fitCenter"
                     app:srcCompat="@drawable/vector_queue_clear" />
             </LinearLayout>
-        </com.google.android.material.appbar.AppBarLayout>
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
 
         <include
             layout="@layout/layout_recyclerview"

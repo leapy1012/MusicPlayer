@@ -15,7 +15,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
-        android:tag="folderFootDes"
         android:text="@string/scan_folder_des_1"
         android:textAlignment="center"
         android:textAppearance="?attr/couiTextAppearanceDescription"
@@ -26,7 +25,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
-        android:tag="folderFootDes"
         android:text="@string/scan_folder_des_2"
         android:textAlignment="center"
         android:textAppearance="?attr/couiTextAppearanceDescription"
@@ -46,20 +44,17 @@
         android:paddingLeft="24dp"
         android:paddingTop="8dp"
         android:paddingRight="24dp"
-        android:paddingBottom="8dp"
-        android:tag="folderFootScanBg">
+        android:paddingBottom="8dp">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:tag="folderFootScanIcon"
             app:srcCompat="@drawable/vector_left_menu_scan" />
 
         <androidx.appcompat.widget.AppCompatTextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:tag="folderFootScanText"
             android:text="@string/scan_library"
             android:textAppearance="?attr/couiTextAppearanceButton"
             android:textColor="?attr/couiColorPrimaryNeutral"

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:tag="itemBackground"
     android:layout_width="match_parent"
     android:layout_height="@dimen/item_recycler_height"
     android:minHeight="@dimen/item_recycler_height">
@@ -15,7 +14,6 @@
         app:layout_constraintTop_toTopOf="parent"/>
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/music_item_title"
-        android:tag="itemTextColor"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:singleLine="true"
@@ -30,7 +28,6 @@
         app:layout_constraintVertical_chainStyle="packed"/>
     <TextView
         android:id="@+id/music_item_des"
-        android:tag="itemTextExtraColor"
         android:visibility="visible"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -46,7 +43,6 @@
     <TextView
         android:ellipsize="start"
         android:id="@+id/music_item_artist"
-        android:tag="itemTextExtraColor"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
@@ -61,7 +57,6 @@
         app:layout_constraintVertical_chainStyle="packed"/>
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/music_item_menu"
-        android:tag="itemTextExtraColor"
         android:background="@drawable/selector_image_bg_w"
         android:layout_width="40dp"
         android:layout_height="40dp"
@@ -74,7 +69,6 @@
         app:srcCompat="@drawable/vector_more"
         app:tint="?attr/couiColorHintNeutral"/>
     <View
-        android:tag="recyclerDividerColor"
         android:layout_width="0dp"
         android:layout_height="1dp"
         android:layout_marginStart="84dp"

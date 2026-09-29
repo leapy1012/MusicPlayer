@@ -50,6 +50,10 @@ class SortByContextMenu(
             dismiss()
         })
         window.show(anchor)
+        CouiPopupListSurface.apply(window, context)
+        anchor.post {
+            if (popup === window) CouiPopupListSurface.apply(window, context)
+        }
     }
 
     fun dismiss() {

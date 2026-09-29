@@ -3,12 +3,16 @@ package gd.app.musicplayer.ui.scan
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
+import androidx.core.view.children
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -17,10 +21,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.coui.appcompat.checkbox.COUICheckBox
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.designsystem.view.SelectBox
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.ActivityScanSettingBinding
 import gd.app.musicplayer.databinding.ActivityScanSettingListItemBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -88,6 +95,16 @@ class ScanSettingActivity : BaseActivity() {
         setHasFixedSize(true)
 
         (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+
+        if (themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+            val typed = obtainStyledAttributes(
+                intArrayOf(com.coui.appcompat.R.attr.couiColorCardBackground)
+            )
+            setBackgroundColor(typed.getColor(0, Color.WHITE))
+            typed.recycle()
+        }
+
+        binding.appBar.bindRecyclerView(this)
     }
 
     private fun setupStartButton() {
@@ -125,6 +142,15 @@ class ScanSettingActivity : BaseActivity() {
         } else {
             title = state.currentName
             subtitle = state.currentPath
+            // setSubtitle re-applies VIEW_END alignment each call, and COUIToolbar has no
+            // subtitle view getter.
+            children
+                .filterIsInstance<TextView>()
+                .firstOrNull { it !== getCOUITitleTextView() && it.text == state.currentPath }
+                ?.apply {
+                    textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+                    ellipsize = TextUtils.TruncateAt.MIDDLE
+                }
         }
     }
 
@@ -247,6 +273,7 @@ private class ScanFolderAdapter(
         )
 
         applyTheme(binding.root)
+        binding.scanSettingItemImage.applyRoundedOutline(R.dimen.item_image_corner_radius)
 
         return ViewHolder(
             binding = binding,
@@ -280,17 +307,21 @@ private class ScanFolderAdapter(
         private val binding: ActivityScanSettingListItemBinding,
         private val onFolderClick: (ScanFolderItem) -> Unit,
         private val onSelectionChanged: (ScanFolderItem, Boolean) -> Unit
-    ) : RecyclerView.ViewHolder(binding.root),
-        SelectBox.OnSelectChangedListener {
+    ) : RecyclerView.ViewHolder(binding.root) {
 
         private var boundRow: ScanFolderRow? = null
 
         init {
+            binding.root.installCouiPressFeedback()
             binding.root.setOnClickListener {
                 boundRow?.item?.let(onFolderClick)
             }
 
-            binding.scanSettingItemCheckbox.setOnSelectChangedListener(this)
+            // COUICheckBox toggles itself in performClick before this runs.
+            binding.scanSettingItemCheckbox.setOnClickListener { checkBox ->
+                val selected = (checkBox as COUICheckBox).state == COUICheckBox.SELECT_ALL
+                boundRow?.item?.let { item -> onSelectionChanged(item, selected) }
+            }
         }
 
         fun bind(row: ScanFolderRow) = with(binding) {
@@ -305,19 +336,8 @@ private class ScanFolderAdapter(
             )
 
             scanSettingItemImage.setImageResource(row.item.iconRes)
-            scanSettingItemCheckbox.isSelected = row.selected
-        }
-
-        override fun onSelectChanged(
-            selectBox: SelectBox,
-            fromUser: Boolean,
-            isSelected: Boolean
-        ) {
-            if (!fromUser) return
-
-            boundRow?.item?.let { item ->
-                onSelectionChanged(item, isSelected)
-            }
+            scanSettingItemCheckbox.state =
+                if (row.selected) COUICheckBox.SELECT_ALL else COUICheckBox.SELECT_NONE
         }
     }
 

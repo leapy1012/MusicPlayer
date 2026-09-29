@@ -21,6 +21,7 @@ import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.parcelableArrayList
 import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.databinding.DialogNewPlaylistBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
@@ -79,6 +80,7 @@ class PlaylistInputDialog : DialogFragment() {
                 dismiss()
             }
             builder.updateViewAfterShown()
+            CouiAlertDialogSurface.apply(dialog)
         }
 
         observeViewModel()

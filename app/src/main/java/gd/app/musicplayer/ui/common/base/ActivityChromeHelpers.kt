@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.common.base
 
-import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -8,10 +7,10 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import com.coui.appcompat.toolbar.COUIToolbar
+import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyCachedStatusBarHeight
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
-import gd.app.musicplayer.ui.theme.ThemeTags
 
 fun BaseActivity.setupEdgeToEdgeToolbar(
     root: View,
@@ -50,7 +49,8 @@ fun Toolbar.applyCouiLeftTitle() {
 }
 
 /**
- * Inserts a 1px COUI divider under the app bar when missing (theme-bound via tag).
+ * Gives the app bar a COUI scroll-linked divider (see [AppBarDividerScrollSync]).
+ * Prefers an existing [R.id.app_bar_divider]; otherwise inserts one under the toolbar.
  * Skips hosts that already use [com.google.android.material.appbar.COUIDividerAppBarLayout].
  */
 fun Toolbar.ensureAppBarDivider() {
@@ -60,28 +60,31 @@ fun Toolbar.ensureAppBarDivider() {
         ancestor = ancestor.parent
     }
 
-    val parent = parent as? ViewGroup ?: return
+    val content = rootView.findViewById<View>(android.R.id.content) ?: rootView
+    val divider = content.findViewById(R.id.app_bar_divider)
+        ?: insertAppBarDivider()
+        ?: return
+    AppBarDividerScrollSync.attach(divider, this)
+}
+
+private fun Toolbar.insertAppBarDivider(): View? {
+    val parent = parent as? ViewGroup ?: return null
     val (chrome, anchor) = when {
         parent is LinearLayout && parent.orientation == LinearLayout.HORIZONTAL -> {
-            val outer = parent.parent as? ViewGroup ?: return
+            val outer = parent.parent as? ViewGroup ?: return null
             outer to parent
         }
         else -> parent to this
     }
     val insertIndex = chrome.indexOfChild(anchor) + 1
-    if (insertIndex <= 0) return
+    if (insertIndex <= 0) return null
 
-    val existing = chrome.getChildAt(insertIndex)
-    if (existing?.tag == ThemeTags.Navigation.APP_BAR_DIVIDER) return
-
-    val heightPx = TypedValue.applyDimension(
-        TypedValue.COMPLEX_UNIT_DIP,
-        1f,
-        resources.displayMetrics
-    ).toInt().coerceAtLeast(1)
+    val heightPx = resources
+        .getDimensionPixelSize(com.coui.appcompat.R.dimen.toolbar_divider_height)
+        .coerceAtLeast(1)
 
     val divider = View(context).apply {
-        tag = ThemeTags.Navigation.APP_BAR_DIVIDER
+        id = R.id.app_bar_divider
         layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             heightPx
@@ -93,4 +96,5 @@ fun Toolbar.ensureAppBarDivider() {
         typed.recycle()
     }
     chrome.addView(divider, insertIndex)
+    return divider
 }

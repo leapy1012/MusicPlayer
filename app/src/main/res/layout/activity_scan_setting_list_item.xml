@@ -3,31 +3,28 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="@dimen/item_recycler_height"
-    android:minHeight="@dimen/item_recycler_height"
-    android:tag="itemBackground">
+    android:minHeight="@dimen/item_recycler_height">
 
-    <gd.app.musicplayer.core.designsystem.view.SelectBox
+    <com.coui.appcompat.checkbox.COUICheckBox
         android:id="@+id/scan_setting_item_checkbox"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_marginStart="16dp"
-        android:tag="selectBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:background="@null"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/vector_multi_check_w_selector" />
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <gd.app.lib.view.UniformRadiusImageView
+    <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/scan_setting_item_image"
         android:layout_width="52dp"
         android:layout_height="52dp"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="8dp"
+        android:importantForAccessibility="no"
         android:scaleType="fitCenter"
-        android:tag="itemImageBackgroundColor"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@+id/scan_setting_item_checkbox"
-        app:layout_constraintTop_toTopOf="parent"
-        app:urivCornerRadius="@dimen/item_image_corner_radius" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/scan_setting_item_title"
@@ -35,13 +32,12 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:gravity="center_vertical"
+        android:ellipsize="end"
         android:singleLine="true"
-        android:tag="itemTextColor"
-        android:textColor="@color/main_text"
+        android:textColor="?attr/couiColorPrimaryNeutral"
         android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/scan_setting_item_extra"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/scan_setting_item_arrow"
         app:layout_constraintStart_toEndOf="@+id/scan_setting_item_image"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed" />
@@ -51,22 +47,31 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:gravity="center_vertical"
         android:singleLine="true"
-        android:tag="itemTextExtraColor"
-        android:textColor="@color/extra_text"
+        android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/scan_setting_item_title"
         app:layout_constraintStart_toStartOf="@+id/scan_setting_item_title"
-        app:layout_constraintTop_toBottomOf="@+id/scan_setting_item_title"
-        app:layout_constraintVertical_chainStyle="packed" />
+        app:layout_constraintTop_toBottomOf="@+id/scan_setting_item_title" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/scan_setting_item_arrow"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginEnd="16dp"
+        android:importantForAccessibility="no"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/coui_btn_next"
+        app:tint="?attr/couiColorSecondNeutral" />
 
     <View
         android:layout_width="0dp"
-        android:layout_height="1px"
-        android:tag="recyclerDividerColor"
+        android:layout_height="1dp"
+        android:background="?attr/couiColorDivider"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="@+id/scan_setting_item_title" />
 </androidx.constraintlayout.widget.ConstraintLayout>

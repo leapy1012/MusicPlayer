@@ -14,7 +14,6 @@ interface ThemePalette {
     fun getItemTextColor(): Int
     fun getRippleColor(): Int
     fun getHeaderOverlayColor(): Int
-    fun getPopupDividerColor(): Int
     fun getItemSecondaryTextColor(): Int
     fun getSelectionBorderColor(): Int
     fun getDialogTitleColor(): Int
@@ -23,26 +22,21 @@ interface ThemePalette {
     fun ensureResourcesLoaded(context: Context, themeBitmapLoader: ThemeBitmapLoader): Boolean
     fun getActivityBackgroundDrawable(context: Context): Drawable
     fun isActionAreaLight(): Boolean
-    fun getPopupTitleColor(): Int
-    fun getPopupPressedOverlayColor(): Int
-    fun getPopupBackgroundMaskColor(): Int
     fun getItemPressedOverlayColor(): Int
     fun isDarkMode(): Boolean
-    fun getPopupBackgroundDrawable(context: Context): Drawable
     fun getHeaderSecondaryTextColor(): Int
     fun getHeaderBackgroundDrawable(context: Context): Drawable
     fun isNightTheme(): Boolean
     fun getItemPrimaryTextColor(): Int
     fun getThemeType(): Int
-    fun getPopupPressedColor(): Int
     fun getDefaultAccentColor(): Int
-    fun getPopupDividerShadowColor(): Int
     fun getHeaderPressedOverlayColor(): Int
     fun getDialogSurfaceDrawable(context: Context): Drawable
+    /** Bottom-sheet surface (picture = blur+overlay base; no full 12dp round). */
+    fun getBottomDialogSurfaceDrawable(context: Context): Drawable = getDialogSurfaceDrawable(context)
     fun getHeaderTitleColor(): Int
     fun setAccentColor(accentColor: Int)
     fun getActionAreaTextColor(): Int
-    fun isPopupSurfaceLight(): Boolean
     fun isHeaderSurfaceLight(): Boolean
     fun getHeaderSubtitleColor(): Int
     fun getDialogSecondaryTextColor(): Int
@@ -89,9 +83,6 @@ val ThemePalette.rippleColor: Int
 val ThemePalette.headerOverlayColor: Int
     get() = getHeaderOverlayColor()
 
-val ThemePalette.popupDividerColor: Int
-    get() = getPopupDividerColor()
-
 val ThemePalette.itemSecondaryTextColor: Int
     get() = getItemSecondaryTextColor()
 
@@ -109,15 +100,6 @@ val ThemePalette.dialogDividerColor: Int
 
 val ThemePalette.actionAreaLight: Boolean
     get() = isActionAreaLight()
-
-val ThemePalette.popupTitleColor: Int
-    get() = getPopupTitleColor()
-
-val ThemePalette.popupPressedOverlayColor: Int
-    get() = getPopupPressedOverlayColor()
-
-val ThemePalette.popupBackgroundMaskColor: Int
-    get() = getPopupBackgroundMaskColor()
 
 val ThemePalette.itemPressedOverlayColor: Int
     get() = getItemPressedOverlayColor()
@@ -137,14 +119,8 @@ val ThemePalette.itemPrimaryTextColor: Int
 val ThemePalette.themeType: Int
     get() = getThemeType()
 
-val ThemePalette.popupPressedColor: Int
-    get() = getPopupPressedColor()
-
 val ThemePalette.defaultAccentColor: Int
     get() = getDefaultAccentColor()
-
-val ThemePalette.popupDividerShadowColor: Int
-    get() = getPopupDividerShadowColor()
 
 val ThemePalette.headerPressedOverlayColor: Int
     get() = getHeaderPressedOverlayColor()
@@ -154,9 +130,6 @@ val ThemePalette.headerTitleColor: Int
 
 val ThemePalette.actionAreaTextColor: Int
     get() = getActionAreaTextColor()
-
-val ThemePalette.popupSurfaceLight: Boolean
-    get() = isPopupSurfaceLight()
 
 val ThemePalette.headerSurfaceLight: Boolean
     get() = isHeaderSurfaceLight()

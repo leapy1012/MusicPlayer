@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Points COUI hue tokens at app_accent* placeholders. Exact values come from
+      ResourcesLoader overrides, not from nearest-hue style packs.
+    -->
+    <style name="ThemeOverlay.App.Accent" parent="">
+        <item name="couiColorPrimary">@color/app_accent</item>
+        <item name="couiColorPrimaryText">@color/app_accent</item>
+        <item name="couiColorPrimaryTextOnPopup">@color/app_accent</item>
+        <item name="couiColorLabelTheme">@color/app_accent</item>
+        <item name="couiColorSecondary">@color/app_accent</item>
+        <item name="couiColorContainerTheme">@color/app_accent_container</item>
+        <item name="couiColorContainerThemeHalftone">@color/app_accent_container_halftone</item>
+        <item name="couiColorDisable">@color/app_accent_disable</item>
+        <item name="couiColorFocus">@color/app_accent_focus</item>
+        <item name="couiColorFocusOutline">@color/app_accent_focus_outline</item>
+    </style>
+</resources>

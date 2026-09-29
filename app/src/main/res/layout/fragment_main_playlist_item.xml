@@ -1,70 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Playlist card: same icon size language as category tiles + label divider. -->
 <gd.app.lib.view.square.AspectRatioRelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main_item_image_parent"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_main_home_card_ripple"
-    android:clipToOutline="true"
-    android:tag="homeCardBackground">
+    android:background="@drawable/b_selector_item_bg_t_aw">
 
-    <FrameLayout
-        android:id="@+id/main_item_image_area"
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/main_item_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/main_item_label_divider"
-        android:layout_alignParentTop="true">
+        android:layout_centerInParent="true"
+        android:scaleType="centerCrop" />
 
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/main_item_image"
-            android:layout_width="@dimen/main_item_image_size"
-            android:layout_height="@dimen/main_item_image_size"
-            android:layout_gravity="center"
-            android:scaleType="centerInside" />
-    </FrameLayout>
-
-    <TextView
-        android:id="@+id/main_item_extra"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentTop="true"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:singleLine="true"
-        android:textAppearance="?attr/couiTextAppearanceDescription"
-        android:textColor="?attr/couiColorSecondNeutral"
-        android:textSize="@dimen/main_item_count_size" />
-
-    <View
-        android:id="@+id/main_item_label_divider"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_above="@+id/main_item_name"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:background="?attr/couiColorDivider" />
-
-    <androidx.appcompat.widget.AppCompatTextView
-        android:id="@+id/main_item_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:gravity="center"
-        android:paddingStart="8dp"
-        android:paddingTop="6dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="8dp"
-        android:singleLine="true"
-        android:textAlignment="center"
-        android:textAppearance="?attr/couiTextAppearanceButton"
-        android:textColor="?attr/couiColorPrimaryNeutral"
-        android:textSize="@dimen/main_item_name_size" />
-
-    <!-- Kept for binding compatibility; unused visually. -->
-    <View
+    <RelativeLayout
         android:id="@+id/main_item_banner"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/main_item_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:background="#33000000"
+            android:gravity="center_horizontal"
+            android:paddingStart="4dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="4dp"
+            android:singleLine="true"
+            android:textAlignment="center"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/main_item_name_size" />
+
+        <TextView
+            android:id="@+id/main_item_extra"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="6dp"
+            android:singleLine="true"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/main_item_count_size" />
+    </RelativeLayout>
 </gd.app.lib.view.square.AspectRatioRelativeLayout>

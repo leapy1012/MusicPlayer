@@ -82,16 +82,10 @@ class ThemeRegistry(
         binder: ThemeViewBinder? = null
     ) {
         if (root == null) return
-
-        // Hoist bind context once per walk (original binder uses palette ints; Dream was
-        // allocating ThemeBindContext per tagged view).
-        val bindContext = ThemeBindContext.from(palette)
-        val defaultBinder = provider.getThemeBinder() as? DefaultThemeBinder
-
+        val defaultBinder = provider.getThemeBinder()
         applyRecursive(
             view = root,
             palette = palette,
-            bindContext = bindContext,
             customBinder = binder,
             defaultBinder = defaultBinder
         )
@@ -100,17 +94,11 @@ class ThemeRegistry(
     private fun applyRecursive(
         view: View,
         palette: ThemePalette,
-        bindContext: ThemeBindContext,
         customBinder: ThemeViewBinder?,
-        defaultBinder: DefaultThemeBinder?
+        defaultBinder: ThemeViewBinder?
     ) {
         val tag = view.tag
-
-        if (tag == TAG_IGNORE || tag == TAG_IGNORE_THEME) {
-            return
-        }
-
-        if (tag != null) {
+        if (tag is String) {
             val handledByCustom = customBinder?.bind(
                 palette = palette,
                 payload = tag,
@@ -118,20 +106,11 @@ class ThemeRegistry(
             ) == true
 
             if (!handledByCustom) {
-                if (defaultBinder != null) {
-                    defaultBinder.bind(
-                        palette = palette,
-                        theme = bindContext,
-                        payload = tag,
-                        view = view
-                    )
-                } else {
-                    provider.getThemeBinder()?.bind(
-                        palette = palette,
-                        payload = tag,
-                        view = view
-                    )
-                }
+                defaultBinder?.bind(
+                    palette = palette,
+                    payload = tag,
+                    view = view
+                )
             }
         }
 
@@ -140,16 +119,10 @@ class ThemeRegistry(
                 applyRecursive(
                     view = view.getChildAt(index),
                     palette = palette,
-                    bindContext = bindContext,
                     customBinder = customBinder,
                     defaultBinder = defaultBinder
                 )
             }
         }
-    }
-
-    private companion object {
-        const val TAG_IGNORE = "ignore"
-        const val TAG_IGNORE_THEME = "ignore_theme"
     }
 }

@@ -4,33 +4,39 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:tag="activityBackgroundColor">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/couiColorBackgroundWithCard"
-        android:orientation="vertical"
-        android:tag="toolbarChrome">
-
-        <View
-            android:id="@+id/status_bar_space"
-            android:layout_width="match_parent"
-            android:layout_height="0dp" />
-
-        <com.coui.appcompat.toolbar.COUIToolbar
-            android:id="@+id/toolbar"
-            style="@style/Secondary.Toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="@dimen/toolbar_min_height"
-            app:supportTitleTextAppearance="@style/textAppearanceSecondTitle" />
-    </LinearLayout>
-
-    <FrameLayout
+    android:tag="activityBackgroundColor">    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
+
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/app_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:elevation="0dp"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true"
+            android:tag="titleBackgroundColor">
+
+            <View
+
+                android:id="@+id/status_bar_space"
+                android:layout_width="match_parent"
+
+                android:layout_height="0dp" />
+
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle" />
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
 
         <!-- Hosts sleep_content at runtime (see hostStaticContent) for COUI spring overscroll. -->
         <androidx.recyclerview.widget.COUIRecyclerView
@@ -43,7 +49,8 @@
             android:paddingTop="8dp"
             android:paddingEnd="16dp"
             android:paddingBottom="16dp"
-            android:scrollbars="none" />
+            android:scrollbars="none"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
         <LinearLayout
             android:id="@+id/sleep_content"
@@ -57,8 +64,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="?attr/couiColorCardBackground"
-                android:orientation="vertical"
-                android:tag="sleepContent">
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:id="@+id/sleep_item_close"
@@ -195,7 +201,6 @@
                         android:maxLength="4"
                         android:minWidth="72dp"
                         android:paddingHorizontal="12dp"
-                        android:tag="sleepEditText"
                         android:text="15"
                         android:textColor="?attr/couiColorPrimaryNeutral"
                         android:textColorHint="?attr/couiColorHintNeutral"
@@ -222,8 +227,7 @@
                 android:background="?attr/couiColorCardBackground"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
-                android:orientation="vertical"
-                android:tag="sleepContent">
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:id="@+id/sleep_item_operation_1"
@@ -244,7 +248,6 @@
                         android:layout_marginStart="8dp"
                         android:maxWidth="120dp"
                         android:maxLines="2"
-                        android:tag="itemTextExtraColor"
                         android:text="@string/sleep_exit_player"
                         android:textAppearance="?attr/couiTextAppearanceDescription"
                         android:textColor="?attr/couiColorSecondNeutral"
@@ -255,7 +258,6 @@
                         android:layout_height="16dp"
                         android:layout_marginStart="4dp"
                         android:importantForAccessibility="no"
-                        android:tag="itemTextExtraColor"
                         app:srcCompat="@drawable/coui_btn_next"
                         app:tint="?attr/couiColorSecondNeutral" />
                 </LinearLayout>
@@ -284,5 +286,5 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-    </FrameLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

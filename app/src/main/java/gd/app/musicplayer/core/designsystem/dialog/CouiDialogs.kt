@@ -70,6 +70,7 @@ internal object CouiDialogs {
                 config.positiveButtonClickListener
             )
             builder.updateViewAfterShown()
+            CouiAlertDialogSurface.apply(dialog, config.backgroundDrawable)
         }
         dialog.show()
     }
@@ -143,6 +144,7 @@ internal object CouiDialogs {
                 config.positiveButtonClickListener
             )
             builder.updateViewAfterShown()
+            CouiAlertDialogSurface.apply(dialog, config.backgroundDrawable)
         }
         dialog.show()
     }

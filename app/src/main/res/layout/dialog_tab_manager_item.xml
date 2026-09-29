@@ -14,7 +14,6 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:padding="8dp"
-        android:tag="dialogTitle"
         app:srcCompat="@drawable/vector_item_drag_black" />
 
     <TextView
@@ -25,7 +24,6 @@
         android:layout_marginEnd="8dp"
         android:layout_weight="1"
         android:singleLine="true"
-        android:tag="dialogTitle"
         android:textColor="#de000000"
         android:textSize="16sp" />
 
@@ -34,6 +32,5 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:scaleType="centerInside"
-        android:tag="dialogSelectBox"
         app:srcCompat="@drawable/vector_toggle_selector" />
 </LinearLayout>

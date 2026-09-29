@@ -20,7 +20,6 @@ import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
-import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
@@ -344,7 +343,6 @@ class PlaylistEditActivity : BaseActivity() {
         EditMorePopupMenu(
             context = this,
             items = moreMenuItems,
-            theme = themeRepo.getCorePalette(),
             itemClickListener = object : OnItemClickListener<MenuItemModel> {
                 override fun onItemClick(item: MenuItemModel, clickedView: View, position: Int) {
                     when (item.getTitleResId()) {
@@ -353,10 +351,7 @@ class PlaylistEditActivity : BaseActivity() {
                     }
                 }
             }
-        ).show(
-            anchor = anchor,
-            yOff = -calculateMorePopupOffsetPx(moreMenuItems.size)
-        )
+        ).show(anchor)
     }
 
     private fun buildMoreMenuItems(selected: List<MusicSet.Playlist>): List<MenuItemModel> {
@@ -452,11 +447,6 @@ class PlaylistEditActivity : BaseActivity() {
             )
         }
     }
-}
-
-private fun Context.calculateMorePopupOffsetPx(itemCount: Int): Int {
-    val itemHeightPx = dpToPx(48f)
-    return (itemHeightPx * itemCount) + 10
 }
 
 private class PlaylistEditAdapter(

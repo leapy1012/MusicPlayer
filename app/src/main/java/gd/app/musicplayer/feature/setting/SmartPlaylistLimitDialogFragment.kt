@@ -21,6 +21,7 @@ import com.coui.appcompat.dialog.adapter.ChoiceListAdapter
 import com.coui.appcompat.edittext.COUIEditText
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 
 /**
  * COUI single-choice list ([ChoiceListAdapter] / [coui_select_dialog_singlechoice]) —
@@ -70,6 +71,7 @@ class SmartPlaylistLimitDialogFragment : DialogFragment() {
             .create()
 
         dialog.setOnShowListener {
+            CouiAlertDialogSurface.apply(dialog)
             dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 saveSelection()
             }

@@ -18,6 +18,8 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.datastore.GuidePreferenceStore
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.databinding.FragmentMainBinding
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
@@ -44,6 +46,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
     private val mainAdapter by lazy(LazyThreadSafetyMode.NONE) {
         MainAdapter(
             onItemClick = ::onMainCategoryClick,
+            isPictureTheme = ::isPictureTheme,
             applyTheme = ::applyThemeTo
         )
     }
@@ -53,6 +56,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
             onPlaylistClick = ::openPlaylist,
             onAddClick = ::openCreatePlaylistDialog,
             onPlaylistOrderChanged = viewModel::updatePlaylistOrder,
+            isPictureTheme = ::isPictureTheme,
             applyTheme = ::applyThemeTo
         )
     }
@@ -72,12 +76,24 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
         maybeShowPlaylistDragGuide()
     }
 
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        mainAdapter.notifyDataSetChanged()
+        playlistAdapter.notifyDataSetChanged()
+    }
+
+    private fun isPictureTheme(): Boolean {
+        return themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_PICTURE
+    }
+
     private fun setupInsets(binding: FragmentMainBinding) = with(binding) {
         root.applySystemBarInsets(statusBarSpace)
     }
 
     private fun setupToolbar(binding: FragmentMainBinding) = with(binding.toolbar) {
         applyCouiLeftTitle()
+        // Not app:menu — COUIToolbar builds that menu view before its click listener exists.
+        inflateMenu(R.menu.menu_fragment_main)
         setOnMenuItemClickListener(::onMenuItemClick)
         setNavigationOnClickListener {
             (activity as? MainActivity)?.openDrawer()

@@ -15,7 +15,6 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:lineSpacingExtra="4dp"
-        android:tag="itemTextColor"
         android:textAlignment="center"
         android:textColor="?attr/couiColorPrimaryNeutral"
         android:textSize="15sp" />
@@ -25,7 +24,6 @@
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:layout_marginTop="8dp"
-        android:tag="seekBar"
         app:seekMax="100"
         app:seekProgress="0"
         app:seekProgressHeight="2dp" />

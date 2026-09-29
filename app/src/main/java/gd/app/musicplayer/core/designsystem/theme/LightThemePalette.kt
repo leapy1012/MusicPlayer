@@ -2,9 +2,7 @@ package gd.app.musicplayer.core.designsystem.theme
 
 import android.content.Context
 import android.graphics.drawable.Drawable
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toDrawable
-import gd.app.musicplayer.R
 
 /**
  * Solid light / White theme — COUI light surfaces, no wallpaper.
@@ -26,10 +24,6 @@ class LightThemePalette : PictureThemePalette() {
 
     override fun isDarkMode(): Boolean = false
 
-    override fun getPopupBackgroundDrawable(context: Context): Drawable =
-        AppCompatResources.getDrawable(context, R.drawable.popup_bg)
-            ?: resolveCouiCard(context)
-
     override fun getHeaderBackgroundDrawable(context: Context): Drawable =
         resolveCouiBackground(context)
 
@@ -42,8 +36,6 @@ class LightThemePalette : PictureThemePalette() {
 
     override fun getBottomDialogSurfaceDrawable(context: Context): Drawable =
         resolveCouiCard(context)
-
-    override fun isPopupSurfaceLight(): Boolean = true
 
     override fun isHeaderSurfaceLight(): Boolean = true
 

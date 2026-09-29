@@ -17,6 +17,7 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
@@ -108,6 +109,9 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
         registerArtworkResultListener()
         setupKeyboardInsets()
         buildFields(binding.editTagsContainer)
+        binding.editTagsContainer.findViewById<View>(R.id.music_edit_cover_frame)
+            ?.applyRoundedOutline(com.coui.appcompat.R.dimen.coui_round_corner_l)
+        applyThemeTo(binding.root)
     }
 
     override fun onMenuItemClick(item: MenuItem): Boolean {

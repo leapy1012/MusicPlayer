@@ -18,9 +18,9 @@ import com.google.android.material.appbar.AppBarLayout
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.lib.view.MaskImageView
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.parcelable
+import gd.app.musicplayer.core.common.extension.resolveStatusBarHeightPx
 import gd.app.musicplayer.core.common.extension.screenHeight
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.supportsCompactAlbumHeader
@@ -45,6 +45,7 @@ import gd.app.musicplayer.feature.library.tracks.TrackListSortState
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.min
+import androidx.core.view.updatePadding
 
 @AndroidEntryPoint
 class AlbumMusicFragment :
@@ -80,8 +81,7 @@ class AlbumMusicFragment :
     ) {
         super.onBindingCreated(binding, savedInstanceState)
 
-        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
-        applyMiniPlayerBottomInset(binding)
+        applyEdgeToEdgeInsets(binding)
         setupToolbar(binding)
         setupHeader(binding)
         registerRenameResultListener()
@@ -90,14 +90,29 @@ class AlbumMusicFragment :
         binding.mainChildFragmentContainer.post { bindAppBarToList() }
     }
 
-    private fun applyMiniPlayerBottomInset(binding: FragmentAlbumMusicBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.coordinatorLayout) { view, insets ->
+    private fun applyEdgeToEdgeInsets(binding: FragmentAlbumMusicBinding) {
+        // AppBarLayout defaults to consuming system-window insets and padding its children,
+        // which parks the album image below the status bar. Keep the header full-bleed and
+        // only inset the pinned toolbar content.
+        binding.appbarLayout.fitsSystemWindows = false
+        binding.collapsingToolbar.fitsSystemWindows = false
+        binding.musicsetAlbum.fitsSystemWindows = false
+        binding.toolbar.fitsSystemWindows = false
+
+        val statusBarHeight = requireContext().resolveStatusBarHeightPx()
+        if (statusBarHeight > 0) {
+            binding.toolbar.updatePadding(top = statusBarHeight)
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(0, 0, 0, 0)
-            binding.root.setPadding(0, binding.root.paddingTop, 0, systemBars.bottom)
+            if (systemBars.top > 0 && binding.toolbar.paddingTop != systemBars.top) {
+                binding.toolbar.updatePadding(top = systemBars.top)
+            }
+            binding.root.updatePadding(bottom = systemBars.bottom)
             insets
         }
-        ViewCompat.requestApplyInsets(binding.coordinatorLayout)
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun setupToolbar(binding: FragmentAlbumMusicBinding) {
@@ -155,13 +170,12 @@ class AlbumMusicFragment :
     }
 
     private fun applyCompactHeader(binding: FragmentAlbumMusicBinding) {
+        val statusBarHeight = requireContext().resolveStatusBarHeightPx()
         binding.collapsingToolbar.updateLayoutParams<AppBarLayout.LayoutParams> {
             height = resources.getDimensionPixelSize(
                 com.coui.appcompat.R.dimen.toolbar_min_height
-            )
-            scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
-                AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS or
-                AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP
+            ) + statusBarHeight
+            scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_NO_SCROLL
         }
         binding.musicsetAlbum.visibility = View.GONE
         binding.musicsetAlbum.alpha = 0f
@@ -171,7 +185,8 @@ class AlbumMusicFragment :
     private fun applyExpandedHeader(binding: FragmentAlbumMusicBinding) {
         val context = requireContext()
         val shortSide = min(context.screenWidth, context.screenHeight)
-        val heroHeight = (shortSide * HEADER_HEIGHT_RATIO).toInt()
+        val statusBarHeight = context.resolveStatusBarHeightPx()
+        val heroHeight = (shortSide * HEADER_HEIGHT_RATIO).toInt() + statusBarHeight
 
         binding.collapsingToolbar.updateLayoutParams<AppBarLayout.LayoutParams> {
             height = heroHeight

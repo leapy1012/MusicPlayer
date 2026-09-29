@@ -2,40 +2,47 @@ package gd.app.musicplayer.ui.common.menu
 
 import android.content.Context
 import android.view.View
-import gd.app.musicplayer.core.designsystem.theme.ThemePalette
-import gd.app.musicplayer.core.designsystem.theme.accentColor
-import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
-import gd.app.musicplayer.domain.model.ContextMenuItem
+import com.coui.appcompat.poplist.COUIPopupListWindow
+import com.coui.appcompat.poplist.PopupListItem
 import gd.app.musicplayer.domain.model.MenuItemModel
 
 class EditMorePopupMenu(
-    context: Context,
+    private val context: Context,
     private val items: List<MenuItemModel>,
-    private val theme: ThemePalette,
     private val itemClickListener: OnItemClickListener<MenuItemModel>
-) : BaseContextMenu(
-    context = context,
-    accentColor = theme.accentColor,
-    popupTextColor = theme.popupTitleColor,
-    popupBackgroundProvider = { menuContext ->
-        theme.getPopupBackgroundDrawable(menuContext)
-    }
 ) {
 
-    override fun buildItems(): List<ContextMenuItem> {
-        return items.mapIndexed { index, item ->
-            ContextMenuItem(
-                id = index.toString(),
-                titleRes = item.getTitleResId(),
-                leftIconRes = item.getIconResId().takeIf { it != 0 }
-            )
+    private var popup: COUIPopupListWindow? = null
+
+    fun show(anchor: View) {
+        dismiss()
+        if (items.isEmpty()) return
+
+        val popupItems = ArrayList(
+            items.mapIndexed { index, item ->
+                PopupListItem.Builder()
+                    .setId(index)
+                    .setTitle(item.getTitle(context))
+                    .setIsEnable(true)
+                    .build()
+            }
+        )
+        val window = COUIPopupListWindow(context).also { popup = it }
+        window.setItemList(popupItems)
+        window.setOnItemClickListener { _, _, position, _ ->
+            val selectedItem = items.getOrNull(position) ?: return@setOnItemClickListener
+            dismiss()
+            itemClickListener.onItemClick(selectedItem, anchor, position)
+        }
+        window.show(anchor)
+        CouiPopupListSurface.apply(window, context)
+        anchor.post {
+            if (popup === window) CouiPopupListSurface.apply(window, context)
         }
     }
 
-    override fun onItemClicked(item: ContextMenuItem, anchor: View) {
-        val index = item.id.toIntOrNull() ?: return
-        val selectedItem = items.getOrNull(index) ?: return
-        dismiss()
-        itemClickListener.onItemClick(selectedItem, anchor, index)
+    fun dismiss() {
+        popup?.dismiss()
+        popup = null
     }
 }

@@ -14,6 +14,7 @@ import androidx.fragment.app.setFragmentResult
 import androidx.lifecycle.lifecycleScope
 import com.coui.appcompat.dialog.COUIAlertDialogBuilder
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.databinding.DialogMusicPlaySearchLrcBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.util.LyricsLoader
@@ -109,6 +110,7 @@ class LyricSearchDialogFragment : DialogFragment() {
                 dismiss()
             }
             builder.updateViewAfterShown()
+            CouiAlertDialogSurface.apply(dialog)
         }
 
         lifecycleScope.launch {

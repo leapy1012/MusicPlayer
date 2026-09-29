@@ -1,31 +1,26 @@
 package gd.app.musicplayer.feature.equalizer
 
-import android.graphics.drawable.GradientDrawable
-import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.widget.CompoundButton
-import android.widget.PopupWindow
+import com.coui.appcompat.tooltips.COUIToolTips
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.common.extension.isRtl
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import kotlin.math.sqrt
 
 /**
  * EQ-off touch shield matching Music Player 8.1.5 `m5.f` + tip popup `u7.b`.
  *
- * While the equalizer toggle is off, a tap on registered shield views shows
- * [R.layout.popup_enable_equalizer] anchored under the toggle.
+ * While the equalizer toggle is off, a tap on registered shield views shows a
+ * [COUIToolTips] pointing at the toggle.
  */
 class EqualizerEnableTipGuard(
     private val activity: BaseActivity
 ) {
     private val shieldViews = mutableListOf<View>()
     private var equalizerToggle: CompoundButton? = null
-    private var tipAccentColor: Int = 0
+    private var toolTips: COUIToolTips? = null
     private var enabled: Boolean = true
     private var pendingTapInShield: Boolean = false
     private var downRawX: Float = 0f
@@ -42,10 +37,6 @@ class EqualizerEnableTipGuard(
 
     fun clearShieldViews() {
         shieldViews.clear()
-    }
-
-    fun setTipAccentColor(color: Int) {
-        tipAccentColor = color
     }
 
     fun setEnabled(value: Boolean) {
@@ -112,30 +103,12 @@ class EqualizerEnableTipGuard(
         return rawX >= left && rawX <= right && rawY >= top && rawY <= bottom
     }
 
+    fun dismissTip() {
+        toolTips?.dismissImmediately()
+        toolTips = null
+    }
+
     private fun showTip(anchor: View) {
-        val content = LayoutInflater.from(activity)
-            .inflate(R.layout.popup_enable_equalizer, null, false)
-        val accent = if (tipAccentColor != 0) {
-            tipAccentColor
-        } else {
-            activity.themeRepo.getCorePalette().getAccentColor()
-        }
-        content.background = GradientDrawable().apply {
-            cornerRadius = activity.dpToPx(4f).toFloat()
-            setColor(accent)
-        }
-
-        val popup = PopupWindow(
-            content,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
-            animationStyle = R.style.EditMorePopupAnim
-            isOutsideTouchable = true
-            elevation = activity.dpToPx(4f).toFloat()
-        }
-
         if (anchor.top < 0) {
             var scrollCandidate: View? = anchor
             while (true) {
@@ -149,8 +122,13 @@ class EqualizerEnableTipGuard(
             }
         }
 
-        val xOff = if (activity.isRtl()) -anchor.width else 0
-        val yOff = activity.dpToPx(8f)
-        popup.showAsDropDown(anchor, xOff, yOff, Gravity.START)
+        val tips = toolTips ?: COUIToolTips(activity).also {
+            it.setContentRes(R.string.equalizer_toggle_tip)
+            it.hideDismissButton()
+            toolTips = it
+        }
+        // Beside the switch rather than below it: this COUIToolTips centres the arrow on the
+        // bubble, so a bubble clamped to the screen edge would point away from the switch.
+        tips.showWithDirection(anchor, COUIToolTips.ALIGN_START)
     }
 }

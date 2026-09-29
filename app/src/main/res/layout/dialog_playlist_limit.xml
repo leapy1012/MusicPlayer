@@ -88,7 +88,6 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:singleLine="true"
-                    android:tag="dialogTitle"
                     android:text="@string/playlist_limit_custom"
                     android:textSize="16sp" />
 
@@ -105,7 +104,6 @@
                     android:maxLength="5"
                     android:minWidth="80dp"
                     android:selectAllOnFocus="true"
-                    android:tag="dialogEditText"
                     android:textColorHint="#61000000"
                     android:textCursorDrawable="@null"
                     android:textSize="16sp" />

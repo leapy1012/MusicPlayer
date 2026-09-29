@@ -31,6 +31,7 @@ import com.coui.appcompat.reddot.COUIHintRedDot
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.feature.lyrics.StatusBarLyricsActivity
 import gd.app.musicplayer.feature.setting.preference.DesktopLyricsPreference
@@ -311,7 +312,11 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
             viewLifecycleOwner
         ) { _, bundle ->
             if (bundle.containsKey(SelectAccentColorDialog.RESULT_COLOR)) {
-                themeRepo.updateAccentColor(bundle.getInt(SelectAccentColorDialog.RESULT_COLOR))
+                val color = bundle.getInt(SelectAccentColorDialog.RESULT_COLOR)
+                // Dialog already persisted; ensure repo is in sync then recreate so
+                // CouiAccentOverlay.applyStyle runs before the next setContentView.
+                themeRepo.updateAccentColor(color)
+                activity?.recreate()
             }
         }
         parentFragmentManager.setFragmentResultListener(
@@ -588,7 +593,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
             R.string.permission_lock_screen,
             getString(R.string.permission_des_lock_screen)
         )
-        COUIAlertDialogBuilder(requireContext())
+        val dialog = COUIAlertDialogBuilder(requireContext())
             .setTitle(R.string.lock_screen)
             .setMessage(message)
             .setNegativeButton(R.string.cancel) { _, _ ->
@@ -605,6 +610,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
                 }
             }
             .show()
+        CouiAlertDialogSurface.apply(dialog)
     }
 
     private fun resumeLockScreenAfterOverlayPermissionChange() {
@@ -639,7 +645,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
     }
 
     private fun showKeepAlivePermissionDialog() {
-        COUIAlertDialogBuilder(requireContext())
+        val dialog = COUIAlertDialogBuilder(requireContext())
             .setTitle(R.string.avoid_stop_title)
             .setMessage(R.string.avoid_stop_content)
             .setNegativeButton(R.string.cancel, null)
@@ -653,6 +659,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
                 }
             }
             .show()
+        CouiAlertDialogSurface.apply(dialog)
     }
 
     private fun openKeepAliveSettings(): Boolean {

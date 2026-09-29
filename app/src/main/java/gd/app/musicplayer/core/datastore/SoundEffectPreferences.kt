@@ -123,6 +123,15 @@ class SoundEffectPreferences @Inject constructor(
         set(KEY_GROUP_SOUND_EFFECT_INDEX, index)
     }
 
+    /** Manual EQ/bass/virtualizer/reverb edits take over from an effect group (original `z5.m.s`). */
+    suspend fun disableGroupSoundEffect() {
+        dataStore.edit { preferences ->
+            if (preferences[KEY_GROUP_SOUND_EFFECT_ENABLED] == true) {
+                preferences[KEY_GROUP_SOUND_EFFECT_ENABLED] = false
+            }
+        }
+    }
+
     suspend fun setErrorCorrected(enabled: Boolean) {
         set(KEY_ERROR_CORRECTED, enabled)
     }

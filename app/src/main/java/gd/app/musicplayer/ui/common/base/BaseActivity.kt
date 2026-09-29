@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.theme.CouiAccentOverlay
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeRegistry
@@ -23,9 +24,10 @@ import gd.app.musicplayer.ui.theme.ThemeEngine
 import javax.inject.Inject
 
 /**
- * Theme lifecycle matches original [BaseActivity.K0] / [BMusicActivity.i]:
- * register observer + apply once after content inflate; retheme only on [onThemeChanged]
- * (and configuration when system night forces a palette type change).
+ * Theme lifecycle matches original [BaseActivity.K0] / [BMusicActivity.onDestroy]:
+ * register observer + apply once after content inflate; stay registered while stopped
+ * so ThemeActivity notify still rethemes back-stack activities; unregister in [onDestroy].
+ * Retheme only on [onThemeChanged] (and configuration when system night forces a type change).
  *
  * Transitions match original [BMusicActivity.startActivityForResult] / [finish]:
  * always [overridePendingTransition] with music_activity_in/out (not theme-only).
@@ -33,6 +35,10 @@ import javax.inject.Inject
 abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     private var isStateSaved = false
+    /** Accent ARGB last applied via [CouiAccentOverlay]; used to recreate when it changes. */
+    private var appliedAccentColor: Int = 0
+    /** Whether COUI Dark chrome overlay was applied for pictured/dark themes. */
+    private var appliedDarkChrome: Boolean = false
 
     @Inject lateinit var themeEngine: ThemeEngine
     @Inject lateinit var themeRegistry: ThemeRegistry
@@ -75,12 +81,13 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Follow COUI light/dark chrome (Theme.COUI.Main.*). SystemBarStyle.dark forced
-        // white icons and fought Settings / preference surfaces.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
-        )
+        // Exact accent → ResourcesLoader + ThemeOverlay.App.Accent before inflate so
+        // COUI switches/tabs/prefs resolve couiColorPrimary* to the picker color.
+        applyCouiAccentOverlay()
+        // Match icon contrast to header chrome (picture/dark → light icons).
+        // SystemBarStyle.auto + AppTheme windowLightStatusBar=true left black icons
+        // on teal pictured headers.
+        applySystemBarAppearance(themeRepo.getCorePalette())
     }
 
     /**
@@ -137,8 +144,13 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     override fun onStart() {
         super.onStart()
         isStateSaved = false
-        // Original y.Y().L(this) — register only; no refreshTheme / c().
-        themeRegistry.registerObserver(this)
+        // Accent / chrome mode may have changed in another activity; recreate so
+        // CouiAccentOverlay reinstalls before the next inflate.
+        val palette = themeRepo.getCorePalette()
+        val darkChrome = !palette.isContentSurfaceLight()
+        if (themeRepo.getAccentColor() != appliedAccentColor || darkChrome != appliedDarkChrome) {
+            recreate()
+        }
     }
 
     override fun onRestoreInstanceState(
@@ -149,12 +161,20 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
         isStateSaved = false
     }
 
-    override fun onStop() {
+    override fun onDestroy() {
+        // Original BMusicActivity.onDestroy → y.Y().I0(this)
         themeRegistry.unregisterObserver(this)
-        super.onStop()
+        super.onDestroy()
     }
 
     override fun onThemeChanged(palette: ThemePalette?) {
+        val resolved = palette ?: themeRepo.getCorePalette()
+        // Dark COUI overlay is inflate-time only — recreate when chrome mode flips.
+        if (!resolved.isContentSurfaceLight() != appliedDarkChrome) {
+            recreate()
+            return
+        }
+        applySystemBarAppearance(resolved)
         applyThemeTo(findViewById(android.R.id.content))
     }
 
@@ -162,11 +182,46 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
         super.onConfigurationChanged(newConfig)
         // Ensure palette follows system night if type must change; notify only when swapped.
         themeRepo.refreshTheme()
+        val palette = themeRepo.getCorePalette()
+        applySystemBarAppearance(palette)
         applyThemeTo(findViewById(android.R.id.content))
     }
 
+    /**
+     * Original K0: register observer (y.Y().L) + apply current palette (i).
+     */
     private fun applyThemeAfterContentSet() {
+        themeRegistry.registerObserver(this)
+        applySystemBarAppearance(themeRepo.getCorePalette())
         applyThemeTo(findViewById(android.R.id.content))
+    }
+
+    /**
+     * Light status/nav icons when the header (and mini-player) chrome is dark —
+     * pictured and dark themes. Light theme keeps dark icons for white surfaces.
+     */
+    private fun applySystemBarAppearance(palette: ThemePalette) {
+        val lightBars = palette.isHeaderSurfaceLight()
+        enableEdgeToEdge(
+            statusBarStyle = if (lightBars) {
+                SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            } else {
+                SystemBarStyle.dark(Color.TRANSPARENT)
+            },
+            navigationBarStyle = if (lightBars) {
+                SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            } else {
+                SystemBarStyle.dark(Color.TRANSPARENT)
+            },
+        )
+    }
+
+    private fun applyCouiAccentOverlay() {
+        val palette = themeRepo.getCorePalette()
+        appliedDarkChrome = CouiAccentOverlay.applyDarkChromeIfNeeded(this, palette)
+        val accent = themeRepo.getAccentColor()
+        CouiAccentOverlay.apply(this, accent)
+        appliedAccentColor = accent
     }
 
     protected open fun onAudioPermissionGranted() {}

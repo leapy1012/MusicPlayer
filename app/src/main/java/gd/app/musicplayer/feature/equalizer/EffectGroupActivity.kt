@@ -2,36 +2,32 @@ package gd.app.musicplayer.feature.equalizer
 
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.database.ContentObserver
-import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
+import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.appcompat.widget.AppCompatTextView
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.chip.COUIChip
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyStatusBarInsetHeight
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.startActivityCompat
-import gd.app.musicplayer.domain.model.AudioEffectSettings
 import gd.app.musicplayer.databinding.ActivityEffectGroupBinding
+import gd.app.musicplayer.domain.model.AudioEffectSettings
 import gd.app.musicplayer.domain.usecase.equalizer.LoadAudioEffectSettingsUseCase
 import gd.app.musicplayer.domain.usecase.equalizer.SaveAudioEffectSettingsUseCase
+import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import gd.app.musicplayer.playback.effects.EffectGroupPreset
 import gd.app.musicplayer.playback.effects.EffectGroupPresets
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.core.designsystem.view.SeekBar
-import gd.app.musicplayer.core.designsystem.view.SelectBox
-import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -44,14 +40,15 @@ class EffectGroupActivity : BaseActivity() {
     private val playerViewModel: PlayerViewModel by viewModels()
 
     private lateinit var binding: ActivityEffectGroupBinding
-    private lateinit var headerController: EffectGroupHeaderController
-    private lateinit var adapter: EffectGroupAdapter
     private lateinit var audioManager: AudioManager
+    private val presetRows = mutableListOf<PresetRow>()
+    private var isRendering = false
+    private var volumeTracking = false
 
     private val volumeObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
             super.onChange(selfChange)
-            headerController.syncVolume(audioManager)
+            syncVolume()
         }
     }
 
@@ -70,36 +67,12 @@ class EffectGroupActivity : BaseActivity() {
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         binding.statusBarSpace.applyStatusBarInsetHeight()
-        // Original has back-only toolbar; title lives in the header graphic below.
-        binding.toolbar.title = ""
         binding.toolbar.navigateBack(this)
+        binding.appBar.bringToFront()
 
-        setupRecycler()
-        binding.effectGroupRecycleView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                updateToolbarOverlay()
-            }
-        })
-
-        headerController = EffectGroupHeaderController(
-            activity = this,
-            recyclerView = binding.effectGroupRecycleView,
-            onToggleEnabled = ::toggleHeaderEnabled,
-            onToggleBoost = ::toggleBoost,
-            onVolumeChanged = ::setMusicVolume
-        )
-
-        adapter = EffectGroupAdapter(
-            layoutInflater = layoutInflater,
-            headerView = headerController.view,
-            useGridItem = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
-            applyTheme = ::applyThemeTo,
-            onSelectPreset = ::onPresetClicked
-        )
-        binding.effectGroupRecycleView.adapter = adapter
-
+        setupHeader()
+        setupPresets()
         renderState()
-        updateToolbarOverlay()
     }
 
     override fun onResume() {
@@ -117,20 +90,33 @@ class EffectGroupActivity : BaseActivity() {
         super.onPause()
     }
 
-    private fun setupRecycler() {
-        val useGrid = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val layoutManager = if (useGrid) {
-            GridLayoutManager(this, if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 5 else 3).apply {
-                spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-                    override fun getSpanSize(position: Int): Int {
-                        return if (position == 0) spanCount else 1
-                    }
-                }
-            }
-        } else {
-            LinearLayoutManager(this)
+    private fun setupHeader() = with(binding) {
+        effectGroupEnabledRow.bindSwitchRow(effectGroupSelect)
+        effectGroupSelect.setOnCheckedChangeListener { _, isChecked ->
+            if (!isRendering) toggleHeaderEnabled(isChecked)
         }
-        binding.effectGroupRecycleView.layoutManager = layoutManager
+        effectGroupBoost.setOnClickListener { toggleBoost(effectGroupBoost.isChecked) }
+        effectGroupVolumeSeek.setOnSliderChangeListener(
+            onTrackingChanged = { tracking ->
+                volumeTracking = tracking
+                if (!tracking) syncVolume()
+            }
+        ) { progress, fromUser ->
+            if (fromUser && !isRendering) setMusicVolume(progress)
+        }
+    }
+
+    private fun setupPresets() {
+        val container = binding.effectGroupPresets
+        container.clipToOutline = true
+        EffectGroupPresets.all.forEachIndexed { index, preset ->
+            if (index > 0) {
+                layoutInflater.inflate(R.layout.activity_effect_group_item_divider, container, true)
+            }
+            val view = layoutInflater.inflate(R.layout.activity_effect_group_item, container, false)
+            container.addView(view)
+            presetRows += PresetRow(view, preset)
+        }
     }
 
     private fun renderState() {
@@ -177,7 +163,6 @@ class EffectGroupActivity : BaseActivity() {
             volume.coerceIn(0, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)),
             0
         )
-        headerController.syncVolume(audioManager)
     }
 
     private suspend fun saveAndApply(settings: AudioEffectSettings) {
@@ -187,8 +172,23 @@ class EffectGroupActivity : BaseActivity() {
     }
 
     private fun renderState(settings: AudioEffectSettings) {
-        headerController.render(settings, currentPresetName(settings), audioManager)
-        adapter.setSelection(settings.effectGroupEnabled, settings.effectGroupPresetId)
+        isRendering = true
+        binding.effectGroupName.text = currentPresetName(settings)
+        binding.effectGroupSelect.isChecked = settings.effectGroupEnabled
+        binding.effectGroupBoost.isChecked = settings.loudnessEnabled
+        presetRows.forEach {
+            it.render(settings.effectGroupEnabled && settings.effectGroupPresetId == it.preset.id)
+        }
+        isRendering = false
+        syncVolume()
+    }
+
+    private fun syncVolume() {
+        if (volumeTracking) return
+        isRendering = true
+        binding.effectGroupVolumeSeek.max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        binding.effectGroupVolumeSeek.progress = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        isRendering = false
     }
 
     private fun currentPresetName(settings: AudioEffectSettings): String {
@@ -196,76 +196,20 @@ class EffectGroupActivity : BaseActivity() {
         return getString(preset.nameRes)
     }
 
-    private fun updateToolbarOverlay() {
-        val fadeHeight = (binding.toolbarParent.height / 3).coerceAtLeast(1)
-        val scrollOffset = binding.effectGroupRecycleView.computeVerticalScrollOffset()
-        val alpha = ((scrollOffset.coerceAtMost(fadeHeight) / fadeHeight.toFloat()) * 255f).toInt()
-        binding.toolbarParent.setBackgroundColor(Color.argb(alpha, 31, 31, 31))
-    }
-}
+    private inner class PresetRow(private val view: View, val preset: EffectGroupPreset) {
+        private val use = view.findViewById<COUIChip>(R.id.group_effect_item_use)
 
-private class EffectGroupHeaderController(
-    private val activity: EffectGroupActivity,
-    recyclerView: RecyclerView,
-    private val onToggleEnabled: (Boolean) -> Unit,
-    private val onToggleBoost: (Boolean) -> Unit,
-    private val onVolumeChanged: (Int) -> Unit
-) {
-    val view = activity.layoutInflater.inflate(R.layout.activity_effect_group_header, recyclerView, false)
-
-    private val effectName = view.findViewById<AppCompatTextView>(R.id.effect_group_name)
-    private val effectSelect = view.findViewById<SelectBox>(R.id.effect_group_select)
-    private val boost = view.findViewById<AppCompatTextView>(R.id.effect_group_boost)
-    private val volumeSeek = view.findViewById<SeekBar>(R.id.effect_group_volume_seek)
-
-    init {
-        view.findViewById<View>(R.id.status_bar_space).applyStatusBarInsetHeight()
-        activity.applyThemeTo(view)
-
-        effectSelect.setOnSelectChangedListener(object : SelectBox.OnSelectChangedListener {
-            override fun onSelectChanged(selectBox: SelectBox, fromUser: Boolean, isSelected: Boolean) {
-                if (fromUser) {
-                    onToggleEnabled(isSelected)
-                }
-            }
-        })
-        volumeSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    onVolumeChanged(progress)
-                }
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                recyclerView.requestDisallowInterceptTouchEvent(false)
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
-                recyclerView.requestDisallowInterceptTouchEvent(true)
-            }
-        })
-        boost.setOnClickListener {
-            val enabled = !it.isSelected
-            it.isSelected = enabled
-            onToggleBoost(enabled)
+        init {
+            view.findViewById<AppCompatImageView>(R.id.group_effect_item_icon).setImageResource(preset.iconRes)
+            view.findViewById<TextView>(R.id.group_effect_item_name).setText(preset.nameRes)
+            view.installCouiPressFeedback()
+            view.setOnClickListener { onPresetClicked(preset) }
+            use.setOnClickListener { onPresetClicked(preset) }
         }
 
-        view.findViewById<AppCompatTextView>(R.id.effect_group_tip_1).append(" : ")
-        view.findViewById<AppCompatTextView>(R.id.effect_group_tip_2).append(" : ")
-    }
-
-    fun render(settings: AudioEffectSettings, currentName: String, audioManager: AudioManager) {
-        effectName.text = currentName
-        effectName.isSelected = settings.effectGroupEnabled
-        effectSelect.isSelected = settings.effectGroupEnabled
-        boost.isSelected = settings.loudnessEnabled
-        syncVolume(audioManager)
-    }
-
-    fun syncVolume(audioManager: AudioManager) {
-        if (volumeSeek.isPressed) return
-        volumeSeek.setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC))
-        volumeSeek.setProgress(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
+        fun render(inUse: Boolean) {
+            use.isChecked = inUse
+            use.setText(if (inUse) R.string.in_use else R.string.use)
+        }
     }
 }
-

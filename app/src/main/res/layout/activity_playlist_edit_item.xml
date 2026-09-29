@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="@dimen/item_recycler_height"
-    android:minHeight="@dimen/item_recycler_height"
-    android:tag="itemBackground">
+    android:minHeight="@dimen/item_recycler_height">
 
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/music_item_drag"
@@ -13,7 +12,6 @@
         android:layout_marginStart="12dp"
         android:importantForAccessibility="no"
         android:scaleType="fitCenter"
-        android:tag="itemTextExtraColor"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -38,7 +36,6 @@
         android:layout_marginStart="16dp"
         android:ellipsize="end"
         android:singleLine="true"
-        android:tag="itemTextColor"
         android:textColor="?attr/couiColorPrimaryNeutral"
         android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/music_item_extra"
@@ -53,7 +50,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:singleLine="true"
-        android:tag="itemTextExtraColor"
         android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -79,7 +75,6 @@
         android:layout_width="0dp"
         android:layout_height="1dp"
         android:background="?attr/couiColorDivider"
-        android:tag="recyclerDividerColor"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/music_item_title" />

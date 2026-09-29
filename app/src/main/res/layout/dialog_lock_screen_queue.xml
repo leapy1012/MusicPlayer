@@ -66,7 +66,6 @@
                 android:scrollbarThumbVertical="@drawable/shape_scrollbar"
                 android:scrollbarStyle="outsideOverlay"
                 android:id="@+id/dialog_recycler"
-                android:tag="ignore"
                 android:scrollbars="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

@@ -140,8 +140,9 @@ fun Toolbar.navigateBack(fragment: Fragment) {
     }
 }
 
-fun View.navigateBack(activity: ComponentActivity) {
-    setOnClickListener {
+/** Only the navigation button goes back; the rest of the bar (title, empty space) stays inert. */
+fun Toolbar.navigateBack(activity: ComponentActivity) {
+    setNavigationOnClickListener {
         activity.onBackPressedDispatcher.onBackPressed()
     }
 }

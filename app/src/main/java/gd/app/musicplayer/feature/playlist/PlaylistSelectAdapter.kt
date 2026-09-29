@@ -3,18 +3,16 @@ package gd.app.musicplayer.feature.playlist
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import androidx.annotation.DrawableRes
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
+import com.coui.appcompat.checkbox.COUICheckBox
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.designsystem.theme.contentColor
 import gd.app.musicplayer.core.designsystem.theme.headerOverlayColor
-import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.FragmentPlaylistAddHeaderBinding
 import gd.app.musicplayer.databinding.FragmentPlaylistAddItemBinding
+import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.ui.common.applyListRowFeedback
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
@@ -22,7 +20,7 @@ import gd.app.musicplayer.ui.common.viewholder.toDisplayInfo
 
 class PlaylistSelectAdapter(
     private val inflater: LayoutInflater,
-    private val accentColor: Int
+    private val lightTheme: Boolean
 ) : ListAdapter<PlaylistRow, RecyclerView.ViewHolder>(RowDiffCallback) {
 
     private val selectedPlaylistIds = linkedSetOf<Long>()
@@ -199,6 +197,7 @@ class PlaylistSelectAdapter(
         init {
             itemView.setOnClickListener(this)
             (binding.root.context as? BaseActivity)?.applyThemeTo(binding.root)
+            binding.root.applyListRowFeedback(lightTheme)
         }
 
         fun bind(item: MusicSet.Playlist, selected: Boolean, locked: Boolean) {
@@ -214,12 +213,15 @@ class PlaylistSelectAdapter(
             val disabled = item.disabled || locked
             binding.root.alpha = if (disabled) 0.4f else 1f
             binding.root.isEnabled = !disabled
-            binding.musicItemMenu.isEnabled = !disabled
+            binding.musicItemCheckbox.isEnabled = !disabled
         }
 
         fun bindSelection(selected: Boolean, locked: Boolean) {
-            binding.musicItemMenu.isSelected = selected
-            binding.musicItemMenu.isEnabled = !locked
+            binding.musicItemCheckbox.setState(
+                if (selected) COUICheckBox.SELECT_ALL else COUICheckBox.SELECT_NONE
+            )
+            binding.musicItemCheckbox.isEnabled = !locked
+            binding.musicItemCheckbox.alpha = if (locked) 0.2f else 1f
         }
 
         override fun onClick(v: View) {
@@ -232,15 +234,25 @@ class PlaylistSelectAdapter(
         RecyclerView.ViewHolder(binding.root), View.OnClickListener {
 
         init {
+            val overlay = (binding.root.context as? BaseActivity)
+                ?.themeEngine
+                ?.currentTheme()
+                ?.headerOverlayColor
+                ?: 0
+            val background = if (lightTheme) {
+                val typed = binding.root.context.obtainStyledAttributes(
+                    intArrayOf(com.coui.appcompat.R.attr.couiColorContainer8)
+                )
+                val color = typed.getColor(0, overlay)
+                typed.recycle()
+                color
+            } else {
+                overlay
+            }
             binding.musicItemAlbum.setImageResource(R.drawable.vector_playlist_add)
-            binding.musicItemAlbum.setBackgroundColor(
-                (binding.root.context as? BaseActivity)
-                    ?.themeEngine
-                    ?.currentTheme()
-                    ?.headerOverlayColor
-                    ?: 0
-            )
+            binding.musicItemAlbum.setBackgroundColor(background)
             (binding.root.context as? BaseActivity)?.applyThemeTo(binding.root)
+            binding.root.applyListRowFeedback(lightTheme)
             itemView.setOnClickListener(this)
         }
 

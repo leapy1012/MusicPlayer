@@ -9,8 +9,7 @@
         android:id="@+id/empty_spring_host"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scrollbars="none"
-        android:tag="ignore" />
+        android:scrollbars="none" />
 
     <!-- Defaults are COUI (White theme); RecyclerEmptyStateController re-tints for Picture/Night. -->
     <gd.app.lib.configuration.ConfigurationLinearLayout
@@ -37,7 +36,6 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:gravity="center"
-            android:tag="itemTextExtraColor"
             android:text="@string/music_empty"
             android:textAppearance="?attr/couiTextAppearanceDescription"
             android:textColor="?attr/couiColorSecondNeutral"
@@ -49,7 +47,6 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:gravity="center"
-            android:tag="itemTextExtraColor"
             android:text="@string/music_empty_add"
             android:textAppearance="?attr/couiTextAppearanceDescription"
             android:textColor="?attr/couiColorSecondNeutral"

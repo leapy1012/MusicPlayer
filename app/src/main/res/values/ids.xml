@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <item name="app_bar_divider" type="id" />
     <item name="widget_album_image" type="id" />
     <item name="widget_artist" type="id" />
     <item name="widget_background_image" type="id" />

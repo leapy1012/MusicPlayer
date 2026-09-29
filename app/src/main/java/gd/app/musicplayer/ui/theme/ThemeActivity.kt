@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
@@ -17,6 +18,7 @@ import gd.app.musicplayer.core.common.extension.applyCachedStatusBarHeight
 import gd.app.musicplayer.core.common.extension.screenHeight
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.ActivityThemeBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -101,6 +103,7 @@ class ThemeActivity : BaseActivity() {
             titleRes = R.string.theme,
         )
         binding.themeEdit.setOnClickListener { ThemeEditActivity.start(this) }
+        updateEditVisibility(themeEngine.currentTheme().getThemeType())
     }
 
     private fun setupAccentColorDialog() {
@@ -196,12 +199,19 @@ class ThemeActivity : BaseActivity() {
         ensurePagerReady()
         pagerAdapter.submitList(state.themes)
         updateTabTitles()
+        updateEditVisibility(state.settings?.themeType)
 
         if (binding.viewPager.currentItem != state.selectedTabIndex &&
             state.selectedTabIndex in 0 until pagerAdapter.itemCount
         ) {
             binding.viewPager.setCurrentItem(state.selectedTabIndex, false)
         }
+    }
+
+    private fun updateEditVisibility(themeType: Int?) {
+        // Blur / overlay editing only applies to wallpaper (picture) themes.
+        binding.themeEdit.visibility =
+            if (themeType == ThemeManager.THEME_TYPE_PICTURE) View.VISIBLE else View.GONE
     }
 
     override fun onEnterAnimationComplete() {

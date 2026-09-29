@@ -5,8 +5,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingTop="24dp"
-    android:paddingBottom="24dp"
-    android:tag="bottomDialogSurface">
+    android:paddingBottom="24dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -22,7 +21,6 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:singleLine="true"
-            android:tag="dialogTitle"
             android:text="@string/lyric_size"
             android:textColor="#ffffff"
             android:textSize="16sp" />
@@ -33,7 +31,6 @@
             android:layout_height="16dp"
             android:layout_marginStart="24dp"
             android:scaleType="fitCenter"
-            android:tag="dialogSizeBtn"
             app:srcCompat="@drawable/vector_lyric_minus" />
 
         <gd.app.musicplayer.core.designsystem.view.SeekBar
@@ -46,7 +43,6 @@
             android:paddingVertical="8dp"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
-            android:tag="lyricSettingsSeek"
             app:seekProgressHeight="3dp"
             app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
 
@@ -55,7 +51,6 @@
             android:layout_width="20dp"
             android:layout_height="20dp"
             android:scaleType="fitCenter"
-            android:tag="dialogSizeBtn"
             app:srcCompat="@drawable/vector_lyric_plus" />
     </LinearLayout>
 
@@ -76,7 +71,6 @@
             android:gravity="center_vertical"
             android:minHeight="26dp"
             android:singleLine="true"
-            android:tag="dialogTitle"
             android:text="@string/lyric_color"
             android:textColor="#ffffff"
             android:textSize="16sp" />
@@ -105,7 +99,6 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:singleLine="true"
-            android:tag="dialogTitle"
             android:text="@string/lyric_style"
             android:textAlignment="viewStart"
             android:textColor="#ffffff"
@@ -131,7 +124,6 @@
                     android:layout_gravity="center"
                     android:padding="8dp"
                     android:scaleType="fitCenter"
-                    android:tag="alignButton"
                     app:srcCompat="@drawable/vector_lyric_align_left" />
 
                 <androidx.appcompat.widget.AppCompatImageView
@@ -141,7 +133,6 @@
                     android:layout_marginStart="8dp"
                     android:padding="8dp"
                     android:scaleType="fitCenter"
-                    android:tag="alignButton"
                     app:srcCompat="@drawable/vector_lyric_align_center" />
 
                 <androidx.appcompat.widget.AppCompatImageView
@@ -151,7 +142,6 @@
                     android:layout_marginStart="8dp"
                     android:padding="8dp"
                     android:scaleType="fitCenter"
-                    android:tag="alignButton"
                     app:srcCompat="@drawable/vector_lyric_align_right" />
 
                 <TextView
@@ -165,7 +155,6 @@
                     android:paddingRight="4dp"
                     android:paddingBottom="2dp"
                     android:singleLine="true"
-                    android:tag="typefaceButton"
                     android:text="@string/lyric_typeface_normal"
                     android:textSize="14sp" />
 
@@ -180,7 +169,6 @@
                     android:paddingRight="4dp"
                     android:paddingBottom="2dp"
                     android:singleLine="true"
-                    android:tag="typefaceButton"
                     android:text="@string/lyric_typeface_italic"
                     android:textSize="14sp" />
 
@@ -195,7 +183,6 @@
                     android:paddingRight="4dp"
                     android:paddingBottom="2dp"
                     android:singleLine="true"
-                    android:tag="typefaceButton"
                     android:text="@string/lyric_typeface_medium"
                     android:textSize="14sp" />
 
@@ -211,7 +198,6 @@
                     android:paddingRight="6dp"
                     android:paddingBottom="2dp"
                     android:singleLine="true"
-                    android:tag="typefaceButton"
                     android:text="@string/lyric_typeface_bold"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -234,7 +220,6 @@
             android:layout_weight="1"
             android:gravity="center_vertical"
             android:singleLine="true"
-            android:tag="dialogTitle"
             android:text="@string/desktop_lrc"
             android:textAlignment="viewStart"
             android:textColor="#ffffff"
@@ -247,7 +232,6 @@
             android:layout_gravity="center"
             android:layout_marginStart="8dp"
             android:scaleType="fitCenter"
-            android:tag="dialogSelectBox"
             app:srcCompat="@drawable/vector_toggle_selector" />
     </LinearLayout>
 
@@ -266,7 +250,6 @@
             android:layout_weight="1"
             android:gravity="center_vertical"
             android:singleLine="true"
-            android:tag="dialogTitle"
             android:text="@string/lyric_auto_scroll"
             android:textAlignment="viewStart"
             android:textColor="#ffffff"
@@ -279,7 +262,6 @@
             android:layout_gravity="center"
             android:layout_marginStart="8dp"
             android:scaleType="fitCenter"
-            android:tag="dialogSelectBox"
             app:srcCompat="@drawable/vector_toggle_selector" />
     </LinearLayout>
 
@@ -291,8 +273,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:tag="dialogItemBackground">
+        android:paddingEnd="16dp">
 
         <TextView
             android:layout_width="0dp"
@@ -300,7 +281,6 @@
             android:layout_weight="1"
             android:gravity="center_vertical"
             android:singleLine="true"
-            android:tag="dialogTitle"
             android:text="@string/lrc_time_setting"
             android:textAlignment="viewStart"
             android:textColor="#ffffff"
@@ -313,7 +293,6 @@
             android:layout_marginStart="16dp"
             android:gravity="center_vertical"
             android:singleLine="true"
-            android:tag="dialogTitle"
             android:text="@string/lrc_time_normal"
             android:textColor="#ffffff"
             android:textSize="16sp" />
@@ -327,8 +306,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:tag="dialogItemBackground">
+        android:paddingEnd="16dp">
 
         <TextView
             android:layout_width="0dp"
@@ -336,7 +314,6 @@
             android:layout_weight="1"
             android:gravity="center_vertical"
             android:singleLine="true"
-            android:tag="dialogTitle"
             android:text="@string/lyric_feedback"
             android:textAlignment="viewStart"
             android:textColor="#ffffff"
@@ -349,7 +326,6 @@
             android:gravity="center_vertical"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:tag="dialogTitle"
             app:srcCompat="@drawable/vector_arrow_right" />
     </LinearLayout>
 </LinearLayout>

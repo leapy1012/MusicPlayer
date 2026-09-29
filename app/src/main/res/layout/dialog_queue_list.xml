@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:tag="bottomDialogSurface">
+    android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -20,7 +19,6 @@
             android:layout_height="40dp"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:tag="dialogTitleIcon"
             app:srcCompat="@drawable/vector_mode_order" />
 
         <androidx.appcompat.widget.AppCompatTextView
@@ -30,7 +28,6 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="2"
-            android:tag="dialogTitle"
             android:textAlignment="viewStart"
             android:textColor="#ffffff"
             android:textSize="16sp" />
@@ -41,7 +38,6 @@
             android:layout_height="40dp"
             android:padding="10dp"
             android:scaleType="fitCenter"
-            android:tag="dialogTitleIcon"
             app:srcCompat="@drawable/vector_queue_save" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -50,15 +46,13 @@
             android:layout_height="40dp"
             android:padding="9.5dp"
             android:scaleType="fitCenter"
-            android:tag="dialogTitleIcon"
             app:srcCompat="@drawable/vector_queue_delete" />
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1px"
-        android:background="#0dffffff"
-        android:tag="dialogDivider" />
+        android:background="#0dffffff" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/current_list_recycler"
@@ -69,8 +63,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1px"
-        android:background="#0dffffff"
-        android:tag="dialogDivider" />
+        android:background="#0dffffff" />
 
     <TextView
         android:id="@+id/current_list_close"
@@ -78,7 +71,6 @@
         android:layout_height="56dp"
         android:background="@drawable/selector_item_bg_t_aw"
         android:gravity="center"
-        android:tag="dialogItem"
         android:text="@string/close"
         android:textAlignment="center"
         android:textColor="#ffffff"

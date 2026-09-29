@@ -64,8 +64,10 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
     override fun onStart() {
         super.onStart()
         themeRegistry.registerObserver(this)
-        // Theme once when shown (not again on every resume).
-        applyThemeTo(rootView)
+        rootView?.let { root ->
+            applyBottomSheetSurface(root)
+            applyThemeTo(root)
+        }
 
         val dialog = dialog as? BottomSheetDialog ?: return
         val window = dialog.window ?: return
@@ -131,6 +133,7 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
         root.fitsSystemWindows = false
 
         bottomSheet.setBackgroundColor(Color.TRANSPARENT)
+        applyBottomSheetSurface(root)
 
         dialog.behavior.isGestureInsetBottomIgnored = true
         dialog.behavior.skipCollapsed = true
@@ -157,6 +160,16 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
         }
 
         ViewCompat.requestApplyInsets(window.decorView)
+    }
+
+    /**
+     * Picture: blurred theme image + teal wash ([ThemePalette.getBottomDialogSurfaceDrawable]).
+     * Light/Dark: solid COUI/dark surfaces from the same API.
+     */
+    private fun applyBottomSheetSurface(root: View) {
+        val palette = themeEngine.currentTheme()
+        // Pictured-only frosted bg; light/dark keep palette solids (not hardcoded black).
+        root.background = palette.getBottomDialogSurfaceDrawable(root.context)
     }
 
     private fun setupWindowForEdgeToEdge(window: Window) {
@@ -203,7 +216,10 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment(), Them
     }
 
     override fun onThemeChanged(palette: ThemePalette?) {
-        applyThemeTo(rootView)
+        rootView?.let { root ->
+            applyBottomSheetSurface(root)
+            applyThemeTo(root)
+        }
     }
 
     protected fun applyThemeTo(root: View?) {

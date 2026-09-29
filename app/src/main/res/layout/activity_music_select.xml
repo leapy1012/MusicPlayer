@@ -3,28 +3,37 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/couiColorBackgroundWithCard"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
 
-    <View
-        android:id="@+id/status_bar_space"
+    <LinearLayout
+
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="?attr/couiColorBackgroundWithCard"
-        android:tag="toolbarChrome" />
+        android:layout_height="wrap_content"
 
-    <com.coui.appcompat.toolbar.COUIToolbar
+        android:orientation="vertical"
+        android:tag="titleBackgroundColor">
+
+        <View
+
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+
+            android:layout_height="0dp" />
+
+        <com.coui.appcompat.toolbar.COUIToolbar
         android:id="@+id/toolbar"
         style="@style/Secondary.Toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/couiColorBackgroundWithCard"
+        android:background="@android:color/transparent"
         android:minHeight="@dimen/toolbar_min_height"
-        android:tag="toolbar"
         app:supportNavigationIcon="@drawable/coui_back_arrow"
         app:supportTitle="@string/add_songs"
         app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
         app:titleCenter="false" />
+
+    </LinearLayout>
 
     <com.coui.appcompat.searchview.COUISearchBar
         android:id="@+id/search_bar"
@@ -91,8 +100,9 @@
     </LinearLayout>
 
     <View
+        android:id="@+id/app_bar_divider"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
+        android:layout_height="@dimen/toolbar_divider_height"
         android:background="?attr/couiColorDivider" />
 
     <include

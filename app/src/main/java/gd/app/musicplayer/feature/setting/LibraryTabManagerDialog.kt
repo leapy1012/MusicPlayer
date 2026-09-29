@@ -24,6 +24,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.databinding.DialogTabManagerBinding
 import gd.app.musicplayer.databinding.DialogTabManagerItemBinding
 import gd.app.musicplayer.domain.model.LibraryTabConfig
@@ -86,6 +87,7 @@ class LibraryTabManagerDialog : DialogFragment() {
             .create()
 
         dialog.setOnShowListener {
+            CouiAlertDialogSurface.apply(dialog)
             dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 lifecycleScope.launch {
                     saveSelection()

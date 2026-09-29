@@ -1,37 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:tag="activityBackgroundColor"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="?attr/couiColorBackgroundWithCard"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">
+
     <LinearLayout
-        android:orientation="vertical"
 
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/couiColorBackground"
-        >
+
+        android:orientation="vertical"
+        android:tag="titleBackgroundColor">
+
         <View
+
             android:id="@+id/status_bar_space"
             android:layout_width="match_parent"
-            android:layout_height="0dp"/>
+
+            android:layout_height="0dp" />
+
         <com.coui.appcompat.toolbar.COUIToolbar
-            android:id="@+id/toolbar"
-            style="@style/Secondary.Toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="@dimen/toolbar_min_height"
-            app:supportTitle="@string/add_to_list"
-            app:supportTitleTextAppearance="@style/textAppearanceSecondTitle" />
+        android:id="@+id/toolbar"
+        style="@style/Secondary.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:minHeight="@dimen/toolbar_min_height"
+        app:supportNavigationIcon="@drawable/coui_back_arrow"
+        app:supportTitle="@string/add_to_list"
+        app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+        app:titleCenter="false" />
+
     </LinearLayout>
+
     <include
         android:id="@+id/main_fragment_container"
+        layout="@layout/layout_recyclerview"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        layout="@layout/layout_recyclerview"/>
-    <TextView
+        android:background="?attr/couiColorCardBackground" />
+
+    <com.coui.appcompat.button.COUIButton
         android:id="@+id/add_to_list"
+        style="@style/Widget.COUI.Button.Large.ButtonNew"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="16dp"
         android:text="@string/add_to_list"
-        style="@style/BottomConfirmButton"/>
+        android:textAllCaps="false"
+        android:visibility="gone" />
 </LinearLayout>

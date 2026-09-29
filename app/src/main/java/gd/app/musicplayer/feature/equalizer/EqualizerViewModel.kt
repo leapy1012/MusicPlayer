@@ -89,6 +89,10 @@ class EqualizerViewModel @Inject constructor(
         }
     }
 
+    suspend fun disableEffectGroup() {
+        soundEffectPreferences.disableGroupSoundEffect()
+    }
+
     suspend fun persistEqualizerEnabled(enabled: Boolean) {
         soundEffectPreferences.setEqualizerEnabled(enabled)
     }

@@ -14,8 +14,7 @@
         android:scrollbarStyle="outsideOverlay"
         android:scrollbarThumbHorizontal="@drawable/shape_scrollbar"
         android:scrollbarThumbVertical="@drawable/shape_scrollbar"
-        android:scrollbars="vertical"
-        android:tag="ignore" />
+        android:scrollbars="vertical" />
 
     <gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
         android:id="@+id/recyclerview_index"
@@ -23,8 +22,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|center_vertical"
         android:paddingTop="2dp"
-        android:paddingBottom="2dp"
-        android:tag="recyclerIndexBar" />
+        android:paddingBottom="2dp" />
 
     <ViewStub
         android:id="@+id/layout_list_empty"
@@ -38,6 +36,5 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:tag="loadingProgressBar"
         android:visibility="gone" />
 </FrameLayout>

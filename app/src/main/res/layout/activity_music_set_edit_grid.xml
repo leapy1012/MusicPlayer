@@ -24,7 +24,6 @@
             android:contentDescription="@android:string/unknownName"
             android:padding="8dp"
             android:scaleType="centerInside"
-            android:tag="selectBox2"
             app:srcCompat="@drawable/vector_multi_check_w_selector" />
     </gd.app.lib.view.square.AspectRatioFrameLayout>
 
@@ -41,7 +40,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:singleLine="true"
-            android:tag="itemTextColor"
             android:textColor="?attr/couiColorPrimaryNeutral"
             android:textSize="16sp" />
 
@@ -52,7 +50,6 @@
             android:layout_marginTop="2dp"
             android:ellipsize="middle"
             android:singleLine="true"
-            android:tag="itemTextExtraColor"
             android:textColor="?attr/couiColorSecondNeutral"
             android:textSize="14sp" />
     </LinearLayout>

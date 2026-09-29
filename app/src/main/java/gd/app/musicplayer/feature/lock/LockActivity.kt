@@ -22,6 +22,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.bumptech.glide.Glide
+import com.coui.appcompat.poplist.COUIPopupListWindow
+import com.coui.appcompat.poplist.PopupListItem
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.lib.model.image.SkinImageView
 import gd.app.lib.model.lrc.view.LyricView
@@ -37,17 +39,14 @@ import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.feature.player.common.PlaybackProgressBinder
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
-import gd.app.musicplayer.core.designsystem.theme.accentColor
-import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
-import gd.app.musicplayer.domain.model.ContextMenuItem
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.playback.lock.LockScreenController
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.common.base.BaseActivity
-import gd.app.musicplayer.ui.common.menu.BaseContextMenu
+import gd.app.musicplayer.ui.common.menu.CouiPopupListSurface
 import gd.app.musicplayer.ui.common.playback.PlayModeViewModel
 import gd.app.musicplayer.feature.lyrics.setLyricText
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
@@ -557,13 +556,9 @@ class LockActivity : BaseActivity(),
     }
 
     private fun showLockMoreMenu(anchor: View) {
-        val palette = themeRepo.getCorePalette()
         lockMorePopupMenu?.dismiss()
         lockMorePopupMenu = LockMorePopupMenu(
             context = this,
-            accentColor = palette.accentColor,
-            popupTextColor = palette.popupTitleColor,
-            popupBackgroundProvider = palette::getPopupBackgroundDrawable,
             onTurnOffLockScreen = ::showTurnOffLockScreenDialog,
             onQuit = ::quitApplication
         ).also { menu ->
@@ -640,40 +635,43 @@ class LockActivity : BaseActivity(),
 }
 
 private class LockMorePopupMenu(
-    context: Context,
-    accentColor: Int,
-    popupTextColor: Int,
-    popupBackgroundProvider: (Context) -> android.graphics.drawable.Drawable,
+    private val context: Context,
     private val onTurnOffLockScreen: () -> Unit,
     private val onQuit: () -> Unit
-) : BaseContextMenu(
-    context = context,
-    accentColor = accentColor,
-    popupTextColor = popupTextColor,
-    popupBackgroundProvider = popupBackgroundProvider
 ) {
 
-    override fun buildItems(): List<ContextMenuItem> {
-        return listOf(
-            ContextMenuItem(
-                id = "turn_off_lock_screen",
-                titleRes = R.string.lock_dialog_title
-            ),
-            ContextMenuItem(
-                id = "quit",
-                titleRes = R.string.adv_quit
-            )
+    private var popup: COUIPopupListWindow? = null
+
+    fun show(anchor: View) {
+        dismiss()
+        val actions = listOf(
+            R.string.lock_dialog_title to onTurnOffLockScreen,
+            R.string.adv_quit to onQuit
         )
+        val items = ArrayList(
+            actions.map { (titleRes, _) ->
+                PopupListItem.Builder()
+                    .setId(titleRes)
+                    .setTitle(context.getString(titleRes))
+                    .setIsEnable(true)
+                    .build()
+            }
+        )
+        val window = COUIPopupListWindow(context).also { popup = it }
+        window.setItemList(items)
+        window.setOnItemClickListener { _, _, position, _ ->
+            dismiss()
+            actions.getOrNull(position)?.second?.invoke()
+        }
+        window.show(anchor)
+        CouiPopupListSurface.apply(window, context)
+        anchor.post {
+            if (popup === window) CouiPopupListSurface.apply(window, context)
+        }
     }
 
-    override fun onItemClicked(
-        item: ContextMenuItem,
-        anchor: View
-    ) {
-        dismiss()
-        when (item.titleRes) {
-            R.string.lock_dialog_title -> onTurnOffLockScreen()
-            R.string.adv_quit -> onQuit()
-        }
+    fun dismiss() {
+        popup?.dismiss()
+        popup = null
     }
 }

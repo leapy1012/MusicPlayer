@@ -1,52 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical">
+    style="@style/EqualizerRow"
+    android:minHeight="64dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/shape_effect_group_item"
-        android:gravity="center_vertical"
-        android:minHeight="64dp"
-        android:orientation="horizontal"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp">
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/group_effect_item_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:importantForAccessibility="no"
+        android:padding="6dp"
+        android:scaleType="fitCenter"
+        app:tint="?attr/couiColorLabelTheme" />
 
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/group_effect_item_icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/shape_effect_group_item_image"
-            android:padding="8dp"
-            android:scaleType="fitCenter" />
+    <TextView
+        android:id="@+id/group_effect_item_name"
+        style="@style/EqualizerRowTitle"
+        android:layout_marginStart="16dp" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/group_effect_item_name"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_weight="1"
-            android:textColor="#fff"
-            android:textSize="16sp" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/group_effect_item_use"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="15dp"
-            android:paddingTop="5dp"
-            android:paddingEnd="15dp"
-            android:paddingBottom="5dp"
-            android:tag="groupBoost"
-            android:textColor="#fff"
-            android:textSize="12sp"
-            app:textAllCaps="true" />
-    </LinearLayout>
+    <com.coui.appcompat.chip.COUIChip
+        android:id="@+id/group_effect_item_use"
+        style="@style/EqualizerReverbChip"
+        android:layout_marginStart="12dp" />
 </LinearLayout>

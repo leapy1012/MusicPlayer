@@ -22,6 +22,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.couiswitch.COUISwitch
+import com.coui.appcompat.seekbar.COUISeekBar
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
@@ -30,20 +32,20 @@ import gd.app.musicplayer.core.designsystem.dialog.DialogRegistry
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
 import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
-import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.datastore.StatusBarLyricPreference
 import gd.app.musicplayer.core.datastore.StatusBarLyricPreferenceStore
 import gd.app.musicplayer.databinding.ActivityStatusBarLyricsBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.ui.common.hostStaticContent
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener {
+class StatusBarLyricsActivity : BaseActivity(), COUISeekBar.OnSeekBarChangeListener {
 
     @Inject lateinit var materialDialogConfigFactory: MaterialDialogConfigFactory
 
@@ -55,7 +57,7 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
 
     private var currentPreference = StatusBarLyricPreference()
     private var suppressSeekBarCallback = false
-    private var trackingSeekBar: SeekBar? = null
+    private var trackingSeekBar: COUISeekBar? = null
     private var seekBarPersistJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +67,7 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         setContentView(binding.root)
 
         setupToolbar()
+        setupContent()
         setupPreferences()
         setupSeekBars()
         setupColorList()
@@ -82,25 +85,25 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
     }
 
     override fun onProgressChanged(
-        seekBar: SeekBar,
+        seekBar: COUISeekBar,
         progress: Int,
         fromUser: Boolean
     ) {
         if (!fromUser || suppressSeekBarCallback) return
 
-        val max = seekBar.getMax().coerceAtLeast(1)
+        val max = seekBar.max.coerceAtLeast(1)
         val ratio = progress.toFloat() / max.toFloat()
 
         currentPreference = currentPreference.withSeekRatio(seekBar, ratio)
         scheduleSeekBarPersist(seekBar, ratio)
     }
 
-    override fun onStopTrackingTouch(seekBar: SeekBar) {
+    override fun onStopTrackingTouch(seekBar: COUISeekBar) {
         trackingSeekBar = null
-        binding.settingScrollView.requestDisallowInterceptTouchEvent(false)
+        binding.settingList.requestDisallowInterceptTouchEvent(false)
 
-        val max = seekBar.getMax().coerceAtLeast(1)
-        val ratio = seekBar.getProgress().toFloat() / max.toFloat()
+        val max = seekBar.max.coerceAtLeast(1)
+        val ratio = seekBar.progress.toFloat() / max.toFloat()
 
         seekBarPersistJob?.cancel()
         seekBarPersistJob = lifecycleScope.launch {
@@ -108,9 +111,9 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         }
     }
 
-    override fun onStartTrackingTouch(seekBar: SeekBar) {
+    override fun onStartTrackingTouch(seekBar: COUISeekBar) {
         trackingSeekBar = seekBar
-        binding.settingScrollView.requestDisallowInterceptTouchEvent(true)
+        binding.settingList.requestDisallowInterceptTouchEvent(true)
     }
 
     private fun setupToolbar() {
@@ -126,12 +129,26 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
             onBackPressedDispatcher.onBackPressed()
         }
 
+        // Not app:menu — COUIToolbar builds that menu view before its click listener exists.
+        binding.toolbar.inflateMenu(R.menu.menu_activity_sbar_lyric)
+        // The content theme pass ran before the menu existed; tint its icon now.
+        applyThemeTo(binding.toolbar)
         binding.toolbar.setOnMenuItemClickListener { item: MenuItem ->
             if (item.itemId == R.id.menu_reset) {
                 showResetDialog()
             }
             true
         }
+    }
+
+    private fun setupContent() {
+        binding.settingList.hostStaticContent(binding.settingContent)
+        // Keeps the rows' press feedback inside the rounded card corners.
+        listOf(
+            binding.preferenceSbarLyricContainer1,
+            binding.preferenceSbarLyricContainer2,
+            binding.preferenceSbarLyricContainer3
+        ).forEach { card -> card.clipToOutline = true }
     }
 
     private fun setupPreferences() {
@@ -220,11 +237,11 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
     }
 
     private fun syncUi(preference: StatusBarLyricPreference) {
-        binding.preferenceSbarLyricEnable.setSelected(preference.enabled)
-        binding.preferenceSbarLyricShowPaused.setSelected(preference.showPaused)
-        binding.preferenceSbarLyricClickable.setSelected(preference.clickable)
+        binding.preferenceSbarLyricEnableSwitch.isChecked = preference.enabled
+        binding.preferenceSbarLyricShowPausedSwitch.isChecked = preference.showPaused
+        binding.preferenceSbarLyricClickableSwitch.isChecked = preference.clickable
 
-        binding.preferenceSbarLyricContent.setTips(
+        binding.preferenceSbarLyricContentTips.setText(
             if (preference.contentType == StatusBarLyricPreferenceStore.CONTENT_TYPE_LYRIC) {
                 R.string.sbar_lyric_content_lyric
             } else {
@@ -232,7 +249,7 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
             }
         )
 
-        binding.preferenceSbarLyricGravity.setTips(
+        binding.preferenceSbarLyricGravityTips.setText(
             if (preference.gravity == Gravity.CENTER) {
                 R.string.sbar_lyric_gravity_center
             } else {
@@ -261,11 +278,11 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         }
     }
 
-    private fun setSeekProgress(seekBar: SeekBar, ratio: Float) {
-        seekBar.setProgress((ratio.coerceIn(0f, 1f) * seekBar.getMax()).toInt())
+    private fun setSeekProgress(seekBar: COUISeekBar, ratio: Float) {
+        seekBar.progress = (ratio.coerceIn(0f, 1f) * seekBar.max).toInt()
     }
 
-    private fun scheduleSeekBarPersist(seekBar: SeekBar, ratio: Float) {
+    private fun scheduleSeekBarPersist(seekBar: COUISeekBar, ratio: Float) {
         seekBarPersistJob?.cancel()
         seekBarPersistJob = lifecycleScope.launch {
             delay(SEEK_BAR_PERSIST_DEBOUNCE_MS)
@@ -273,7 +290,7 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
         }
     }
 
-    private suspend fun persistSeekRatio(seekBar: SeekBar, ratio: Float) {
+    private suspend fun persistSeekRatio(seekBar: COUISeekBar, ratio: Float) {
         when (seekBar) {
             binding.sbarLyricXSeek -> {
                 statusBarLyricPreferenceStore.setXRatio(ratio)
@@ -298,7 +315,7 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
     }
 
     private fun StatusBarLyricPreference.withSeekRatio(
-        seekBar: SeekBar,
+        seekBar: COUISeekBar,
         ratio: Float
     ): StatusBarLyricPreference {
         val coercedRatio = ratio.coerceIn(0f, 1f)
@@ -361,21 +378,39 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
                 setControlEnabled(child, enabled)
             }
         }
-
-        setControlEnabled(binding.preferenceSbarLyricContainer2, enabled)
-        setControlEnabled(binding.preferenceSbarLyricContainer3, enabled)
+        binding.preferenceSbarLyricContainer2.forEachChild { setControlEnabled(it, enabled) }
+        binding.preferenceSbarLyricContainer3.forEachChild { setControlEnabled(it, enabled) }
 
         binding.toolbar.menu.findItem(R.id.menu_reset)?.isVisible = enabled
     }
 
+    /**
+     * COUI widgets draw their own disabled state, so only plain views (labels, swatches) are
+     * faded — fading both would leave the COUI rows nearly invisible.
+     */
     private fun setControlEnabled(view: View, enabled: Boolean) {
-        view.isEnabled = enabled
-        view.alpha = if (enabled) 1f else 0.45f
-
-        if (view is ViewGroup) {
-            view.forEachChild { child ->
-                setControlEnabled(child, enabled)
+        when {
+            view.tag == ITEM_DIVIDER_TAG -> Unit
+            view is COUISwitch || view is COUISeekBar -> setEnabledRecursively(view, enabled)
+            view is RecyclerView -> {
+                view.alpha = if (enabled) 1f else DISABLED_ALPHA
+                setEnabledRecursively(view, enabled)
             }
+            view is ViewGroup -> {
+                view.isEnabled = enabled
+                view.forEachChild { child -> setControlEnabled(child, enabled) }
+            }
+            else -> {
+                view.isEnabled = enabled
+                view.alpha = if (enabled) 1f else DISABLED_ALPHA
+            }
+        }
+    }
+
+    private fun setEnabledRecursively(view: View, enabled: Boolean) {
+        view.isEnabled = enabled
+        if (view is ViewGroup) {
+            view.forEachChild { child -> setEnabledRecursively(child, enabled) }
         }
     }
 
@@ -599,15 +634,15 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
 
     private fun createColorSwatch(color: Int): GradientDrawable {
         return GradientDrawable().apply {
-            cornerRadius = dp(4).toFloat()
+            shape = GradientDrawable.OVAL
             setColor(color)
         }
     }
 
     private fun createSelectedColorBackground(color: Int): GradientDrawable {
         return GradientDrawable().apply {
-            cornerRadius = dp(4).toFloat()
-            setColor(0x33FFFFFF)
+            shape = GradientDrawable.OVAL
+            setColor(Color.TRANSPARENT)
             setStroke(dp(2), color)
         }
     }
@@ -635,6 +670,8 @@ class StatusBarLyricsActivity : BaseActivity(), SeekBar.OnSeekBarChangeListener 
     companion object {
         private const val PAYLOAD_SELECTION = "selection"
         private const val SEEK_BAR_PERSIST_DEBOUNCE_MS = 120L
+        private const val DISABLED_ALPHA = 0.3f
+        private const val ITEM_DIVIDER_TAG = "item_divider"
 
         private val DEFAULT_COLORS = intArrayOf(
             -16776961,

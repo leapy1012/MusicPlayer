@@ -2,11 +2,8 @@ package gd.app.musicplayer.core.designsystem.theme
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.drawable.Drawable
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toDrawable
-import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.util.FastBlur
 import gd.app.musicplayer.core.designsystem.drawable.DialogBackgroundFactory
 import gd.app.musicplayer.core.designsystem.drawable.OverlayCenterCropDrawable
@@ -68,11 +65,6 @@ open class PictureThemePalette : BaseThemePalette() {
 
     override fun isActionAreaLight(): Boolean = true
 
-    override fun getPopupPressedOverlayColor(): Int = 436207616
-
-    override fun getPopupBackgroundDrawable(context: Context): Drawable =
-        AppCompatResources.getDrawable(context, R.drawable.popup_bg) ?: Color.WHITE.toDrawable()
-
     override fun getHeaderBackgroundDrawable(context: Context): Drawable =
         if (isHeaderSurfaceLight()) {
             RoundedMaskDrawable(
@@ -95,11 +87,6 @@ open class PictureThemePalette : BaseThemePalette() {
     override fun setAccentColor(accentColor: Int) {
         themeAccentColor = accentColor
     }
-
-    // Spinner/context popups use the shared light popup background asset (`popup_bg`),
-    // so popup foreground colors must be computed against a light surface even when
-    // the picture theme's dialog/content surfaces are dark.
-    override fun isPopupSurfaceLight(): Boolean = true
 
     override fun isHeaderSurfaceLight(): Boolean = isContentSurfaceLight()
 
@@ -124,7 +111,7 @@ open class PictureThemePalette : BaseThemePalette() {
         )
     }
 
-    open fun getBottomDialogSurfaceDrawable(context: Context): Drawable =
+    override fun getBottomDialogSurfaceDrawable(context: Context): Drawable =
         DialogBackgroundFactory.pictureDialogBackgroundBase(context, blurredBitmap)
 
     fun setImageName(imageName: String?) {

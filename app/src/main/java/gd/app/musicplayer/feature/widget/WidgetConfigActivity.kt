@@ -21,10 +21,11 @@ import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.screenWidth
-import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.datastore.WidgetConfigStore
 import gd.app.musicplayer.databinding.ActivityWidgetConfigBinding
+import gd.app.musicplayer.feature.equalizer.setOnSliderChangeListener
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.feature.widget.provider.WidgetPlaybackSnapshotLoader
 import gd.app.musicplayer.feature.widget.provider.WidgetRenderer
@@ -90,9 +91,7 @@ class WidgetConfigActivity : BaseActivity() {
             binding.widgetBottomLayout
         )
 
-        binding.widgetBack.setOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
-        }
+        binding.toolbar.navigateBack(this)
 
         binding.widgetSave.setOnClickListener {
             saveAndFinish()
@@ -244,39 +243,22 @@ class WidgetConfigActivity : BaseActivity() {
     }
 
     private fun setupOpacity() {
-        binding.widgetOpacitySeek.setMax(OPACITY_MAX_PROGRESS)
+        binding.widgetOpacitySeek.max = OPACITY_MAX_PROGRESS
 
-        binding.widgetOpacitySeek.setOnSeekBarChangeListener(
-            object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(
-                    seekBar: SeekBar,
-                    progress: Int,
-                    fromUser: Boolean
-                ) {
-                    binding.widgetOpacitySeekText.text = "$progress%"
-
-                    if (!fromUser) return
-
-                    selectedThemeAlpha =
-                        progress.toFloat() / OPACITY_MAX_PROGRESS.toFloat()
-
-                    /*
-                     * Important:
-                     * Do not call renderPreview() here.
-                     * The reference app only changes background alpha while dragging.
-                     */
-                    previewBackgroundImage?.alpha = selectedThemeAlpha
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar) {
-                    binding.widgetScrollView.requestDisallowInterceptTouchEvent(true)
-                }
-
-                override fun onStopTrackingTouch(seekBar: SeekBar) {
-                    binding.widgetScrollView.requestDisallowInterceptTouchEvent(false)
-                }
+        binding.widgetOpacitySeek.setOnSliderChangeListener(
+            onTrackingChanged = { tracking ->
+                binding.widgetScrollView.requestDisallowInterceptTouchEvent(tracking)
             }
-        )
+        ) { progress, fromUser ->
+            binding.widgetOpacitySeekText.text = "$progress%"
+
+            if (!fromUser) return@setOnSliderChangeListener
+
+            selectedThemeAlpha = progress.toFloat() / OPACITY_MAX_PROGRESS.toFloat()
+
+            // The reference app only changes background alpha while dragging, not the whole preview.
+            previewBackgroundImage?.alpha = selectedThemeAlpha
+        }
     }
 
     private fun onThemeSelected(theme: WidgetThemeOption) {
@@ -321,7 +303,7 @@ class WidgetConfigActivity : BaseActivity() {
             .toInt()
             .coerceIn(0, OPACITY_MAX_PROGRESS)
 
-        binding.widgetOpacitySeek.setProgress(progress)
+        binding.widgetOpacitySeek.progress = progress
         binding.widgetOpacitySeekText.text = "$progress%"
     }
 

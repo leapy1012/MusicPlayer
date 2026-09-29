@@ -3,25 +3,37 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/couiColorBackgroundWithCard"
     android:orientation="vertical"
-    android:tag="activityBackgroundColor"
-    app:allowStatusBarPadding="true">
+    android:tag="activityBackgroundColor">
 
-    <View
-        android:id="@+id/status_bar_space"
+    <LinearLayout
+
         android:layout_width="match_parent"
-        android:layout_height="0dp" />
+        android:layout_height="wrap_content"
 
-    <androidx.appcompat.widget.Toolbar
+        android:orientation="vertical"
+        android:tag="titleBackgroundColor">
+
+        <View
+
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+
+            android:layout_height="0dp" />
+
+        <com.coui.appcompat.toolbar.COUIToolbar
         android:id="@+id/toolbar"
+        style="@style/Secondary.Toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:minHeight="?attr/actionBarSize"
-        android:tag="toolbar"
-        app:navigationIcon="@drawable/vector_menu_back"
-        app:theme="@style/AppToolbar"
-        app:title="@string/edit_lyric"
-        app:titleTextAppearance="@style/AppToolbarTitle" />
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:minHeight="@dimen/toolbar_min_height"
+        app:supportNavigationIcon="@drawable/coui_back_arrow"
+        app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+        app:titleCenter="false" />
+
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -33,9 +45,9 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:layout_marginEnd="16dp"
-            android:tag="dialogEditTextBackground">
+            android:layout_marginBottom="16dp">
 
             <androidx.appcompat.widget.AppCompatEditText
                 android:id="@+id/lrc_edit_input"
@@ -46,10 +58,10 @@
                 android:hint="@string/add_lyric_hint"
                 android:imeOptions="actionDone"
                 android:inputType="textMultiLine"
+                android:lineSpacingExtra="4dp"
                 android:minLines="4"
-                android:padding="6dp"
+                android:padding="16dp"
                 android:scrollbars="none"
-                android:tag="dialogEditText"
                 android:textColor="#666666"
                 android:textColorHint="#999999"
                 android:textCursorDrawable="@null"
@@ -67,14 +79,12 @@
             android:paddingTop="8dp"
             android:paddingRight="24dp"
             android:paddingBottom="8dp"
-            android:tag="pasteBackground"
             android:visibility="gone">
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:scaleType="fitCenter"
-                android:tag="itemTextColor"
                 app:srcCompat="@drawable/vector_lyric_paste" />
 
             <TextView
@@ -83,7 +93,6 @@
                 android:layout_marginStart="8dp"
                 android:fontFamily="sans-serif-medium"
                 android:singleLine="true"
-                android:tag="itemTextColor"
                 android:text="@string/lyric_paste"
                 android:textColor="#fff"
                 android:textSize="14sp" />

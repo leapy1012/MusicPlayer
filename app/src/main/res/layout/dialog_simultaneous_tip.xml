@@ -10,7 +10,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scaleType="fitCenter"
-        android:tag="dialogImage"
         app:squareRatio="0.365"
         app:srcCompat="@drawable/simultaneous_tip_icon" />
 
@@ -22,7 +21,6 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="24dp"
         android:lineSpacingMultiplier="1.2"
-        android:tag="dialogMessage"
         android:textSize="16sp" />
 
     <LinearLayout

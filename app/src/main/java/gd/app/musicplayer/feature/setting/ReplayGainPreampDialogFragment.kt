@@ -10,6 +10,7 @@ import androidx.fragment.app.DialogFragment
 import com.coui.appcompat.dialog.COUIAlertDialogBuilder
 import com.coui.appcompat.seekbar.COUISeekBar
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.databinding.DialogReplayGainPreampBinding
 import kotlin.math.round
 
@@ -69,6 +70,7 @@ class ReplayGainPreampDialogFragment : DialogFragment() {
 
         dialog.setOnShowListener {
             disableClipAlongParents(contentBinding.root)
+            CouiAlertDialogSurface.apply(dialog)
             dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 parentFragmentManager.setFragmentResult(
                     RESULT_KEY,

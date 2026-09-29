@@ -4,7 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:tag="bottomDialogSurface"
     android:paddingBottom="8dp">
 
     <TextView
@@ -15,7 +14,6 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:singleLine="true"
-        android:tag="dialogTitle"
         android:text="@string/dlg_manage_artwork"
         android:textAlignment="viewStart"
         android:textSize="20sp"
@@ -25,7 +23,6 @@
         android:id="@+id/album_from_reset"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:tag="dialogItemBackground"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="16dp"
@@ -35,7 +32,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:singleLine="true"
-            android:tag="dialogItem"
             android:text="@string/reset"
             android:textAlignment="viewStart"
             android:textSize="16sp" />
@@ -45,7 +41,6 @@
         android:id="@+id/album_from_gallery"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:tag="dialogItemBackground"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="16dp"
@@ -55,7 +50,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:singleLine="true"
-            android:tag="dialogItem"
             android:text="@string/album_from_gallery"
             android:textAlignment="viewStart"
             android:textSize="16sp" />
@@ -65,7 +59,6 @@
         android:id="@+id/album_from_album_artwork"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:tag="dialogItemBackground"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="16dp"
@@ -76,7 +69,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:singleLine="true"
-            android:tag="dialogItem"
             android:text="@string/album_from_album_artwork"
             android:textAlignment="viewStart"
             android:textSize="16sp" />
@@ -87,7 +79,6 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:orientation="horizontal"
-        android:tag="dialogItemBackground"
         android:visibility="gone">
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -99,7 +90,6 @@
             android:layout_marginEnd="8dp"
             android:clickable="false"
             android:scaleType="centerInside"
-            android:tag="dialogSelectBox"
             android:src="@drawable/vector_multi_check_w_selector" />
 
         <TextView
@@ -111,7 +101,6 @@
             android:gravity="center_vertical"
             android:paddingEnd="16dp"
             android:singleLine="true"
-            android:tag="dialogItem"
             android:text="@string/album_apply_all_album"
             android:textAlignment="viewStart"
             android:textSize="15sp" />

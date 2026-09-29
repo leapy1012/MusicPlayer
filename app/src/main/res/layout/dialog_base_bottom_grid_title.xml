@@ -15,7 +15,6 @@
         android:layout_height="wrap_content"
         android:maxEms="10"
         android:singleLine="true"
-        android:tag="dialogItem"
         android:textColor="#ffffff"
         android:textSize="20sp" />
 
@@ -24,7 +23,6 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:padding="10dp"
-        android:tag="dialogItem"
         android:visibility="gone" />
 
     <androidx.appcompat.widget.AppCompatImageView
@@ -32,6 +30,5 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:padding="10dp"
-        android:tag="dialogItem"
         android:visibility="gone" />
 </LinearLayout>

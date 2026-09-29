@@ -10,33 +10,43 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:tag="titleBackgroundColor">
 
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/drive_mode_close"
-            android:layout_width="@dimen/drive_small_icon_size"
-            android:layout_height="@dimen/drive_small_icon_size"
-            android:background="@drawable/selector_image_bg_w"
-            android:padding="8dp"
-            android:scaleType="fitCenter"
-            android:tag="controlButton"
-            app:srcCompat="@drawable/vector_drive_close" />
+        <View
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
 
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1px"
-            android:layout_weight="1" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/drive_mode_queue"
-            android:layout_width="@dimen/drive_small_icon_size"
-            android:layout_height="@dimen/drive_small_icon_size"
-            android:background="@drawable/selector_image_bg_w"
-            android:padding="10dp"
-            android:scaleType="fitCenter"
-            android:tag="controlButton"
-            app:srcCompat="@drawable/vector_play_queue_menu" />
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/drive_mode_close"
+                android:layout_width="@dimen/drive_small_icon_size"
+                android:layout_height="@dimen/drive_small_icon_size"
+                android:background="@drawable/selector_image_bg_w"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_drive_close" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1px"
+                android:layout_weight="1" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/drive_mode_queue"
+                android:layout_width="@dimen/drive_small_icon_size"
+                android:layout_height="@dimen/drive_small_icon_size"
+                android:background="@drawable/selector_image_bg_w"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/vector_play_queue_menu" />
+        </LinearLayout>
     </LinearLayout>
 
     <gd.app.lib.view.loop.LoopViewPager
@@ -48,53 +58,36 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:layoutDirection="ltr"
-        android:orientation="horizontal"
         android:paddingStart="24dp"
         android:paddingEnd="24dp">
 
-        <gd.app.musicplayer.core.designsystem.view.SeekBar
+        <com.coui.appcompat.seekbar.COUISeekBar
             android:id="@+id/drive_mode_progress"
             android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_weight="1"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:tag="seekBar"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:max="100"
+            android:paddingStart="16dp"
+            app:couiSeekBarMaxWidth="0dp"
+            android:paddingEnd="16dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/drive_mode_total_time"
             app:layout_constraintStart_toEndOf="@+id/drive_mode_curr_time"
-            app:layout_constraintTop_toTopOf="parent"
-            app:seekMax="100"
-            app:seekProgressHeight="4dp"
-            app:seekRtlEnable="false"
-            app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/drive_mode_curr_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:tag="itemTextColor"
-            android:text="00:00"
-            android:textColor="#ffffff"
-            android:textSize="12sp"
+            style="@style/DriveModeTimeText"
             app:layout_constraintBottom_toBottomOf="@+id/drive_mode_progress"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@+id/drive_mode_progress" />
 
         <TextView
             android:id="@+id/drive_mode_total_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:tag="itemTextColor"
-            android:text="00:00"
-            android:textColor="#ffffff"
-            android:textSize="12sp"
+            style="@style/DriveModeTimeText"
             app:layout_constraintBottom_toBottomOf="@+id/drive_mode_progress"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@+id/drive_mode_progress" />
@@ -116,7 +109,6 @@
             android:layout_height="48dp"
             android:padding="4dp"
             android:scaleType="fitCenter"
-            android:tag="controlButton"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/drive_mode_previous"
             app:layout_constraintHorizontal_chainStyle="spread"
@@ -130,7 +122,6 @@
             android:layout_height="48dp"
             android:padding="4dp"
             android:scaleType="fitCenter"
-            android:tag="controlButton"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/drive_mode_play_pause"
             app:layout_constraintStart_toEndOf="@+id/drive_mode_backward"
@@ -142,7 +133,6 @@
             android:layout_width="@dimen/drive_small_icon_size"
             android:layout_height="@dimen/drive_small_icon_size"
             android:scaleType="fitCenter"
-            android:tag="playPauseButton"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/drive_mode_next"
             app:layout_constraintStart_toEndOf="@+id/drive_mode_previous"
@@ -155,7 +145,6 @@
             android:layout_height="48dp"
             android:padding="4dp"
             android:scaleType="fitCenter"
-            android:tag="controlButton"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/drive_mode_forward"
             app:layout_constraintStart_toEndOf="@+id/drive_mode_play_pause"
@@ -168,7 +157,6 @@
             android:layout_height="48dp"
             android:padding="4dp"
             android:scaleType="fitCenter"
-            android:tag="controlButton"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/drive_mode_next"
@@ -190,26 +178,16 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
             android:layout_marginBottom="8dp"
-            android:alpha="0.3"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <androidx.appcompat.widget.AppCompatImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:scaleType="fitCenter"
-                android:tag="itemTextColor"
+                style="@style/DriveModeBadgeIcon"
                 app:srcCompat="@drawable/vector_drive_car" />
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:singleLine="true"
-                android:tag="itemTextColor"
-                android:text="@string/drive_mode"
-                android:textColor="#ffffff"
-                android:textSize="16sp" />
+                style="@style/DriveModeBadgeText"
+                android:text="@string/drive_mode" />
         </LinearLayout>
 
         <LinearLayout
@@ -226,7 +204,6 @@
                 android:background="@drawable/selector_image_bg_w"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:tag="favorite"
                 app:srcCompat="@drawable/vector_drive_favorite_select" />
 
             <Space
@@ -241,7 +218,6 @@
                 android:background="@drawable/selector_image_bg_w"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:tag="controlButton"
                 app:srcCompat="@drawable/vector_mode_order" />
         </LinearLayout>
     </FrameLayout>

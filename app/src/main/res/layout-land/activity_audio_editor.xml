@@ -8,21 +8,33 @@
     android:orientation="vertical"
     android:tag="activityBackgroundColor">
 
-    <View
-        android:id="@+id/status_bar_space"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="@color/main_actionbar" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:tag="titleBackgroundColor">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/main_actionbar"
-        android:minHeight="?attr/actionBarSize"
-        android:tag="toolbar"
-        app:theme="@style/AppToolbar"
-        app:titleTextAppearance="@style/AppToolbarTitle" />
+        <View
+            android:id="@+id/status_bar_space"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                app:supportNavigationIcon="@drawable/coui_back_arrow"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
+        </FrameLayout>
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -35,8 +47,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:tag="soundWaveView" />
+            android:paddingEnd="16dp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -48,7 +59,7 @@
                 android:id="@+id/audio_editor_zoom_in"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:background="@drawable/selector_image_bg_w"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="4dp"
                 android:scaleType="fitCenter"
                 app:srcCompat="@drawable/vector_zoom_in" />
@@ -58,7 +69,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_marginTop="24dp"
-                android:background="@drawable/selector_image_bg_w"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="4dp"
                 android:scaleType="fitCenter"
                 app:srcCompat="@drawable/vector_zoom_out" />
@@ -68,17 +79,16 @@
     <TextView
         android:id="@+id/audio_editor_info"
         android:layout_width="match_parent"
-        android:layout_height="30dp"
+        android:layout_height="32dp"
         android:gravity="center"
-        android:tag="soundInfoView"
         android:textAlignment="center"
-        android:textColor="#b3ffffff"
-        android:textSize="12dp" />
+        android:textColor="?attr/couiColorSecondNeutral"
+        android:textSize="12sp" />
 
     <LinearLayout
+        android:id="@+id/bottom_control"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/main_actionbar"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -103,30 +113,16 @@
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/audio_editor_start_minus"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/selector_image_bg_w"
-                    android:padding="8dp"
+                    style="@style/AudioEditorIconButton"
                     app:srcCompat="@drawable/sound_clip_minus" />
 
                 <gd.app.musicplayer.ui.editor.waveform.TimeEditText
                     android:id="@+id/audio_editor_start_time"
-                    android:layout_width="64dp"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_bg"
-                    android:gravity="center_horizontal"
-                    android:minWidth="64dp"
-                    android:singleLine="true"
-                    android:text="0.00"
-                    android:textColor="#ffffff"
-                    android:textSize="13sp" />
+                    style="@style/AudioEditorTimeField" />
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/audio_editor_start_plus"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/selector_image_bg_w"
-                    android:padding="8dp"
+                    style="@style/AudioEditorIconButton"
                     app:srcCompat="@drawable/sound_clip_plus" />
             </LinearLayout>
 
@@ -144,30 +140,16 @@
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/audio_editor_end_minus"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/selector_image_bg_w"
-                    android:padding="8dp"
+                    style="@style/AudioEditorIconButton"
                     app:srcCompat="@drawable/sound_clip_minus" />
 
                 <gd.app.musicplayer.ui.editor.waveform.TimeEditText
                     android:id="@+id/audio_editor_end_time"
-                    android:layout_width="64dp"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_bg"
-                    android:gravity="center_horizontal"
-                    android:minWidth="64dp"
-                    android:singleLine="true"
-                    android:text="0.00"
-                    android:textColor="#ffffff"
-                    android:textSize="13sp" />
+                    style="@style/AudioEditorTimeField" />
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/audio_editor_end_plus"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/selector_image_bg_w"
-                    android:padding="8dp"
+                    style="@style/AudioEditorIconButton"
                     app:srcCompat="@drawable/sound_clip_plus" />
             </LinearLayout>
 
@@ -177,11 +159,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:gravity="center_horizontal"
-                android:tag="itemTextColor"
                 android:text="00:00:00"
                 android:textAlignment="center"
-                android:textColor="#ffffff"
-                android:textSize="14sp"
+                android:textColor="?attr/couiColorPrimaryNeutral"
+                android:textSize="16sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/audio_editor_start_group" />
@@ -190,47 +171,30 @@
                 android:id="@+id/audio_editor_length_text"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="16dp"
                 android:gravity="center_horizontal"
-                android:tag="itemTextColor"
                 android:text="@string/audio_editor_length"
                 android:textAlignment="center"
-                android:textColor="#ffffff"
-                android:textSize="14sp"
+                android:textColor="?attr/couiColorSecondNeutral"
+                android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/audio_editor_length" />
 
-            <TextView
+            <com.coui.appcompat.button.COUIButton
                 android:id="@+id/audio_editor_start"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:paddingStart="16dp"
-                android:paddingTop="4dp"
-                android:paddingEnd="16dp"
-                android:paddingBottom="4dp"
+                style="@style/AudioEditorMarkButton"
                 android:text="@string/audio_editor_start"
-                android:textColor="#ffffff"
-                android:textSize="14sp"
                 app:layout_constraintBottom_toBottomOf="@+id/audio_editor_length_text"
                 app:layout_constraintEnd_toEndOf="@+id/audio_editor_start_group"
                 app:layout_constraintStart_toStartOf="@+id/audio_editor_start_group"
                 app:layout_constraintTop_toTopOf="@+id/audio_editor_length" />
 
-            <TextView
+            <com.coui.appcompat.button.COUIButton
                 android:id="@+id/audio_editor_end"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:paddingStart="16dp"
-                android:paddingTop="4dp"
-                android:paddingEnd="16dp"
-                android:paddingBottom="4dp"
+                style="@style/AudioEditorMarkButton"
                 android:text="@string/audio_editor_end"
-                android:textColor="#ffffff"
-                android:textSize="14sp"
                 app:layout_constraintBottom_toBottomOf="@+id/audio_editor_length_text"
                 app:layout_constraintEnd_toEndOf="@+id/audio_editor_end_group"
                 app:layout_constraintStart_toStartOf="@+id/audio_editor_end_group"
@@ -247,32 +211,25 @@
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/audio_editor_previous"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                style="@style/AudioEditorIconButton"
                 android:layout_marginEnd="48dp"
-                android:background="@drawable/selector_image_bg_w"
                 android:padding="4dp"
-                android:scaleType="fitCenter"
                 app:srcCompat="@drawable/vector_main_play_previous" />
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/audio_editor_play"
-                android:layout_width="52dp"
-                android:layout_height="52dp"
-                android:background="@drawable/selector_image_bg_w"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:scaleType="fitCenter"
-                app:srcCompat="@drawable/vector_trim_play" />
+                app:srcCompat="@drawable/vector_trim_play_pause_selector" />
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/audio_editor_next"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                style="@style/AudioEditorIconButton"
                 android:layout_marginStart="48dp"
-                android:background="@drawable/selector_image_bg_w"
                 android:padding="4dp"
-                android:scaleType="fitCenter"
                 app:srcCompat="@drawable/vector_main_play_next" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
-

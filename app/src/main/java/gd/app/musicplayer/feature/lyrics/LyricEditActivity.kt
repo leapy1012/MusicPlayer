@@ -22,6 +22,7 @@ import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeViewBinder
 import gd.app.musicplayer.core.designsystem.theme.headerTitleColor
@@ -45,7 +46,12 @@ class LyricEditActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     private var initialLyricsText = ""
     private var hasExistingLyrics = false
     private val lyricThemeBinder = ThemeViewBinder { palette, payload, view ->
-        if (payload == "dialogEditText" && view is EditText) {
+        if (payload == "dialogEditTextBackground" &&
+            palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+        ) {
+            view.setBackgroundResource(R.drawable.setting_catory_bg)
+            true
+        } else if (payload == "dialogEditText" && view is EditText) {
             view.setTextColor(palette.itemPrimaryTextColor)
             view.setHintTextColor(
                 if (usesDarkForegroundPalette(palette)) 1291845632 else 1308622847

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Placeholders for CouiAccentOverlay. Exact ARGB is injected at runtime via
+      ResourcesLoader (API 30+) before ThemeOverlay.App.Accent is applied.
+      Defaults match COUI Blue so API 28–29 / loader failure stays lookalike.
+    -->
+    <color name="app_accent">#FF0066FF</color>
+    <color name="app_accent_container">#1A0066FF</color>
+    <color name="app_accent_container_halftone">#0D0066FF</color>
+    <color name="app_accent_disable">#660066FF</color>
+    <color name="app_accent_focus">#FF0066FF</color>
+    <color name="app_accent_focus_outline">#4D0066FF</color>
+</resources>

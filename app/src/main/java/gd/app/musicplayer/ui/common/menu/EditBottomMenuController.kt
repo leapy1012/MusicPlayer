@@ -165,6 +165,8 @@ class EditBottomMenuController(
                 onItemClick(item, clickedView, position)
             }
             popup.show(clickedView)
+            CouiPopupListSurface.apply(popup, activity)
+            clickedView.post { CouiPopupListSurface.apply(popup, activity) }
             return
         }
 

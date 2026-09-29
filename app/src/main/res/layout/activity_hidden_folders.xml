@@ -5,16 +5,7 @@
     android:layout_height="match_parent"
     android:background="?attr/couiColorBackgroundWithCard"
     android:orientation="vertical"
-    android:tag="activityBackgroundColor">
-
-    <View
-        android:id="@+id/status_bar_space"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="?attr/couiColorBackgroundWithCard"
-        android:tag="toolbarChrome" />
-
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
+    android:tag="activityBackgroundColor">    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
@@ -23,13 +14,20 @@
             android:id="@+id/app_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/couiColorBackgroundWithCard"
+            android:background="@android:color/transparent"
             android:elevation="0dp"
-            android:tag="toolbarChrome"
             app:dividerEndAlpha="1"
             app:dividerStartAlpha="0"
             app:elevation="0dp"
-            app:hasDivider="true">
+            app:hasDivider="true"
+            android:tag="titleBackgroundColor">
+
+            <View
+
+                android:id="@+id/status_bar_space"
+                android:layout_width="match_parent"
+
+                android:layout_height="0dp" />
 
             <com.coui.appcompat.toolbar.COUIToolbar
                 android:id="@+id/toolbar"
@@ -38,7 +36,6 @@
                 android:layout_height="wrap_content"
                 android:background="@android:color/transparent"
                 android:minHeight="@dimen/toolbar_min_height"
-                android:tag="toolbar"
                 app:supportNavigationIcon="@drawable/coui_back_arrow"
                 app:supportTitle="@string/hidden_folders"
                 app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"

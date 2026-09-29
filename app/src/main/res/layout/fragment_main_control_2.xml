@@ -4,8 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="236dp"
     android:background="#33000000"
-    android:orientation="vertical"
-    android:tag="bottomRootLayout">
+    android:orientation="vertical">
 
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/main_control_album"
@@ -26,7 +25,6 @@
         android:background="@drawable/b_selector_image_bg_aw"
         android:padding="6dp"
         android:scaleType="fitCenter"
-        android:tag="itemTextColor"
         app:layout_constraintBottom_toBottomOf="@+id/main_control_title"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/main_control_title"
@@ -40,7 +38,6 @@
         android:layout_marginEnd="8dp"
         android:gravity="start"
         android:singleLine="true"
-        android:tag="itemTextColor"
         android:text="@android:string/unknownName"
         android:textColor="@android:color/white"
         android:textSize="20sp"
@@ -57,7 +54,6 @@
         android:layout_marginTop="4dp"
         android:gravity="start"
         android:singleLine="true"
-        android:tag="itemTextExtraColor"
         android:text="@android:string/unknownName"
         android:textColor="@color/i_white_m"
         android:textSize="14sp"
@@ -75,7 +71,6 @@
         android:layout_marginEnd="24dp"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
-        android:tag="seekBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/main_control_album"
@@ -100,7 +95,6 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
             android:layout_weight="1"
-            android:tag="itemTextExtraColor"
             android:text="0:00"
             android:textColor="@color/i_white_m"
             android:textSize="12sp" />
@@ -111,7 +105,6 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="2dp"
             android:gravity="start"
-            android:tag="itemTextExtraColor"
             android:text="00:00"
             android:textAlignment="viewStart"
             android:textColor="@color/i_white_m"
@@ -138,8 +131,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/vector_bottom_favorite_selector"
-            android:tag="favorite" />
+            android:src="@drawable/vector_bottom_favorite_selector" />
 
         <View
             android:layout_width="0dp"
@@ -153,8 +145,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="12dp"
             android:scaleType="fitEnd"
-            android:src="@drawable/vector_main_play_previous"
-            android:tag="itemTextColor" />
+            android:src="@drawable/vector_main_play_previous" />
 
         <View
             android:layout_width="0dp"
@@ -168,8 +159,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="10dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/vector_main_play_pause_selector"
-            android:tag="itemTextColor" />
+            android:src="@drawable/vector_main_play_pause_selector" />
 
         <View
             android:layout_width="0dp"
@@ -183,8 +173,7 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="12dp"
             android:scaleType="fitStart"
-            android:src="@drawable/vector_main_play_next"
-            android:tag="itemTextColor" />
+            android:src="@drawable/vector_main_play_next" />
 
         <View
             android:layout_width="0dp"
@@ -199,13 +188,11 @@
             android:background="@drawable/b_selector_image_bg_aw"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/vector_play_queue_menu"
-            android:tag="itemTextColor" />
+            android:src="@drawable/vector_play_queue_menu" />
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1px"
-        android:tag="bottomShadowMark"
         app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

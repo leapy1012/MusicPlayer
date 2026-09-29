@@ -1,34 +1,24 @@
 package gd.app.musicplayer.core.designsystem.view
 
 import android.content.Context
-import android.graphics.Paint
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.AdapterView
-import android.widget.BaseAdapter
-import android.widget.ImageView
-import android.widget.ListView
-import android.widget.PopupWindow
-import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.graphics.drawable.DrawableCompat
+import com.coui.appcompat.poplist.COUIPopupListWindow
+import com.coui.appcompat.poplist.PopupListItem
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.designsystem.theme.popupTitleColor
-import kotlin.math.max
-import dagger.hilt.android.EntryPointAccessors
-import gd.app.musicplayer.di.ThemeEntryPoint
+import gd.app.musicplayer.ui.common.menu.CouiPopupListSurface
 
 class CustomSpinner @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : AppCompatTextView(context, attrs), View.OnClickListener {
 
-    private var popupWindow: PopupWindow? = null
+    private var popupWindow: COUIPopupListWindow? = null
     private var itemClickListener: AdapterView.OnItemClickListener? = null
     private var entries: Array<String>? = null
     private var selectedIndex: Int = -1
@@ -37,7 +27,9 @@ class CustomSpinner @JvmOverloads constructor(
     init {
         setOnClickListener(this)
         AppCompatResources.getDrawable(context, R.drawable.vector_arrow_down)?.let { arrow ->
-            arrowDrawable = DrawableCompat.wrap(arrow).mutate()
+            arrowDrawable = DrawableCompat.wrap(arrow).mutate().also {
+                DrawableCompat.setTintList(it, textColors)
+            }
             setCompoundDrawablesWithIntrinsicBounds(null, null, arrowDrawable, null)
         }
     }
@@ -50,8 +42,7 @@ class CustomSpinner @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        popupWindow?.dismiss()
-        popupWindow = null
+        dismissPopup()
     }
 
     fun getSelection(): Int = selectedIndex
@@ -64,8 +55,7 @@ class CustomSpinner @JvmOverloads constructor(
     fun setEntries(values: Array<String>?) {
         entries = values
         updateDisplayedText()
-        popupWindow?.dismiss()
-        popupWindow = null
+        dismissPopup()
     }
 
     fun setEntriesResourceId(arrayResId: Int) {
@@ -102,98 +92,38 @@ class CustomSpinner @JvmOverloads constructor(
     }
 
     private fun showPopup(anchor: View, items: Array<String>) {
+        dismissPopup()
+
+        val popupItems = ArrayList(
+            items.mapIndexed { index, title ->
+                PopupListItem.Builder()
+                    .setId(index)
+                    .setTitle(title)
+                    .setIsEnable(true)
+                    .setIsChecked(index == selectedIndex)
+                    .build()
+            }
+        )
+
+        val window = COUIPopupListWindow(context).also { popupWindow = it }
+        window.setItemList(popupItems)
+        window.setOnItemClickListener { parent, itemView, position, id ->
+            dismissPopup()
+            if (selectedIndex != position) {
+                selectedIndex = position
+                updateDisplayedText()
+                itemClickListener?.onItemClick(parent, itemView, position, id)
+            }
+        }
+        window.show(anchor)
+        CouiPopupListSurface.apply(window, context)
+        anchor.post {
+            if (popupWindow === window) CouiPopupListSurface.apply(window, context)
+        }
+    }
+
+    private fun dismissPopup() {
         popupWindow?.dismiss()
-
-        val popupTextColor = BasePopupBackgroundProvider.popupTextColor(context)
-
-        val listView = ListView(context).apply {
-            divider = null
-            adapter = object : BaseAdapter() {
-                private val inflater = LayoutInflater.from(context)
-
-                override fun getCount(): Int = items.size
-
-                override fun getItem(position: Int): String = items[position]
-
-                override fun getItemId(position: Int): Long = position.toLong()
-
-                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                    val view = convertView ?: inflater.inflate(
-                        R.layout.b_popupwindow_list_item,
-                        parent,
-                        false
-                    )
-                    view.findViewById<ImageView>(R.id.b_popup_left_icon).visibility = View.GONE
-                    view.findViewById<ImageView>(R.id.b_popup_right_icon).visibility = View.GONE
-                    view.findViewById<ImageView>(R.id.b_popup_arrow).visibility = View.GONE
-                    view.findViewById<TextView>(R.id.b_popup_text).apply {
-                        text = getItem(position)
-                        setTextColor(popupTextColor)
-                        textSize = 14f
-                    }
-                    return view
-                }
-            }
-            setOnItemClickListener { _, itemView, position, id ->
-                popupWindow?.dismiss()
-                if (selectedIndex != position) {
-                    selectedIndex = position
-                    updateDisplayedText()
-                    itemClickListener?.onItemClick(this, itemView, position, id)
-                }
-            }
-        }
-
-        val popupWidth = calculatePopupWidth(items)
-        val popupHeight = calculatePopupHeight(items)
-
-        popupWindow = PopupWindow(
-            listView,
-            popupWidth,
-            popupHeight,
-            true
-        ).apply {
-            isOutsideTouchable = true
-            setBackgroundDrawable(BasePopupBackgroundProvider.background(context))
-            elevation = 8f * context.resources.displayMetrics.density
-        }
-
-        popupWindow?.showAsDropDown(anchor)
-    }
-
-    private fun calculatePopupWidth(items: Array<String>): Int {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = textSize
-        }
-        var maxTextWidth = 0f
-        for (item in items) {
-            maxTextWidth = max(maxTextWidth, paint.measureText(item))
-        }
-        val desired = (maxTextWidth + context.dpToPx(32f)).toInt()
-        val minWidth = context.dpToPx(168f)
-        val maxWidth = context.dpToPx(240f)
-        return desired.coerceIn(minWidth, maxWidth)
-    }
-
-    private fun calculatePopupHeight(items: Array<String>): Int {
-        val rowHeight = context.dpToPx(40f)
-        val maxHeight = context.dpToPx(360f)
-        val desired = rowHeight * items.size
-        return if (desired > maxHeight) maxHeight else ViewGroup.LayoutParams.WRAP_CONTENT
-    }
-
-    private object BasePopupBackgroundProvider {
-        private fun palette(context: Context) = EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            ThemeEntryPoint::class.java
-        ).themeRepo.getCorePalette()
-
-        fun background(context: Context): Drawable {
-            return palette(context).getPopupBackgroundDrawable(context)
-        }
-
-        fun popupTextColor(context: Context): Int {
-            return palette(context).popupTitleColor
-        }
+        popupWindow = null
     }
 }

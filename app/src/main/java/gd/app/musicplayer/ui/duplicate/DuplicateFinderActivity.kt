@@ -3,25 +3,30 @@ package gd.app.musicplayer.ui.duplicate
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.activity.viewModels
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
+import com.coui.appcompat.button.COUIButton
+import com.coui.appcompat.checkbox.COUICheckBox
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -44,9 +49,9 @@ class DuplicateFinderActivity : BaseActivity() {
     private lateinit var emptyStateController: RecyclerEmptyStateController
     private lateinit var recyclerView: RecyclerView
     private lateinit var selectLayout: View
-    private lateinit var selectAllView: AppCompatImageView
+    private lateinit var selectAllView: COUICheckBox
     private lateinit var selectTextView: TextView
-    private lateinit var deleteView: TextView
+    private lateinit var deleteView: COUIButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -107,6 +112,15 @@ class DuplicateFinderActivity : BaseActivity() {
         )
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = duplicateBinder
+        (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+
+        if (themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+            val typed = obtainStyledAttributes(
+                intArrayOf(com.coui.appcompat.R.attr.couiColorCardBackground)
+            )
+            recyclerView.setBackgroundColor(typed.getColor(0, Color.WHITE))
+            typed.recycle()
+        }
     }
 
     private fun setupEmptyState() {
@@ -121,7 +135,8 @@ class DuplicateFinderActivity : BaseActivity() {
     }
 
     private fun setupInteractions() {
-        selectAllView.setOnClickListener {
+        selectLayout.installCouiPressFeedback()
+        selectLayout.setOnClickListener {
             viewModel.toggleSelectAll()
         }
         deleteView.setOnClickListener {
@@ -203,7 +218,11 @@ class DuplicateFinderActivity : BaseActivity() {
         selectLayout.isVisible = state.hasGroups
         deleteView.isVisible = state.hasGroups
         deleteView.isEnabled = state.selectedIds.isNotEmpty() && !state.isDeleting
-        selectAllView.isSelected = state.allDuplicatesSelected
+        selectAllView.state = when {
+            state.allDuplicatesSelected -> COUICheckBox.SELECT_ALL
+            state.selectedIds.isNotEmpty() -> COUICheckBox.SELECT_PART
+            else -> COUICheckBox.SELECT_NONE
+        }
         selectTextView.text = getString(
             R.string.duplicated_finder_select_all,
             state.selectedIds.size

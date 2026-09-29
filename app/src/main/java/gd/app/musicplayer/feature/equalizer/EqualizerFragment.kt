@@ -33,6 +33,7 @@ import gd.app.musicplayer.domain.usecase.equalizer.SaveEqualizerCustomLevelsUseC
 import gd.app.musicplayer.domain.usecase.equalizer.UpdateEqualizerPresetUseCase
 import gd.app.musicplayer.playback.ProcessPlayerHolder
 import gd.app.musicplayer.playback.effects.AudioEffectsManager
+import gd.app.musicplayer.playback.effects.EffectGroupPresets
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
 import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import javax.inject.Inject
@@ -95,7 +96,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     fun reloadFromSettings() {
         if (!isAdded || binding == null) return
         viewLifecycleOwner.lifecycleScope.launch {
-            val settings = equalizerViewModel.settings.value
+            val settings = equalizerViewModel.settings.value.withEffectGroupOverride()
             ensurePresetRecords(settings, force = true)
             latestSettings = settings
             currentBandLevels = resolveBandLevels(settings)
@@ -106,7 +107,8 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
     private fun observeSettings() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                equalizerViewModel.settings.collect { settings ->
+                equalizerViewModel.settings.collect { stored ->
+                    val settings = stored.withEffectGroupOverride()
                     ensurePresetRecords(settings)
                     latestSettings = settings
                     currentBandLevels = resolveBandLevels(settings)
@@ -129,6 +131,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
                 enabled = isChecked
             )
             persistAndApply {
+                equalizerViewModel.disableEffectGroup()
                 equalizerViewModel.persistEqualizerEnabled(isChecked)
             }
         }
@@ -204,6 +207,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
             latestSettings = latestSettings.copy(bassEnabled = isChecked)
             renderBassAndVirtualizerEnabledState(requireBinding(), latestSettings)
             persistAndApply {
+                equalizerViewModel.disableEffectGroup()
                 equalizerViewModel.persistBassEnabled(isChecked)
             }
         }
@@ -214,6 +218,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
             latestSettings = latestSettings.copy(virtualizerEnabled = isChecked)
             renderBassAndVirtualizerEnabledState(requireBinding(), latestSettings)
             persistAndApply {
+                equalizerViewModel.disableEffectGroup()
                 equalizerViewModel.persistVirtualizerEnabled(isChecked)
             }
         }
@@ -229,6 +234,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
             latestSettings = latestSettings.copy(bassProgress = value)
             bassApplyJob?.cancel()
             bassApplyJob = persistAndApplyDelayed(BASS_VIRTUALIZER_APPLY_DELAY_MS) {
+                equalizerViewModel.disableEffectGroup()
                 equalizerViewModel.persistBassProgress(value)
             }
         }
@@ -244,6 +250,7 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
             latestSettings = latestSettings.copy(virtualizerProgress = value)
             virtualizerApplyJob?.cancel()
             virtualizerApplyJob = persistAndApplyDelayed(BASS_VIRTUALIZER_APPLY_DELAY_MS) {
+                equalizerViewModel.disableEffectGroup()
                 equalizerViewModel.persistVirtualizerProgress(value)
             }
         }
@@ -664,6 +671,17 @@ class EqualizerFragment : ViewBindingFragment<FragmentEqualizerBinding>() {
         binding.equalizerRecycler.requestDisallowInterceptTouchEvent(intercept)
         binding.root.requestDisallowInterceptTouchEvent(intercept)
         (activity as? EqualizerActivity)?.requestPagerDisallowInterceptTouchEvent(intercept)
+    }
+
+    /**
+     * While an effect group drives playback, the manual EQ, bass and virtualizer read as off,
+     * as in the original (`z5.m.b()/d()/m()`); turning any of them on hands control back.
+     */
+    private fun EqualizerPreference.withEffectGroupOverride(): EqualizerPreference {
+        val groupActive = groupSoundEffectEnabled &&
+            EffectGroupPresets.find(groupSoundEffectIndex) != null
+        if (!groupActive) return this
+        return copy(equalizerEnabled = false, bassEnabled = false, virtualizerEnabled = false)
     }
 
     private fun syncCustomPresetFromCurrentLevels() {

@@ -5,8 +5,7 @@
     android:layout_height="48dp"
     android:gravity="center_vertical"
     android:minHeight="48dp"
-    android:orientation="horizontal"
-    android:tag="dialogItemBackground">
+    android:orientation="horizontal">
 
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/music_item_drag"
@@ -15,7 +14,6 @@
         android:layout_marginStart="10dp"
         android:layout_marginEnd="8dp"
         android:scaleType="fitCenter"
-        android:tag="bottomMenuIcon"
         app:srcCompat="@drawable/vector_item_drag" />
 
     <LinearLayout
@@ -49,7 +47,6 @@
         android:layout_height="40dp"
         android:padding="7.5dp"
         android:scaleType="fitCenter"
-        android:tag="dialogFavorite"
         app:srcCompat="@drawable/vector_queue_favorite_selector" />
 
     <androidx.appcompat.widget.AppCompatImageView
@@ -59,6 +56,5 @@
         android:layout_marginEnd="4dp"
         android:padding="8dp"
         android:scaleType="fitCenter"
-        android:tag="dialogTitleIcon"
         app:srcCompat="@drawable/vector_queue_remove" />
 </LinearLayout>

@@ -13,13 +13,15 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.core.common.extension.parcelableArrayList
+import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.common.util.ToastUtil
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.databinding.ActivityPlaylistSelectBinding
+import gd.app.musicplayer.ui.common.applyCouiListBackground
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.WrapContentLinearLayoutManager
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
-import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.common.extension.parcelableArrayList
-import gd.app.musicplayer.core.common.extension.startActivityCompat
-import gd.app.musicplayer.databinding.ActivityPlaylistSelectBinding
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -64,18 +66,21 @@ class PlaylistSelectActivity : BaseActivity() {
             titleRes = R.string.add_to_list
         )
 
-        binding.mainFragmentContainer.recyclerview.layoutManager =
-            WrapContentLinearLayoutManager(this, RecyclerView.VERTICAL, false)
-        binding.mainFragmentContainer.recyclerview.adapter = adapter
+        val list = binding.mainFragmentContainer.recyclerview
+        list.layoutManager = WrapContentLinearLayoutManager(this, RecyclerView.VERTICAL, false)
+        list.adapter = adapter
+        list.applyCouiListBackground(isLightTheme)
 
         binding.addToList.setOnClickListener { viewModel.confirmAddToSelectedPlaylists() }
-
     }
+
+    private val isLightTheme: Boolean
+        get() = themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT
 
     private fun buildAdapter(): PlaylistSelectAdapter =
         PlaylistSelectAdapter(
             inflater = layoutInflater,
-            accentColor = themeRepo.getAccentColor()
+            lightTheme = isLightTheme
         ).apply {
             setOnCreatePlaylistClickListener(::showCreatePlaylistDialog)
             setOnSelectionCountChangedListener {

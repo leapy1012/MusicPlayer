@@ -10,6 +10,9 @@ object ThemeItemMapper {
     /** Sentinel filename for the solid White / COUI light theme tile. */
     const val WHITE_THEME_TOKEN = "__theme_white__"
 
+    /** Sentinel filename for the solid Black / night theme tile. */
+    const val BLACK_THEME_TOKEN = "__theme_black__"
+
     fun buildItems(
         themes: List<ThemeGroup>,
         selectedImageName: String,
@@ -26,6 +29,13 @@ object ThemeItemMapper {
                         id = WHITE_THEME_ID,
                         fileName = WHITE_THEME_TOKEN,
                         isSelected = themeType == ThemeManager.THEME_TYPE_LIGHT
+                    )
+                )
+                add(
+                    ThemeItem(
+                        id = BLACK_THEME_ID,
+                        fileName = BLACK_THEME_TOKEN,
+                        isSelected = themeType == ThemeManager.THEME_TYPE_DARK
                     )
                 )
 
@@ -88,6 +98,7 @@ object ThemeItemMapper {
     }
 
     private const val WHITE_THEME_ID = Long.MIN_VALUE + 1
+    private const val BLACK_THEME_ID = Long.MIN_VALUE + 2
 
     private fun stableId(
         tabIndex: Int,

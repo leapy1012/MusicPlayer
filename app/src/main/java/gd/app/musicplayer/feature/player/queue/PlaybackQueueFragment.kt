@@ -2,6 +2,7 @@ package gd.app.musicplayer.feature.player.queue
 
 import android.os.Bundle
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.MotionEvent
@@ -9,8 +10,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewStub
 import androidx.appcompat.widget.Toolbar
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.isGone
-import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -22,13 +23,14 @@ import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyStatusBarInsetHeight
-import gd.app.musicplayer.core.common.extension.dpToPx
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.playback.queue.copyWithQueueToken
 import gd.app.musicplayer.core.common.extension.isFavorite
 import gd.app.musicplayer.core.common.extension.toDurationString
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.messageColor
@@ -90,6 +92,14 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
             WrapContentLinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
         recyclerView.adapter = adapter
         recyclerView.isNestedScrollingEnabled = true
+        binding.appBar.bringToFront()
+        if (isLightTheme()) {
+            val typed = requireContext().obtainStyledAttributes(
+                intArrayOf(com.coui.appcompat.R.attr.couiColorCardBackground)
+            )
+            recyclerView.setBackgroundColor(typed.getColor(0, Color.WHITE))
+            typed.recycle()
+        }
         emptyStateController = RecyclerEmptyStateController(
             recyclerView = recyclerView,
             emptyViewStub = emptyViewStub
@@ -166,8 +176,6 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                     val isEmpty = queue.isEmpty()
                     binding.queueBannerLayout.isGone = isEmpty
                     emptyStateController.setVisible(isEmpty)
-                    binding.collapsingToolbar.isTitleEnabled = isEmpty.not()
-                    updateCollapsingHeight(isEmpty)
                     updateQueueInfo(queue)
                     if (!isEmpty && initialScrollPending && currentIndex in queue.indices) {
                         initialScrollPending = false
@@ -208,16 +216,6 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         updateQueueInfo(updatedQueue)
     }
 
-    private fun updateCollapsingHeight(isEmpty: Boolean) {
-        val binding = requireBinding()
-
-        val baseHeight = resources.getDimensionPixelSize(R.dimen.common_title_height)
-        val bannerHeight = requireContext().dpToPx(72f)
-        val targetHeight = if (isEmpty) baseHeight else baseHeight + bannerHeight
-
-        binding.collapsingToolbar.updateLayoutParams { height = targetHeight }
-    }
-
     fun scrollToCurrentTrack() {
         val queue = resolveQueue()
         val index = currentIndex
@@ -248,11 +246,26 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
 
     private fun resolveQueue(): List<Music> = localQueueOverride ?: currentQueue
 
+    private fun isLightTheme(): Boolean =
+        themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+
+    private fun toolbarIconColor(): Int {
+        val theme = themeEngine.currentTheme()
+        if (!isLightTheme()) return theme.titleColor
+        val typed = requireContext().obtainStyledAttributes(
+            intArrayOf(com.coui.appcompat.R.attr.couiColorPrimaryNeutral)
+        )
+        return typed.getColor(0, theme.titleColor).also { typed.recycle() }
+    }
+
     private fun observePlayMode() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 playModeViewModel.uiState.collect { state ->
-                    requireBinding().toolbar.menu.findItem(R.id.menu_mode)?.setIcon(state.iconRes)
+                    val item = requireBinding().toolbar.menu.findItem(R.id.menu_mode)
+                        ?: return@collect
+                    item.setIcon(state.iconRes)
+                    item.icon?.mutate()?.setTint(toolbarIconColor())
                 }
             }
         }
@@ -354,6 +367,43 @@ private class QueueListAdapter(
         private val theme: ThemePalette
     ) : RecyclerView.ViewHolder(binding.root) {
 
+        private val isLightTheme = theme.getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+        private val primaryColor: Int
+        private val secondaryColor: Int
+        private val highlightColor: Int
+        private val favoriteColor: Int
+
+        init {
+            val context = binding.root.context
+            if (isLightTheme) {
+                val typed = context.obtainStyledAttributes(
+                    intArrayOf(
+                        com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+                        com.coui.appcompat.R.attr.couiColorSecondNeutral,
+                        com.coui.appcompat.R.attr.couiColorLabelTheme
+                    )
+                )
+                primaryColor = typed.getColor(0, theme.titleColor)
+                secondaryColor = typed.getColor(1, theme.messageColor)
+                highlightColor = typed.getColor(2, theme.accentColor)
+                typed.recycle()
+                favoriteColor = FAVORITE_COLOR
+                binding.root.installCouiPressFeedback()
+                val iconTint = ColorStateList.valueOf(secondaryColor)
+                binding.musicItemDrag.imageTintList = iconTint
+                binding.musicItemMenu.imageTintList = iconTint
+            } else {
+                primaryColor = theme.titleColor
+                secondaryColor = theme.messageColor
+                highlightColor = theme.accentColor
+                favoriteColor = theme.accentColor
+                binding.musicItemDivider.setBackgroundColor(
+                    ColorUtils.setAlphaComponent(theme.titleColor, DARK_DIVIDER_ALPHA)
+                )
+            }
+            binding.musicItemTime.setTextColor(secondaryColor)
+        }
+
         fun bind(
             music: Music,
             isCurrent: Boolean,
@@ -362,14 +412,10 @@ private class QueueListAdapter(
             onFavoriteClick: () -> Unit,
             onMenuClick: () -> Unit
         ) {
-            val accentColor = theme.accentColor
-            val titleColor = if (isCurrent) accentColor else theme.titleColor
-            val extraColor = if (isCurrent) accentColor else theme.messageColor
-
             binding.musicItemTitle.text = music.title
             binding.musicItemExtra.text = music.artist
-            binding.musicItemTitle.setTextColor(titleColor)
-            binding.musicItemExtra.setTextColor(extraColor)
+            binding.musicItemTitle.setTextColor(if (isCurrent) highlightColor else primaryColor)
+            binding.musicItemExtra.setTextColor(if (isCurrent) highlightColor else secondaryColor)
             binding.musicItemTime.text = formatDuration(music.duration)
 
             binding.musicItemFavorite.visibility =
@@ -378,11 +424,7 @@ private class QueueListAdapter(
             binding.musicItemFavorite.isSelected = music.isFavorite()
 
             binding.musicItemFavorite.imageTintList = ColorStateList.valueOf(
-                if (music.isFavorite()) {
-                    accentColor
-                } else {
-                    theme.messageColor
-                }
+                if (music.isFavorite()) favoriteColor else secondaryColor
             )
 
             binding.root.alpha = 1f
@@ -399,6 +441,11 @@ private class QueueListAdapter(
                 false
             }
         }
+    }
+
+    private companion object {
+        const val FAVORITE_COLOR = -42406
+        const val DARK_DIVIDER_ALPHA = 0x1F
     }
 
     override fun onBindViewHolder(holder: QueueViewHolder, position: Int) {

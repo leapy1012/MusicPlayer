@@ -7,8 +7,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import com.coui.appcompat.checkbox.COUICheckBox
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.core.common.extension.loadMusicArtwork
 import gd.app.musicplayer.databinding.ActivityDuplicatedFinderChildItemBinding
@@ -163,17 +165,24 @@ class ActivityDuplicateBinder(
 
         private var groupKey: String = ""
 
+        init {
+            binding.root.installCouiPressFeedback()
+            binding.root.setOnClickListener {
+                // Rotate immediately; the rebind after the state update is then a no-op.
+                binding.musicItemMenu.setExpanded(!binding.musicItemMenu.isExpanded, true)
+                onGroupClick(groupKey)
+            }
+        }
+
         fun bind(group: DuplicateGroup) {
+            val sameGroup = groupKey == group.key
             groupKey = group.key
             val firstTrack = group.tracks.first()
             binding.musicItemTitle.text = firstTrack.title
             binding.musicItemArtist.text = buildHeaderSubtitle(binding.root.context, firstTrack)
-            binding.musicItemMenu.isSelected = group.expanded
+            binding.musicItemMenu.setExpanded(group.expanded, sameGroup)
             binding.musicItemAlbum.setImageResource(R.drawable.default_album_identify)
             binding.musicItemAlbum.loadMusicArtwork(firstTrack.albumArtSource())
-            binding.root.setOnClickListener {
-                onGroupClick(groupKey)
-            }
         }
 
         private fun buildHeaderSubtitle(context: Context, music: Music): String {
@@ -190,19 +199,24 @@ class ActivityDuplicateBinder(
 
         private var trackId: Long = -1L
 
+        init {
+            binding.root.installCouiPressFeedback()
+            binding.root.setOnClickListener {
+                onTrackClick(trackId)
+            }
+        }
+
         fun bind(music: Music, index: Int, selected: Boolean) {
             trackId = music.id
             binding.musicItemTitle.text = duplicateLocationText(music)
             binding.musicItemArtist.text = formatDuplicateAddedDate(music.date)
             binding.musicItemNumber.text = (index + 1).toString()
             updateSelection(selected)
-            binding.root.setOnClickListener {
-                onTrackClick(trackId)
-            }
         }
 
         fun updateSelection(selected: Boolean) {
-            binding.musicItemMenu.isSelected = selected
+            binding.musicItemMenu.state =
+                if (selected) COUICheckBox.SELECT_ALL else COUICheckBox.SELECT_NONE
         }
     }
 

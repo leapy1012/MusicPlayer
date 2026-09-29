@@ -8,6 +8,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.extension.loadBlurredArtworkBackground
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.ActivityPlayQueueBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.feature.player.full.MusicPlayActivity
@@ -72,19 +73,25 @@ class PlayQueueActivity : BaseActivity() {
         isFromMusicPlayActivity = fromClass == MusicPlayActivity::class.java.name
     }
 
+    private fun usesArtworkBackground(): Boolean =
+        isFromMusicPlayActivity &&
+            themeEngine.currentTheme().getThemeType() != ThemeManager.THEME_TYPE_LIGHT
+
     private fun setupBackground() {
-        if (isFromMusicPlayActivity) {
+        if (usesArtworkBackground()) {
             binding.mainBackground.setBackgroundResource(R.drawable.th_music_large)
             binding.musicPlaySkin.visibility = View.VISIBLE
+            binding.mainContentView.setBackgroundColor(ARTWORK_SCRIM_COLOR)
         } else {
             applyThemeTo(binding.mainBackground)
             binding.musicPlaySkin.visibility = View.GONE
             binding.musicPlaySkin.setImageDrawable(null)
+            binding.mainContentView.background = null
         }
     }
 
     private fun applyCurrentArtwork() {
-        if (!isFromMusicPlayActivity) return
+        if (!usesArtworkBackground()) return
         binding.musicPlaySkin.loadBlurredArtworkBackground(
             playbackViewModel.playbackState.value.currentTrack?.albumPicture
         )
@@ -93,7 +100,7 @@ class PlayQueueActivity : BaseActivity() {
     private fun observeArtworkIfNeeded() {
         artworkJob?.cancel()
         artworkJob = null
-        if (!isFromMusicPlayActivity) return
+        if (!usesArtworkBackground()) return
         artworkJob = lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 playbackViewModel.playbackState
@@ -143,6 +150,7 @@ class PlayQueueActivity : BaseActivity() {
 
     companion object {
         private const val EXTRA_FROM_CLASS = "from_class"
+        private const val ARTWORK_SCRIM_COLOR = 0x66000000
 
         fun start(context: Context) {
             startQueue(context, context.javaClass.name)

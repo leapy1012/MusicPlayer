@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.StringRes
 import androidx.recyclerview.widget.RecyclerView
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.domain.model.ListItem
@@ -19,7 +20,7 @@ import gd.app.musicplayer.databinding.FragmentSearchHeaderItemBinding
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetListViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicViewHolder
-import gd.app.musicplayer.core.designsystem.view.SelectBox
+import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 
 class SearchResultAdapter(
     context: Context,
@@ -35,7 +36,14 @@ class SearchResultAdapter(
     }
 
     private val inflater = LayoutInflater.from(context)
-    private val accentColor = theme.accentColor
+    private val accentColor = if (theme.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+        val typed = context.obtainStyledAttributes(
+            intArrayOf(com.coui.appcompat.R.attr.couiColorLabelTheme)
+        )
+        typed.getColor(0, theme.accentColor).also { typed.recycle() }
+    } else {
+        theme.accentColor
+    }
     private val sections = mutableListOf<SearchSection>()
     private var listener: Listener? = null
     private var query: String = ""
@@ -141,26 +149,30 @@ class SearchResultAdapter(
 
     private class SearchHeaderViewHolder(
         private val binding: FragmentSearchHeaderItemBinding
-    ) : RecyclerView.ViewHolder(binding.root), SelectBox.OnSelectChangedListener {
+    ) : RecyclerView.ViewHolder(binding.root) {
 
         private var section: SearchSection? = null
         private var onChanged: ((Boolean) -> Unit)? = null
 
         init {
-            binding.musicItemExpanded.setOnSelectChangedListener(this)
+            binding.root.installCouiPressFeedback()
+            binding.root.setOnClickListener {
+                val current = section ?: return@setOnClickListener
+                if (current.items.isEmpty()) return@setOnClickListener
+                val expanded = !current.expanded
+                binding.musicItemExpanded.setExpanded(expanded, true)
+                onChanged?.invoke(expanded)
+            }
         }
 
         fun bind(section: SearchSection, onChanged: (Boolean) -> Unit) {
+            val sameSection = this.section?.titleRes == section.titleRes
             this.section = section
             this.onChanged = onChanged
             binding.musicItemTitle.setText(section.titleRes)
-            binding.musicItemExpanded.isEnabled = section.items.isNotEmpty()
-            binding.musicItemExpanded.isSelected = section.expanded
-        }
-
-        override fun onSelectChanged(selectBox: SelectBox, fromUser: Boolean, isSelected: Boolean) {
-            if (!fromUser) return
-            onChanged?.invoke(isSelected)
+            binding.root.isEnabled = section.items.isNotEmpty()
+            binding.musicItemExpanded.alpha = if (section.items.isNotEmpty()) 1f else DISABLED_ALPHA
+            binding.musicItemExpanded.setExpanded(section.expanded, sameSection)
         }
     }
 
@@ -211,5 +223,6 @@ class SearchResultAdapter(
         private const val VIEW_TYPE_MUSIC = 100
         private const val VIEW_TYPE_MUSIC_SET = 101
         private const val PAYLOAD_HEADER = "header"
+        private const val DISABLED_ALPHA = 0.3f
     }
 }

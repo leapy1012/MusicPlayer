@@ -4,241 +4,247 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:tag="activityBackgroundColor">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="?attr/couiColorBackground">
-
-        <View
-            android:id="@+id/status_bar_space"
-            android:layout_width="match_parent"
-            android:layout_height="0dp" />
-
-        <com.coui.appcompat.toolbar.COUIToolbar
-            android:id="@+id/toolbar"
-            style="@style/Secondary.Toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="@dimen/toolbar_min_height"
-            app:menu="@menu/menu_activity_sbar_lyric"
-            app:supportTitle="@string/sbar_lyric"
-            app:supportTitleTextAppearance="@style/textAppearanceSecondTitle" />
-    </LinearLayout>
-
-    <ScrollView
-        android:id="@+id/setting_scroll_view"
+    android:tag="activityBackgroundColor">    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fastScrollEnabled="false"
-        android:paddingTop="8dp"
-        android:scrollbarSize="3dp"
-        android:scrollbarStyle="outsideOverlay"
-        android:scrollbarThumbHorizontal="@drawable/shape_scrollbar"
-        android:scrollbarThumbVertical="@drawable/shape_scrollbar"
-        android:scrollbars="vertical"
-        android:tag="settingContent">
+        android:layout_weight="1">
 
-        <LinearLayout
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/app_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:background="@android:color/transparent"
+            android:elevation="0dp"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true"
+            android:tag="titleBackgroundColor">
+
+            <View
+
+                android:id="@+id/status_bar_space"
+                android:layout_width="match_parent"
+
+                android:layout_height="0dp" />
+
+            <com.coui.appcompat.toolbar.COUIToolbar
+                android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:minHeight="@dimen/toolbar_min_height"
+                app:supportNavigationIcon="@drawable/coui_back_arrow"
+                app:supportTitle="@string/sbar_lyric"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
+
+        <!-- Hosts setting_content at runtime (see hostStaticContent) for COUI spring overscroll. -->
+        <androidx.recyclerview.widget.COUIRecyclerView
+            android:id="@+id/setting_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:overScrollMode="always"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="16dp"
+            android:scrollbars="none"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+        <LinearLayout
+            android:id="@+id/setting_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
 
             <LinearLayout
                 android:id="@+id/preference_sbar_lyric_container_1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:orientation="vertical"
-                android:tag="settingGroup">
+                android:background="?attr/couiColorCardBackground"
+                android:orientation="vertical">
 
-                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
+                <LinearLayout
                     android:id="@+id/preference_sbar_lyric_enable"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?android:attr/listPreferredItemHeight"
-                    android:tag="itemBackground"
-                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
-                    app:preference_item_title="@string/sbar_lyric_enable" />
+                    style="@style/SleepRow">
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:tag="recyclerDividerColor" />
+                    <TextView
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/sbar_lyric_enable" />
 
-                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
+                    <com.coui.appcompat.couiswitch.COUISwitch
+                        android:id="@+id/preference_sbar_lyric_enable_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:clickable="false"
+                        android:focusable="false" />
+                </LinearLayout>
+
+                <View style="@style/SleepRowDivider" />
+
+                <LinearLayout
                     android:id="@+id/preference_sbar_lyric_show_paused"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?android:attr/listPreferredItemHeight"
-                    android:tag="itemBackground"
-                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
-                    app:preference_item_title="@string/sbar_lyric_show_paused" />
+                    style="@style/SleepRow">
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:tag="recyclerDividerColor" />
+                    <TextView
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/sbar_lyric_show_paused" />
 
-                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
+                    <com.coui.appcompat.couiswitch.COUISwitch
+                        android:id="@+id/preference_sbar_lyric_show_paused_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:clickable="false"
+                        android:focusable="false" />
+                </LinearLayout>
+
+                <View style="@style/SleepRowDivider" />
+
+                <LinearLayout
                     android:id="@+id/preference_sbar_lyric_clickable"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?android:attr/listPreferredItemHeight"
-                    android:tag="itemBackground"
-                    app:preference_item_check_drawable="@drawable/vector_toggle_selector"
-                    app:preference_item_title="@string/sbar_lyric_clickable" />
+                    style="@style/SleepRow">
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:tag="recyclerDividerColor" />
+                    <TextView
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/sbar_lyric_clickable" />
 
-                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
+                    <com.coui.appcompat.couiswitch.COUISwitch
+                        android:id="@+id/preference_sbar_lyric_clickable_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:clickable="false"
+                        android:focusable="false" />
+                </LinearLayout>
+
+                <View style="@style/SleepRowDivider" />
+
+                <LinearLayout
                     android:id="@+id/preference_sbar_lyric_content"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?android:attr/listPreferredItemHeight"
-                    android:tag="itemBackground"
-                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
-                    app:preference_item_title="@string/sbar_lyric_content" />
+                    style="@style/SleepRow">
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:tag="recyclerDividerColor" />
+                    <TextView
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/sbar_lyric_content" />
 
-                <gd.app.musicplayer.core.designsystem.view.PreferenceItemView
+                    <TextView
+                        android:id="@+id/preference_sbar_lyric_content_tips"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:maxWidth="120dp"
+                        android:maxLines="2"
+                        android:textAppearance="?attr/couiTextAppearanceDescription"
+                        android:textColor="?attr/couiColorSecondNeutral"
+                        android:textSize="14sp" />
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="4dp"
+                        android:importantForAccessibility="no"
+                        app:srcCompat="@drawable/coui_btn_next"
+                        app:tint="?attr/couiColorSecondNeutral" />
+                </LinearLayout>
+
+                <View style="@style/SleepRowDivider" />
+
+                <LinearLayout
                     android:id="@+id/preference_sbar_lyric_gravity"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="?android:attr/listPreferredItemHeight"
-                    android:tag="itemBackground"
-                    app:preference_item_check_drawable="@drawable/vector_arrow_right"
-                    app:preference_item_title="@string/sbar_lyric_gravity" />
+                    style="@style/SleepRow">
+
+                    <TextView
+                        style="@style/SleepRowTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/sbar_lyric_gravity" />
+
+                    <TextView
+                        android:id="@+id/preference_sbar_lyric_gravity_tips"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:maxWidth="120dp"
+                        android:maxLines="2"
+                        android:textAppearance="?attr/couiTextAppearanceDescription"
+                        android:textColor="?attr/couiColorSecondNeutral"
+                        android:textSize="14sp" />
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="4dp"
+                        android:importantForAccessibility="no"
+                        app:srcCompat="@drawable/coui_btn_next"
+                        app:tint="?attr/couiColorSecondNeutral" />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/preference_sbar_lyric_container_2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginEnd="8dp"
-                android:orientation="vertical"
-                android:tag="settingGroup">
+                android:layout_marginTop="12dp"
+                android:background="?attr/couiColorCardBackground"
+                android:orientation="vertical">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/sbar_lyric_tuning"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingTop="24dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="24dp">
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="4dp"
+                    android:paddingBottom="8dp">
 
                     <TextView
                         android:id="@+id/sbar_lyric_x"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:maxWidth="120dp"
-                        android:maxLines="2"
-                        android:paddingHorizontal="16dp"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
-                        android:tag="itemTextColor"
+                        style="@style/StatusBarLyricSliderLabel"
                         android:text="@string/sbar_lyric_x"
-                        android:textColor="@android:color/white"
-                        android:textSize="16sp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
 
                     <TextView
                         android:id="@+id/sbar_lyric_y"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="32dp"
-                        android:gravity="center_vertical"
-                        android:maxWidth="120dp"
-                        android:maxLines="2"
-                        android:minHeight="26dp"
-                        android:paddingHorizontal="16dp"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
-                        android:tag="itemTextColor"
+                        style="@style/StatusBarLyricSliderLabel"
                         android:text="@string/sbar_lyric_y"
-                        android:textColor="@android:color/white"
-                        android:textSize="16sp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_x" />
 
                     <TextView
                         android:id="@+id/sbar_lyric_width"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="32dp"
-                        android:gravity="center_vertical"
-                        android:maxWidth="120dp"
-                        android:maxLines="2"
-                        android:minHeight="26dp"
-                        android:paddingHorizontal="16dp"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
-                        android:tag="itemTextColor"
+                        style="@style/StatusBarLyricSliderLabel"
                         android:text="@string/sbar_lyric_width"
-                        android:textColor="@android:color/white"
-                        android:textSize="16sp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_y" />
 
                     <TextView
                         android:id="@+id/sbar_lyric_alpha"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="32dp"
-                        android:gravity="center_vertical"
-                        android:maxWidth="120dp"
-                        android:maxLines="2"
-                        android:minHeight="26dp"
-                        android:paddingHorizontal="16dp"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
-                        android:tag="itemTextColor"
+                        style="@style/StatusBarLyricSliderLabel"
                         android:text="@string/sbar_lyric_alpha"
-                        android:textColor="@android:color/white"
-                        android:textSize="16sp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_width" />
 
                     <TextView
                         android:id="@+id/sbar_lyric_font_size"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="32dp"
-                        android:gravity="center_vertical"
-                        android:maxWidth="120dp"
-                        android:maxLines="2"
-                        android:minHeight="26dp"
-                        android:paddingHorizontal="16dp"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
-                        android:tag="itemTextColor"
+                        style="@style/StatusBarLyricSliderLabel"
                         android:text="@string/sbar_lyric_font_size"
-                        android:textColor="@android:color/white"
-                        android:textSize="16sp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/sbar_lyric_alpha" />
 
@@ -249,83 +255,50 @@
                         app:barrierDirection="end"
                         app:constraint_referenced_ids="sbar_lyric_x,sbar_lyric_y,sbar_lyric_width,sbar_lyric_alpha,sbar_lyric_font_size" />
 
-                    <gd.app.musicplayer.core.designsystem.view.SeekBar
+                    <com.coui.appcompat.seekbar.COUISeekBar
                         android:id="@+id/sbar_lyric_x_seek"
-                        android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:paddingVertical="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:tag="seekBar"
+                        style="@style/StatusBarLyricSlider"
+                        android:max="10000"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_x"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
-                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_x"
-                        app:seekMax="10000"
-                        app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_x" />
 
-                    <gd.app.musicplayer.core.designsystem.view.SeekBar
+                    <com.coui.appcompat.seekbar.COUISeekBar
                         android:id="@+id/sbar_lyric_y_seek"
-                        android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:paddingVertical="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:tag="seekBar"
+                        style="@style/StatusBarLyricSlider"
+                        android:max="10000"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_y"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
-                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_y"
-                        app:seekMax="10000"
-                        app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_y" />
 
-                    <gd.app.musicplayer.core.designsystem.view.SeekBar
+                    <com.coui.appcompat.seekbar.COUISeekBar
                         android:id="@+id/sbar_lyric_width_seek"
-                        android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:paddingVertical="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:tag="seekBar"
+                        style="@style/StatusBarLyricSlider"
+                        android:max="10000"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_width"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
-                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_width"
-                        app:seekMax="10000"
-                        app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_width" />
 
-                    <gd.app.musicplayer.core.designsystem.view.SeekBar
+                    <com.coui.appcompat.seekbar.COUISeekBar
                         android:id="@+id/sbar_lyric_alpha_seek"
-                        android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:paddingVertical="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:tag="seekBar"
+                        style="@style/StatusBarLyricSlider"
+                        android:max="100"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_alpha"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
-                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_alpha"
-                        app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_alpha" />
 
-                    <gd.app.musicplayer.core.designsystem.view.SeekBar
+                    <com.coui.appcompat.seekbar.COUISeekBar
                         android:id="@+id/sbar_lyric_font_size_seek"
-                        android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:paddingVertical="10dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:tag="seekBar"
+                        style="@style/StatusBarLyricSlider"
+                        android:max="100"
                         app:layout_constraintBottom_toBottomOf="@+id/sbar_lyric_font_size"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toEndOf="@+id/barrier"
-                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_font_size"
-                        app:seekProgressHeight="3dp"
-                        app:seekThumb="@drawable/seekbar_thumb_circle_tint" />
+                        app:layout_constraintTop_toTopOf="@+id/sbar_lyric_font_size" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </LinearLayout>
 
@@ -333,44 +306,34 @@
                 android:id="@+id/preference_sbar_lyric_container_3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginEnd="8dp"
-                android:orientation="vertical"
-                android:tag="settingGroup">
+                android:layout_marginTop="12dp"
+                android:background="?attr/couiColorCardBackground"
+                android:orientation="vertical">
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingTop="24dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="24dp">
+                    android:id="@+id/sbar_lyric_color_row"
+                    style="@style/SleepRow"
+                    android:paddingEnd="8dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="26dp"
-                        android:paddingHorizontal="16dp"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
+                        android:layout_marginEnd="12dp"
                         android:singleLine="true"
-                        android:tag="itemTextColor"
                         android:text="@string/sbar_lyric_color"
-                        android:textColor="@android:color/white"
+                        android:textAppearance="?attr/couiTextAppearanceHeadline6"
+                        android:textColor="?attr/couiColorPrimaryNeutral"
                         android:textSize="16sp" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/sbar_lyric_color_list"
                         android:layout_width="0dp"
                         android:layout_height="40dp"
-                        android:layout_weight="1" />
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:overScrollMode="never" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-    </ScrollView>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

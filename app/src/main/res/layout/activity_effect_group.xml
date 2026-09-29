@@ -3,43 +3,133 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1f1f1f"
-    android:orientation="vertical">
-
-    <FrameLayout
-        android:id="@+id/coordinator_layout"
+    android:orientation="vertical"
+    android:tag="activityBackgroundColor">    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_weight="1">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/effect_group_recycle_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-        <LinearLayout
-            android:id="@+id/toolbar_parent"
+        <com.google.android.material.appbar.COUIDividerAppBarLayout
+            android:id="@+id/app_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:background="@android:color/transparent"
+            android:elevation="0dp"
+            app:dividerEndAlpha="1"
+            app:dividerStartAlpha="0"
+            app:elevation="0dp"
+            app:hasDivider="true"
+            android:tag="titleBackgroundColor">
 
             <View
+
                 android:id="@+id/status_bar_space"
                 android:layout_width="match_parent"
+
                 android:layout_height="0dp" />
 
-            <androidx.appcompat.widget.Toolbar
+            <com.coui.appcompat.toolbar.COUIToolbar
                 android:id="@+id/toolbar"
+                style="@style/Secondary.Toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/common_title_height"
+                android:layout_height="wrap_content"
                 android:background="@android:color/transparent"
-                android:tag="toolbarWhite"
-                app:layout_collapseMode="pin"
-                app:layout_scrollFlags="snap"
-                app:navigationIcon="@drawable/vector_menu_back"
-                app:theme="@style/AppToolbar"
-                app:titleTextAppearance="@style/AppToolbarTitle" />
-        </LinearLayout>
-    </FrameLayout>
+                android:minHeight="@dimen/toolbar_min_height"
+                app:supportNavigationIcon="@drawable/coui_back_arrow"
+                app:supportTitle="@string/equalizer_sound_effect"
+                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
+                app:titleCenter="false" />
+        </com.google.android.material.appbar.COUIDividerAppBarLayout>
+
+        <com.coui.appcompat.scrollview.COUINestedScrollView
+            android:id="@+id/effect_group_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:overScrollMode="always"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="16dp"
+            android:scrollbars="none"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="12dp">
+
+                <LinearLayout style="@style/EqualizerCard">
+
+                    <LinearLayout
+                        android:id="@+id/effect_group_enabled_row"
+                        style="@style/EqualizerRow">
+
+                        <TextView
+                            style="@style/EqualizerRowTitle"
+                            android:text="@string/currently_used" />
+
+                        <com.coui.appcompat.couiswitch.COUISwitch
+                            android:id="@+id/effect_group_select"
+                            style="@style/EqualizerRowSwitch" />
+                    </LinearLayout>
+
+                    <View style="@style/EqualizerRowDivider" />
+
+                    <LinearLayout style="@style/EqualizerRow">
+
+                        <TextView
+                            style="@style/EqualizerRowTitle"
+                            android:text="@string/sound_effect" />
+
+                        <TextView
+                            android:id="@+id/effect_group_name"
+                            style="@style/EqualizerSliderValue"
+                            android:layout_marginStart="12dp"
+                            android:maxWidth="200dp" />
+                    </LinearLayout>
+
+                    <View style="@style/EqualizerRowDivider" />
+
+                    <LinearLayout style="@style/EqualizerRow">
+
+                        <TextView
+                            style="@style/EqualizerRowTitle"
+                            android:text="@string/effect_group_volume" />
+
+                        <com.coui.appcompat.chip.COUIChip
+                            android:id="@+id/effect_group_boost"
+                            style="@style/EqualizerReverbChip"
+                            android:layout_marginStart="12dp"
+                            android:text="@string/effect_group_boost" />
+                    </LinearLayout>
+
+                    <LinearLayout style="@style/EqualizerSliderRow">
+
+                        <com.coui.appcompat.seekbar.COUISeekBar
+                            android:id="@+id/effect_group_volume_seek"
+                            style="@style/EqualizerSlider" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:singleLine="true"
+                    android:text="@string/equalizer_sound_effect"
+                    android:textColor="?attr/couiColorSecondNeutral"
+                    android:textSize="14sp" />
+
+                <LinearLayout
+                    android:id="@+id/effect_group_presets"
+                    style="@style/EqualizerCard" />
+            </LinearLayout>
+        </com.coui.appcompat.scrollview.COUINestedScrollView>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

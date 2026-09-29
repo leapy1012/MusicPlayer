@@ -16,10 +16,10 @@ import gd.app.musicplayer.core.common.extension.screenHeight
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.theme.ThemeBitmapLoader
-import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.datastore.ThemeSettingPreferenceStore
 import gd.app.musicplayer.databinding.ActivityThemeEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.feature.equalizer.setOnSliderChangeListener
 import gd.app.musicplayer.feature.home.MainFragment
 import gd.app.musicplayer.feature.library.artwork.ArtworkCropActivity
 import gd.app.musicplayer.feature.player.mini.BottomMiniPlayerFragment
@@ -94,37 +94,6 @@ class ThemeEditActivity : BaseActivity() {
             viewModel.onImageChanged(imagePath)
         }
 
-    private val seekBarListener =
-        object : SeekBar.OnSeekBarChangeListener {
-
-            override fun onProgressChanged(
-                seekBar: SeekBar,
-                progress: Int,
-                fromUser: Boolean
-            ) {
-                if (!fromUser) return
-
-                when (seekBar) {
-
-                    binding.imageEditAlpha -> {
-                        viewModel.onOverlayAlphaChanged(progress)
-                    }
-
-                    binding.imageEditBlur -> {
-                        viewModel.onBlurChanged(progress)
-                    }
-                }
-            }
-
-            override fun onStartTrackingTouch(
-                seekBar: SeekBar
-            ) = Unit
-
-            override fun onStopTrackingTouch(
-                seekBar: SeekBar
-            ) = Unit
-        }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -157,13 +126,23 @@ class ThemeEditActivity : BaseActivity() {
             .setInterceptTouchEvent(true)
 
         binding.imageEditAlpha.apply {
-            setMax(255)
-            setOnSeekBarChangeListener(seekBarListener)
+            max = 255
+            setOnSliderChangeListener(
+                onTrackingChanged = {},
+                onProgressChanged = { progress, fromUser ->
+                    if (fromUser) viewModel.onOverlayAlphaChanged(progress)
+                }
+            )
         }
 
         binding.imageEditBlur.apply {
-            setMax(ThemeEditViewModel.MAX_BLUR_RADIUS)
-            setOnSeekBarChangeListener(seekBarListener)
+            max = ThemeEditViewModel.MAX_BLUR_RADIUS
+            setOnSliderChangeListener(
+                onTrackingChanged = {},
+                onProgressChanged = { progress, fromUser ->
+                    if (fromUser) viewModel.onBlurChanged(progress)
+                }
+            )
         }
     }
 
@@ -222,10 +201,8 @@ class ThemeEditActivity : BaseActivity() {
                         .distinctUntilChanged()
                         .collect { overlayColor ->
 
-                            binding.imageEditAlpha
-                                .setProgressInner(
-                                    Color.alpha(overlayColor)
-                                )
+                            binding.imageEditAlpha.progress =
+                                Color.alpha(overlayColor)
 
                             binding.skinImageView
                                 .setMaskColor(overlayColor)
@@ -242,8 +219,7 @@ class ThemeEditActivity : BaseActivity() {
                         .distinctUntilChanged()
                         .collect { blur ->
 
-                            binding.imageEditBlur
-                                .setProgressInner(blur)
+                            binding.imageEditBlur.progress = blur
                         }
                 }
 

@@ -58,9 +58,7 @@ class EqualizerActivity : BaseActivity() {
         binding = ActivityEqualizerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        tipGuard = EqualizerEnableTipGuard(this).apply {
-            setTipAccentColor(themeRepo.getCorePalette().accentColor)
-        }
+        tipGuard = EqualizerEnableTipGuard(this)
 
         setupInsets()
         setupPager()
@@ -79,6 +77,7 @@ class EqualizerActivity : BaseActivity() {
         tabMediator = null
         equalWidthListener?.let(binding.equalizerTabLayout::removeOnLayoutChangeListener)
         equalWidthListener = null
+        tipGuard.dismissTip()
         tipGuard.clearShieldViews()
         super.onDestroy()
     }
@@ -97,9 +96,6 @@ class EqualizerActivity : BaseActivity() {
 
     private fun applyTheme() {
         applyThemeTo(binding.root)
-        if (::tipGuard.isInitialized) {
-            tipGuard.setTipAccentColor(themeRepo.getCorePalette().accentColor)
-        }
     }
 
     private fun setupInsets() {

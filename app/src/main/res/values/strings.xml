@@ -1330,6 +1330,8 @@
     <string name="track_click_operation">Open nowplaying on play</string>
     <string name="track_click_operation_tip">Click tracks to open nowplaying page</string>
     <string name="track_number">Track number</string>
+    <string name="tag_edit_title">Title</string>
+    <string name="tag_edit_year">Year</string>
     <string name="tracks">Tracks</string>
     <string name="transparency">Transparency</string>
     <string name="turn_off">Turn off</string>

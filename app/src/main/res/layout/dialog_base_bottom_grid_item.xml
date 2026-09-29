@@ -9,15 +9,13 @@
     android:paddingStart="2dp"
     android:paddingTop="20dp"
     android:paddingEnd="2dp"
-    android:paddingBottom="20dp"
-    android:tag="dialogItemBackground">
+    android:paddingBottom="20dp">
 
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/menu_item_image"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:scaleType="centerInside"
-        android:tag="dialogItem" />
+        android:scaleType="centerInside" />
 
     <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/menu_item_text"
@@ -28,7 +26,6 @@
         android:ellipsize="end"
         android:gravity="bottom|center_horizontal"
         android:maxLines="2"
-        android:tag="dialogItem"
         android:textAlignment="center"
         android:textColor="#ffffff"
         android:textSize="14sp"

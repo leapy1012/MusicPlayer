@@ -236,8 +236,6 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
 
             latestSettings = latestSettings.copy(reverbIndex = reverbIndex)
             persistAndApply {
-                soundEffectViewModel.persistBalanceLeft(latestSettings.balanceLeft)
-                soundEffectViewModel.persistBalanceRight(latestSettings.balanceRight)
                 soundEffectViewModel.persistReverbIndex(reverbIndex)
             }
         }
@@ -326,12 +324,9 @@ class SoundEffectFragment : ViewBindingFragment<FragmentSoundEffectBinding>() {
         binding: FragmentSoundEffectBinding,
         settings: SoundEffectSettings
     ) = with(binding) {
-        val loudnessSupported = AudioEffectsManager.supportsLoudnessEnhancer()
-        val loudnessEnabled = settings.loudnessEnabled && loudnessSupported
+        val loudnessEnabled = settings.loudnessEnabled && AudioEffectsManager.supportsLoudnessEnhancer()
         val balanceEnabled = settings.balanceEnabled
 
-        equalizerVolumeBoostBox.isEnabled = loudnessSupported
-        equalizerAmplifierText.isEnabled = loudnessSupported
         equalizerVolumeBoostProgress.isEnabled = loudnessEnabled
         equalizerVolumeBoostProgressDes.isEnabled = loudnessEnabled
 

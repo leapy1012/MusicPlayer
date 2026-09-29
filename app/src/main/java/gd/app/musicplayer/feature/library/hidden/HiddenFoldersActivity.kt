@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersBinding
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersItemBinding
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersMusicHeaderBinding
@@ -25,6 +26,8 @@ import gd.app.musicplayer.databinding.ActivityHiddenFoldersMusicItemBinding
 import gd.app.musicplayer.databinding.ActivityHiddenFoldersSetHeaderBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.ui.common.applyCouiListBackground
+import gd.app.musicplayer.ui.common.applyListRowFeedback
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -79,10 +82,12 @@ class HiddenFoldersActivity : BaseActivity() {
     }
 
     private fun setupRecyclerView() {
+        val lightTheme = themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT
         adapter = HiddenItemsAdapter(
             applyTheme = { view ->
                 themeEngine.apply(view)
             },
+            applyRowFeedback = { view -> view.applyListRowFeedback(lightTheme) },
             onRemoveFolder = { folder ->
                 viewModel.removeHiddenFolder(folder.folderPath)
             },
@@ -98,6 +103,7 @@ class HiddenFoldersActivity : BaseActivity() {
 
             (itemAnimator as? SimpleItemAnimator)
                 ?.supportsChangeAnimations = false
+            applyCouiListBackground(lightTheme)
 
             binding.appBar.bindRecyclerView(this)
         }
@@ -148,6 +154,7 @@ class HiddenFoldersActivity : BaseActivity() {
 
 private class HiddenItemsAdapter(
     private val applyTheme: (View) -> Unit,
+    private val applyRowFeedback: (View) -> Unit,
     private val onRemoveFolder: (MusicSet.Folder) -> Unit,
     private val onRemoveMusic: (Music) -> Unit
 ) : ListAdapter<HiddenRow, RecyclerView.ViewHolder>(HiddenRowDiffCallback) {
@@ -208,6 +215,7 @@ private class HiddenItemsAdapter(
                 )
 
                 applyTheme(binding.root)
+                applyRowFeedback(binding.root)
 
                 HiddenFolderViewHolder(
                     binding,
@@ -235,6 +243,7 @@ private class HiddenItemsAdapter(
                 )
 
                 applyTheme(binding.root)
+                applyRowFeedback(binding.root)
 
                 HiddenMusicViewHolder(
                     binding,

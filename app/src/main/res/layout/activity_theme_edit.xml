@@ -17,21 +17,27 @@
         android:orientation="vertical"
         android:id="@+id/background">
 
-        <View
-            android:id="@+id/status_bar_space"
-            android:layout_width="match_parent"
-            android:layout_height="0dp" />
-
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:tag="titleBackgroundColor">
 
-            <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/crop_image_close"
+            <View
+                android:id="@+id/status_bar_space"
+                android:layout_width="match_parent"
+                android:layout_height="0dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/crop_image_close"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/b_selector_image_bg_aw"
@@ -59,6 +65,7 @@
                 android:background="@drawable/b_selector_image_bg_aw"
                 android:padding="8dp"
                 app:srcCompat="@drawable/vector_save" />
+            </LinearLayout>
         </LinearLayout>
 
         <FrameLayout
@@ -91,7 +98,6 @@
                         android:id="@+id/main_fragment_container"
                         android:layout_width="0dp"
                         android:layout_height="0dp"
-                        android:tag="ignore"
                         app:layout_constraintBottom_toTopOf="@+id/main_bottom_control_container"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
@@ -101,7 +107,6 @@
                         android:id="@+id/main_bottom_control_container"
                         android:layout_width="0dp"
                         android:layout_height="@dimen/main_control_banner_height"
-                        android:tag="ignore"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent" />
@@ -117,7 +122,7 @@
                         app:layout_constraintEnd_toEndOf="@+id/main_fragment_container">
                         <!--                        <com.ijoysoft.music.view.index.RecyclerLocationView-->
                         <!--                            android:id="@+id/recyclerview_location"-->
-                        <!--                            android:tag="themeColor"-->
+                        <!---->
                         <!--                            android:background="@drawable/shape_location_bg"-->
                         <!--                            android:visibility="gone"-->
                         <!--                            android:layout_width="40dp"-->
@@ -126,7 +131,7 @@
                         <!--                            android:scaleType="fitCenter"/>-->
                         <!--                        <com.ijoysoft.music.view.CustomFloatingActionButton-->
                         <!--                            android:id="@+id/main_float_button"-->
-                        <!--                            android:tag="themeColor"-->
+                        <!---->
                         <!--                            android:layout_width="wrap_content"-->
                         <!--                            android:layout_height="wrap_content"-->
                         <!--                            android:layout_marginTop="16dp"-->
@@ -137,93 +142,64 @@
             </gd.app.musicplayer.core.designsystem.view.ScaleRelativeLayout>
         </FrameLayout>
 
-        <TextView
+        <com.coui.appcompat.button.COUIButton
             android:id="@+id/image_edit_change_picture"
+            style="@style/Widget.COUI.Button.Large.ButtonNew.Secondary"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="44dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="20dp"
-            android:background="@drawable/shape_stroke_corner"
-            android:paddingStart="16dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="6dp"
+            android:layout_marginStart="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="0dp"
+            android:layout_marginBottom="12dp"
+            android:minWidth="160dp"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
             android:text="@string/image_edit_change_picture"
-            android:textColor="@color/white"
-            android:textSize="14sp" />
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            app:drawableColor="#33FFFFFF" />
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="32dp">
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:paddingStart="24dp"
+            android:paddingEnd="8dp">
 
             <TextView
                 android:id="@+id/image_edit_alpha_text"
-                android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:gravity="center_vertical"
-                android:tag="itemTextColor"
-                android:text="@string/image_edit_alpha"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                app:layout_constraintBottom_toTopOf="@+id/image_edit_blur_text"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                style="@style/ThemeEditSliderLabel"
+                android:text="@string/image_edit_alpha" />
+
+            <com.coui.appcompat.seekbar.COUISeekBar
+                android:id="@+id/image_edit_alpha"
+                style="@style/EqualizerSlider"
+                app:couiSeekBarMaxWidth="0dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:paddingStart="24dp"
+            android:paddingEnd="8dp">
 
             <TextView
                 android:id="@+id/image_edit_blur_text"
-                android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="12dp"
-                android:gravity="center_vertical"
-                android:tag="itemTextColor"
-                android:text="@string/image_edit_blur"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/image_edit_alpha_text" />
+                style="@style/ThemeEditSliderLabel"
+                android:text="@string/image_edit_blur" />
 
-            <androidx.constraintlayout.widget.Barrier
-                android:id="@+id/barrier"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:barrierDirection="end"
-                app:constraint_referenced_ids="image_edit_alpha_text,image_edit_blur_text" />
-
-            <gd.app.musicplayer.core.designsystem.view.SeekBar
-                android:id="@+id/image_edit_alpha"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="16dp"
-                android:paddingTop="9dp"
-                android:paddingBottom="9dp"
-                android:tag="seekBar"
-                app:layout_constraintBottom_toBottomOf="@+id/image_edit_alpha_text"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/barrier"
-                app:layout_constraintTop_toTopOf="@+id/image_edit_alpha_text"
-                app:seekProgressHeight="3dp"
-                app:seekThumb="@drawable/shape_seek_thumb_dot" />
-
-            <gd.app.musicplayer.core.designsystem.view.SeekBar
+            <com.coui.appcompat.seekbar.COUISeekBar
                 android:id="@+id/image_edit_blur"
-                android:layout_width="0dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="16dp"
-                android:paddingTop="9dp"
-                android:paddingBottom="9dp"
-                android:tag="seekBar"
-                app:layout_constraintBottom_toBottomOf="@+id/image_edit_blur_text"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@+id/barrier"
-                app:layout_constraintTop_toTopOf="@+id/image_edit_blur_text"
-                app:seekProgressHeight="3dp"
-                app:seekThumb="@drawable/shape_seek_thumb_dot" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                style="@style/EqualizerSlider"
+                app:couiSeekBarMaxWidth="0dp" />
+        </LinearLayout>
     </LinearLayout>
 </FrameLayout>
 

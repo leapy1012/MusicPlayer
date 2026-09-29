@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:tag="bottomMenuItem">
 
     <androidx.appcompat.widget.AppCompatImageView
         android:id="@+id/menu_icon"
@@ -12,7 +13,8 @@
         android:layout_height="24dp"
         android:layout_marginTop="8dp"
         android:scaleType="fitCenter"
-        android:tint="?attr/couiColorPrimaryNeutral"
+        android:tag="bottomMenuIcon"
+        android:tint="@color/white"
         app:srcCompat="@drawable/vector_edit_play" />
 
     <androidx.appcompat.widget.AppCompatTextView
@@ -23,8 +25,9 @@
         android:layout_marginBottom="8dp"
         android:gravity="center"
         android:maxLines="2"
+        android:tag="bottomMenuText"
         android:text="@string/operation_play"
         android:textAlignment="center"
-        android:textColor="?attr/couiColorPrimaryNeutral"
+        android:textColor="@color/white"
         android:textSize="12sp" />
 </LinearLayout>

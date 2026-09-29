@@ -68,6 +68,7 @@ class SoundEffectViewModel @Inject constructor(
     }
 
     suspend fun persistReverbIndex(index: Int) {
+        soundEffectPreferences.disableGroupSoundEffect()
         soundEffectPreferences.setReverbIndex(index)
     }
 

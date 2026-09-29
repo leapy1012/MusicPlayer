@@ -134,7 +134,6 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginTop="@dimen/lock_margin_16dp"
                     android:layout_marginEnd="16dp"
-                    android:tag="LyricView"
                     app:lyricCurrentTextColor="@color/color_item_selected"
                     app:lyricCurrentTextSize="16sp"
                     app:lyricLineTextSize="13sp"

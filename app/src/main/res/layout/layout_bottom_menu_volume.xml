@@ -7,8 +7,7 @@
 
     <View
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:tag="dialogDivider" />
+        android:layout_height="1dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -26,7 +25,6 @@
             android:layout_height="40dp"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:tag="dialogVolumeIcon"
             app:srcCompat="@drawable/vector_bottom_menu_volume" />
 
         <gd.app.musicplayer.core.designsystem.view.SeekBar
@@ -36,7 +34,6 @@
             android:layout_weight="1"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
-            android:tag="dialogSeekBar"
             app:seekCalculateMethod="fingerPosition"
             app:seekMax="100"
             app:seekProgressHeight="2dp"
@@ -51,7 +48,6 @@
             android:gravity="center_horizontal"
             android:minWidth="40dp"
             android:singleLine="true"
-            android:tag="dialogVolumeText"
             android:text="0%"
             android:textSize="14sp" />
     </LinearLayout>

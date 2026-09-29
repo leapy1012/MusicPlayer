@@ -33,8 +33,6 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun getHeaderOverlayColor(): Int = 0
 
-    override fun getPopupDividerColor(): Int = ThemeColorUtils.secondaryTextColor(isPopupSurfaceLight())
-
     override fun getItemSecondaryTextColor(): Int = ThemeColorUtils.secondaryTextColor(isContentSurfaceLight())
 
     override fun getSelectionBorderColor(): Int = ThemeColorUtils.maskColor(isContentSurfaceLight())
@@ -51,17 +49,9 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun isActionAreaLight(): Boolean = true
 
-    override fun getPopupTitleColor(): Int = ThemeColorUtils.primaryTextColor(isPopupSurfaceLight())
-
-    override fun getPopupPressedOverlayColor(): Int = 0
-
-    override fun getPopupBackgroundMaskColor(): Int = ThemeColorUtils.maskColor(isPopupSurfaceLight())
-
     override fun getItemPressedOverlayColor(): Int = ThemeColorUtils.pressedOverlay(isContentSurfaceLight())
 
     override fun isDarkMode(): Boolean = false
-
-    override fun getPopupBackgroundDrawable(context: Context): Drawable = Color.WHITE.toDrawable()
 
     override fun getHeaderSecondaryTextColor(): Int = ThemeColorUtils.maskColor(isHeaderSurfaceLight())
 
@@ -74,21 +64,18 @@ abstract class BaseThemePalette : ThemePalette {
 
     override fun getThemeType(): Int = 0
 
-    override fun getPopupPressedColor(): Int = ThemeColorUtils.pressedOverlay(isPopupSurfaceLight())
-
     override fun getDefaultAccentColor(): Int = 0
-
-    override fun getPopupDividerShadowColor(): Int = if (isPopupSurfaceLight()) 218103808 else 234881023
 
     override fun getHeaderPressedOverlayColor(): Int = ThemeColorUtils.pressedOverlay(isHeaderSurfaceLight())
 
     override fun getDialogSurfaceDrawable(context: Context): Drawable = Color.WHITE.toDrawable()
 
+    override fun getBottomDialogSurfaceDrawable(context: Context): Drawable =
+        getDialogSurfaceDrawable(context)
+
     override fun getHeaderTitleColor(): Int = ThemeColorUtils.primaryTextColor(isHeaderSurfaceLight())
 
     override fun getActionAreaTextColor(): Int = ThemeColorUtils.primaryTextColor(isActionAreaLight())
-
-    override fun isPopupSurfaceLight(): Boolean = true
 
     override fun isHeaderSurfaceLight(): Boolean = true
 

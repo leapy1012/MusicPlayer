@@ -14,6 +14,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.formatFileSize
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.toDurationString
+import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.databinding.DialogMusicDetailBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.ui.tags.EditTagsActivity
@@ -69,6 +70,7 @@ class MusicDetailDialogFragment : DialogFragment() {
                 dismiss()
             }
             builder.updateViewAfterShown()
+            CouiAlertDialogSurface.apply(dialog)
         }
 
         loadAudioInfo()

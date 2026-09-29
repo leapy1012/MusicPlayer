@@ -24,7 +24,7 @@ import java.util.ArrayList
 class ContextMenu(
     private val context: Context,
     private val musicSet: MusicSet,
-    @Suppress("UNUSED_PARAMETER") theme: ThemePalette,
+    private val theme: ThemePalette,
     private val onAction: (ContextMenuAction) -> Unit,
     private val selectedViewMode: Int = MusicSetAdapter.VIEW_MODE_LIST,
     private val currentSortStyle: String = "",
@@ -56,7 +56,18 @@ class ContextMenu(
             handleSubMenuClick(position)
             dismiss()
         })
+        CouiPopupListSurface.apply(window, context, theme.getDialogSurfaceDrawable(context))
         window.show(anchor)
+        // COUI may re-bind outline bg during show; re-apply after layout.
+        anchor.post {
+            if (popup === window) {
+                CouiPopupListSurface.apply(
+                    window,
+                    context,
+                    theme.getDialogSurfaceDrawable(context)
+                )
+            }
+        }
     }
 
     fun dismiss() {

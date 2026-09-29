@@ -3,15 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/couiColorBackgroundWithCard"
     android:orientation="vertical">
-
-    <View
-        android:id="@+id/status_bar_space"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="?attr/couiColorBackgroundWithCard"
-        android:tag="toolbarChrome" />
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
@@ -22,13 +14,18 @@
             android:id="@+id/app_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/couiColorBackgroundWithCard"
+            android:background="@android:color/transparent"
             android:elevation="0dp"
-            android:tag="toolbarChrome"
+            android:tag="titleBackgroundColor"
             app:dividerEndAlpha="1"
             app:dividerStartAlpha="0"
             app:elevation="0dp"
             app:hasDivider="true">
+
+            <View
+                android:id="@+id/status_bar_space"
+                android:layout_width="match_parent"
+                android:layout_height="0dp" />
 
             <com.coui.appcompat.toolbar.COUIToolbar
                 android:id="@+id/toolbar"
@@ -37,7 +34,6 @@
                 android:layout_height="wrap_content"
                 android:background="@android:color/transparent"
                 android:minHeight="@dimen/toolbar_min_height"
-                android:tag="toolbar"
                 app:layout_scrollFlags="scroll|enterAlways|snap"
                 app:supportNavigationIcon="@drawable/coui_back_arrow"
                 app:supportTitle="@string/library"
@@ -50,7 +46,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/tablayout_large_layout_height"
                 android:background="@android:color/transparent"
-                android:tag="tabLayout"
                 app:couiTabBackground="@android:color/transparent"
                 app:couiTabGravity="fill"
                 app:couiTabIndicatorColor="?attr/couiColorLabelTheme"
@@ -67,7 +62,7 @@
             android:id="@+id/view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="?attr/couiColorCardBackground"
+            android:background="@android:color/transparent"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

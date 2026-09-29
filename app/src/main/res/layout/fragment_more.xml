@@ -20,7 +20,6 @@
             android:alpha="0.4"
             android:scaleType="centerCrop"
             android:src="@drawable/left_menu_text_bg"
-            android:tag="bannerImageBackground"
             app:maskColor="#4d000000" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -31,7 +30,6 @@
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:scaleType="fitCenter"
-            android:tag="bannerImage"
             app:srcCompat="@drawable/vector_left_menu_text" />
     </gd.app.lib.view.square.AspectRatioFrameLayout>
 
@@ -40,8 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#1a000000"
-        android:scrollbars="none"
-        android:tag="scrollContent">
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -57,14 +54,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_left_menu_scan" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -73,7 +68,6 @@
                     android:layout_marginStart="@dimen/menu_margin"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/scan_library"
                     android:textColor="@color/main_text"
                     android:textSize="16sp" />
@@ -88,14 +82,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_left_menu_equalizer" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -105,7 +97,6 @@
                     android:layout_weight="1"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/equalizer"
                     android:textAlignment="viewStart"
                     android:textColor="@color/main_text"
@@ -119,7 +110,6 @@
                     android:layout_marginEnd="8dp"
                     android:maxWidth="80dp"
                     android:singleLine="true"
-                    android:tag="itemTextExtraColor"
                     android:text="@string/close"
                     android:textColor="?attr/couiColorSecondNeutral"
                     android:textSize="12sp" />
@@ -134,15 +124,13 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/slidingmenu_model_image"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_mode_order" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -152,7 +140,6 @@
                     android:layout_marginStart="@dimen/menu_margin"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/play_mode_list"
                     android:textColor="@color/main_text"
                     android:textSize="16sp" />
@@ -167,14 +154,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_left_menu_skin" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -183,7 +168,6 @@
                     android:layout_marginStart="@dimen/menu_margin"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/theme"
                     android:textColor="@color/main_text"
                     android:textSize="16sp" />
@@ -198,14 +182,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_sliding_widget" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -214,7 +196,6 @@
                     android:layout_marginStart="@dimen/menu_margin"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/widget"
                     android:textColor="@color/main_text"
                     android:textSize="16sp" />
@@ -229,14 +210,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_left_menu_sleep" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -246,7 +225,6 @@
                     android:layout_weight="1"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/sleep_timer"
                     android:textAlignment="viewStart"
                     android:textColor="@color/main_text"
@@ -259,7 +237,6 @@
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="8dp"
                     android:singleLine="true"
-                    android:tag="itemTextExtraColor"
                     android:text="@string/close"
                     android:textColor="?attr/couiColorSecondNeutral"
                     android:textSize="12sp" />
@@ -274,14 +251,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_drive_car" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -290,7 +265,6 @@
                     android:layout_marginStart="@dimen/menu_margin"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/drive_mode"
                     android:textColor="@color/main_text"
                     android:textSize="16sp" />
@@ -305,14 +279,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_hidden_folders" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -321,7 +293,6 @@
                     android:layout_marginStart="@dimen/menu_margin"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/hidden_folders"
                     android:textColor="@color/main_text"
                     android:textSize="16sp" />
@@ -336,14 +307,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_left_menu_setting" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -352,7 +321,6 @@
                     android:layout_marginStart="@dimen/menu_margin"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/settings"
                     android:textColor="@color/main_text"
                     android:textSize="16sp" />
@@ -368,14 +336,12 @@
                 android:minHeight="@dimen/more_item_height"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:tag="itemBackground">
+                android:paddingEnd="16dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:scaleType="fitCenter"
-                    android:tag="itemTextColor"
                     app:srcCompat="@drawable/vector_left_menu_quit" />
 
                 <gd.app.lib.view.MarqueeTextView
@@ -384,7 +350,6 @@
                     android:layout_marginStart="@dimen/menu_margin"
                     android:fontFamily="sans-serif-medium"
                     android:singleLine="true"
-                    android:tag="itemTextColor"
                     android:text="@string/adv_quit"
                     android:textColor="@color/main_text"
                     android:textSize="16sp" />
