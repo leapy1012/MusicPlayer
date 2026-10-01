@@ -14,7 +14,8 @@ import kotlin.math.roundToInt
 
 @Singleton
 class SettingPreferencesDataStoreImpl @Inject constructor(
-    private val dataStore: MusicDataStore
+    private val dataStore: MusicDataStore,
+    private val libraryTabPreferencesCache: LibraryTabPreferencesCache
 ) : SettingPreferencesDataStore {
 
 
@@ -75,10 +76,12 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
     }
 
     override suspend fun setLibraryLastTab(tabId: Int) {
+        libraryTabPreferencesCache.onLastTabWritten(tabId)
         dataStore.set(SettingsKeys.LIBRARY_LAST_TAB, tabId)
     }
 
     override suspend fun setLibraryTabConfig(items: List<LibraryTabConfig>) {
+        libraryTabPreferencesCache.onTabConfigWritten(items)
         dataStore.set(
             SettingsKeys.LIBRARY_TAB_CONFIG,
             LibraryTabConfigStore.serialize(items)

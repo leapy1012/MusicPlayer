@@ -22,7 +22,6 @@
             android:gravity="center_vertical"
             android:singleLine="true"
             android:text="@string/lyric_size"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -72,7 +71,6 @@
             android:minHeight="26dp"
             android:singleLine="true"
             android:text="@string/lyric_color"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <gd.app.musicplayer.core.designsystem.view.ColorSelectView
@@ -101,7 +99,6 @@
             android:singleLine="true"
             android:text="@string/lyric_style"
             android:textAlignment="viewStart"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <HorizontalScrollView
@@ -222,7 +219,6 @@
             android:singleLine="true"
             android:text="@string/desktop_lrc"
             android:textAlignment="viewStart"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <gd.app.musicplayer.core.designsystem.view.SelectBox
@@ -252,7 +248,6 @@
             android:singleLine="true"
             android:text="@string/lyric_auto_scroll"
             android:textAlignment="viewStart"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <gd.app.musicplayer.core.designsystem.view.SelectBox
@@ -283,7 +278,6 @@
             android:singleLine="true"
             android:text="@string/lrc_time_setting"
             android:textAlignment="viewStart"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <TextView
@@ -294,7 +288,6 @@
             android:gravity="center_vertical"
             android:singleLine="true"
             android:text="@string/lrc_time_normal"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
     </LinearLayout>
 
@@ -316,7 +309,6 @@
             android:singleLine="true"
             android:text="@string/lyric_feedback"
             android:textAlignment="viewStart"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <androidx.appcompat.widget.AppCompatImageView

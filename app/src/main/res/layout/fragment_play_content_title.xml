@@ -4,7 +4,10 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_centerInParent="true">
+    android:layout_centerInParent="true"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp"
+    android:paddingEnd="4dp">
     <gd.app.lib.view.MarqueeTextView
         android:textSize="18sp"
         android:textColor="@color/main_text"
@@ -12,14 +15,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:singleLine="true"
+        android:ellipsize="marquee"
         android:textAlignment="viewStart"/>
     <TextView
-        android:textSize="15sp"
+        android:textSize="14sp"
         android:textColor="@color/extra_text"
         android:id="@+id/music_play_artist"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:singleLine="true"
+        android:ellipsize="end"
         android:textAlignment="viewStart"/>
 </LinearLayout>

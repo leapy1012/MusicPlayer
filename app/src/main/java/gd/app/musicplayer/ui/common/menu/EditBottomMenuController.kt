@@ -157,7 +157,10 @@ class EditBottomMenuController(
                         .build()
                 }
             )
-            val popup = COUIPopupListWindow(activity)
+            CouiPopupListSurface.paintItemTitles(activity, popupItems)
+            val popup = COUIPopupListWindow(
+                CouiPopupListSurface.popupContext(activity)
+            )
             popup.setItemList(popupItems)
             popup.setOnItemClickListener { _, _, position, _ ->
                 val item = extraItems.getOrNull(position) ?: return@setOnItemClickListener

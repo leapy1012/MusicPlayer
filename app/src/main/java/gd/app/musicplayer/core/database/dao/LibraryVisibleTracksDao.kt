@@ -37,7 +37,7 @@ interface LibraryVisibleTracksDao {
         WHERE music.hide_time = 0
           AND music.`show` = 1
           AND music.folder_path NOT IN (SELECT folder_path FROM hide_folder)
-        ORDER BY RANDOM(), music.title COLLATE NOCASE ASC, music._id ASC
+        ORDER BY music.sort ASC, music.title COLLATE NOCASE ASC, music._id ASC
         """
     )
     @RewriteQueriesToDropUnusedColumns

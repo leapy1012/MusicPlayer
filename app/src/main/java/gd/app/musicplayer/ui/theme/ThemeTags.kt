@@ -30,5 +30,11 @@ object ThemeTags {
 
     object Progress {
         const val SEEK_BAR = "seekBar"
+        /** Skeuomorphic EQ seek (pictured) — ridged thumb + accent track. */
+        const val EQUALIZER_SEEK_BAR = "equalizerSeekBar"
+        /** Bass Boost / Virtualizer / balance rotary knobs (pictured). */
+        const val EQUALIZER_ROTATE_STEP_BAR = "equalizerRotateStepBar"
+        /** Pictured reverb chip face. */
+        const val REVERB_ITEM = "reverbItem"
     }
 }

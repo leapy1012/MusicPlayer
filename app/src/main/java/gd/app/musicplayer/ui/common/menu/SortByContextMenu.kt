@@ -41,8 +41,11 @@ class SortByContextMenu(
                     .build()
             }
         )
+        CouiPopupListSurface.paintItemTitles(context, items)
 
-        val window = COUIPopupListWindow(context).also { popup = it }
+        val window = COUIPopupListWindow(
+            CouiPopupListSurface.popupContext(context)
+        ).also { popup = it }
         window.setItemList(items)
         window.setOnItemClickListener(AdapterView.OnItemClickListener { _, _, position, _ ->
             val option = options.getOrNull(position) ?: return@OnItemClickListener

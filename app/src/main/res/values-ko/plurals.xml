@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="plurals_album">
+        <item quantity="one">앨범 %d개</item>
+        <item quantity="other">앨범 %d개</item>
+    </plurals>
+    <plurals name="plurals_track">
+        <item quantity="one">트랙 %d개</item>
+        <item quantity="other">트랙 %d개</item>
+    </plurals>
+</resources>

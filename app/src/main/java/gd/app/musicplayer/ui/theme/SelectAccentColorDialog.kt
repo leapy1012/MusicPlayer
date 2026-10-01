@@ -214,7 +214,7 @@ class SelectAccentColorDialog : DialogFragment(),
     }
 
     companion object {
-        private const val DEFAULT_ACCENT = -12467
+        private const val DEFAULT_ACCENT = -16752385 // #FF0066FF — COUI Blue primary
         private const val ARG_CURRENT = "arg_current"
         private const val STATE_INITIAL = "state_initial"
         private const val STATE_SELECTED = "state_selected"
@@ -224,7 +224,7 @@ class SelectAccentColorDialog : DialogFragment(),
         const val TAG = "AccentColorDialog"
 
         private val PRESET_COLORS = intArrayOf(
-            -12467,
+            -16752385,
             -694124,
             -8789256,
             -30841,

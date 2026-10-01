@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import dagger.hilt.android.HiltAndroidApp
 import gd.app.musicplayer.core.common.AppForegroundTracker
+import gd.app.musicplayer.core.datastore.LibraryTabPreferencesCache
 import gd.app.musicplayer.core.mediastore.MediaStoreLibraryObserver
 import gd.app.musicplayer.playback.headset.HeadsetAutomationManager
 import javax.inject.Inject
@@ -15,6 +16,8 @@ class MusicPlayerApp : Application() {
 
     @Inject lateinit var mediaStoreLibraryObserver: MediaStoreLibraryObserver
     @Inject lateinit var headsetAutomationManager: HeadsetAutomationManager
+    /** Eager create: sync SP seed + DataStore warm before Library open. */
+    @Inject lateinit var libraryTabPreferencesCache: LibraryTabPreferencesCache
 
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)

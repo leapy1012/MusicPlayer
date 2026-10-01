@@ -210,7 +210,9 @@ class TrackListFragment : BaseListFragment() {
                 // Original l5.m0 → m5.v.j → ActivityMusicSelect.B1
                 setActionButtonVisible(true)
                 setActionButtonText(getString(R.string.add_songs))
+                setActionButtonIcon(R.drawable.ic_add_files_button)
                 setEmptyMessage(getString(R.string.music_empty))
+                setEmptyLottieAsset("music_empty.json")
                 setActionClickListener {
                     MusicSelectActivity.start(
                         context = requireContext(),
@@ -225,8 +227,10 @@ class TrackListFragment : BaseListFragment() {
                 setActionButtonVisible(true)
                 setExtraTextVisible(true)
                 setActionButtonText(getString(R.string.rescan_library))
+                setActionButtonIcon(R.drawable.ic_scan_library_button)
                 setExtraText(getString(R.string.music_empty_add))
                 setEmptyMessage(getString(R.string.music_empty))
+                setEmptyLottieAsset("music_empty.json")
                 setActionClickListener {
                     ScanMusicActivity.start(requireContext())
                 }
@@ -234,6 +238,7 @@ class TrackListFragment : BaseListFragment() {
 
             else -> {
                 setEmptyMessage(getString(R.string.music_empty))
+                setEmptyLottieAsset("music_empty.json")
             }
         }
     }

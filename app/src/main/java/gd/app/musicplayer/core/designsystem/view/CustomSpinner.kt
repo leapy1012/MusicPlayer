@@ -104,8 +104,11 @@ class CustomSpinner @JvmOverloads constructor(
                     .build()
             }
         )
+        CouiPopupListSurface.paintItemTitles(context, popupItems)
 
-        val window = COUIPopupListWindow(context).also { popupWindow = it }
+        val window = COUIPopupListWindow(
+            CouiPopupListSurface.popupContext(context)
+        ).also { popupWindow = it }
         window.setItemList(popupItems)
         window.setOnItemClickListener { parent, itemView, position, id ->
             dismissPopup()

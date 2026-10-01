@@ -5,11 +5,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingHorizontal="24dp"
-    android:paddingVertical="32dp"
-    android:paddingLeft="24dp"
-    android:paddingTop="32dp"
-    android:paddingRight="24dp"
-    android:paddingBottom="32dp">
+    android:paddingVertical="32dp">
 
     <TextView
         android:layout_width="match_parent"
@@ -31,33 +27,18 @@
         android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="14sp" />
 
-    <LinearLayout
+    <com.coui.appcompat.button.COUIButton
         android:id="@+id/folder_footer_scan"
+        style="@style/Widget.COUI.Button.Small.ButtonNew.HalfColor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="24dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="8dp"
-        android:paddingLeft="24dp"
-        android:paddingTop="8dp"
-        android:paddingRight="24dp"
-        android:paddingBottom="8dp">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            app:srcCompat="@drawable/vector_left_menu_scan" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/scan_library"
-            android:textAppearance="?attr/couiTextAppearanceButton"
-            android:textColor="?attr/couiColorPrimaryNeutral"
-            android:textSize="14sp" />
-    </LinearLayout>
+        android:drawablePadding="6dp"
+        android:minWidth="96dp"
+        android:singleLine="true"
+        android:text="@string/scan_library"
+        android:textAllCaps="false"
+        app:drawableStartCompat="@drawable/ic_scan_library_button"
+        app:drawableTint="?attr/couiColorLabelTheme" />
 </LinearLayout>

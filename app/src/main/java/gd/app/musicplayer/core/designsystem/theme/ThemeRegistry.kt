@@ -3,6 +3,8 @@ package gd.app.musicplayer.core.designsystem.theme
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.widget.Toolbar
+import gd.app.musicplayer.ui.theme.ThemeTags
 import java.util.LinkedHashSet
 
 class ThemeRegistry(
@@ -109,6 +111,20 @@ class ThemeRegistry(
                 defaultBinder?.bind(
                     palette = palette,
                     payload = tag,
+                    view = view
+                )
+            }
+        } else if (view is Toolbar) {
+            // App-added menu icons are white vectors; tint them even when XML omits tag="toolbar".
+            val handledByCustom = customBinder?.bind(
+                palette = palette,
+                payload = ThemeTags.Navigation.TOOLBAR,
+                view = view
+            ) == true
+            if (!handledByCustom) {
+                defaultBinder?.bind(
+                    palette = palette,
+                    payload = ThemeTags.Navigation.TOOLBAR,
                     view = view
                 )
             }

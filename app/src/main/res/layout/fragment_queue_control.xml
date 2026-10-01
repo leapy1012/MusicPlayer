@@ -9,10 +9,18 @@
         android:id="@+id/main_music_progress"
         android:layout_width="match_parent"
         android:layout_height="2dp"
+        android:tag="seekBar"
         app:seekEnable="false"
         app:seekProgressDrawable="@drawable/main_play_progress_drawable"
         app:seekProgressHeight="2dp"
         app:seekRtlEnable="false" />
+
+    <View
+        android:id="@+id/main_bottom_control_divider"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:tag="bottomControlDivider"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/main_bottom_control_panel"
@@ -20,14 +28,10 @@
         android:layout_height="@dimen/main_control_banner_height"
         android:gravity="center_vertical"
         android:minHeight="@dimen/main_control_banner_height"
-        android:orientation="horizontal">
-
-<!--        <gd.app.lib.view.loop.LoopViewPager-->
-<!--            android:id="@+id/main_control_pager"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="match_parent"-->
-<!--            android:layout_weight="1"-->
-<!-- />-->
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="8dp"
+        android:tag="bottomControlBackground">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -61,9 +65,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:singleLine="true"
-                    android:text="111111"
+                    android:tag="itemTextColor"
                     android:textAlignment="viewStart"
-                    android:textColor="@color/main_text"
+                    android:textColor="?attr/couiColorPrimaryNeutral"
                     android:textSize="@dimen/main_item_name_size" />
 
                 <Space
@@ -76,9 +80,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:singleLine="true"
-                    android:text="111111"
+                    android:tag="itemTextExtraColor"
                     android:textAlignment="viewStart"
-                    android:textColor="@color/extra_text"
+                    android:textColor="?attr/couiColorSecondNeutral"
                     android:textSize="@dimen/main_item_count_size" />
 
                 <Space
@@ -97,7 +101,9 @@
             android:background="@drawable/selector_image_bg_w"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            app:srcCompat="@drawable/vector_main_play_pause_selector" />
+            android:tag="itemTextColor"
+            app:srcCompat="@drawable/vector_main_play_pause_selector"
+            app:tint="?attr/couiColorPrimaryNeutral" />
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/main_control_location"
@@ -106,6 +112,8 @@
             android:background="@drawable/selector_image_bg_w"
             android:padding="8dp"
             android:scaleType="fitXY"
-            app:srcCompat="@drawable/vector_location" />
+            android:tag="itemTextColor"
+            app:srcCompat="@drawable/vector_location"
+            app:tint="?attr/couiColorPrimaryNeutral" />
     </LinearLayout>
 </LinearLayout>

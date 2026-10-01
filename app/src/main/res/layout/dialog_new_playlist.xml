@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <com.coui.appcompat.edittext.COUIEditText
+    <gd.app.musicplayer.core.designsystem.view.CouiDialogEditText
         android:id="@+id/new_playlist_edittext"
         style="?attr/couiEditTextLineHintDisableStyle"
         android:layout_width="match_parent"
@@ -16,7 +16,9 @@
         android:cursorVisible="true"
         android:hint="@string/create_playlist_hint"
         android:inputType="text"
-        android:minHeight="@dimen/support_preference_dialog_edittext_min_height"
+        android:minHeight="0dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         app:quickDelete="true" />

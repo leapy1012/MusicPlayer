@@ -20,10 +20,10 @@ class PresetColorAdapter(
     }
 
     companion object {
+        private const val DEFAULT_ACCENT = -16752385 // #FF0066FF — COUI Blue primary
         private const val TYPE_PRESET = 0
         private const val TYPE_CUSTOM = 1
         private const val PAYLOAD_SELECTION = "selection"
-        private const val DEFAULT_ACCENT = -12467
 
         fun createPresetDrawable(color: Int): Drawable {
             return GradientDrawable().apply {

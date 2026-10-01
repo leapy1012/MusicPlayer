@@ -19,6 +19,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.readLongOrNull
 import gd.app.musicplayer.core.common.extension.setTextIfDifferent
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.databinding.ActivityScanMusicBinding
 import gd.app.musicplayer.domain.model.scan.ScanLibraryInfo
 import gd.app.musicplayer.domain.model.scan.ScanOptions
@@ -26,6 +27,7 @@ import gd.app.musicplayer.domain.model.scan.ScanResultSummary
 import gd.app.musicplayer.feature.library.deleted.DeletedMusicActivity
 import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import kotlinx.coroutines.launch
 
@@ -99,9 +101,7 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
     private fun setupToolbar() {
         // Not app:menu — COUIToolbar builds that menu view before its click listener exists.
-        binding.toolbar.inflateMenu(R.menu.menu_activity_scan_menu)
-        // The content theme pass ran before the menu existed; tint its icon now.
-        applyThemeTo(binding.toolbar)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_scan_menu, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener(this)
     }
 
@@ -118,11 +118,24 @@ class ScanMusicActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             DeletedMusicActivity.start(this)
         }
 
+        applyScanProgressAccent()
+
         scanningBinding.scanProgress.apply {
             isEnabled = false
             setMax(PROGRESS_MAX)
             setProgress(0)
         }
+    }
+
+    /** Radar rings/sweep use a hardcoded default blue unless tinted from the theme accent. */
+    private fun applyScanProgressAccent() {
+        if (!::binding.isInitialized) return
+        binding.musicScanProgress.setColor(themeEngine.currentTheme().getAccentColor())
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        applyScanProgressAccent()
     }
 
     private fun observeUiState() {

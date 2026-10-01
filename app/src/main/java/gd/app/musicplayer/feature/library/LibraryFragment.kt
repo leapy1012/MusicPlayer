@@ -6,6 +6,7 @@ import android.view.MenuItem
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -50,12 +51,12 @@ class LibraryFragment :
     ) {
         super.onBindingCreated(binding, savedInstanceState)
 
-        binding.root.applySystemBarInsets(
-            binding.statusBarSpace,
-            binding.root
-        )
+        binding.root.applySystemBarInsets(binding.statusBarSpace)
 
         setupToolbar()
+        // Match original l5/q.Y: wire pager from cached tabs during view-create,
+        // not after the first STARTED collect tick.
+        renderTabs(viewModel.uiState.value)
         observeUiState()
         setupBackPressHandler()
     }
@@ -101,13 +102,14 @@ class LibraryFragment :
         visibleTabs = state.visibleTabs
 
         binding.viewPager.adapter = null
-        binding.viewPager.offscreenPageLimit = 1
         binding.viewPager.isUserInputEnabled = true
         binding.viewPager.adapter = LibraryPagerAdapter(
             fragment = this,
             items = visibleTabs
         )
 
+        // Hide before tabs populate so COUI never paints a short indicator first.
+        binding.tabLayout.visibility = View.INVISIBLE
         tabMediator = CouiTabLayoutMediator(
             tabLayout = binding.tabLayout,
             viewPager = binding.viewPager
@@ -127,7 +129,7 @@ class LibraryFragment :
                 visibleTabs.getOrNull(position)
                     ?.id
                     ?.let(viewModel::onTabSelected)
-                bindAppBarToCurrentList()
+                scheduleBindAppBarToCurrentList()
             }
         }
 
@@ -138,7 +140,24 @@ class LibraryFragment :
             state.initialTabIndex.coerceIn(0, visibleTabs.lastIndex),
             false
         )
-        binding.viewPager.post { bindAppBarToCurrentList() }
+        // Defer COUI AppBar↔RV wiring until the child list is about to draw
+        // so it does not contend with the first adapter submit.
+        scheduleBindAppBarToCurrentList()
+    }
+
+    private fun scheduleBindAppBarToCurrentList() {
+        val binding = binding ?: return
+        binding.viewPager.post {
+            val list = findCurrentRecyclerView()
+            if (list != null) {
+                list.doOnPreDraw {
+                    bindAppBarToCurrentList()
+                    true
+                }
+            } else {
+                binding.viewPager.post { bindAppBarToCurrentList() }
+            }
+        }
     }
 
     private fun bindAppBarToCurrentList() {

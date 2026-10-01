@@ -3,10 +3,8 @@ package gd.app.musicplayer.feature.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import gd.app.musicplayer.core.datastore.LibraryTabPreferencesCache
 import gd.app.musicplayer.domain.model.LibraryTabConfig
-import gd.app.musicplayer.domain.model.LibraryTabConfigStore
-import gd.app.musicplayer.domain.usecase.library.GetLibraryLastTabUseCase
-import gd.app.musicplayer.domain.usecase.library.GetLibraryTabConfigsUseCase
 import gd.app.musicplayer.domain.usecase.library.SetLibraryLastTabUseCase
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,27 +12,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * Tabs come from [LibraryTabPreferencesCache] synchronously (original [m5.n.h]
+ * SharedPreferences path) so Library never [runBlocking]s DataStore on open.
+ */
 data class LibraryScreenUiState(
-    val visibleTabs: List<LibraryTabConfig> = LibraryTabConfigStore.visibleItems(
-        LibraryTabConfigStore.defaultItems
-    ),
+    val visibleTabs: List<LibraryTabConfig> = emptyList(),
     val initialTabIndex: Int = 0
 )
 
 @HiltViewModel
 class LibraryScreenViewModel @Inject constructor(
-    private val getLibraryTabConfigsUseCase: GetLibraryTabConfigsUseCase,
-    private val getLibraryLastTabUseCase: GetLibraryLastTabUseCase,
+    private val libraryTabPreferencesCache: LibraryTabPreferencesCache,
     private val setLibraryLastTabUseCase: SetLibraryLastTabUseCase
 ) : ViewModel() {
 
-    // Paint default tabs immediately — don't wait for DataStore before ViewPager exists.
-    private val _uiState = MutableStateFlow(LibraryScreenUiState())
+    private val _uiState = MutableStateFlow(loadInitialState())
     val uiState: StateFlow<LibraryScreenUiState> = _uiState.asStateFlow()
-
-    init {
-        loadTabs()
-    }
 
     fun onTabSelected(tabId: Int) {
         val currentState = _uiState.value
@@ -48,19 +42,15 @@ class LibraryScreenViewModel @Inject constructor(
         }
     }
 
-    private fun loadTabs() {
-        viewModelScope.launch {
-            val visibleTabs = LibraryTabConfigStore.visibleItems(getLibraryTabConfigsUseCase())
-            val initialTabIndex = resolveInitialTabIndex(
+    private fun loadInitialState(): LibraryScreenUiState {
+        val visibleTabs = libraryTabPreferencesCache.peekVisibleTabs()
+        return LibraryScreenUiState(
+            visibleTabs = visibleTabs,
+            initialTabIndex = resolveInitialTabIndex(
                 items = visibleTabs,
-                lastTabId = getLibraryLastTabUseCase()
+                lastTabId = libraryTabPreferencesCache.peekLastTabId()
             )
-
-            _uiState.value = LibraryScreenUiState(
-                visibleTabs = visibleTabs,
-                initialTabIndex = initialTabIndex
-            )
-        }
+        )
     }
 
     private fun resolveInitialTabIndex(

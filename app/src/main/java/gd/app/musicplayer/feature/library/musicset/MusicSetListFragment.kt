@@ -80,11 +80,13 @@ class MusicSetListFragment : BaseListFragment() {
             setActionButtonVisible(true)
             setExtraTextVisible(true)
             setActionButtonText(getString(R.string.rescan_library))
+            setActionButtonIcon(R.drawable.ic_scan_library_button)
             setActionClickListener {
                 ScanMusicActivity.start(requireContext())
             }
             setExtraText(getString(R.string.music_empty_add))
             setEmptyMessage(getString(R.string.music_empty))
+            setEmptyLottieAsset("music_empty.json")
         }
     }
 

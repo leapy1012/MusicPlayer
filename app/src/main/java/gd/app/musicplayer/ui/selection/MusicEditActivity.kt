@@ -17,7 +17,6 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
-import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
 import gd.app.musicplayer.databinding.ActivityMusicEditBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
@@ -35,6 +34,7 @@ import gd.app.musicplayer.feature.library.ARG_MUSIC
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.menu.EditBottomMenuController
 import gd.app.musicplayer.util.SimpleTextWatcher
@@ -74,9 +74,6 @@ class MusicEditActivity :
 
     private val recyclerView: MusicRecyclerView
         get() = binding.layoutRecyclerview.recyclerview
-
-    private val indexBar: RecyclerIndexBar
-        get() = binding.layoutRecyclerview.recyclerviewIndex
 
     private val searchWatcher = SimpleTextWatcher { text ->
         onSearchTextChanged(text)
@@ -139,7 +136,7 @@ class MusicEditActivity :
             toolbar = binding.toolbar
         )
         binding.toolbar.menu.clear()
-        binding.toolbar.inflateMenu(R.menu.menu_fragment_select)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_fragment_select, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener(this)
     }
 
@@ -159,7 +156,6 @@ class MusicEditActivity :
         ).apply {
             setEmptyMessage(getString(R.string.music_empty))
         }
-        indexBar.onLabelSelected = ::scrollToLabel
     }
 
     private fun buildAdapter(): MusicEditAdapter {
@@ -271,22 +267,7 @@ class MusicEditActivity :
     }
 
     private fun renderFilteredListChrome() {
-        val filteredItems = adapter.getFilteredItems()
-        emptyStateController.setVisible(filteredItems.isEmpty())
-        indexBar.submitLabels(filteredItems.indexLabels())
-    }
-
-    private fun scrollToLabel(label: String) {
-        val index = adapter.getFilteredItems().indexOfFirst {
-            it.title.trim().startsWith(label, ignoreCase = true)
-        }
-        if (index >= 0) recyclerView.scrollToPosition(index)
-    }
-
-    private fun List<Music>.indexLabels(): List<String> {
-        return mapNotNull {
-            it.title.trim().firstOrNull()?.uppercaseChar()?.toString()
-        }.distinct()
+        emptyStateController.setVisible(adapter.getFilteredItems().isEmpty())
     }
 
     private fun MusicSet.supportsDragReorder(): Boolean {

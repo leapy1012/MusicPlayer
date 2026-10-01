@@ -77,6 +77,9 @@ class EqualizerEnableTipGuard(
 
     private fun isInAnyShield(rawX: Float, rawY: Float): Boolean {
         val location = IntArray(2)
+        val metrics = activity.resources.displayMetrics
+        val screenW = metrics.widthPixels
+        val screenH = metrics.heightPixels
         for (view in shieldViews) {
             if (!view.isShown) continue
             view.getLocationOnScreen(location)
@@ -84,6 +87,8 @@ class EqualizerEnableTipGuard(
             val top = location[1]
             val right = left + view.width
             val bottom = top + view.height
+            // Ignore off-pager pages (ViewPager2 keeps neighbours laid out beside the screen).
+            if (right <= 0 || left >= screenW || bottom <= 0 || top >= screenH) continue
             if (rawX >= left && rawX <= right && rawY >= top && rawY <= bottom) {
                 return true
             }

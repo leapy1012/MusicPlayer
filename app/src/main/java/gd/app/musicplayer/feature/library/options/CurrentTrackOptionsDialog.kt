@@ -18,9 +18,9 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 
-import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.core.designsystem.theme.DialogSurfaceColors
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.common.util.ToastUtil
-import gd.app.musicplayer.core.designsystem.drawable.roundedProgressDrawable
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
@@ -149,15 +149,6 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
         }
         volumeSeekBar = container.findViewById<SeekBar>(R.id.dialog_seek_bar).apply {
             setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC))
-            val accentColor = themeEngine.currentTheme().accentColor
-            setProgressDrawable(
-                roundedProgressDrawable(
-                    backgroundColor = 0x33FFFFFF,
-                    progressColor = accentColor,
-                    cornerRadius = context.dp(8f)
-                )
-            )
-            setThumbColor(accentColor)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                     if (fromUser) {
@@ -176,7 +167,30 @@ class CurrentTrackOptionsDialog : BaseBottomGridMenuDialog() {
                 }
             })
         }
+        applyVolumeChrome()
         syncVolumeViews()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Theme walk in BaseBottomSheetDialogFragment.onStart may run after bottom-area
+        // bind; re-paint volume chrome for the live plate.
+        applyVolumeChrome()
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        applyVolumeChrome()
+    }
+
+    private fun applyVolumeChrome() {
+        val palette = themeEngine.currentTheme()
+        volumeSeekBar?.let { DialogSurfaceColors.paintSeekBar(it, palette) }
+        val content = DialogSurfaceColors.contentColor(palette)
+        volumeText?.setTextColor(content)
+        volumeIcon?.let { icon ->
+            applyDialogItemStyle(icon, content)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

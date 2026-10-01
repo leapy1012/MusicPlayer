@@ -5,16 +5,29 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.ClipDrawable
+import android.view.Gravity
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.graphics.ColorUtils
+import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.drawable.defaultWithDisabledDrawable
+import gd.app.musicplayer.core.designsystem.drawable.disabledSelectedDefaultColors
+import gd.app.musicplayer.core.designsystem.drawable.enabledDisabledColors
+import gd.app.musicplayer.core.designsystem.drawable.layeredProgressDrawable
 import gd.app.musicplayer.core.designsystem.drawable.ovalRippleDrawable
 import gd.app.musicplayer.core.designsystem.drawable.rectRippleDrawable
+import gd.app.musicplayer.core.designsystem.drawable.roundedDrawable
 import gd.app.musicplayer.core.designsystem.drawable.roundedProgressDrawable
+import gd.app.musicplayer.core.designsystem.drawable.stateDrawable
+import gd.app.musicplayer.core.designsystem.drawable.tinted
+import gd.app.musicplayer.core.designsystem.view.RotateStepBar
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.ui.theme.ThemeTags
+import androidx.appcompat.content.res.AppCompatResources
+import android.graphics.drawable.LayerDrawable
 
 /**
  * Home-screen-focused binder: wallpaper / blur plus the tags needed for Picture chrome
@@ -67,15 +80,15 @@ class DefaultThemeBinder : ThemeViewBinder {
                 val panel = view.parent as? View
                 when (palette.getThemeType()) {
                     ThemeManager.THEME_TYPE_LIGHT -> {
+                        // Match the page wash so the mini bar doesn't read as a gray card.
                         view.setBackgroundColor(
                             resolveCouiColor(
                                 view,
-                                com.coui.appcompat.R.attr.couiColorCardBackground,
-                                0xFFFFFFFF.toInt(),
+                                com.coui.appcompat.R.attr.couiColorBackgroundWithCard,
+                                0xFFF0F1F2.toInt(),
                             )
                         )
-                        // Soft COUI card lift over page background.
-                        panel?.elevation = view.resources.displayMetrics.density * 6f
+                        panel?.elevation = 0f
                     }
                     ThemeManager.THEME_TYPE_PICTURE -> {
                         // Match header wash strength so sky/teal wallpaper reads through
@@ -198,27 +211,96 @@ class DefaultThemeBinder : ThemeViewBinder {
 
             ThemeTags.Progress.SEEK_BAR -> {
                 if (view !is SeekBar) return false
-                val accent = if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
-                    resolveCouiColor(
+                val themeType = palette.getThemeType()
+                val isLight = themeType == ThemeManager.THEME_TYPE_LIGHT
+                // Mini hairline: near-white track + accent fill (not white-on-white).
+                val isMiniHairline = view.id == gd.app.musicplayer.R.id.main_music_progress
+                val progressColor = when {
+                    isMiniHairline -> theme.accentColor
+                    isLight -> resolveCouiColor(
                         view,
                         com.coui.appcompat.R.attr.couiColorLabelTheme,
                         theme.accentColor,
                     )
-                } else {
-                    theme.accentColor
+                    else -> theme.accentColor
                 }
-                view.setThumbColor(accent)
-                val track = when (palette.getThemeType()) {
-                    ThemeManager.THEME_TYPE_PICTURE -> 0x40FFFFFF
-                    ThemeManager.THEME_TYPE_LIGHT -> 0x26000000
+                val thumbColor = when {
+                    isMiniHairline -> theme.accentColor
+                    isLight -> progressColor
+                    else -> theme.accentColor
+                }
+                view.setThumbColor(thumbColor)
+                val track = when {
+                    isMiniHairline && isLight -> Color.WHITE
+                    isMiniHairline -> 0x99FFFFFF.toInt() // soft white remaining on pictured/dark
+                    themeType == ThemeManager.THEME_TYPE_PICTURE -> 0x40FFFFFF
+                    isLight -> 0x26000000
                     else -> 0x33FFFFFF
                 }
                 view.setProgressDrawable(
                     roundedProgressDrawable(
                         backgroundColor = track,
-                        progressColor = accent,
+                        progressColor = progressColor,
                         cornerRadius = (view.context.resources.displayMetrics.density * 20f).toInt(),
                     ),
+                )
+                true
+            }
+
+            // Skeuomorphic EQ seeks (bands vertical, VOL horizontal): accent track.
+            ThemeTags.Progress.EQUALIZER_SEEK_BAR -> {
+                if (view !is SeekBar) return false
+                val accent = theme.accentColor
+                val disabled = view.context.getColor(R.color.equalizer_disable_color)
+                val trackBg = view.context.getColor(R.color.equalizer_background_color)
+                val radius = view.context.resources.displayMetrics.density * 2f
+                val vertical = view.isVertical()
+                view.setThumbOverlayColor(enabledDisabledColors(accent, disabled))
+                view.setProgressDrawable(
+                    layeredProgressDrawable(
+                        background = roundedDrawable(radius, trackBg),
+                        progress = ClipDrawable(
+                            defaultWithDisabledDrawable(
+                                roundedDrawable(radius, accent),
+                                roundedDrawable(radius, disabled),
+                            ),
+                            if (vertical) Gravity.BOTTOM else Gravity.START,
+                            if (vertical) ClipDrawable.VERTICAL else ClipDrawable.HORIZONTAL,
+                        ),
+                    ),
+                )
+                true
+            }
+
+            // Rotary Bass Boost / Virtualizer / balance: tint graduations + overlay.
+            ThemeTags.Progress.EQUALIZER_ROTATE_STEP_BAR -> {
+                if (view !is RotateStepBar) return false
+                val accent = theme.accentColor
+                val disabled = view.context.getColor(R.color.equalizer_disable_color)
+                val trackBg = view.context.getColor(R.color.equalizer_background_color)
+                val graduationTint = disabledSelectedDefaultColors(trackBg, accent, disabled)
+                view.setIndicatorOverlayTintList(enabledDisabledColors(accent, disabled))
+                view.setPrimaryGraduationTintList(graduationTint)
+                view.setSecondaryGraduationTintList(graduationTint)
+                true
+            }
+
+            ThemeTags.Progress.REVERB_ITEM -> {
+                val base = AppCompatResources.getDrawable(
+                    view.context,
+                    R.drawable.equalizer_button,
+                )
+                val selectedOverlay = AppCompatResources
+                    .getDrawable(view.context, R.drawable.equalizer_button_select)
+                    ?.mutate()
+                    ?.tinted(ColorUtils.setAlphaComponent(theme.accentColor, 204))
+                view.background = stateDrawable(
+                    defaultDrawable = base,
+                    selectedDrawable = if (base != null && selectedOverlay != null) {
+                        LayerDrawable(arrayOf(base, selectedOverlay))
+                    } else {
+                        base
+                    },
                 )
                 true
             }
@@ -269,10 +351,12 @@ class DefaultThemeBinder : ThemeViewBinder {
         toolbar.setSubtitleTextColor(
             ColorUtils.setAlphaComponent(color, ThemeBindDefaults.TEXT_SECONDARY_ALPHA),
         )
-        toolbar.navigationIcon?.setTint(color)
-        toolbar.overflowIcon?.setTint(color)
+        toolbar.navigationIcon?.mutate()?.setTint(color)
+        toolbar.overflowIcon?.mutate()?.setTint(color)
         for (index in 0 until toolbar.menu.size()) {
-            toolbar.menu.getItem(index).icon?.setTint(color)
+            val icon = toolbar.menu.getItem(index).icon ?: continue
+            icon.mutate().setTint(color)
+            toolbar.menu.getItem(index).icon = icon
         }
     }
 

@@ -17,7 +17,8 @@ class PlayerSheetController(
     private val miniPlayer: View,
     private val fullPlayer: View,
     private val insetTarget: View? = null,
-    private val onMiniPlayerClick: () -> Unit
+    private val onMiniPlayerClick: () -> Unit,
+    private val onBeforeShowFullPlayer: (() -> Unit)? = null
 ) {
 
     val behavior: BottomSheetBehavior<FrameLayout> =
@@ -39,6 +40,7 @@ class PlayerSheetController(
     }
 
     fun expand() {
+        onBeforeShowFullPlayer?.invoke()
         behavior.state = BottomSheetBehavior.STATE_EXPANDED
     }
 
@@ -51,6 +53,9 @@ class PlayerSheetController(
     }
 
     private fun setupBehavior() {
+        // Material applies the nav/gesture inset as sheet padding by default, which stacks
+        // on top of our own height + content pad and leaves a dead strip above the 3-button bar.
+        behavior.isGestureInsetBottomIgnored = true
         behavior.state = BottomSheetBehavior.STATE_COLLAPSED
 
         behavior.addBottomSheetCallback(
@@ -59,10 +64,14 @@ class PlayerSheetController(
                 override fun onStateChanged(bottomSheet: View, newState: Int) {
                     when (newState) {
                         BottomSheetBehavior.STATE_COLLAPSED -> renderCollapsed()
-                        BottomSheetBehavior.STATE_EXPANDED -> renderExpanded()
+                        BottomSheetBehavior.STATE_EXPANDED -> {
+                            onBeforeShowFullPlayer?.invoke()
+                            renderExpanded()
+                        }
 
                         BottomSheetBehavior.STATE_DRAGGING,
                         BottomSheetBehavior.STATE_SETTLING -> {
+                            onBeforeShowFullPlayer?.invoke()
                             miniPlayer.visibility = View.VISIBLE
                             fullPlayer.visibility = View.VISIBLE
                         }
@@ -80,11 +89,16 @@ class PlayerSheetController(
     }
 
     private fun setupInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(playerSheet) { _, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(playerSheet) { view, insets ->
             val navBottom = insets
-                .getInsets(WindowInsetsCompat.Type.systemBars())
+                .getInsets(WindowInsetsCompat.Type.navigationBars())
                 .bottom
             navigationBarInset = navBottom
+
+            // Drop any padding Material may have applied before gesture insets were ignored.
+            if (view.paddingBottom != 0 || view.paddingLeft != 0 || view.paddingRight != 0) {
+                view.setPadding(0, 0, 0, 0)
+            }
 
             val collapsedSheetHeight = collapsedHeight + navBottom
             val expandedSheetHeight = expandedHeight + navBottom

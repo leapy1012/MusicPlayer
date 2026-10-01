@@ -4,6 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.annotation.DrawableRes
+import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import com.coui.appcompat.toolbar.COUIToolbar
@@ -36,6 +37,15 @@ fun BaseActivity.setupEdgeToEdgeToolbar(
     toolbar.navigateBack(this)
     toolbar.applyCouiLeftTitle()
     toolbar.ensureAppBarDivider()
+}
+
+/**
+ * Inflate a toolbar menu then re-run theme binding so white app vectors pick up light/dark tints.
+ * Activities theme before [inflateMenu]; fragments that theme after inflate can keep using [inflateMenu].
+ */
+fun Toolbar.inflateThemedMenu(@MenuRes menuRes: Int, applyTheme: (View) -> Unit) {
+    inflateMenu(menuRes)
+    applyTheme(this)
 }
 
 /**

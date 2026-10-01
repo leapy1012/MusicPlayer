@@ -28,6 +28,7 @@ import gd.app.musicplayer.databinding.ActivityMusicSelectBinding
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.menu.SortByContextMenu
 import gd.app.musicplayer.util.SimpleTextWatcher
@@ -45,7 +46,6 @@ class MusicSelectActivity : BaseActivity() {
     private lateinit var folderAdapter: FolderSelectAdapter
     private lateinit var concatAdapter: ConcatAdapter
 
-    private var indexEntries: List<IndexEntry> = emptyList()
     private var renderingSpinner = false
 
     private val searchWatcher = SimpleTextWatcher { query ->
@@ -85,7 +85,6 @@ class MusicSelectActivity : BaseActivity() {
 
     override fun onDestroy() {
         binding.searchBar.searchEditText?.removeTextChangedListener(searchWatcher)
-        binding.layoutRecyclerview.recyclerviewIndex.submitLabels(emptyList())
         super.onDestroy()
     }
 
@@ -98,7 +97,7 @@ class MusicSelectActivity : BaseActivity() {
             titleRes = R.string.add_songs
         )
 
-        binding.toolbar.inflateMenu(R.menu.menu_activity_music_select)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_music_select, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener(::onToolbarMenuItemClicked)
     }
 
@@ -155,8 +154,6 @@ class MusicSelectActivity : BaseActivity() {
         mainInfoSpinner.setOnItemClickListener { _: AdapterView<*>?, _: View?, position: Int, _: Long ->
             onSpinnerItemClicked(position)
         }
-
-        layoutRecyclerview.recyclerviewIndex.onLabelSelected = ::scrollToIndexLabel
     }
 
     private fun setupBackPress() {
@@ -187,7 +184,6 @@ class MusicSelectActivity : BaseActivity() {
         renderToolbar(state)
         renderSpinner(state)
         renderSelectAll(state)
-        renderIndexBar(state)
     }
 
     private fun renderList(state: MusicSelectUiState) {
@@ -230,7 +226,7 @@ class MusicSelectActivity : BaseActivity() {
             highlightQuery = state.header.query
         )
 
-        emptyStateController.setEmptyImage(R.drawable.music_empty_image)
+        emptyStateController.setEmptyLottieAsset("music_empty.json")
         emptyStateController.setEmptyMessage(getString(R.string.music_empty))
     }
 
@@ -321,13 +317,6 @@ class MusicSelectActivity : BaseActivity() {
         )
     }
 
-    private fun renderIndexBar(state: MusicSelectUiState) {
-        indexEntries = state.indexEntries()
-        binding.layoutRecyclerview.recyclerviewIndex.submitLabels(
-            indexEntries.map(IndexEntry::label)
-        )
-    }
-
     private fun handleEvent(event: MusicSelectEvent) {
         when (event) {
             is MusicSelectEvent.ConfirmSubmitted -> {
@@ -384,16 +373,6 @@ class MusicSelectActivity : BaseActivity() {
         viewModel.onSpinnerMusicSetSelected(selected)
     }
 
-    private fun scrollToIndexLabel(label: String) {
-        val position = indexEntries
-            .firstOrNull { entry -> entry.label == label }
-            ?.position
-            ?: return
-
-        (binding.layoutRecyclerview.recyclerview.layoutManager as? LinearLayoutManager)
-            ?.scrollToPositionWithOffset(position, 0)
-    }
-
     private fun labelForSet(set: MusicSet): String {
         return when (set) {
             is MusicSet.Tracks -> getString(R.string.all_songs)
@@ -417,33 +396,6 @@ class MusicSelectActivity : BaseActivity() {
         return content.songItems.count { music ->
             music.id !in actions.lockedSongIds
         }
-    }
-
-    private fun MusicSelectUiState.indexEntries(): List<IndexEntry> {
-        val source = if (header.isBrowsingFolders) {
-            content.folderItems.map { item -> item.name }
-        } else {
-            content.songItems.map { item -> item.title }
-        }
-
-        val entries = linkedMapOf<String, Int>()
-
-        source.forEachIndexed { index, value ->
-            val label = value.toIndexLabel() ?: return@forEachIndexed
-            entries.putIfAbsent(label, index)
-        }
-
-        return entries.map { (label, position) ->
-            IndexEntry(
-                label = label,
-                position = position
-            )
-        }
-    }
-
-    private fun String.toIndexLabel(): String? {
-        val first = trim().firstOrNull()?.uppercaseChar() ?: return null
-        return if (first.isLetter()) first.toString() else "#"
     }
 
     private fun MusicSet.sameIdentityAs(other: MusicSet): Boolean {
@@ -488,8 +440,3 @@ class MusicSelectActivity : BaseActivity() {
         }
     }
 }
-
-private data class IndexEntry(
-    val label: String,
-    val position: Int
-)

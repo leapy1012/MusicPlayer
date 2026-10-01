@@ -79,7 +79,7 @@ open class PictureThemePalette : BaseThemePalette() {
 
     override fun getThemeType(): Int = ThemeManager.THEME_TYPE_PICTURE
 
-    override fun getDefaultAccentColor(): Int = -12467
+    override fun getDefaultAccentColor(): Int = -16752385 // #FF0066FF — COUI Blue primary
 
     override fun getDialogSurfaceDrawable(context: Context): Drawable =
         DialogBackgroundFactory.pictureDialogBackground(context, blurredBitmap)

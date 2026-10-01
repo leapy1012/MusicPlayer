@@ -89,10 +89,7 @@ class PlaylistFragment :
     }
 
     private fun setupInsets(binding: FragmentPlaylistBinding) = with(binding) {
-        root.applySystemBarInsets(
-            statusBarSpace,
-            root
-        )
+        root.applySystemBarInsets(statusBarSpace)
     }
 
     private fun setupToolbar(binding: FragmentPlaylistBinding) = with(binding) {

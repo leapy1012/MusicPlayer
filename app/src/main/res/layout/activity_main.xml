@@ -4,12 +4,14 @@
     android:id="@+id/main_drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="false"
     android:tag="activityBackgroundColor">
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:id="@+id/main_content"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="false">
 
         <LinearLayout
             android:id="@+id/main_drawer_content"
@@ -34,6 +36,8 @@
             app:behavior_hideable="false"
             app:behavior_peekHeight="@dimen/main_control_banner_height"
             app:behavior_skipCollapsed="false"
+            app:gestureInsetBottomIgnored="true"
+            app:paddingBottomSystemWindowInsets="false"
             app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
             <androidx.fragment.app.FragmentContainerView

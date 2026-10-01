@@ -1,16 +1,20 @@
 package gd.app.musicplayer.feature.player
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import com.coui.appcompat.button.COUIButton
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
+import gd.app.musicplayer.core.designsystem.theme.DialogSurfaceColors
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.databinding.DialogTempoBinding
@@ -34,7 +38,7 @@ class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarCh
         get() = checkNotNull(_binding)
 
     private val playbackViewModel: PlayerViewModel by viewModels()
-    private lateinit var speedButtons: List<TextView>
+    private lateinit var speedButtons: List<COUIButton>
 
     override fun onCreateBottomSheetView(
         inflater: LayoutInflater,
@@ -62,13 +66,57 @@ class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarCh
         binding.popupRefreshTempo.setOnClickListener { setSpeedFactor(1f, fromUser = true) }
 
         val presetSpeeds = listOf(0.5f, 1.0f, 1.5f, 2.0f)
-        speedButtons.forEachIndexed { index, textView ->
-            textView.setOnClickListener {
+        speedButtons.forEachIndexed { index, button ->
+            button.setOnClickListener {
                 setSpeedFactor(presetSpeeds[index], fromUser = true)
             }
         }
 
+        applyDialogChrome()
         renderFromPreferences()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        applyDialogChrome()
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        applyDialogChrome()
+    }
+
+    private fun applyDialogChrome() {
+        val root = _binding?.root ?: return
+        val palette = themeEngine.currentTheme()
+        DialogSurfaceColors.paintContent(
+            root = root,
+            palette = palette,
+            skip = { it is COUIButton },
+        )
+        DialogSurfaceColors.paintSeekBar(binding.popupSeekPitch, palette)
+        DialogSurfaceColors.paintSeekBar(binding.popupSeekTempo, palette)
+        if (::speedButtons.isInitialized) {
+            val selected = speedButtons.indexOfFirst { it.isSelected }.takeIf { it >= 0 }
+                ?: presetSpeedIndex(progressToSpeed(binding.popupSeekTempo.getProgress()))
+            paintSpeedButtons(selected, palette)
+        }
+    }
+
+    private fun paintSpeedButtons(selectedIndex: Int, palette: ThemePalette) {
+        val accent = palette.getAccentColor()
+        val softFill = ColorUtils.setAlphaComponent(accent, 0x1A)
+        speedButtons.forEachIndexed { index, button ->
+            val selected = index == selectedIndex
+            button.isSelected = selected
+            if (selected) {
+                button.setDrawableColor(accent)
+                button.setTextColor(Color.WHITE)
+            } else {
+                button.setDrawableColor(softFill)
+                button.setTextColor(accent)
+            }
+        }
     }
 
     private fun renderFromPreferences() {
@@ -126,10 +174,7 @@ class TempoDialogFragment : BaseBottomSheetDialogFragment(), SeekBar.OnSeekBarCh
         val speed = progressToSpeed(progress)
         binding.popupTextTempo.text =
             getString(R.string.equalizer_speed) + ": " + formatSpeed(speed) + " x"
-        val selectedIndex = presetSpeedIndex(speed)
-        speedButtons.forEachIndexed { index, textView ->
-            textView.isSelected = index == selectedIndex
-        }
+        paintSpeedButtons(presetSpeedIndex(speed), themeEngine.currentTheme())
     }
 
     private fun persistPitch(factor: Float) {

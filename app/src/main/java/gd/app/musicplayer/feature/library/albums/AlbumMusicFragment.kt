@@ -4,10 +4,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isInvisible
+import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.commit
 import androidx.fragment.app.setFragmentResultListener
@@ -102,14 +105,21 @@ class AlbumMusicFragment :
         val statusBarHeight = requireContext().resolveStatusBarHeightPx()
         if (statusBarHeight > 0) {
             binding.toolbar.updatePadding(top = statusBarHeight)
+            binding.collapsedTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = statusBarHeight
+            }
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             if (systemBars.top > 0 && binding.toolbar.paddingTop != systemBars.top) {
                 binding.toolbar.updatePadding(top = systemBars.top)
+                binding.collapsedTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    topMargin = systemBars.top
+                }
             }
-            binding.root.updatePadding(bottom = systemBars.bottom)
+            // Bottom clearance for the miniplayer is owned by PlayerSheetController
+            // (content margin = banner + nav). Do not also pad the fragment root.
             insets
         }
         ViewCompat.requestApplyInsets(binding.root)
@@ -121,7 +131,6 @@ class AlbumMusicFragment :
             navigateBack(this@AlbumMusicFragment)
             menu.clear()
             inflateMenu(R.menu.menu_fragment_music)
-            title = musicSet.toolbarTitle
             menu.findItem(R.id.menu_add)?.isVisible = musicSet.supportsAddTracks
             setOnMenuItemClickListener(this@AlbumMusicFragment)
         }
@@ -131,8 +140,8 @@ class AlbumMusicFragment :
             setContentScrimColor(0)
             setStatusBarScrimColor(0)
             isTitleEnabled = false
-            title = null
         }
+        applyTitlesForHeaderMode(binding, collapsed = isCompactHeader)
     }
 
     private fun setupHeader(binding: FragmentAlbumMusicBinding) {
@@ -179,6 +188,8 @@ class AlbumMusicFragment :
         }
         binding.musicsetAlbum.visibility = View.GONE
         binding.musicsetAlbum.alpha = 0f
+        binding.expandedTitle.isVisible = false
+        applyTitlesForHeaderMode(binding, collapsed = true)
         binding.appbarLayout.setExpanded(true, false)
     }
 
@@ -196,18 +207,22 @@ class AlbumMusicFragment :
         }
 
         binding.musicsetAlbum.visibility = View.VISIBLE
-        binding.collapsingToolbar.title = musicSet.name
-        binding.collapsingToolbar.isTitleEnabled = true
+        binding.expandedTitle.isVisible = true
+        binding.expandedTitle.text = musicSet.toolbarTitle
+        applyTitlesForHeaderMode(binding, collapsed = false)
+
+        // Tall hero makes COUI's divider range == app-bar height, so overscroll never
+        // reaches endMargin (full width). Keep the fade, but always draw edge-to-edge.
+        binding.appbarLayout.setDividerStartMarginHorizontal(0)
+        binding.appbarLayout.setDividerEndMarginHorizontal(0)
+        binding.appbarLayout.refreshDivider()
 
         bindHeaderImage(
             albumImage = binding.musicsetAlbum,
             albumArt = musicSet.albumArt
         )
 
-        bindHeaderCollapseEffect(
-            appBarLayout = binding.appbarLayout,
-            albumImage = binding.musicsetAlbum
-        )
+        bindHeaderCollapseEffect(binding)
     }
 
     private fun bindHeaderImage(
@@ -226,21 +241,46 @@ class AlbumMusicFragment :
             .into(albumImage)
     }
 
-    private fun bindHeaderCollapseEffect(
-        appBarLayout: AppBarLayout,
-        albumImage: MaskImageView
-    ) {
-        appBarLayout.addOnOffsetChangedListener { layout, verticalOffset ->
-            val totalScroll = layout.totalScrollRange.toFloat()
+    private fun bindHeaderCollapseEffect(binding: FragmentAlbumMusicBinding) {
+        var wasCollapsed = false
+        binding.appbarLayout.addOnOffsetChangedListener(
+            AppBarLayout.OnOffsetChangedListener { layout, verticalOffset ->
+                val totalScroll = layout.totalScrollRange.toFloat()
+                val progress = if (totalScroll > 0f) {
+                    abs(verticalOffset) / totalScroll
+                } else {
+                    0f
+                }
 
-            val progress = if (totalScroll > 0f) {
-                abs(verticalOffset) / totalScroll
-            } else {
-                0f
+                binding.musicsetAlbum.alpha = 1f - progress
+                // Fade the hero title out as the bar collapses; hand off to toolbar.
+                binding.expandedTitle.alpha = (1f - progress / COLLAPSED_TITLE_THRESHOLD)
+                    .coerceIn(0f, 1f)
+                val collapsed = progress >= COLLAPSED_TITLE_THRESHOLD
+                binding.expandedTitle.isInvisible = collapsed
+                if (collapsed != wasCollapsed) {
+                    wasCollapsed = collapsed
+                    applyTitlesForHeaderMode(binding, collapsed = collapsed)
+                }
             }
+        )
+    }
 
-            albumImage.alpha = 1f - progress
-        }
+    /**
+     * Compact / collapsed → show pinned [collapsedTitle].
+     * Expanded hero → [expandedTitle] only; keep COUIToolbar title empty (its TextView
+     * is detached by setTitle("") and is not a reliable collapsed handoff).
+     */
+    private fun applyTitlesForHeaderMode(
+        binding: FragmentAlbumMusicBinding,
+        collapsed: Boolean
+    ) {
+        val title = musicSet.toolbarTitle
+        binding.expandedTitle.text = title
+        binding.collapsedTitle.text = title
+        binding.collapsedTitle.isVisible = collapsed
+        // Keep COUIToolbar title clear so it never fights the pinned collapsed label.
+        binding.toolbar.title = null
     }
 
     override fun onMenuItemClick(item: MenuItem): Boolean {
@@ -379,10 +419,10 @@ class AlbumMusicFragment :
         val previousSet = musicSet
         musicSet = newSet
         val binding = requireBinding()
-        binding.toolbar.title = musicSet.toolbarTitle
-        if (!isCompactHeader) {
-            binding.collapsingToolbar.title = musicSet.name
-        }
+        val collapsed = isCompactHeader ||
+            binding.expandedTitle.isInvisible ||
+            binding.expandedTitle.alpha < 0.1f
+        applyTitlesForHeaderMode(binding, collapsed = collapsed)
         if (shouldRecreateTrackListForRename(previousSet, newSet)) {
             childTrackListFragment?.onMusicSetRenamed(newSet)
         }
@@ -499,6 +539,8 @@ class AlbumMusicFragment :
     companion object {
         private const val HEADER_MASK_COLOR = 0x33000000
         private const val HEADER_HEIGHT_RATIO = 0.6f
+        /** Show pinned toolbar title once the hero is mostly collapsed. */
+        private const val COLLAPSED_TITLE_THRESHOLD = 0.82f
         private const val TAG_RENAME_PLAYLIST_DIALOG = "rename_playlist_dialog"
 
         fun newInstance(musicSet: MusicSet): AlbumMusicFragment {

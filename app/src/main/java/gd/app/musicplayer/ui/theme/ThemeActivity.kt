@@ -2,11 +2,14 @@ package gd.app.musicplayer.ui.theme
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -19,6 +22,10 @@ import gd.app.musicplayer.core.common.extension.screenHeight
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.accentColor
+import gd.app.musicplayer.core.designsystem.theme.headerSubtitleColor
+import gd.app.musicplayer.core.designsystem.theme.headerTitleColor
 import gd.app.musicplayer.databinding.ActivityThemeBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
@@ -104,12 +111,16 @@ class ThemeActivity : BaseActivity() {
         )
         binding.themeEdit.setOnClickListener { ThemeEditActivity.start(this) }
         updateEditVisibility(themeEngine.currentTheme().getThemeType())
+        applyHeaderChrome()
     }
 
     private fun setupAccentColorDialog() {
         binding.themeAccentColor.setOnClickListener {
             val fallbackColor = themeRepo.getAccentColor()
             viewModel.onAccentColorClicked(fallbackColor)
+        }
+        binding.themeAccentRing.setOnClickListener {
+            binding.themeAccentColor.performClick()
         }
 
         supportFragmentManager.setFragmentResultListener(
@@ -118,8 +129,70 @@ class ThemeActivity : BaseActivity() {
         ) { _, result ->
             if (result.containsKey(SelectAccentColorDialog.RESULT_COLOR)) {
                 applyThemeTo(binding.root)
+                applyHeaderChrome()
             }
         }
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        if (::binding.isInitialized) {
+            applyHeaderChrome()
+        }
+    }
+
+    /**
+     * Tab labels and header action icons sit outside [Toolbar], so the toolbar binder
+     * never reaches them. Light → dark neutrals; dark / pictured → light colors.
+     */
+    private fun applyHeaderChrome() {
+        val palette = themeEngine.currentTheme()
+        val isLight = palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+        val accent = themeRepo.getAccentColor().takeIf { it != 0 } ?: palette.accentColor
+
+        val unselectedTabColor = if (isLight) {
+            resolveAttrColor(
+                com.coui.appcompat.R.attr.couiColorSecondNeutral,
+                palette.headerSubtitleColor,
+            )
+        } else {
+            palette.headerSubtitleColor
+        }
+        binding.tabLayout.setTabTextColors(unselectedTabColor, accent)
+        binding.tabLayout.setSelectedTabIndicatorColor(accent)
+
+        val iconColor = if (isLight) {
+            resolveAttrColor(
+                com.coui.appcompat.R.attr.couiColorPrimaryNeutral,
+                palette.headerTitleColor,
+            )
+        } else {
+            palette.headerTitleColor
+        }
+        binding.themeEdit.imageTintList = ColorStateList.valueOf(iconColor)
+
+        val density = resources.displayMetrics.density
+        binding.themeAccentRing.setImageDrawable(
+            GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(ColorUtils.setAlphaComponent(iconColor, if (isLight) 0x1A else 0x33))
+            }
+        )
+        binding.themeAccentColor.setImageDrawable(
+            GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(accent)
+                // Keep a thin rim so the swatch reads on light headers when accent is pale.
+                setStroke((1.5f * density).toInt().coerceAtLeast(1), iconColor)
+            }
+        )
+    }
+
+    private fun resolveAttrColor(attr: Int, fallback: Int): Int {
+        val typed = obtainStyledAttributes(intArrayOf(attr))
+        val color = typed.getColor(0, fallback)
+        typed.recycle()
+        return color
     }
 
     private fun setupPager() {
@@ -180,6 +253,7 @@ class ThemeActivity : BaseActivity() {
 
                         ThemeEffect.ApplyTheme -> {
                             applyThemeTo(binding.root)
+                            applyHeaderChrome()
                         }
                     }
                 }

@@ -35,7 +35,7 @@
             app:srcCompat="@drawable/vector_lyric_reset" />
     </LinearLayout>
 
-    <com.coui.appcompat.edittext.COUIEditText
+    <gd.app.musicplayer.core.designsystem.view.CouiDialogEditText
         android:id="@+id/edittext"
         style="?attr/couiEditTextLineHintDisableStyle"
         android:layout_width="match_parent"
@@ -45,7 +45,9 @@
         android:layout_marginEnd="@dimen/support_preference_dialog_edittext_margin_horizontal"
         android:layout_marginBottom="@dimen/coui_edittextdialog_marginbottom"
         android:cursorVisible="true"
-        android:minHeight="@dimen/support_preference_dialog_edittext_min_height"
+        android:minHeight="0dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         app:quickDelete="true" />

@@ -1,8 +1,13 @@
 package gd.app.musicplayer.ui.common.menu
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.view.View
+import android.view.WindowManager
 import android.widget.AdapterView
+import android.widget.PopupWindow
+import androidx.appcompat.content.res.AppCompatResources
 import com.coui.appcompat.poplist.COUIPopupListWindow
 import com.coui.appcompat.poplist.PopupListItem
 import gd.app.musicplayer.R
@@ -20,6 +25,14 @@ import java.util.ArrayList
 
 /**
  * Library / playlist overflow menu backed by COUI [COUIPopupListWindow].
+ *
+ * Submenus ("View as", "Sort by") are shown as a **second** popup over the parent so the
+ * parent stays visible (Oppo-style). Phone COUI's built-in submenu replaces the parent
+ * in-place, which is why we do not attach [PopupListItem.setSubMenuItemList].
+ *
+ * The overlay submenu must be anchored to an **activity-rooted** view (the original
+ * overflow host), never to a row inside the parent popup — nesting [PopupWindow] tokens
+ * throws [WindowManager.BadTokenException].
  */
 class ContextMenu(
     private val context: Context,
@@ -32,7 +45,11 @@ class ContextMenu(
 ) {
 
     private var popup: COUIPopupListWindow? = null
+    private var subPopup: COUIPopupListWindow? = null
+    /** Activity-window anchor from [show]; used for overlay submenus (valid window token). */
+    private var hostAnchor: View? = null
     private var items: ArrayList<PopupListItem> = ArrayList()
+    private val subMenus = LinkedHashMap<Int, ArrayList<PopupListItem>>()
     private var openSubMenuParentId: Int = -1
 
     fun show(anchor: View) {
@@ -41,24 +58,37 @@ class ContextMenu(
         items = buildItems()
         if (items.isEmpty()) return
 
-        val window = COUIPopupListWindow(context).also { popup = it }
+        hostAnchor = anchor
+        CouiPopupListSurface.paintItemTitles(context, items, theme)
+        subMenus.values.forEach { CouiPopupListSurface.paintItemTitles(context, it, theme) }
+
+        val window = COUIPopupListWindow(
+            CouiPopupListSurface.popupContext(context, theme)
+        ).also { popup = it }
         window.setItemList(items)
-        window.setOnItemClickListener(AdapterView.OnItemClickListener { _, _, position, _ ->
+        window.setOnItemClickListener(AdapterView.OnItemClickListener { _, itemView, position, _ ->
             val item = items.getOrNull(position) ?: return@OnItemClickListener
-            if (item.hasSubMenu()) {
+            val subItems = subMenus[item.id]
+            if (subItems != null) {
                 openSubMenuParentId = item.id
+                showOverlaySubMenu(itemView, subItems)
                 return@OnItemClickListener
             }
             dispatchMainAction(item.id)
             dismiss()
         })
-        window.setSubMenuClickListener(AdapterView.OnItemClickListener { _, _, position, _ ->
-            handleSubMenuClick(position)
-            dismiss()
-        })
+        window.setOnDismissListener(
+            PopupWindow.OnDismissListener {
+                // Parent dismissed (outside tap / back) — drop any open overlay submenu.
+                if (popup === window) {
+                    dismissSubMenuOnly()
+                    popup = null
+                    openSubMenuParentId = -1
+                }
+            }
+        )
         CouiPopupListSurface.apply(window, context, theme.getDialogSurfaceDrawable(context))
         window.show(anchor)
-        // COUI may re-bind outline bg during show; re-apply after layout.
         anchor.post {
             if (popup === window) {
                 CouiPopupListSurface.apply(
@@ -71,13 +101,103 @@ class ContextMenu(
     }
 
     fun dismiss() {
+        dismissSubMenuOnly()
+        popup?.setOnDismissListener(null)
         popup?.dismiss()
         popup = null
+        hostAnchor = null
         openSubMenuParentId = -1
+    }
+
+    private fun dismissSubMenuOnly() {
+        val parent = popup
+        subPopup?.setOnDismissListener(null)
+        subPopup?.dismiss()
+        subPopup = null
+        restoreParentAfterSubMenu(parent)
+    }
+
+    private fun showOverlaySubMenu(itemView: View, subItems: ArrayList<PopupListItem>) {
+        val parent = popup ?: return
+        val activity = context.findActivity()
+        if (activity == null || activity.isFinishing || activity.isDestroyed) return
+
+        // Must use an activity-rooted token. itemView lives in the parent PopupWindow;
+        // COUI show() → showAtLocation(itemView.rootView) would BadToken.
+        val stableAnchor = resolveStableSubMenuAnchor(activity) ?: return
+
+        dismissSubMenuOnly()
+        prepareParentForSubMenu(parent)
+
+        val window = COUIPopupListWindow(
+            CouiPopupListSurface.popupContext(context, theme)
+        ).also { subPopup = it }
+        window.setItemList(subItems)
+        window.setOnItemClickListener(AdapterView.OnItemClickListener { _, _, position, _ ->
+            handleSubMenuClick(position)
+            dismiss()
+        })
+        window.setOnDismissListener(
+            PopupWindow.OnDismissListener {
+                if (subPopup === window) {
+                    subPopup = null
+                    restoreParentAfterSubMenu(popup)
+                }
+            }
+        )
+        CouiPopupListSurface.apply(window, context, theme.getDialogSurfaceDrawable(context))
+
+        val itemLoc = IntArray(2)
+        val hostLoc = IntArray(2)
+        itemView.getLocationOnScreen(itemLoc)
+        stableAnchor.getLocationOnScreen(hostLoc)
+        val offsetX = itemLoc[0] - hostLoc[0]
+        val offsetY = itemLoc[1] - hostLoc[1]
+
+        try {
+            window.show(stableAnchor, offsetX, offsetY)
+        } catch (_: WindowManager.BadTokenException) {
+            subPopup = null
+            restoreParentAfterSubMenu(parent)
+            return
+        }
+
+        stableAnchor.post {
+            if (subPopup === window) {
+                CouiPopupListSurface.apply(
+                    window,
+                    context,
+                    theme.getDialogSurfaceDrawable(context)
+                )
+            }
+        }
+    }
+
+    private fun resolveStableSubMenuAnchor(activity: Activity): View? {
+        val host = hostAnchor
+        if (host != null && host.isAttachedToWindow && host.windowToken != null) {
+            return host
+        }
+        val decor = activity.window?.decorView ?: return null
+        return decor.takeIf { it.windowToken != null }
+    }
+
+    private fun prepareParentForSubMenu(parent: COUIPopupListWindow) {
+        parent.isFocusable = false
+        parent.setDismissTouchOutside(false)
+        parent.update()
+    }
+
+    private fun restoreParentAfterSubMenu(parent: COUIPopupListWindow?) {
+        if (parent == null || !parent.isShowing) return
+        parent.isFocusable = true
+        parent.setDismissTouchOutside(true)
+        parent.update()
     }
 
     private fun buildItems(): ArrayList<PopupListItem> {
         val list = ArrayList<PopupListItem>()
+        subMenus.clear()
 
         list += item(ID_SELECT, R.string.select)
 
@@ -86,7 +206,7 @@ class ContextMenu(
         }
 
         if (musicSet.supportsViewModeMenu) {
-            list += item(ID_VIEW_AS, R.string.view_as, viewAsSubItems())
+            list += branchItem(ID_VIEW_AS, R.string.view_as, viewAsSubItems())
         }
 
         if (musicSet.supportsPlayNextMenu) {
@@ -94,7 +214,7 @@ class ContextMenu(
         }
 
         if (musicSet.supportsSortMenu) {
-            list += item(ID_SORT_BY, R.string.sort_by, sortSubItems())
+            list += branchItem(ID_SORT_BY, R.string.sort_by, sortSubItems())
         }
 
         addTrackCollectionItems(list)
@@ -148,12 +268,8 @@ class ContextMenu(
     }
 
     private fun handleSubMenuClick(position: Int) {
-        val parent = items.firstOrNull { it.id == openSubMenuParentId } ?: return
-        val subItems = parent.subMenuItemList ?: return
-        // On small screens COUI prepends the parent header; skip non-data rows.
-        val clicked = subItems.getOrNull(position)
-            ?: subItems.getOrNull(position - 1)
-            ?: return
+        val subItems = subMenus[openSubMenuParentId] ?: return
+        val clicked = subItems.getOrNull(position) ?: return
 
         when (openSubMenuParentId) {
             ID_VIEW_AS -> onAction(
@@ -202,18 +318,32 @@ class ContextMenu(
         }
     }
 
-    private fun item(
+    private fun item(id: Int, titleRes: Int): PopupListItem {
+        return PopupListItem.Builder()
+            .setId(id)
+            .setTitle(context.getString(titleRes))
+            .setIsEnable(true)
+            .build()
+    }
+
+    /** Parent row that opens an overlay submenu — chevron only, no COUI built-in sub list. */
+    private fun branchItem(
         id: Int,
         titleRes: Int,
-        subItems: ArrayList<PopupListItem>? = null
+        subItems: ArrayList<PopupListItem>
     ): PopupListItem {
+        subMenus[id] = subItems
+        val arrow = AppCompatResources.getDrawable(
+            context,
+            com.coui.appcompat.R.drawable.coui_btn_next
+        )
         return PopupListItem.Builder()
             .setId(id)
             .setTitle(context.getString(titleRes))
             .setIsEnable(true)
             .apply {
-                if (subItems != null) {
-                    setSubMenuItemList(subItems)
+                if (arrow != null) {
+                    setOperateIcon(arrow)
                 }
             }
             .build()
@@ -226,6 +356,15 @@ class ContextMenu(
             .setIsEnable(true)
             .setIsChecked(checked)
             .build()
+    }
+
+    private fun Context.findActivity(): Activity? {
+        var current: Context? = this
+        while (current is ContextWrapper) {
+            if (current is Activity) return current
+            current = current.baseContext
+        }
+        return current as? Activity
     }
 
     private companion object {

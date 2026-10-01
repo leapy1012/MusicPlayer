@@ -30,6 +30,7 @@ import gd.app.musicplayer.ui.common.applyCouiListBackground
 import gd.app.musicplayer.ui.common.applyListRowFeedback
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.viewholder.HiddenFolderHeaderViewHolder
 import gd.app.musicplayer.ui.common.viewholder.HiddenFolderViewHolder
@@ -67,7 +68,7 @@ class HiddenFoldersActivity : BaseActivity() {
             titleRes = R.string.hidden_folders
         )
 
-        binding.toolbar.inflateMenu(R.menu.menu_activity_hidden_folders)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_hidden_folders, ::applyThemeTo)
 
         binding.toolbar.setOnMenuItemClickListener { menuItem ->
             if (menuItem.itemId == R.id.menu_add) {
@@ -117,10 +118,11 @@ class HiddenFoldersActivity : BaseActivity() {
             setActionButtonVisible(true)
             setExtraTextVisible(false)
             setActionButtonText(getString(R.string.add_files))
+            setActionButtonIcon(R.drawable.ic_add_files_button)
             setActionClickListener {
                 HiddenFoldersAddActivity.start(this@HiddenFoldersActivity)
             }
-            setEmptyImage(R.drawable.folder_empty_image)
+            setEmptyLottieAsset("folder_empty.json")
             setEmptyMessage(getString(R.string.no_hidden_folders))
         }
     }

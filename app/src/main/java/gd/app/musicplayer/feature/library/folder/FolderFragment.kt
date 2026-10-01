@@ -27,7 +27,7 @@ class FolderFragment : ViewBindingFragment<FragmentFolderBinding>() {
         super.onBindingCreated(binding, savedInstanceState)
 
         with(binding) {
-            root.applySystemBarInsets(statusBarSpace, root)
+            root.applySystemBarInsets(statusBarSpace)
             toolbar.applyCouiLeftTitle()
             toolbar.navigateBack(this@FolderFragment)
             toolbar.menu.clear()

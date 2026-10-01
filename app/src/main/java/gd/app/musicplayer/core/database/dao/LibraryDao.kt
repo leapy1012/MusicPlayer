@@ -54,6 +54,26 @@ interface LibraryDao : LibraryVisibleTracksDao {
     @Query("SELECT MAX(date_modified) FROM musictbl")
     suspend fun getMaxTrackDateModifiedForSync(): Long?
 
+    /** Row ids for original-style Random shuffle into [MusicEntity.sort]. */
+    @Query("SELECT _id FROM musictbl ORDER BY _id ASC")
+    suspend fun getAllMusicRowIdsForSortShuffle(): List<Long>
+
+    @Query("UPDATE musictbl SET sort = :sort WHERE _id = :id")
+    suspend fun updateMusicSortRank(id: Long, sort: Int)
+
+    @Query(
+        """
+        SELECT _id
+        FROM music_playlist
+        WHERE p_id = :playlistId
+        ORDER BY _id ASC
+        """
+    )
+    suspend fun getPlaylistMapRowIdsForSortShuffle(playlistId: Long): List<Long>
+
+    @Query("UPDATE music_playlist SET sort = :sort WHERE _id = :rowId")
+    suspend fun updatePlaylistMapSortRank(rowId: Long, sort: Int)
+
     @Query(
         """
         UPDATE musictbl
@@ -610,7 +630,7 @@ interface LibraryDao : LibraryVisibleTracksDao {
         ) as list
         on music.[_id] = list.[m_id]
         ORDER BY
-          CASE WHEN :sortStyle = 'random' THEN RANDOM() END,
+          CASE WHEN :sortStyle = 'random' THEN music.sort END ASC,
           CASE WHEN :sortStyle = 'title' AND :sortDescending = 0 THEN music.title END COLLATE NOCASE ASC,
           CASE WHEN :sortStyle = 'title' AND :sortDescending = 1 THEN music.title END COLLATE NOCASE DESC,
           CASE WHEN :sortStyle = 'title_desc' THEN music.title END COLLATE NOCASE DESC,

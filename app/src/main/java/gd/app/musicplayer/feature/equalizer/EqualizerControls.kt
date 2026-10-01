@@ -7,6 +7,7 @@ import android.view.ViewConfiguration
 import android.widget.CompoundButton
 import com.coui.appcompat.seekbar.COUISeekBar
 import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
+import gd.app.musicplayer.core.designsystem.view.SeekBar
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -15,6 +16,9 @@ internal fun View.bindSwitchRow(switch: CompoundButton) {
     // The press mask is rectangular; the rounded card has to clip it.
     (parent as? View)?.clipToOutline = true
     installCouiPressFeedback()
+    // Prefer row taps over thumb-drags so ViewPager2 cannot steal the gesture.
+    switch.isClickable = false
+    switch.isFocusable = false
     setOnClickListener {
         if (switch.isEnabled) switch.toggle()
     }
@@ -69,6 +73,27 @@ internal fun COUISeekBar.setOnSliderChangeListener(
         }
 
         override fun onStopTrackingTouch(seekBar: COUISeekBar) {
+            onTrackingChanged(false)
+        }
+    })
+}
+
+/** Pictured-theme horizontal skeuomorphic seek. */
+internal fun SeekBar.setOnSliderChangeListener(
+    onTrackingChanged: (tracking: Boolean) -> Unit,
+    onProgressChanged: (progress: Int, fromUser: Boolean) -> Unit
+) {
+    claimSliderDrags(vertical = false)
+    setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+            onProgressChanged(progress, fromUser)
+        }
+
+        override fun onStartTrackingTouch(seekBar: SeekBar) {
+            onTrackingChanged(true)
+        }
+
+        override fun onStopTrackingTouch(seekBar: SeekBar) {
             onTrackingChanged(false)
         }
     })

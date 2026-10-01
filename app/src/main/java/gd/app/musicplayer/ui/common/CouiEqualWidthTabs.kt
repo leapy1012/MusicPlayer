@@ -3,29 +3,47 @@ package gd.app.musicplayer.ui.common
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.coui.appcompat.tablayout.COUITabLayout
 import com.coui.appcompat.tablayout.COUITabView
+import gd.app.musicplayer.R
+
+/** Keyed tag: reveal OnPreDraw already scheduled while strip is still invisible. */
+private val EqualWidthRevealPending = R.id.equal_width_tabs_reveal_pending
 
 /**
  * Spreads tabs edge-to-edge with equal widths and returns the layout listener that keeps
  * them that way (remove it when the tab layout is torn down).
+ *
+ * The strip stays [View.INVISIBLE] until the first successful equal-width pass and
+ * indicator update, so the underline is never drawn short then stretched.
  */
 fun COUITabLayout.installEqualWidthTabs(): View.OnLayoutChangeListener {
+    setTag(EqualWidthRevealPending, null)
+    visibility = View.INVISIBLE
     val listener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-        applyEqualWidthTabs()
+        applyEqualWidthTabsAndReveal()
     }
     addOnLayoutChangeListener(listener)
-    post { applyEqualWidthTabs() }
+    applyEqualWidthTabsAndReveal()
     return listener
 }
 
-private fun COUITabLayout.applyEqualWidthTabs() {
-    val strip = getChildAt(0) as? ViewGroup ?: return
+private fun COUITabLayout.applyEqualWidthTabsAndReveal() {
+    if (!applyEqualWidthTabs()) return
+    revealAfterIndicatorReady()
+}
+
+/**
+ * @return true when widths were applied (strip has children and a measured width).
+ */
+private fun COUITabLayout.applyEqualWidthTabs(): Boolean {
+    val strip = getChildAt(0) as? ViewGroup ?: return false
     val count = strip.childCount
     val totalWidth = width
-    if (count <= 0 || totalWidth <= 0) return
+    if (count <= 0 || totalWidth <= 0) return false
 
     // COUI FIXED mode does not distribute equal widths. When content is
     // shorter than the strip, measureShortChild centers wrap-content tabs.
@@ -72,8 +90,32 @@ private fun COUITabLayout.applyEqualWidthTabs() {
     }
     if (changed) {
         strip.requestLayout()
-        post { tabStrip?.updateIndicatorPosition() }
     }
+    return true
+}
+
+private fun COUITabLayout.revealAfterIndicatorReady() {
+    if (visibility == View.VISIBLE) {
+        tabStrip?.updateIndicatorPosition()
+        return
+    }
+    if (getTag(EqualWidthRevealPending) == true) return
+    setTag(EqualWidthRevealPending, true)
+
+    val observer = viewTreeObserver
+    observer.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+        override fun onPreDraw(): Boolean {
+            if (viewTreeObserver.isAlive) {
+                viewTreeObserver.removeOnPreDrawListener(this)
+            } else {
+                observer.removeOnPreDrawListener(this)
+            }
+            setTag(EqualWidthRevealPending, null)
+            tabStrip?.updateIndicatorPosition()
+            visibility = View.VISIBLE
+            return true
+        }
+    })
 }
 
 private fun stretchTabLabel(tabView: View, tabWidth: Int): Boolean {

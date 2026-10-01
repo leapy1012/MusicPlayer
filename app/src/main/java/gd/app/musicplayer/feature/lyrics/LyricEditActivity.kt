@@ -29,6 +29,7 @@ import gd.app.musicplayer.core.designsystem.theme.headerTitleColor
 import gd.app.musicplayer.core.designsystem.theme.itemPrimaryTextColor
 import gd.app.musicplayer.databinding.ActivityLyricEditBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.util.LyricsLoader
 import gd.app.musicplayer.util.TrackLyricsStore
@@ -90,7 +91,7 @@ class LyricEditActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             bottomPaddingView = binding.root,
             titleRes = R.string.edit_lyric
         )
-        binding.toolbar.inflateMenu(R.menu.menu_activity_lyric_edit)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_lyric_edit, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener(this)
 
         binding.btnPaste.setOnClickListener {

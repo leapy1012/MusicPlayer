@@ -111,6 +111,13 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
         observePlayMode()
     }
 
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        if (view != null) {
+            applyQueueChrome()
+        }
+    }
+
     private fun applyInsets(binding: FragmentQueueBinding) {
         binding.statusBarSpace.applyStatusBarInsetHeight()
     }
@@ -126,6 +133,24 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                 showClearQueueDialog()
             }
         }
+        applyQueueChrome(binding)
+    }
+
+    private fun applyQueueChrome(binding: FragmentQueueBinding = requireBinding()) {
+        val iconColor = toolbarIconColor()
+        binding.queueClear.imageTintList = ColorStateList.valueOf(iconColor)
+        binding.toolbar.menu.findItem(R.id.menu_add_to)?.icon?.mutate()?.setTint(iconColor)
+        binding.toolbar.menu.findItem(R.id.menu_mode)?.icon?.mutate()?.setTint(iconColor)
+        binding.queueInfo.setTextColor(
+            if (isLightTheme()) {
+                val typed = requireContext().obtainStyledAttributes(
+                    intArrayOf(com.coui.appcompat.R.attr.couiColorSecondNeutral)
+                )
+                typed.getColor(0, iconColor).also { typed.recycle() }
+            } else {
+                themeEngine.currentTheme().messageColor
+            }
+        )
     }
 
     private fun showClearQueueDialog() {
@@ -265,7 +290,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                     val item = requireBinding().toolbar.menu.findItem(R.id.menu_mode)
                         ?: return@collect
                     item.setIcon(state.iconRes)
-                    item.icon?.mutate()?.setTint(toolbarIconColor())
+                    applyQueueChrome()
                 }
             }
         }
@@ -389,9 +414,11 @@ private class QueueListAdapter(
                 typed.recycle()
                 favoriteColor = FAVORITE_COLOR
                 binding.root.installCouiPressFeedback()
-                val iconTint = ColorStateList.valueOf(secondaryColor)
-                binding.musicItemDrag.imageTintList = iconTint
-                binding.musicItemMenu.imageTintList = iconTint
+                // Drag/menu need stronger contrast than SecondNeutral on white plates.
+                val chromeTint = ColorStateList.valueOf(primaryColor)
+                val mutedTint = ColorStateList.valueOf(secondaryColor)
+                binding.musicItemDrag.imageTintList = chromeTint
+                binding.musicItemMenu.imageTintList = mutedTint
             } else {
                 primaryColor = theme.titleColor
                 secondaryColor = theme.messageColor

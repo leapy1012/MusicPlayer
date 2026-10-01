@@ -1,6 +1,5 @@
 package gd.app.musicplayer.core.mediastore
 
-import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
 import android.provider.MediaStore
@@ -63,10 +62,10 @@ class MediaStoreMusicImporter {
     }
 
     private fun albumArtworkUriString(albumId: Long): String {
-        return ContentUris.withAppendedId(
-            MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
-            albumId
-        ).toString()
+        // Classic albumart URI (not Albums.EXTERNAL — that table has no openable stream
+        // and some OEMs crash Glide with `no such column: _data` on audio_albums).
+        // Runtime loads prefer embedded covers via [Music.albumArtSource] when a file path exists.
+        return "content://media/external/audio/albumart/$albumId"
     }
 
     private fun extractFolderName(folderPath: String?): String? {

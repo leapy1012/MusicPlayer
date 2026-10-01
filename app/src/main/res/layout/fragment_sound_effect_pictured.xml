@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pictured-theme VOL: skeuomorphic seeks + rotary balance (final1.png). -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="16dp"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:id="@+id/equalizer_content_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="12dp">
+
+        <TextView
+            android:id="@+id/equalizer_volume_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:singleLine="true"
+            android:text="@string/equalizer_volum"
+            android:textAllCaps="true"
+            android:textColor="@android:color/white"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <gd.app.musicplayer.core.designsystem.view.SeekBar
+                android:id="@+id/equalizer_volume_progress"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/equalizer_seek_bar_width_2"
+                android:layout_weight="1"
+                android:tag="equalizerSeekBar"
+                app:seekIsVertical="false"
+                app:seekMax="100"
+                app:seekProgressDrawable="@drawable/equalizer_progress_layer"
+                app:seekProgressHeight="@dimen/equalizer_seek_progress_height"
+                app:seekThumb="@drawable/equalizer_seekbar_thumb_h"
+                app:seekThumbOverlay="@drawable/equalizer_seekbar_thumb_h_overlay" />
+
+            <TextView
+                android:id="@+id/equalizer_volume_progress_des"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:minWidth="@dimen/equalizer_toggle_width"
+                android:singleLine="true"
+                android:text="100%"
+                android:textAlignment="center"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/equalizer_volume_boost_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:id="@+id/equalizer_amplifier_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/equalizer_amplifier"
+                android:textAllCaps="true"
+                android:textColor="@drawable/selector_equalizer_text"
+                android:textSize="14sp" />
+
+            <!-- clickable=false: row toggles via bindSwitchRow (avoids ViewPager2 eating thumb drags). -->
+            <com.coui.appcompat.couiswitch.COUISwitch
+                android:id="@+id/equalizer_volume_boost_box"
+                style="@style/EqualizerRowSwitch" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <gd.app.musicplayer.core.designsystem.view.SeekBar
+                android:id="@+id/equalizer_volume_boost_progress"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/equalizer_seek_bar_width_2"
+                android:layout_weight="1"
+                android:tag="equalizerSeekBar"
+                app:seekIsVertical="false"
+                app:seekMax="100"
+                app:seekProgressDrawable="@drawable/equalizer_progress_layer"
+                app:seekProgressHeight="@dimen/equalizer_seek_progress_height"
+                app:seekThumb="@drawable/equalizer_seekbar_thumb_h"
+                app:seekThumbOverlay="@drawable/equalizer_seekbar_thumb_h_overlay" />
+
+            <TextView
+                android:id="@+id/equalizer_volume_boost_progress_des"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:minWidth="@dimen/equalizer_toggle_width"
+                android:singleLine="true"
+                android:text="0%"
+                android:textAlignment="center"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/equalizer_reverb_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/equalizer_reverb"
+            android:textAllCaps="true"
+            android:textColor="@drawable/selector_equalizer_text"
+            android:textSize="14sp" />
+
+        <include
+            android:id="@+id/equalizer_reverb_layout"
+            layout="@layout/include_equalizer_reverb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" />
+
+        <LinearLayout
+            android:id="@+id/equalizer_balance_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:id="@+id/equalizer_balance_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/equalizer_sound_balance"
+                android:textAllCaps="true"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
+
+            <com.coui.appcompat.couiswitch.COUISwitch
+                android:id="@+id/equalizer_balance_box"
+                style="@style/EqualizerRowSwitch" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.core.designsystem.view.RotateStepBar
+                    android:id="@+id/equalizer_left_rotate"
+                    android:layout_width="@dimen/equalizer_bass_height"
+                    android:layout_height="@dimen/equalizer_bass_height"
+                    android:tag="equalizerRotateStepBar"
+                    app:rotateStep="0"
+                    app:rotateStepExtraGraduationDrawable="@drawable/rotate_extra_graduation"
+                    app:rotateStepExtraGraduationSize="@dimen/equalizer_graduation_size"
+                    app:rotateStepGraduationCount="13"
+                    app:rotateStepIndicatorDrawable="@drawable/rotate_indicator"
+                    app:rotateStepIndicatorOverlayDrawable="@drawable/rotate_indicator_overlay"
+                    app:rotateStepMax="100"
+                    app:rotateStepPlugPadding="@dimen/equalizer_plug_padding" />
+
+                <TextView
+                    android:id="@+id/equalizer_left_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/equalizer_left_balance"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/selector_equalizer_text"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <gd.app.musicplayer.core.designsystem.view.RotateStepBar
+                    android:id="@+id/equalizer_right_rotate"
+                    android:layout_width="@dimen/equalizer_bass_height"
+                    android:layout_height="@dimen/equalizer_bass_height"
+                    android:tag="equalizerRotateStepBar"
+                    app:rotateStep="0"
+                    app:rotateStepExtraGraduationDrawable="@drawable/rotate_extra_graduation"
+                    app:rotateStepExtraGraduationSize="@dimen/equalizer_graduation_size"
+                    app:rotateStepGraduationCount="13"
+                    app:rotateStepIndicatorDrawable="@drawable/rotate_indicator"
+                    app:rotateStepIndicatorOverlayDrawable="@drawable/rotate_indicator_overlay"
+                    app:rotateStepMax="100"
+                    app:rotateStepPlugPadding="@dimen/equalizer_plug_padding" />
+
+                <TextView
+                    android:id="@+id/equalizer_right_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/equalizer_right_balance"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/selector_equalizer_text"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -18,7 +18,7 @@ import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
-import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.loadMusicArtworkLarge
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.extension.applyLengthFilter
@@ -32,6 +32,7 @@ import gd.app.musicplayer.domain.repository.EditableAlbumMetadata
 import gd.app.musicplayer.domain.repository.EditableTrackMetadata
 import gd.app.musicplayer.databinding.ActivityEditTagsBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -103,7 +104,7 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
             toolbar = binding.toolbar,
             titleRes = R.string.edit_tags
         )
-        binding.toolbar.inflateMenu(R.menu.menu_activity_edit_tags)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_edit_tags, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener(this)
 
         registerArtworkResultListener()
@@ -161,7 +162,7 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
 
         coverView = container.findViewById<ImageView>(R.id.music_edit_cover).also { image ->
             currentTrackCoverPath = currentTrack.albumPicture
-            image.loadMusicArtwork(currentTrack.albumArtSource())
+            image.loadMusicArtworkLarge(currentTrack.albumArtSource())
             image.setOnClickListener {
                 ManageArtworkDialogFragment
                     .newInstance(ArtworkRequest.Track(currentTrack), defaultApplyToAll = false)
@@ -465,7 +466,7 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
                     currentTrackCoverPath = artworkPath
                     coverView?.let {
                         if (artworkPath.isNullOrBlank()) {
-                            it.loadMusicArtwork(currentTrack.albumArtSource())
+                            it.loadMusicArtworkLarge(currentTrack.albumArtSource())
                         } else {
                             Glide.with(this).load(artworkPath).error(R.drawable.default_album_identify).into(it)
                         }

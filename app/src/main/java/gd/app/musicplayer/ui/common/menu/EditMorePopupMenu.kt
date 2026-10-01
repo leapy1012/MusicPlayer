@@ -27,7 +27,10 @@ class EditMorePopupMenu(
                     .build()
             }
         )
-        val window = COUIPopupListWindow(context).also { popup = it }
+        CouiPopupListSurface.paintItemTitles(context, popupItems)
+        val window = COUIPopupListWindow(
+            CouiPopupListSurface.popupContext(context)
+        ).also { popup = it }
         window.setItemList(popupItems)
         window.setOnItemClickListener { _, _, position, _ ->
             val selectedItem = items.getOrNull(position) ?: return@setOnItemClickListener

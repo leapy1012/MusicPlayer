@@ -21,8 +21,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@null"
-            android:minHeight="?attr/actionBarSize"
-            app:contentInsetStartWithNavigation="0dp"
+            android:minHeight="@dimen/toolbar_min_height"
+            android:paddingEnd="4dp"
+            app:contentInsetEnd="0dp"
+            app:contentInsetStart="0dp"
+            app:contentInsetStartWithNavigation="12dp"
             app:navigationIcon="@drawable/vector_menu_back"
             app:theme="@style/AppToolbar">
 
@@ -31,7 +34,8 @@
                 layout="@layout/fragment_play_content_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical" />
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="8dp" />
         </androidx.appcompat.widget.Toolbar>
     </LinearLayout>
 

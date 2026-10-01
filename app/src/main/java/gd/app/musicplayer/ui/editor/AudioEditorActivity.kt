@@ -35,6 +35,7 @@ import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.scan.UpsertScannedTracksUseCase
 import gd.app.musicplayer.playback.PlaybackController
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.editor.data.AudioTrimRepository
 import gd.app.musicplayer.ui.editor.data.AudioTrimNameExistsException
@@ -213,9 +214,8 @@ class AudioEditorActivity : BaseActivity(),
 
         binding.toolbar.title = track?.title ?: getString(R.string.audio_editor_title)
         binding.toolbar.menu.clear()
-        binding.toolbar.inflateMenu(R.menu.menu_activity_audio_editor)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_audio_editor, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener(this)
-        applyThemeTo(binding.toolbar)
     }
 
     private fun pauseCurrentPlaybackIfNeeded() {

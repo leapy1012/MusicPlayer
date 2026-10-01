@@ -34,12 +34,12 @@ import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
-import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBar
 import gd.app.musicplayer.databinding.ActivityLyricListBinding
 import gd.app.musicplayer.databinding.ActivityLyricListItemBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.applyCouiListBackground
 import gd.app.musicplayer.ui.common.applyListRowFeedback
@@ -143,7 +143,7 @@ class LyricListActivity :
             titleRes = R.string.lyrics_selection
         )
 
-        binding.toolbar.inflateMenu(R.menu.menu_activity_lyric_list)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_lyric_list, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener(this)
         binding.appBar.bringToFront()
     }
@@ -175,18 +175,8 @@ class LyricListActivity :
             applyTheme(themeEngine.currentTheme())
         }
 
-        binding.root.findViewById<RecyclerIndexBar>(R.id.recyclerview_index).apply {
-            onLabelSelected = { label ->
-                adapter.firstPositionForLabel(label)?.let { position ->
-                    layoutManager.scrollToPositionWithOffset(position, 0)
-                }
-            }
-        }
-
         adapter.onVisibleItemsChanged = { files ->
             emptyStateController.setVisible(files.isEmpty())
-            binding.root.findViewById<RecyclerIndexBar>(R.id.recyclerview_index)
-                .submitLabels(files.mapNotNull(::indexLabelFor))
         }
     }
 
@@ -376,11 +366,6 @@ class LyricListActivity :
             .filter { it.isFile && it.extension.equals("lrc", ignoreCase = true) }
     }
 
-    private fun indexLabelFor(file: LyricFile): String? {
-        val first = file.title.firstOrNull { it.isLetterOrDigit() } ?: return null
-        return first.uppercaseChar().toString()
-    }
-
     private fun hideKeyboard() {
         binding.searchBar.searchEditText?.hideKeyboard()
     }
@@ -436,10 +421,6 @@ class LyricListActivity :
             notifyDataSetChanged()
             onVisibleItemsChanged?.invoke(visibleItems)
         }
-
-        fun firstPositionForLabel(label: String): Int? =
-            visibleItems.indexOfFirst { indexLabelFor(it) == label }
-                .takeIf { it >= 0 }
 
         private inner class ViewHolder(
             private val binding: ActivityLyricListItemBinding

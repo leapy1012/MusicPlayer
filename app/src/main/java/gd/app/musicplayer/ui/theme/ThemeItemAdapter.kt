@@ -147,12 +147,9 @@ class ThemeItemAdapter(
             when (item.fileName) {
                 ThemeItemMapper.WHITE_THEME_TOKEN -> {
                     Glide.with(binding.themeImage).clear(binding.themeImage)
-                    val typed = binding.themeImage.context.obtainStyledAttributes(
-                        intArrayOf(com.coui.appcompat.R.attr.couiColorBackgroundWithCard)
-                    )
-                    val color = typed.getColor(0, 0xFFF0F1F2.toInt())
-                    typed.recycle()
-                    binding.themeImage.setImageDrawable(ColorDrawable(color))
+                    // Fixed light surface — do not read couiColorBackgroundWithCard from the
+                    // current context; pictured/dark overlays resolve that attr to a dark color.
+                    binding.themeImage.setImageDrawable(ColorDrawable(LIGHT_THEME_SURFACE))
                 }
 
                 ThemeItemMapper.BLACK_THEME_TOKEN -> {
@@ -227,6 +224,8 @@ class ThemeItemAdapter(
         private const val VIEW_TYPE_THEME = 1
         private const val ADD_CELL_ID = Long.MIN_VALUE
         private const val PAYLOAD_SELECTION = "payload_selection"
+        /** Matches LightThemePalette / coui_color_background_with_card_light. */
+        private const val LIGHT_THEME_SURFACE = 0xFFF0F1F2.toInt()
         private const val DARK_THEME_SURFACE = -14540254
     }
 }

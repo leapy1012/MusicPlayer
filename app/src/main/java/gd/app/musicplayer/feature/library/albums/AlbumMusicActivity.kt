@@ -11,7 +11,6 @@ import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.ActivityAlbumMusicBinding
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
-import gd.app.musicplayer.feature.player.bottomsheet.BottomPlayerFragment
 import gd.app.musicplayer.feature.player.mini.BottomMiniPlayerFragment
 import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 
@@ -41,19 +40,19 @@ class AlbumMusicActivity : BasePlayerSheetActivity() {
         val musicSet = getMusicSetOrFinish() ?: return
 
         if (savedInstanceState == null) {
-            // Same commit pattern as ActivityAlbum: content + banners together.
+            // Content + mini only; full player attaches on first expand.
             supportFragmentManager.beginTransaction()
                 .replace(
                     binding.mainFragmentContainer.id,
                     AlbumMusicFragment.newInstance(musicSet)
                 )
                 .replace(binding.miniPlayer.id, BottomMiniPlayerFragment.newInstance())
-                .replace(binding.bottomPlayer.id, BottomPlayerFragment())
                 .commit()
         }
 
         binding.playerSheet.post {
             setupPlayerSheet()
+            handlePlayerSheetIntent(intent)
         }
     }
 

@@ -1,5 +1,6 @@
 package gd.app.musicplayer.feature.player.bottomsheet
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.core.view.ViewCompat
@@ -12,8 +13,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
-import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.loadMusicArtworkLarge
 import gd.app.musicplayer.core.common.extension.toDurationString
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.databinding.FragmentMainControl2Binding
 import gd.app.musicplayer.feature.player.common.PlaybackChromeSnapshot
@@ -55,6 +58,31 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
         paintFromPlaybackSingleton()
         observeTrackMetadata()
         observePlaybackProgress()
+        paintLightPanelSurface()
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        paintLightPanelSurface()
+    }
+
+    /**
+     * Light theme: solid white plate + dark chrome (XML defaults are pictured wash + white icons).
+     * Picture/dark keep the translucent black overlay so wallpaper still reads through.
+     */
+    private fun paintLightPanelSurface() {
+        val binding = binding ?: return
+        val palette = themeEngine.currentTheme()
+        if (palette.getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
+            val typed = binding.root.context.obtainStyledAttributes(
+                intArrayOf(com.coui.appcompat.R.attr.couiColorCardBackground)
+            )
+            val color = typed.getColor(0, Color.WHITE)
+            typed.recycle()
+            binding.root.setBackgroundColor(color)
+        } else {
+            binding.root.setBackgroundColor(0x33000000)
+        }
     }
 
     private fun paintFromPlaybackSingleton() {
@@ -92,7 +120,7 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
         }
         binding.mainControlLeft.isSelected = state.isFavorite
         binding.mainControlAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
-        binding.mainControlAlbum.loadMusicArtwork(
+        binding.mainControlAlbum.loadMusicArtworkLarge(
             state.artworkSource ?: R.drawable.default_album_identify
         )
     }
@@ -114,10 +142,12 @@ class BottomPlayerFragment : ViewBindingFragment<FragmentMainControl2Binding>(),
 
     private fun setupInsets(binding: FragmentMainControl2Binding) {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
-            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-
-            view.updatePadding(bottom = bottomInset)
-
+            // One nav pad only: plate draws behind the 3-button icons (sheet already
+            // sized +nav; Material gesture inset padding is ignored on the sheet).
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            if (view.paddingBottom != bottomInset) {
+                view.updatePadding(bottom = bottomInset)
+            }
             insets
         }
 

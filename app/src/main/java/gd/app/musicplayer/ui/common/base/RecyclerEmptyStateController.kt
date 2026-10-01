@@ -15,6 +15,7 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.COUIRecyclerView
 import androidx.recyclerview.widget.RecyclerView
+import com.airbnb.lottie.LottieAnimationView
 import com.coui.appcompat.button.COUIButton
 import dagger.hilt.android.EntryPointAccessors
 import gd.app.lib.configuration.ConfigurationLinearLayout
@@ -40,11 +41,13 @@ class RecyclerEmptyStateController(
 
     private var emptyRootView: View? = null
     private var actionButtonText: String? = null
+    private var actionButtonIconResId: Int = 0
     private var showActionButton: Boolean = false
     private var showExtraText: Boolean = false
     private var emptyMessage: String? = null
     private var extraText: String? = null
     private var emptyImageResId: Int = 0
+    private var emptyLottieAsset: String? = null
     private var actionClickListener: View.OnClickListener? = null
     private var theme: ThemePalette? = null
     private var emptyContainer: ConfigurationLinearLayout? = null
@@ -72,6 +75,7 @@ class RecyclerEmptyStateController(
     fun showList() {
         if (emptyRootView != null) {
             recyclerView.post {
+                emptyContainer?.findViewById<LottieAnimationView>(R.id.empty_lottie)?.pauseAnimation()
                 emptyRootView?.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
             }
@@ -93,9 +97,11 @@ class RecyclerEmptyStateController(
         val button = root.findViewById<COUIButton>(R.id.empty_button)
 
         if (usesCouiStyling(theme)) {
-            image?.imageTintList = ColorStateList.valueOf(
-                resolveAttrColor(com.coui.appcompat.R.attr.couiColorHintNeutral, 0x4D000000)
-            )
+            if (emptyLottieAsset.isNullOrBlank()) {
+                image?.imageTintList = ColorStateList.valueOf(
+                    resolveAttrColor(com.coui.appcompat.R.attr.couiColorHintNeutral, 0x4D000000)
+                )
+            }
             val secondary = resolveAttrColor(
                 com.coui.appcompat.R.attr.couiColorSecondNeutral,
                 0x8C000000.toInt()
@@ -105,15 +111,18 @@ class RecyclerEmptyStateController(
         }
 
         val usesDarkForeground = !onDarkSurface && theme.titleColor != Color.WHITE
-        image?.imageTintList = ColorStateList.valueOf(
-            (if (usesDarkForeground) 0x33000000 else 0x80FFFFFF).toInt()
-        )
+        if (emptyLottieAsset.isNullOrBlank()) {
+            image?.imageTintList = ColorStateList.valueOf(
+                (if (usesDarkForeground) 0x33000000 else 0x80FFFFFF).toInt()
+            )
+        }
         val secondary = (if (usesDarkForeground) 0x8C000000 else 0x80FFFFFF).toInt()
         texts.forEach { it.setTextColor(secondary) }
 
         val accent = if (onDarkSurface) Color.WHITE else theme.accentColor
         button?.setTextColor(accent)
         button?.drawableColor = ColorUtils.setAlphaComponent(accent, PALETTE_BUTTON_FILL_ALPHA)
+        button?.let(::applyActionButtonIcon)
     }
 
     private fun usesCouiStyling(theme: ThemePalette): Boolean =
@@ -137,17 +146,27 @@ class RecyclerEmptyStateController(
 
     fun setActionButtonText(text: String) {
         actionButtonText = text
+        emptyContainer?.findViewById<COUIButton>(R.id.empty_button)?.text = text
+    }
+
+    fun setActionButtonIcon(@androidx.annotation.DrawableRes iconResId: Int) {
+        actionButtonIconResId = iconResId
+        emptyContainer?.findViewById<COUIButton>(R.id.empty_button)?.let(::applyActionButtonIcon)
     }
 
     fun setEmptyImage(imageResId: Int) {
         emptyImageResId = imageResId
-        emptyContainer?.findViewById<ImageView>(R.id.empty_image)?.let { imageView ->
-            if (imageResId != 0) {
-                imageView.setImageResource(imageResId)
-            } else {
-                imageView.setImageDrawable(null)
-            }
-        }
+        emptyLottieAsset = null
+        emptyContainer?.let(::applyEmptyArtwork)
+    }
+
+    /**
+     * Prefer a looping Lottie from `assets/` over the static [empty_image] drawable.
+     * Pass null/blank to fall back to [setEmptyImage].
+     */
+    fun setEmptyLottieAsset(assetFileName: String?) {
+        emptyLottieAsset = assetFileName?.takeIf { it.isNotBlank() }
+        emptyContainer?.let(::applyEmptyArtwork)
     }
 
     fun setEmptyMessage(text: String) {
@@ -196,9 +215,10 @@ class RecyclerEmptyStateController(
             container.visibility = View.INVISIBLE
             container.setOnViewSizeChangeListener(this)
 
-            val actionButton = container.findViewById<TextView>(R.id.empty_button)
+            val actionButton = container.findViewById<COUIButton>(R.id.empty_button)
             if (showActionButton) {
                 actionButtonText?.let(actionButton::setText)
+                applyActionButtonIcon(actionButton)
                 actionButton.visibility = View.VISIBLE
                 actionClickListener?.let(actionButton::setOnClickListener)
             } else {
@@ -216,17 +236,43 @@ class RecyclerEmptyStateController(
                 container.findViewById<TextView>(R.id.empty_text).text = it
             }
 
-            if (emptyImageResId != 0) {
-                container.findViewById<ImageView>(R.id.empty_image).setImageResource(emptyImageResId)
-            }
+            applyEmptyArtwork(container)
 
             // The stub inflates after the screen's theme pass, so theme it here.
             applyTheme(resolveTheme())
+        } else {
+            emptyContainer?.let(::applyEmptyArtwork)
         }
 
         recyclerView.post {
             emptyRootView?.visibility = View.VISIBLE
             recyclerView.visibility = View.GONE
+        }
+    }
+
+    private fun applyEmptyArtwork(container: ViewGroup) {
+        val image = container.findViewById<ImageView>(R.id.empty_image) ?: return
+        val lottie = container.findViewById<LottieAnimationView>(R.id.empty_lottie) ?: return
+        val asset = emptyLottieAsset
+
+        if (!asset.isNullOrBlank()) {
+            image.visibility = View.GONE
+            image.imageTintList = null
+            lottie.visibility = View.VISIBLE
+            if (lottie.tag != asset) {
+                lottie.setAnimation(asset)
+                lottie.tag = asset
+            }
+            if (!lottie.isAnimating) {
+                lottie.playAnimation()
+            }
+        } else {
+            lottie.pauseAnimation()
+            lottie.visibility = View.GONE
+            image.visibility = View.VISIBLE
+            if (emptyImageResId != 0) {
+                image.setImageResource(emptyImageResId)
+            }
         }
     }
 
@@ -260,6 +306,30 @@ class RecyclerEmptyStateController(
 
         view.post {
             repositionEmptyContent()
+        }
+    }
+
+    private fun applyActionButtonIcon(button: COUIButton) {
+        if (actionButtonIconResId != 0) {
+            button.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                actionButtonIconResId,
+                0,
+                0,
+                0
+            )
+            button.compoundDrawablePadding = button.context.dpToPx(6f)
+            val tint = if (usesCouiStyling(resolveTheme())) {
+                resolveAttrColor(
+                    com.coui.appcompat.R.attr.couiColorLabelTheme,
+                    button.currentTextColor
+                )
+            } else {
+                button.currentTextColor
+            }
+            button.compoundDrawableTintList = ColorStateList.valueOf(tint)
+        } else {
+            button.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
+            button.compoundDrawableTintList = null
         }
     }
 

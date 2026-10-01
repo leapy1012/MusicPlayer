@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import androidx.lifecycle.viewModelScope
 import gd.app.musicplayer.core.common.extension.supportsViewModeMenu
@@ -68,12 +69,14 @@ class MusicSetListViewModel @Inject constructor(
                 currentMusicSet
             .filterNotNull()
             .flatMapLatest { musicSet ->
+                // Emit defaults immediately so the Room list is not gated on DataStore.
                 combine(
                     observeMusicSetsUseCase(musicSet),
-                    observeSortUseCase(musicSet),
-                    observeViewModeUseCase(musicSet),
-                    shouldShowHiddenFoldersEntryUseCase()
-
+                    observeSortUseCase(musicSet).onStart { emit("name" to false) },
+                    observeViewModeUseCase(musicSet).onStart {
+                        emit(MusicSetAdapter.VIEW_MODE_LIST)
+                    },
+                    shouldShowHiddenFoldersEntryUseCase().onStart { emit(false) }
                 ) { items, sortSelection, viewMode, shouldShowHiddenFoldersEntry ->
                         val displayItems = buildDisplayItems(
                             musicSet = musicSet,
@@ -94,7 +97,8 @@ class MusicSetListViewModel @Inject constructor(
             }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
+                // Eager so bind() starts the Room fast path before STARTED collect.
+                started = SharingStarted.Eagerly,
                 initialValue = MusicSetListUiState()
             )
 

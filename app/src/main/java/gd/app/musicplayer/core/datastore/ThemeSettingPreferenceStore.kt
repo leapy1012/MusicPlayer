@@ -205,7 +205,7 @@ class ThemeSettingPreferenceStore @Inject constructor(
         const val DEFAULT_THEME_IMAGE = "nature_01.webp"
         const val DEFAULT_THEME_OVERLAY_COLOR = 855638016
         const val DEFAULT_THEME_BLUR = 0
-        const val DEFAULT_THEME_COLOR = -12467
+        const val DEFAULT_THEME_COLOR = -16752385 // #FF0066FF — COUI Blue primary
         const val DEFAULT_THEME_DIALOG_ENABLED = true
 
         private const val SKIN_URI_SEPARATOR = "&&"

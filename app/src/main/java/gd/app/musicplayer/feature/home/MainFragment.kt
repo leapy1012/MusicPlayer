@@ -137,7 +137,7 @@ class MainFragment : ViewBindingFragment<FragmentMainBinding>() {
             openCreatePlaylistDialog()
         }
 
-        mainInfoPlaylist.setOnClickListener(::openAllPlaylists)
+        mainInfoPlaylistArrow.setOnClickListener(::openAllPlaylists)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

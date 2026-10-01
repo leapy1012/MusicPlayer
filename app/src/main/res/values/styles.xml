@@ -42,6 +42,10 @@
     <!-- Toolbar / tabs -->
     <style name="AppToolbar" parent="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="android:background">@android:color/transparent</item>
+        <!-- Player plate is always dark; pin control tint so light COUI attrs cannot
+             leave black nav/menu glyphs after AppCompat ImageButton tinting. -->
+        <item name="colorControlNormal">@android:color/white</item>
+        <item name="android:textColorPrimary">@android:color/white</item>
         <item name="overlapAnchor">false</item>
         <item name="popupTheme">@style/AppToolbarPopup</item>
         <item name="titleTextAppearance">@style/AppToolbarTitle</item>
@@ -90,6 +94,14 @@
 
     <style name="AppToolbarTitleExpend.Queue" parent="@style/AppToolbarTitleExpend">
         <item name="android:textSize">32sp</item>
+    </style>
+
+    <!-- Album/folder hero title: softer than COUI's 32dp bold Expanded style. -->
+    <style name="AlbumExpandedTitle" parent="@style/textAppearanceSecondTitle">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:lineSpacingMultiplier">1.15</item>
     </style>
 
     <style name="AppToolbarSubTitle" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
@@ -503,6 +515,20 @@
     <style name="Widget.MyApp.BottomSheet.Modal" parent="Widget.MaterialComponents.BottomSheet.Modal">
         <item name="android:background">@android:color/transparent</item>
         <item name="backgroundTint">@android:color/transparent</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.App.BottomSheet.Square</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.App.BottomSheet.Square" parent="">
+        <item name="cornerSize">0dp</item>
+        <item name="cornerFamily">rounded</item>
+    </style>
+
+    <!-- COUI panel bottom sheets — square plate (no 16dp top radius). -->
+    <style name="App.COUI.BottomSheetDialog" parent="@style/DefaultBottomSheetDialog">
+        <item name="panelBackground">@drawable/bg_bottom_sheet_panel_square</item>
+        <item name="bottomSheetStyle">@style/Widget.MyApp.BottomSheet.Modal</item>
+        <!-- Draw plate behind 3-button nav via COUI's nav custom view; Close stays above icons. -->
+        <item name="couiPanelEdgeToEdge">true</item>
     </style>
 
     <!-- Notification text appearances -->

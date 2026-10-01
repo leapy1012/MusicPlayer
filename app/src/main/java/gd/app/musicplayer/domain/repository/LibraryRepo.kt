@@ -27,8 +27,9 @@ class LibraryRepo @Inject constructor(
 ) {
 
     /**
-     * Original-style fast path: emit memory snapshot (if any) → one-shot SQLite →
+     * Fast path: memory snapshot (if warm) → else one-shot SQLite →
      * then preference-driven Room Flow. Never block first paint on DataStore.
+     * When a snapshot exists, skip the redundant one-shot re-query.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeTracks(musicSet: MusicSet, isSelectionMode: Boolean = false): Flow<List<Music>> {
@@ -54,7 +55,13 @@ class LibraryRepo @Inject constructor(
         }
 
         return flow {
-            snapshotCache.getTracks(cacheKey)?.let { emit(it) }
+            // Home-warmed (or prior) snapshot: paint immediately and skip the
+            // redundant one-shot SQLite. Live Room observe still catches updates.
+            snapshotCache.getTracks(cacheKey)?.let { cached ->
+                emit(cached)
+                emitAll(live)
+                return@flow
+            }
 
             val fastQuery = LibraryQueryBuilder.buildTrackQuery(
                 musicSet = musicSet,
@@ -170,7 +177,12 @@ class LibraryRepo @Inject constructor(
         }
 
         return flow {
-            snapshotCache.getSets(cacheKey)?.let { emit(it) }
+            // Same warm-path shortcut as observeTracks.
+            snapshotCache.getSets(cacheKey)?.let { cached ->
+                emit(cached)
+                emitAll(live)
+                return@flow
+            }
 
             val style = snapshotCache.sortStyleByKey[cacheKey] ?: DEFAULT_SORT_STYLE
             val descending = snapshotCache.sortDescendingByKey[cacheKey] ?: false
@@ -206,6 +218,43 @@ class LibraryRepo @Inject constructor(
 
             emitAll(live)
         }.distinctUntilChanged()
+    }
+
+    suspend fun getMusicSets(type: MusicSet): List<MusicSet> {
+        val cacheKey = snapshotCache.setsKey(type)
+        snapshotCache.getSets(cacheKey)?.let { return it }
+
+        val style = snapshotCache.sortStyleByKey[cacheKey] ?: DEFAULT_SORT_STYLE
+        val descending = snapshotCache.sortDescendingByKey[cacheKey] ?: false
+        val sets = when (type) {
+            is MusicSet.Artists -> {
+                libraryDao.getArtistsRaw(
+                    LibraryQueryBuilder.buildArtistsQuery(style, descending)
+                )
+            }
+
+            is MusicSet.Albums -> {
+                libraryDao.getAlbumsRaw(
+                    LibraryQueryBuilder.buildAlbumsQuery(style, descending)
+                )
+            }
+
+            is MusicSet.Genres -> {
+                libraryDao.getGenresRaw(
+                    LibraryQueryBuilder.buildGenresQuery(style, descending)
+                )
+            }
+
+            is MusicSet.Folders -> {
+                libraryDao.getFoldersRaw(
+                    LibraryQueryBuilder.buildFoldersQuery(style, descending)
+                )
+            }
+
+            else -> emptyList()
+        }
+        snapshotCache.putSets(cacheKey, sets)
+        return sets
     }
 
     suspend fun clearFavorites() {
@@ -251,6 +300,36 @@ class LibraryRepo @Inject constructor(
 
     fun observeDeletedSongs(): Flow<List<Music>> = libraryDao.observeDeletedSongs()
 
+    /**
+     * Original [u5.d.o0] + [y6.m0.a]: shuffle once into persisted sort ranks.
+     * Playlist/Favorites → music_playlist.sort; otherwise musictbl.sort.
+     */
+    suspend fun shuffleRandomSortRanks(musicSet: MusicSet) {
+        when (musicSet) {
+            is MusicSet.Playlist -> shufflePlaylistMapSort(musicSet.id)
+            is MusicSet.Favorites -> shufflePlaylistMapSort(MusicSet.FAVORITES)
+            else -> shuffleMusicTableSort()
+        }
+    }
+
+    private suspend fun shuffleMusicTableSort() {
+        val ids = libraryDao.getAllMusicRowIdsForSortShuffle()
+        if (ids.size < 2) return
+        val ranks = fisherYatesRanks(ids.size)
+        ids.forEachIndexed { index, id ->
+            libraryDao.updateMusicSortRank(id, ranks[index])
+        }
+    }
+
+    private suspend fun shufflePlaylistMapSort(playlistId: Long) {
+        val rowIds = libraryDao.getPlaylistMapRowIdsForSortShuffle(playlistId)
+        if (rowIds.size < 2) return
+        val ranks = fisherYatesRanks(rowIds.size)
+        rowIds.forEachIndexed { index, rowId ->
+            libraryDao.updatePlaylistMapSortRank(rowId, ranks[index])
+        }
+    }
+
     suspend fun restoreDeletedSongs(trackIds: Collection<Long>) {
         val ids = trackIds.distinct()
         if (ids.isEmpty()) return
@@ -272,6 +351,21 @@ class LibraryRepo @Inject constructor(
     private companion object {
         const val DEFAULT_SORT_STYLE = "name"
         const val DEFAULT_SMART_WINDOW_MS = 15552000000L // 6 months — matches PlaylistPreferenceDataStore
+
+        /** Original [y6.m0.a]: permutation of 1..n via Fisher–Yates. */
+        fun fisherYatesRanks(n: Int): IntArray {
+            val ranks = IntArray(n) { it + 1 }
+            val random = java.util.Random()
+            for (i in 0 until n) {
+                val j = random.nextInt(n)
+                if (i != j) {
+                    val tmp = ranks[i]
+                    ranks[i] = ranks[j]
+                    ranks[j] = tmp
+                }
+            }
+            return ranks
+        }
 
         fun defaultSmartPlaylistConfig(): SmartPlaylistConfig {
             val now = System.currentTimeMillis()

@@ -1,11 +1,14 @@
 package gd.app.musicplayer.ui.drivemode
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -17,9 +20,11 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.dpToPx
-import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.loadMusicArtworkLarge
 import gd.app.musicplayer.core.common.extension.toDurationString
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.databinding.ActivityDriveModeItemBinding
 import gd.app.musicplayer.databinding.FragmentDriveModeBinding
 import gd.app.musicplayer.domain.model.Music
@@ -132,6 +137,53 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
         observePlayback()
         observePlayMode()
         observeSettings()
+        // Theme walk runs after onBindingCreated; paint once that settles.
+        binding.root.post { paintDriveModeChrome(binding) }
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        binding?.let { b -> b.root.post { paintDriveModeChrome(b) } }
+    }
+
+    /**
+     * Drive Mode sits on the page wash (activityBackgroundColor). White transport glyphs
+     * vanish on Light theme — tint them primary-neutral there; keep white for pictured/dark.
+     */
+    private fun paintDriveModeChrome(binding: FragmentDriveModeBinding) {
+        val isLight = themeEngine.currentTheme().getThemeType() == ThemeManager.THEME_TYPE_LIGHT
+        val iconColor = if (isLight) {
+            val typed = binding.root.context.obtainStyledAttributes(
+                intArrayOf(com.coui.appcompat.R.attr.couiColorPrimaryNeutral)
+            )
+            val color = typed.getColor(0, 0xDE000000.toInt())
+            typed.recycle()
+            color
+        } else {
+            Color.WHITE
+        }
+        val tint = ColorStateList.valueOf(iconColor)
+        listOf(
+            binding.driveModeClose,
+            binding.driveModeQueue,
+            binding.driveModeBackward,
+            binding.driveModePrevious,
+            binding.driveModePlayPause,
+            binding.driveModeNext,
+            binding.driveModeForward,
+            binding.driveMode,
+        ).forEach { ImageViewCompat.setImageTintList(it, tint) }
+
+        ImageViewCompat.setImageTintList(
+            binding.driveModeFavorite,
+            ColorStateList(
+                arrayOf(
+                    intArrayOf(android.R.attr.state_selected),
+                    intArrayOf(),
+                ),
+                intArrayOf(0xFFFF5A5A.toInt(), iconColor),
+            ),
+        )
     }
 
     private fun observePlayback() {
@@ -188,7 +240,10 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 playModeViewModel.uiState.collect { state ->
-                    requireBinding().driveMode.setImageResource(state.iconRes)
+                    val binding = requireBinding()
+                    binding.driveMode.setImageResource(state.iconRes)
+                    // setImageResource clears ImageViewCompat tint.
+                    paintDriveModeChrome(binding)
                 }
             }
         }
@@ -200,6 +255,7 @@ class DriveModeFragment : ViewBindingFragment<FragmentDriveModeBinding>() {
                 settingPreferencesDataStore.observeSettingPreferences().collect { settings ->
                     forwardBackwardSeconds = settings.normal.forwardBackwardSeconds
                     applyForwardBackwardLayout(settings.normal.showForwardBackward)
+                    paintDriveModeChrome(requireBinding())
                 }
             }
         }
@@ -357,7 +413,7 @@ private class DriveModePagerAdapter(
             binding.root.resources.getDimension(com.coui.appcompat.R.dimen.coui_round_corner_l)
         )
         binding.driveModeCover.clipToOutline = true
-        binding.driveModeCover.loadMusicArtwork(item.albumArtSource())
+        binding.driveModeCover.loadMusicArtworkLarge(item.albumArtSource())
         applyTheme(binding.root)
         container.addView(binding.root)
         return binding.root

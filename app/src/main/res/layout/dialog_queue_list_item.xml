@@ -28,7 +28,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:singleLine="true"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <TextView
@@ -37,7 +36,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:singleLine="true"
-            android:textColor="#b3ffffff"
             android:textSize="14sp" />
     </LinearLayout>
 

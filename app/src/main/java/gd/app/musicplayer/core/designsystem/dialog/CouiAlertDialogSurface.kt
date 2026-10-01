@@ -1,6 +1,7 @@
 package gd.app.musicplayer.core.designsystem.dialog
 
 import android.app.Activity
+import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Color
 import android.graphics.drawable.Drawable
@@ -8,6 +9,8 @@ import android.graphics.drawable.InsetDrawable
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.drawable.toDrawable
+import dagger.hilt.android.EntryPointAccessors
+import gd.app.musicplayer.di.ThemeEntryPoint
 import gd.app.musicplayer.ui.common.base.BaseActivity
 
 /**
@@ -36,15 +39,33 @@ object CouiAlertDialogSurface {
     }
 
     private fun resolveSurface(dialog: AlertDialog): Drawable? {
-        val activity = dialog.ownerActivity
-            ?: (dialog.context as? Activity)
-            ?: ((dialog.context as? ContextWrapper)?.baseContext as? Activity)
-        val palette = (activity as? BaseActivity)?.themeEngine?.currentTheme() ?: return null
+        val activity = findActivity(dialog.ownerActivity) ?: findActivity(dialog.context)
+        val palette = (activity as? BaseActivity)?.themeEngine?.currentTheme()
+            ?: resolvePaletteFromApplication(dialog.context)
+            ?: return null
         return palette.getDialogSurfaceDrawable(dialog.context)
     }
 
+    private fun resolvePaletteFromApplication(context: Context) = try {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            ThemeEntryPoint::class.java
+        ).themeRepo.getCorePalette()
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun findActivity(context: Context?): Activity? {
+        var current = context
+        while (current is ContextWrapper) {
+            if (current is Activity) return current
+            current = current.baseContext
+        }
+        return current as? Activity
+    }
+
     /** Match [coui_alert_dialog_builder_background] insets so width/margins stay COUI-correct. */
-    private fun insetLikeCouiBuilder(context: android.content.Context, surface: Drawable): Drawable {
+    private fun insetLikeCouiBuilder(context: Context, surface: Drawable): Drawable {
         val horizontal = context.resources.getDimensionPixelSize(
             com.coui.appcompat.R.dimen.coui_dialog_layout_margin_horizontal
         )

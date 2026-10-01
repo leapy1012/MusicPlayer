@@ -37,6 +37,7 @@ import gd.app.musicplayer.core.datastore.StatusBarLyricPreference
 import gd.app.musicplayer.core.datastore.StatusBarLyricPreferenceStore
 import gd.app.musicplayer.databinding.ActivityStatusBarLyricsBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.hostStaticContent
 import javax.inject.Inject
@@ -130,9 +131,7 @@ class StatusBarLyricsActivity : BaseActivity(), COUISeekBar.OnSeekBarChangeListe
         }
 
         // Not app:menu — COUIToolbar builds that menu view before its click listener exists.
-        binding.toolbar.inflateMenu(R.menu.menu_activity_sbar_lyric)
-        // The content theme pass ran before the menu existed; tint its icon now.
-        applyThemeTo(binding.toolbar)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_sbar_lyric, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener { item: MenuItem ->
             if (item.itemId == R.id.menu_reset) {
                 showResetDialog()

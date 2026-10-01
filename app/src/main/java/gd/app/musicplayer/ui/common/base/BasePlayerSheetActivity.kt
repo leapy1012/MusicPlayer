@@ -45,7 +45,8 @@ abstract class BasePlayerSheetActivity : BaseActivity() {
             miniPlayer = miniPlayer,
             fullPlayer = fullPlayer,
             insetTarget = playerSheetInsetTarget,
-            onMiniPlayerClick = ::expandPlayerPanel
+            onMiniPlayerClick = ::expandPlayerPanel,
+            onBeforeShowFullPlayer = ::ensurePlayerFragments
         )
 
         playerSheetController.setup()

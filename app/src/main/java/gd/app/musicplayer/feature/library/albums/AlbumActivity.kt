@@ -15,13 +15,13 @@ import gd.app.musicplayer.feature.library.LibraryFragment
 import gd.app.musicplayer.feature.library.folder.FolderFragment
 import gd.app.musicplayer.feature.library.musicset.MusicSetListFragment
 import gd.app.musicplayer.feature.playlist.PlaylistFragment
-import gd.app.musicplayer.feature.player.bottomsheet.BottomPlayerFragment
 import gd.app.musicplayer.feature.player.mini.BottomMiniPlayerFragment
 import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 
 /**
- * Matches original [ActivityAlbum.y0]: one FragmentTransaction with
- * replace(content) + replace(banner e0) + replace(banner d0) then commit().
+ * Hosts Library / category lists with a player sheet.
+ *
+ * Open path: content + mini only. Full player attaches on first expand.
  */
 @AndroidEntryPoint
 class AlbumActivity : BasePlayerSheetActivity() {
@@ -58,17 +58,15 @@ class AlbumActivity : BasePlayerSheetActivity() {
                 }
             } ?: LibraryFragment()
 
-            // Original: b0().n().q(container).q(banner).q(banner_2).g() → commit()
             supportFragmentManager.beginTransaction()
                 .replace(binding.mainFragmentContainer.id, content)
                 .replace(binding.miniPlayer.id, BottomMiniPlayerFragment.newInstance())
-                .replace(binding.bottomPlayer.id, BottomPlayerFragment())
                 .commit()
         }
 
-        // Wire sheet after commit schedules fragments (original panel controller after y0).
         binding.playerSheet.post {
             setupPlayerSheet()
+            handlePlayerSheetIntent(intent)
         }
     }
 

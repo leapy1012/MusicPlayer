@@ -2,9 +2,11 @@ package gd.app.musicplayer.feature.library.deleted
 
 import androidx.core.os.bundleOf
 import androidx.fragment.app.setFragmentResult
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.dialog.CouiConfirmDialogFragment
 
+@AndroidEntryPoint
 class DeletedMusicDeleteConfirmDialogFragment : CouiConfirmDialogFragment() {
 
     override fun provideTitle(): CharSequence = getString(R.string.delete)

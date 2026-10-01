@@ -2,8 +2,8 @@
 <!-- Unused after COUI PreferenceFragment migration; SettingsPreferenceFragment
      inflates coui_preference_percent_recyclerview itself. Kept for reference. -->
 <androidx.recyclerview.widget.COUIRecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/setting_scroll_view"
-    android:layout_width="match_parent"
+        android:id="@+id/setting_scroll_view"
+        android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/couiColorBackgroundWithCard"
     android:clipToPadding="false"

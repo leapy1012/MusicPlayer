@@ -1,7 +1,6 @@
 package gd.app.musicplayer.feature.library.tracks
 
 import android.content.Context
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +32,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -93,7 +93,8 @@ class TrackListViewModel @Inject constructor(
         currentMusicSet
             .filterNotNull()
             .flatMapLatest { musicSet ->
-                observeSortUseCase(musicSet)
+                // Don't gate metadata display on DataStore; prefs catch up after first paint.
+                observeSortUseCase(musicSet).onStart { emit("name" to false) }
             }
             .map { (style, descending) ->
                 TrackListSortState(
@@ -103,7 +104,8 @@ class TrackListViewModel @Inject constructor(
             }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+                // Eager so bind() starts the Room fast path before STARTED collect.
+                started = SharingStarted.Eagerly,
                 initialValue = TrackListSortState()
             )
 
@@ -125,7 +127,7 @@ class TrackListViewModel @Inject constructor(
             }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+                started = SharingStarted.Eagerly,
                 initialValue = TrackListUiState()
             )
 
@@ -264,7 +266,6 @@ class TrackListViewModel @Inject constructor(
         } ?: flowOf(emptyList())
 
     private companion object {
-        private const val STOP_TIMEOUT_MILLIS = 5_000L
         private const val SORT_DEFAULT = "default"
     }
 }

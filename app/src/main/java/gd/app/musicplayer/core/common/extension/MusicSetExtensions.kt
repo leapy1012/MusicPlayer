@@ -2,7 +2,6 @@ package gd.app.musicplayer.core.common.extension
 
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.isTrackCollection
-import androidx.core.net.toUri
 
 internal val MusicSet.supportsViewModeMenu: Boolean
     get() = this is MusicSet.Artists || this is MusicSet.Albums || this is MusicSet.Genres
@@ -36,19 +35,14 @@ internal val MusicSet.supportsManualOrdering: Boolean
         id > 0L && (this is MusicSet.Playlist || this is MusicSet.Favorites)
 
 internal fun MusicSet.albumArtSource(): String? = when {
-    !albumArt.isNullOrEmpty() -> albumArt
+    !albumArt.isNullOrEmpty() &&
+        !albumArt.orEmpty().startsWith("content://media/external/audio/albums", ignoreCase = true) &&
+        !albumArt.orEmpty().startsWith("content://media/external/audio/albumart", ignoreCase = true) ->
+        albumArt
 
-    this is MusicSet.Albums ||
-            this is MusicSet.Artists ||
-            this is MusicSet.Genres -> {
-        "content://media/external/audio/albumart".toUri()
-            .buildUpon()
-            .appendPath(id.toString())
-            .build()
-            .toString()
-    }
-
-    else -> ""
+    // Do not fall back to MediaStore albumart URIs — some OEM providers throw
+    // SQLiteException (no such column: _data) when Glide opens them.
+    else -> null
 }
 
 internal val MusicSet.stableId: String

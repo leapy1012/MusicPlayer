@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="plurals_album">
+        <item quantity="one">%d 张专辑</item>
+        <item quantity="other">%d 张专辑</item>
+    </plurals>
+    <plurals name="plurals_track">
+        <item quantity="one">%d 首曲目</item>
+        <item quantity="other">%d 首曲目</item>
+    </plurals>
+</resources>

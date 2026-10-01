@@ -14,7 +14,7 @@
         android:overScrollMode="ifContentScrolls"
         android:scrollbars="vertical" />
 
-    <com.coui.appcompat.edittext.COUIEditText
+    <gd.app.musicplayer.core.designsystem.view.CouiDialogEditText
         android:id="@+id/playlist_limit_edittext"
         style="?attr/couiEditTextLineHintDisableStyle"
         android:layout_width="match_parent"
@@ -25,7 +25,9 @@
         android:hint="@string/playlist_track_limit_hint"
         android:inputType="number"
         android:maxLength="5"
-        android:minHeight="@dimen/support_preference_dialog_edittext_min_height"
+        android:minHeight="0dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:visibility="gone"

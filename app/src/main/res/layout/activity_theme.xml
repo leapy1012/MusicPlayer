@@ -44,6 +44,7 @@
                 android:layout_marginEnd="4dp">
 
                 <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/theme_accent_ring"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:background="@drawable/b_selector_image_bg_aw"
@@ -78,14 +79,14 @@
             android:layout_gravity="center_horizontal"
             android:layoutDirection="ltr"
             app:tabBackground="@drawable/selector_tab_layout_item"
-            app:tabIndicatorColor="@color/color_item_selected"
+            app:tabIndicatorColor="?attr/couiColorLabelTheme"
             app:tabIndicatorHeight="2dp"
             app:tabMinWidth="82dp"
             app:tabMode="scrollable"
             app:tabPaddingEnd="12dp"
             app:tabPaddingStart="12dp"
             app:tabRippleColor="@null"
-            app:tabSelectedTextColor="@color/color_item_selected"
+            app:tabSelectedTextColor="?attr/couiColorLabelTheme"
             app:tabTextAppearance="@style/AppTabLayoutText.Theme"
             app:tabTextColor="@color/gray_text" />
 

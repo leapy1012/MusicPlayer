@@ -14,6 +14,8 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
+import gd.app.musicplayer.core.designsystem.theme.DialogSurfaceColors
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.view.ColorSelectView
 import gd.app.musicplayer.core.designsystem.view.SeekBar
 import gd.app.musicplayer.core.designsystem.view.SelectBox
@@ -66,6 +68,7 @@ class LyricSettingsDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
         binding.lyricSizePlus.setOnClickListener(this)
         binding.lyricDeskSelect.setOnClickListener(this)
         binding.lyricAdjustSettings.setOnClickListener(this)
+        applyDialogChrome()
 
         viewLifecycleOwner.lifecycleScope.launch {
             lyricPreference = lyricSettingPreferenceStore.getLyricsPreference()
@@ -76,6 +79,32 @@ class LyricSettingsDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
             syncDesktopLyricsToggle()
             renderAdjustOffset()
         }
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        applyDialogChrome()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Base applies theme tags after onViewCreated; re-paint plate-aware colors.
+        applyDialogChrome()
+    }
+
+    /**
+     * Labels/icons were authored for dark pictured plates (`#ffffff`). Light dialog
+     * plates (Light theme / picture fallback) need dark content instead.
+     */
+    private fun applyDialogChrome() {
+        val root = _binding?.root ?: return
+        val palette = themeEngine.currentTheme()
+        DialogSurfaceColors.paintContent(
+            root = root,
+            palette = palette,
+            skip = { it is ColorSelectView || it.parent is ColorSelectView },
+        )
+        DialogSurfaceColors.paintSeekBar(binding.lyricSeekBar, palette)
     }
 
     override fun onResume() {

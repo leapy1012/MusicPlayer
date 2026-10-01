@@ -1,6 +1,5 @@
 package gd.app.musicplayer.ui.common.base
 
-import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
@@ -20,10 +19,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import dagger.hilt.android.AndroidEntryPoint
+import android.graphics.Color
+import androidx.core.graphics.ColorUtils
+import androidx.core.widget.ImageViewCompat
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.theme.DialogSurfaceColors
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
-import gd.app.musicplayer.core.designsystem.theme.messageColor
-import gd.app.musicplayer.core.designsystem.theme.titleColor
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.domain.model.Music
@@ -57,9 +58,6 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         adapter = QueueAdapter(
             themeProvider = themeRepo::getCorePalette,
             accentColorProvider = themeRepo::getAccentColor,
-            applyTheme = { itemView ->
-                (activity as? BaseActivity)?.applyThemeTo(itemView)
-            },
             onTrackClicked = { position -> viewModel.playQueueAt(position)},
             onTrackRemoved = { position -> viewModel.removeQueueItem(position, playbackState) },
             onTrackMoved = { queue, currentIndex ->
@@ -93,6 +91,7 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         binding.currentListMode.setOnClickListener {
             viewModel.cyclePlayMode()
         }
+        paintSheetChrome()
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.uiState.collect(::render) }
@@ -102,10 +101,36 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
                 launch {
                     viewModel.playModeUiState.collect { state ->
                         binding.currentListMode.setImageResource(state.iconRes)
-                        (activity as? BaseActivity)?.applyThemeTo(binding.currentListMode)
+                        paintSheetChrome()
                     }
                 }
             }
+        }
+    }
+
+    private fun paintSheetChrome() {
+        val palette = themeRepo.getCorePalette()
+        val content = DialogSurfaceColors.contentColor(palette)
+        val divider = if (DialogSurfaceColors.usesLightPlate(palette)) {
+            0x1F000000
+        } else {
+            0x0DFFFFFF
+        }
+        val tint = ColorStateList.valueOf(content)
+        binding.currentListTitle.setTextColor(content)
+        binding.currentListClose.setTextColor(content)
+        ImageViewCompat.setImageTintList(binding.currentListMode, tint)
+        ImageViewCompat.setImageTintList(binding.currentListSave, tint)
+        ImageViewCompat.setImageTintList(binding.currentListDelete, tint)
+        binding.currentListHeaderDivider.setBackgroundColor(divider)
+        binding.currentListFooterDivider.setBackgroundColor(divider)
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        if (_binding != null && ::adapter.isInitialized) {
+            paintSheetChrome()
+            adapter.refreshTheme()
         }
     }
 
@@ -120,6 +145,9 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
 
     override fun onResume() {
         super.onResume()
+        if (_binding != null) {
+            paintSheetChrome()
+        }
         if (::adapter.isInitialized) {
             adapter.refreshTheme()
         }
@@ -127,13 +155,10 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-
-        val bottomSheet =
-            dialog?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-                ?: return
-        val params = bottomSheet.layoutParams
-        params.height = calculateDialogHeight(requireContext())
-        bottomSheet.layoutParams = params
+        if (_binding != null) {
+            // Base sheet may re-apply surface after show; retint chrome for light plates.
+            paintSheetChrome()
+        }
     }
 
     override fun onDestroyView() {
@@ -171,17 +196,20 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
         }
     }
 
-    private fun calculateDialogHeight(context: Context): Int {
-        val configuration = context.resources.configuration
-        val screenHeight = context.resources.displayMetrics.heightPixels
-
-        val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val isTablet =
-            (configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK) >=
-                    Configuration.SCREENLAYOUT_SIZE_LARGE
-
-        val ratio = if (isLandscape || isTablet) 0.72f else 0.60f
-        return (screenHeight * ratio).toInt()
+    /**
+     * Original `p5.e1.z0`: portrait max-side × 0.60, landscape min-side × 0.72.
+     * Applied via [fixedPanelHeightPx] → COUI [COUIBottomSheetDialog.setHeight].
+     */
+    override fun fixedPanelHeightPx(): Int {
+        val configuration = resources.configuration
+        val metrics = resources.displayMetrics
+        val longSide = maxOf(metrics.widthPixels, metrics.heightPixels)
+        val shortSide = minOf(metrics.widthPixels, metrics.heightPixels)
+        return if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            (shortSide * 0.72f).toInt()
+        } else {
+            (longSide * 0.60f).toInt()
+        }
     }
 
     companion object {
@@ -195,7 +223,6 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
 private class QueueAdapter(
     private val themeProvider: () -> ThemePalette,
     private val accentColorProvider: () -> Int,
-    private val applyTheme: (View) -> Unit,
     private val onTrackClicked: (Int) -> Unit,
     private val onTrackRemoved: (Int) -> Unit,
     private val onTrackMoved: (List<Music>, Int) -> Unit,
@@ -282,7 +309,6 @@ private class QueueAdapter(
             parent,
             false
         )
-        applyTheme(binding.root)
         return QueueViewHolder(binding)
     }
 
@@ -306,8 +332,7 @@ private class QueueAdapter(
             },
             onDragStart = { itemTouchHelper.startDrag(holder) },
             palette = themeProvider(),
-            accentColor = accentColorProvider(),
-            applyTheme = applyTheme
+            accentColor = accentColorProvider()
         )
     }
 
@@ -375,23 +400,13 @@ private class QueueAdapter(
             onFavoriteClick: () -> Unit,
             onDragStart: () -> Unit,
             palette: ThemePalette,
-            accentColor: Int,
-            applyTheme: (View) -> Unit
+            accentColor: Int
         ) {
-            val titleColor = if (isCurrent) {
-                accentColor
-            } else {
-                palette.titleColor
-            }
-            val artistColor = if (isCurrent) titleColor else palette.messageColor
-
+            bindCurrentState(isCurrent, palette, accentColor)
             binding.currentListMusicTitle.text = music.title
             binding.currentListMusicArtist.text = " - " + music.artist
-            binding.currentListMusicTitle.setTextColor(titleColor)
-            binding.currentListMusicArtist.setTextColor(artistColor)
-            bindFavorite(music, palette, accentColor, applyTheme)
+            bindIcons(music, palette, accentColor)
 
-            bindCurrentState(isCurrent, palette, accentColor)
             binding.root.setOnClickListener { onClick() }
             binding.currentListRemove.setOnClickListener { onRemove() }
             binding.currentListFavorite.setOnClickListener { onFavoriteClick() }
@@ -409,30 +424,34 @@ private class QueueAdapter(
             accentColor: Int
         ) {
             boundIsCurrent = isCurrent
-            val titleColor = if (isCurrent) accentColor else palette.titleColor
-            val artistColor = if (isCurrent) titleColor else palette.messageColor
+            val content = DialogSurfaceColors.contentColor(palette)
+            val secondary = if (DialogSurfaceColors.usesLightPlate(palette)) {
+                ColorUtils.setAlphaComponent(content, 0x8A)
+            } else {
+                ColorUtils.setAlphaComponent(Color.WHITE, 0xB3)
+            }
+            val titleColor = if (isCurrent) accentColor else content
+            val artistColor = if (isCurrent) accentColor else secondary
 
             binding.currentListMusicTitle.setTextColor(titleColor)
             binding.currentListMusicArtist.setTextColor(artistColor)
             binding.root.alpha = if (isCurrent) 1f else 0.92f
         }
 
-        fun bindFavorite(
+        private fun bindIcons(
             music: Music,
             palette: ThemePalette,
-            accentColor: Int,
-            applyTheme: (View) -> Unit
+            accentColor: Int
         ) {
+            val content = DialogSurfaceColors.contentColor(palette)
+            val chrome = ColorStateList.valueOf(content)
             val isFavorite = music.isFavorite()
             binding.currentListFavorite.isSelected = isFavorite
-            applyTheme(binding.currentListFavorite)
-            if (!isFavorite) {
-                binding.currentListFavorite.imageTintList = ColorStateList.valueOf(palette.titleColor)
-            } else {
-                binding.currentListFavorite.imageTintList = ColorStateList.valueOf(accentColor)
-            }
-            applyTheme(binding.currentListRemove)
-            applyTheme(binding.musicItemDrag)
+            binding.currentListFavorite.imageTintList = ColorStateList.valueOf(
+                if (isFavorite) accentColor else content
+            )
+            binding.currentListRemove.imageTintList = chrome
+            binding.musicItemDrag.imageTintList = chrome
         }
 
         override fun onItemSelected() {

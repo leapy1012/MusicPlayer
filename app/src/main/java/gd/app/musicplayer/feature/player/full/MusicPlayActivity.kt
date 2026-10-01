@@ -18,6 +18,7 @@ import gd.app.lib.view.DragDismissLayout
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.loadBlurredArtworkBackground
 import gd.app.musicplayer.core.common.extension.startActivityCompat
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.databinding.ActivityMusicplayBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.model.ViewFlipHelper
@@ -49,6 +50,12 @@ class MusicPlayActivity : BaseActivity() {
             isRecordAudioGranted = granted
         }
 
+    /**
+     * Player chrome is always a dark blurred plate — keep light (white) system icons
+     * even when the app theme's header surface is light.
+     */
+    override fun prefersLightSystemBars(palette: ThemePalette): Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -69,6 +76,10 @@ class MusicPlayActivity : BaseActivity() {
 
     private fun setupViews() {
         backgroundImage = binding.musicPlaySkin
+        // Full-player chrome is always a dark plate (white icons). Don't let the light
+        // window background show through before / without artwork.
+        binding.musicPlaySkin.setBackgroundResource(R.drawable.th_music_large)
+        (binding.musicPlaySkin.parent as? View)?.setBackgroundResource(R.drawable.th_music_large)
     }
 
     private fun setupDragDismiss() {

@@ -397,4 +397,8 @@
     <dimen name="sw_dp_32">28.44dp</dimen>
     <dimen name="h_dp_32">18.4dp</dimen>
 
+    <!-- COUI DefaultBottomSheetDialog panel — square corners (stock is 16dp). -->
+    <dimen name="coui_bottom_sheet_bg_top_corner_radius">0dp</dimen>
+    <dimen name="coui_bottom_sheet_bg_bottom_corner_radius">0dp</dimen>
+
 </resources>

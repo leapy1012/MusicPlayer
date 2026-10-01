@@ -107,6 +107,7 @@ dependencies {
     implementation(libs.androidx.media)
     implementation(libs.hilt.android)
     implementation(libs.glide)
+    ksp(libs.glide.ksp)
     implementation(libs.androidx.datastore.preferences)
     kapt(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)

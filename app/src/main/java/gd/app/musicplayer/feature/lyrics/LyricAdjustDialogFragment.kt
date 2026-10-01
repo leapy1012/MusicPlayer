@@ -6,8 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.setFragmentResult
 import gd.app.musicplayer.R
-import gd.app.musicplayer.databinding.DialogLyricAdjustBinding
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialogFragment
+import gd.app.musicplayer.core.designsystem.theme.DialogSurfaceColors
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.databinding.DialogLyricAdjustBinding
 import gd.app.musicplayer.util.TrackLyricsStore
 
 class LyricAdjustDialogFragment : BaseDialogFragment(), View.OnClickListener {
@@ -35,7 +37,18 @@ class LyricAdjustDialogFragment : BaseDialogFragment(), View.OnClickListener {
         binding.lrcTimeForward.setOnClickListener(this)
         binding.lrcTimeUndo.setOnClickListener(this)
         binding.lyricAdjustClose.setOnClickListener(this)
+        applyDialogChrome()
         renderOffset()
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        applyDialogChrome()
+    }
+
+    private fun applyDialogChrome() {
+        val root = _binding?.root ?: return
+        DialogSurfaceColors.paintContent(root, currentTheme())
     }
 
     override fun onDestroyView() {

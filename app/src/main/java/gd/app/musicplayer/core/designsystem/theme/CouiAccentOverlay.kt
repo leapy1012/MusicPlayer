@@ -55,6 +55,15 @@ object CouiAccentOverlay {
      */
     fun applyDarkChromeIfNeeded(activity: Activity, palette: ThemePalette): Boolean {
         if (palette.isContentSurfaceLight()) return false
+        forceDarkChrome(activity)
+        return true
+    }
+
+    /**
+     * Always install COUI Dark neutrals (e.g. Equalizer’s fixed dark plate, regardless of
+     * the app’s Light / Picture / Dark setting).
+     */
+    fun forceDarkChrome(activity: Activity) {
         ThemeUtils.applyThemeOverlay(
             activity,
             com.coui.appcompat.R.style.Theme_COUI_Main_Dark,
@@ -63,7 +72,6 @@ object CouiAccentOverlay {
             activity,
             R.style.ThemeOverlay_App_EdgeToEdgeNoActionBar,
         )
-        return true
     }
 
     fun colorReplacementMap(@ColorInt accent: Int): Map<Int, Int> {
@@ -75,6 +83,8 @@ object CouiAccentOverlay {
             R.color.app_accent_disable to ColorUtils.setAlphaComponent(opaque, 0x66),
             R.color.app_accent_focus to opaque,
             R.color.app_accent_focus_outline to ColorUtils.setAlphaComponent(opaque, 0x4D),
+            // Match COUI overlay washes (~0x4C) so selection stays readable on black text.
+            R.color.app_accent_text_highlight to ColorUtils.setAlphaComponent(opaque, 0x4C),
         )
     }
 

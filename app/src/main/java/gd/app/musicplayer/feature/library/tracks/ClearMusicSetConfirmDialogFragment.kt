@@ -3,9 +3,11 @@ package gd.app.musicplayer.feature.library.tracks
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import androidx.fragment.app.setFragmentResult
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.dialog.CouiConfirmDialogFragment
 
+@AndroidEntryPoint
 class ClearMusicSetConfirmDialogFragment : CouiConfirmDialogFragment() {
 
     private val titleRes: Int

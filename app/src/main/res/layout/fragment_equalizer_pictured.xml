@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.coui.appcompat.scrollview.COUINestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:overScrollMode="always"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="16dp"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:id="@+id/equalizer_content_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="12dp">
+
+        <LinearLayout
+            android:id="@+id/equalizer_edit_parent"
+            style="@style/EqualizerCard">
+
+            <LinearLayout
+                android:id="@+id/equalizer_switch_row"
+                style="@style/EqualizerRow">
+
+                <TextView
+                    style="@style/EqualizerRowTitle"
+                    android:text="@string/equalizer" />
+
+                <com.coui.appcompat.couiswitch.COUISwitch
+                    android:id="@+id/equalizer_box"
+                    style="@style/EqualizerRowSwitch" />
+            </LinearLayout>
+
+            <View style="@style/EqualizerRowDivider" />
+
+            <LinearLayout
+                android:id="@+id/equalizer_effect_layout"
+                style="@style/EqualizerRow"
+                android:paddingEnd="4dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/equalizer_effect_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:text="@string/equalizer_effect_msg"
+                        android:textAppearance="?attr/couiTextAppearanceHeadline6"
+                        android:textColor="@color/equalizer_primary_text"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/equalizer_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:singleLine="true"
+                        android:text="@string/equalizer_effect_user_defined"
+                        android:textAppearance="?attr/couiTextAppearanceDescription"
+                        android:textColor="@color/equalizer_secondary_text" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/equalizer_edit"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/equalizer_edit"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    app:srcCompat="@drawable/vector_equalizer_edit"
+                    app:tint="@color/equalizer_action_icon" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/equalizer_save"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/save"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    app:srcCompat="@drawable/vector_equalizer_save"
+                    app:tint="@color/equalizer_action_icon" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/equalizer_text_arrow"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="12dp"
+                    android:importantForAccessibility="no"
+                    app:srcCompat="@drawable/coui_btn_next"
+                    app:tint="@color/equalizer_secondary_text" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/equalizer_seek_group"
+            style="@style/EqualizerCard"
+            android:layout_marginTop="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="8dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/equalizer_recycler"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/equalizer_band_card_height"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp" />
+        </LinearLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/equalizer_bass_card"
+            style="@style/EqualizerCard"
+            android:layout_marginTop="12dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="@dimen/equalizer_rotate_margin_bottom">
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/equalizer_guideline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.5" />
+
+            <FrameLayout
+                android:id="@+id/equalizer_bass_switch_host"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:elevation="4dp"
+                app:layout_constraintEnd_toStartOf="@+id/equalizer_guideline"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <com.coui.appcompat.couiswitch.COUISwitch
+                    android:id="@+id/equalizer_bass_box"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/equalizer_virtual_switch_host"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:elevation="4dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/equalizer_guideline"
+                app:layout_constraintTop_toTopOf="@+id/equalizer_bass_switch_host">
+
+                <com.coui.appcompat.couiswitch.COUISwitch
+                    android:id="@+id/equalizer_virtual_box"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </FrameLayout>
+
+            <gd.app.musicplayer.core.designsystem.view.RotateStepBar
+                android:id="@+id/equalizer_bass_rotate"
+                android:layout_width="@dimen/equalizer_bass_height"
+                android:layout_height="@dimen/equalizer_bass_height"
+                android:layout_marginTop="@dimen/equalizer_rotate_margin_top"
+                android:tag="equalizerRotateStepBar"
+                app:layout_constraintEnd_toEndOf="@+id/equalizer_bass_switch_host"
+                app:layout_constraintStart_toStartOf="@+id/equalizer_bass_switch_host"
+                app:layout_constraintTop_toBottomOf="@+id/equalizer_bass_switch_host"
+                app:rotateStep="0"
+                app:rotateStepExtraGraduationDrawable="@drawable/rotate_extra_graduation"
+                app:rotateStepExtraGraduationSize="@dimen/equalizer_graduation_size"
+                app:rotateStepGraduationCount="13"
+                app:rotateStepIndicatorDrawable="@drawable/rotate_indicator"
+                app:rotateStepIndicatorOverlayDrawable="@drawable/rotate_indicator_overlay"
+                app:rotateStepMax="100"
+                app:rotateStepPlugPadding="@dimen/equalizer_plug_padding" />
+
+            <gd.app.musicplayer.core.designsystem.view.RotateStepBar
+                android:id="@+id/equalizer_virtual_rotate"
+                android:layout_width="@dimen/equalizer_bass_height"
+                android:layout_height="@dimen/equalizer_bass_height"
+                android:tag="equalizerRotateStepBar"
+                app:layout_constraintEnd_toEndOf="@+id/equalizer_virtual_switch_host"
+                app:layout_constraintStart_toStartOf="@+id/equalizer_virtual_switch_host"
+                app:layout_constraintTop_toTopOf="@+id/equalizer_bass_rotate"
+                app:rotateStep="0"
+                app:rotateStepExtraGraduationDrawable="@drawable/rotate_extra_graduation"
+                app:rotateStepExtraGraduationSize="@dimen/equalizer_graduation_size"
+                app:rotateStepGraduationCount="13"
+                app:rotateStepIndicatorDrawable="@drawable/rotate_indicator"
+                app:rotateStepIndicatorOverlayDrawable="@drawable/rotate_indicator_overlay"
+                app:rotateStepMax="100"
+                app:rotateStepPlugPadding="@dimen/equalizer_plug_padding" />
+
+            <TextView
+                android:id="@+id/equalizer_bass_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/equalizer_rotate_text_margin"
+                android:gravity="center_horizontal"
+                android:text="@string/effect_bass_boost"
+                android:textAlignment="center"
+                android:textAppearance="?attr/couiTextAppearanceBody"
+                android:textColor="@color/equalizer_primary_text"
+                android:textSize="14sp"
+                app:layout_constraintEnd_toEndOf="@+id/equalizer_bass_rotate"
+                app:layout_constraintStart_toStartOf="@+id/equalizer_bass_rotate"
+                app:layout_constraintTop_toBottomOf="@+id/equalizer_bass_rotate" />
+
+            <TextView
+                android:id="@+id/equalizer_virtual_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:text="@string/equalizer_virtual"
+                android:textAlignment="center"
+                android:textAppearance="?attr/couiTextAppearanceBody"
+                android:textColor="@color/equalizer_primary_text"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toBottomOf="@+id/equalizer_bass_text"
+                app:layout_constraintEnd_toEndOf="@+id/equalizer_virtual_rotate"
+                app:layout_constraintStart_toStartOf="@+id/equalizer_virtual_rotate"
+                app:layout_constraintTop_toTopOf="@+id/equalizer_bass_text" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
+</com.coui.appcompat.scrollview.COUINestedScrollView>

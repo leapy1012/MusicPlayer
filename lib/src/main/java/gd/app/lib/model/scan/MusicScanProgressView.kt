@@ -71,7 +71,7 @@ class MusicScanProgressView @JvmOverloads constructor(
             intArrayOf(
                 0x00FFFFFF,
                 0x00FFFFFF,
-                accentColor
+                color
             ),
             null
         )

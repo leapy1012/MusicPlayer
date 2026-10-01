@@ -7,6 +7,7 @@ import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.core.designsystem.image.AudioCover
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -21,11 +22,22 @@ fun Music.isFavorite(): Boolean {
 }
 
 fun Music.albumArtSource(): Any {
-    val artworkSource =
-        albumPicture?.takeIf { it.isNotBlank() } ?: albumId.takeIf { it.isNotBlank() }?.let {
-            "content://media/external/audio/albumart/$it"
-        } ?: data.orEmpty()
-    return artworkSource
+    // Prefer custom / cached artwork that is not a MediaStore albums/albumart URI.
+    // Opening those URIs on some OEM MediaProviders throws
+    // `SQLiteException: no such column: _data` from Glide's QMediaStoreUriLoader.
+    albumPicture
+        ?.takeIf { it.isNotBlank() && !it.isMediaStoreAlbumArtworkUri() }
+        ?.let { return it }
+
+    // Embedded cover from the audio file — reliable when MediaStore album art is broken.
+    data?.takeIf { it.isNotBlank() }?.let { return AudioCover(it) }
+
+    return ""
+}
+
+private fun String.isMediaStoreAlbumArtworkUri(): Boolean {
+    return startsWith("content://media/external/audio/albums", ignoreCase = true) ||
+        startsWith("content://media/external/audio/albumart", ignoreCase = true)
 }
 
 

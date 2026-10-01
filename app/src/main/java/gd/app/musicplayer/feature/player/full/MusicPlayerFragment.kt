@@ -26,7 +26,13 @@ import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
 import gd.app.lib.model.visualizer.AudioVisualizerManager
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.applySystemBarInsets
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.widget.ImageView
+import androidx.appcompat.widget.Toolbar
+import androidx.core.widget.ImageViewCompat
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.common.extension.applyStatusBarInsetHeight
 import gd.app.musicplayer.core.common.extension.isLandscape
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.toDurationString
@@ -61,7 +67,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
-import android.content.res.ColorStateList
 
 @AndroidEntryPoint
 class MusicPlayerFragment :
@@ -132,7 +137,8 @@ class MusicPlayerFragment :
     }
 
     private fun setupUi(binding: FragmentPlayContentBinding) {
-        binding.root.applySystemBarInsets(binding.statusBarSpace)
+        // Prefer live insets with cache fallback so the toolbar clears the status bar.
+        binding.statusBarSpace.applyStatusBarInsetHeight()
         setupToolbar(binding)
         setupPager(binding)
         setupControls(binding)
@@ -153,16 +159,101 @@ class MusicPlayerFragment :
                 else -> false
             }
         }
+        // Theme walk in ViewBindingFragment runs after onBindingCreated; paint once that settles.
+        binding.toolbar.post { paintPlayerChrome(binding) }
+    }
+
+    /**
+     * Full player always sits on a dark blurred plate — force light chrome so Light theme
+     * (black [colorControlNormal] / light window) cannot wash icons and labels out.
+     */
+    private fun paintPlayerChrome(binding: FragmentPlayContentBinding) {
+        val white = ColorStateList.valueOf(Color.WHITE)
+
+        paintPlayerToolbarChrome(binding.toolbar, white)
+
+        binding.musicPlayContentTitle.musicPlayName.setTextColor(Color.WHITE)
+        binding.musicPlayContentTitle.musicPlayArtist.setTextColor(0xB3FFFFFF.toInt())
+
+        binding.musicPlayProgress.musicPlayCurrTime.setTextColor(0xB3FFFFFF.toInt())
+        binding.musicPlayProgress.musicPlayTotalTime.setTextColor(0xB3FFFFFF.toInt())
+        binding.musicPlayProgress.musicPlayProgress.setThumbColor(Color.WHITE)
+
+        val chromeIcons = listOf(
+            binding.musicLyricSetting,
+            binding.musicPlaySoundEffect,
+            binding.musicPlayLyricSearch,
+            binding.musicPlayMore,
+            binding.musicPlayProgress.musicPlayTempo,
+            binding.musicPlayController.controlMode,
+            binding.musicPlayController.controlBackward,
+            binding.musicPlayController.controlPrevious,
+            binding.musicPlayController.controlPlayPause,
+            binding.musicPlayController.controlNext,
+            binding.musicPlayController.controlForward,
+            binding.musicPlayController.controlEqualizer,
+        )
+        chromeIcons.forEach { image ->
+            ImageViewCompat.setImageTintList(image, white)
+        }
+
+        // Favorite: white outline when idle, red when selected (state list survives isSelected flips).
+        ImageViewCompat.setImageTintList(
+            binding.musicPlayFavourite,
+            ColorStateList(
+                arrayOf(
+                    intArrayOf(android.R.attr.state_selected),
+                    intArrayOf(),
+                ),
+                intArrayOf(0xFFFF5A5A.toInt(), Color.WHITE),
+            ),
+        )
+
+        // Re-apply active accent highlights when present.
+        if (binding.musicPlayProgress.musicPlayTempo.isSelected) {
+            ImageViewCompat.setImageTintList(
+                binding.musicPlayProgress.musicPlayTempo,
+                ColorStateList.valueOf(playerHighlightColor())
+            )
+        }
+        if (binding.musicPlaySoundEffect.isSelected) {
+            ImageViewCompat.setImageTintList(
+                binding.musicPlaySoundEffect,
+                ColorStateList.valueOf(playerHighlightColor())
+            )
+        }
+    }
+
+    private fun paintPlayerToolbarChrome(toolbar: Toolbar, white: ColorStateList) {
+        toolbar.navigationIcon?.mutate()?.setTint(Color.WHITE)
+        for (index in 0 until toolbar.childCount) {
+            val child = toolbar.getChildAt(index)
+            if (child is ImageView) {
+                ImageViewCompat.setImageTintList(child, white)
+            }
+        }
+        for (index in 0 until toolbar.menu.size()) {
+            val item = toolbar.menu.getItem(index)
+            val icon = item.icon?.mutate() ?: continue
+            icon.setTint(Color.WHITE)
+            item.icon = icon
+        }
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        binding?.let { b ->
+            b.toolbar.post { paintPlayerChrome(b) }
+        }
     }
 
     private fun setupControls(binding: FragmentPlayContentBinding) = with(binding) {
         musicPlayProgress.musicPlayProgress.apply {
-            setThumbColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+            setThumbColor(Color.WHITE)
             setOnSeekBarChangeListener(this@MusicPlayerFragment)
         }
 
         musicPlayProgress.musicPlayTempo.setOnClickListener(this@MusicPlayerFragment)
-        musicPlayProgress.musicPlayTempo.imageTintList = playerActionTintList()
 
         musicPlayController.apply {
             controlPlayPause.setOnClickListener(this@MusicPlayerFragment)
@@ -180,6 +271,8 @@ class MusicPlayerFragment :
         musicLyricSetting.setOnClickListener(this@MusicPlayerFragment)
         musicPlayMore.setOnClickListener(this@MusicPlayerFragment)
         musicPlayContentTitle.musicPlayArtist.setOnClickListener(this@MusicPlayerFragment)
+
+        paintPlayerChrome(binding)
     }
 
     private fun setupPager(binding: FragmentPlayContentBinding) {
@@ -444,7 +537,11 @@ class MusicPlayerFragment :
                 }.collect { (speed, pitch) ->
                     val active = kotlin.math.abs(speed - 1f) > 0.001f ||
                         kotlin.math.abs(pitch - 1f) > 0.001f
-                    binding?.musicPlayProgress?.musicPlayTempo?.isSelected = active
+                    val tint = if (active) playerHighlightColor() else 0xFFFFFFFF.toInt()
+                    binding?.musicPlayProgress?.musicPlayTempo?.apply {
+                        isSelected = active
+                        imageTintList = ColorStateList.valueOf(tint)
+                    }
                 }
             }
         }
@@ -460,16 +557,6 @@ class MusicPlayerFragment :
                 imageTintList = ColorStateList.valueOf(tint)
             }
         }
-    }
-
-    private fun playerActionTintList(): ColorStateList {
-        return ColorStateList(
-            arrayOf(
-                intArrayOf(android.R.attr.state_selected),
-                intArrayOf()
-            ),
-            intArrayOf(playerHighlightColor(), 0xFFFFFFFF.toInt())
-        )
     }
 
     private fun playerHighlightColor(): Int {

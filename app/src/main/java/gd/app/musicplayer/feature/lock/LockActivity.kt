@@ -32,10 +32,11 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
 import gd.app.musicplayer.core.common.extension.isFavorite
-import gd.app.musicplayer.core.common.extension.loadMusicArtwork
+import gd.app.musicplayer.core.common.extension.loadMusicArtworkLarge
 import gd.app.musicplayer.core.common.extension.screenHeight
 import gd.app.musicplayer.core.common.extension.screenWidth
 import gd.app.musicplayer.core.common.extension.toDurationString
+import gd.app.musicplayer.core.designsystem.image.AudioCover
 import gd.app.musicplayer.feature.player.common.PlaybackProgressBinder
 import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
@@ -419,7 +420,7 @@ class LockActivity : BaseActivity(),
     }
 
     private fun renderArtwork(track: Music) {
-        albumImage.loadMusicArtwork(track.albumArtSource())
+        albumImage.loadMusicArtworkLarge(track.albumArtSource())
         updateBackground(track)
     }
 
@@ -444,18 +445,15 @@ class LockActivity : BaseActivity(),
         }
     }
 
-    private fun resolveArtworkSource(track: Music): Any? {
-        return track.albumPicture?.takeIf { it.isNotBlank() }
-            ?: track.albumId.takeIf { it.isNotBlank() }
-                ?.let { albumId -> "content://media/external/audio/albumart/$albumId" }
-            ?: track.data
+    private fun resolveArtworkSource(track: Music): Any {
+        return track.albumArtSource()
     }
 
     private fun resolveArtworkKey(track: Music): String {
-        return track.albumPicture?.takeIf { it.isNotBlank() }
-            ?: track.albumId.takeIf { it.isNotBlank() }
-            ?: track.data
-            ?: track.id.toString()
+        return when (val source = track.albumArtSource()) {
+            is AudioCover -> source.source
+            else -> source.toString().ifBlank { track.id.toString() }
+        }
     }
 
     private fun observeLockscreenSettings() {
@@ -657,7 +655,10 @@ private class LockMorePopupMenu(
                     .build()
             }
         )
-        val window = COUIPopupListWindow(context).also { popup = it }
+        CouiPopupListSurface.paintItemTitles(context, items)
+        val window = COUIPopupListWindow(
+            CouiPopupListSurface.popupContext(context)
+        ).also { popup = it }
         window.setItemList(items)
         window.setOnItemClickListener { _, _, position, _ ->
             dismiss()

@@ -37,6 +37,7 @@ import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.enableTapToEdit
 import gd.app.musicplayer.ui.common.exitEditMode
@@ -101,7 +102,7 @@ class HiddenFoldersAddActivity :
             titleRes = R.string.add_files
         )
 
-        binding.toolbar.inflateMenu(R.menu.menu_activity_hidden_folders_add)
+        binding.toolbar.inflateThemedMenu(R.menu.menu_activity_hidden_folders_add, ::applyThemeTo)
         binding.toolbar.setOnMenuItemClickListener(this)
         updateModeMenuTitle()
         binding.appBar.bringToFront()

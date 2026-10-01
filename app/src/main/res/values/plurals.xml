@@ -8,9 +8,4 @@
         <item quantity="one">%d Track</item>
         <item quantity="other">%d Tracks</item>
     </plurals>
-
-    <plurals name="plurals_select_music">
-        <item quantity="one">%d song selected</item>
-        <item quantity="other">%d songs selected</item>
-    </plurals>
 </resources>

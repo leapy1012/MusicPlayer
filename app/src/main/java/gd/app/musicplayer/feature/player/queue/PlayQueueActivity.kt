@@ -9,6 +9,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.common.extension.loadBlurredArtworkBackground
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.databinding.ActivityPlayQueueBinding
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.feature.player.full.MusicPlayActivity
@@ -37,12 +38,26 @@ class PlayQueueActivity : BaseActivity() {
         setContentView(binding.root)
 
         resolveCaller(intent)
+        // Caller is known only after extras — refresh bars for dark artwork plate vs light list.
+        refreshSystemBarAppearance()
         setupBackground()
         applyCurrentArtwork()
         observeArtworkIfNeeded()
 
         if (savedInstanceState == null) {
             showQueueScreen()
+        }
+    }
+
+    /**
+     * Artwork plate from the player is always dark → light system icons.
+     * Otherwise follow the header surface (light theme → dark icons).
+     */
+    override fun prefersLightSystemBars(palette: ThemePalette): Boolean {
+        return if (usesArtworkBackground()) {
+            false
+        } else {
+            palette.isHeaderSurfaceLight()
         }
     }
 
@@ -56,6 +71,7 @@ class PlayQueueActivity : BaseActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         resolveCaller(intent)
+        refreshSystemBarAppearance()
         setupBackground()
         applyCurrentArtwork()
         observeArtworkIfNeeded()

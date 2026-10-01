@@ -8,6 +8,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.AdapterView
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
@@ -19,6 +21,8 @@ import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.datastore.SoundEffectPreferences
 import gd.app.musicplayer.core.designsystem.dialog.BaseDialog
 import gd.app.musicplayer.core.designsystem.dialog.OptionsListDialog
+import gd.app.musicplayer.core.designsystem.theme.CouiAccentOverlay
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
 import gd.app.musicplayer.core.designsystem.theme.messageColor
 import gd.app.musicplayer.core.designsystem.theme.titleColor
@@ -28,6 +32,7 @@ import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import gd.app.musicplayer.ui.common.CouiTabLayoutMediator
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.applyCouiLeftTitle
+import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.installEqualWidthTabs
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -45,6 +50,7 @@ class EqualizerActivity : BaseActivity() {
     private var tabMediator: CouiTabLayoutMediator? = null
     private var equalWidthListener: View.OnLayoutChangeListener? = null
     private lateinit var tipGuard: EqualizerEnableTipGuard
+    private var picturedStyle: Boolean = false
 
     companion object {
         fun start(context: Context) {
@@ -54,6 +60,12 @@ class EqualizerActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        picturedStyle = EqualizerUiStyle.isPictured(themeRepo.getCorePalette())
+        if (picturedStyle) {
+            // Skeuomorphic EQ/VOL only on Pictured — lock the original dark plate.
+            CouiAccentOverlay.forceDarkChrome(this)
+            CouiAccentOverlay.apply(this, themeRepo.getAccentColor())
+        }
 
         binding = ActivityEqualizerBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -65,6 +77,31 @@ class EqualizerActivity : BaseActivity() {
         setupActions()
 
         applyTheme()
+        if (picturedStyle) paintEqualizerDarkPlate()
+    }
+
+    override fun prefersLightSystemBars(palette: ThemePalette): Boolean {
+        return if (EqualizerUiStyle.isPictured(palette)) {
+            false
+        } else {
+            super.prefersLightSystemBars(palette)
+        }
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        val nowPictured = EqualizerUiStyle.isPictured(palette)
+        if (nowPictured != picturedStyle) {
+            recreate()
+            return
+        }
+        if (nowPictured) {
+            CouiAccentOverlay.forceDarkChrome(this)
+            CouiAccentOverlay.apply(this, themeRepo.getAccentColor())
+        }
+        super.onThemeChanged(palette)
+        if (::binding.isInitialized && nowPictured) {
+            paintEqualizerDarkPlate()
+        }
     }
 
     override fun onResume() {
@@ -94,8 +131,17 @@ class EqualizerActivity : BaseActivity() {
         binding.equalizerViewPager.requestDisallowInterceptTouchEvent(disallow)
     }
 
+    fun usesPicturedStyle(): Boolean = picturedStyle
+
     private fun applyTheme() {
         applyThemeTo(binding.root)
+    }
+
+    private fun paintEqualizerDarkPlate() {
+        val plate = ContextCompat.getColor(this, R.color.equalizer_activity_background)
+        binding.root.setBackgroundColor(plate)
+        window?.setBackgroundDrawable(plate.toDrawable())
+        refreshSystemBarAppearance()
     }
 
     private fun setupInsets() {
@@ -119,6 +165,7 @@ class EqualizerActivity : BaseActivity() {
         ) { tab, position ->
             tab.text = if (position == 0) "EQ" else "VOL"
         }.also { mediator ->
+            binding.equalizerTabLayout.visibility = View.INVISIBLE
             mediator.attach()
         }
         equalWidthListener = binding.equalizerTabLayout.installEqualWidthTabs()
@@ -144,7 +191,7 @@ class EqualizerActivity : BaseActivity() {
         applyCouiLeftTitle()
         setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        inflateMenu(R.menu.menu_equalizer)
+        inflateThemedMenu(R.menu.menu_equalizer, ::applyThemeTo)
         menu.findItem(R.id.menu_equalizer_band_type)?.isVisible =
             SoundEffectPreferences.supportsTenBandEqualizer()
         setOnMenuItemClickListener { item ->

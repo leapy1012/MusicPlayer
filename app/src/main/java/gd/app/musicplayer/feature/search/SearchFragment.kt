@@ -26,7 +26,6 @@ import gd.app.musicplayer.core.common.extension.hideKeyboard
 import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
-import gd.app.musicplayer.core.designsystem.view.SearchView
 import gd.app.musicplayer.ui.common.enableTapToEdit
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.feature.library.albums.AlbumMusicActivity
@@ -38,7 +37,6 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
-    SearchView.OnQueryTextListener,
     SearchResultAdapter.Listener {
 
     @Inject lateinit var themeRepo: ThemeRepo
@@ -150,16 +148,14 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         }
     }
 
-    override fun onQueryTextChange(query: String): Boolean {
+    private fun onQueryTextChange(query: String) {
         viewModel.setQuery(query)
         adapter.setQuery(query)
-        return true
     }
 
-    override fun onQueryTextSubmit(query: String): Boolean {
+    private fun onQueryTextSubmit(query: String) {
         viewModel.setQuery(query)
         adapter.setQuery(query)
-        return true
     }
 
     override fun onSongClicked(song: Music, preferredIndex: Int?) {

@@ -24,12 +24,12 @@
         <gd.app.musicplayer.core.designsystem.view.SeekBar
             android:id="@+id/main_music_progress"
             android:layout_width="match_parent"
-            android:layout_height="3dp"
+            android:layout_height="2dp"
             android:layout_alignParentTop="true"
             android:tag="seekBar"
             app:seekMax="100"
             app:seekProgress="0"
-            app:seekProgressHeight="3dp"
+            app:seekProgressHeight="2dp"
             app:seekRtlEnable="false" />
 
         <LinearLayout

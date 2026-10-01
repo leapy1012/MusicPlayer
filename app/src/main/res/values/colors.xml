@@ -34,6 +34,8 @@
     <color name="i_white_B3">#b3ffffff</color>
     <color name="extra_text">#b3ffffff</color>
     <color name="equalizer_background_color">#131619</color>
+    <!-- Original APK EqualizerActivity plate (always, independent of app theme). -->
+    <color name="equalizer_activity_background">#24292F</color>
     <color name="i_black_m">#8a000000</color>
     <color name="app_icon_background">#ffffff</color>
     <color name="rate_dialog_message_b">#646464</color>

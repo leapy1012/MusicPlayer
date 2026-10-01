@@ -1,22 +1,26 @@
 package gd.app.musicplayer.core.designsystem.dialog
 
 import android.app.Dialog
-import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import com.coui.appcompat.checkbox.COUICheckBox
 import com.coui.appcompat.dialog.COUIAlertDialogBuilder
+import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface
 import gd.app.musicplayer.databinding.DialogConfirmExtraBinding
+import gd.app.musicplayer.ui.theme.ThemeEngine
+import javax.inject.Inject
 
 /**
  * Shared COUI confirm dialog: title + message + Cancel/OK, optional "delete source file" checkbox.
  */
+@AndroidEntryPoint
 open class CouiConfirmDialogFragment : DialogFragment() {
+
+    @Inject
+    lateinit var themeEngine: ThemeEngine
 
     protected open fun provideTitle(): CharSequence = ""
     protected open fun provideMessage(): CharSequence = ""
@@ -57,7 +61,10 @@ open class CouiConfirmDialogFragment : DialogFragment() {
                 dismiss()
             }
             builder.updateViewAfterShown()
-            CouiAlertDialogSurface.apply(dialog)
+            CouiAlertDialogSurface.apply(
+                dialog,
+                themeEngine.currentTheme().getDialogSurfaceDrawable(requireContext())
+            )
         }
         return dialog
     }

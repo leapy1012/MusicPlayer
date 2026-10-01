@@ -144,16 +144,18 @@ class MainPlaylistAdapter(
         if (playlists == newItems) return
 
         val oldItems = playlists.toList()
-        val diffResult = DiffUtil.calculateDiff(
+        playlists.clear()
+        playlists.addAll(newItems)
+
+        // Diff playlist rows only. Including the trailing ADD tile made DiffUtil report a
+        // MOVE of ADD from index 0 (empty list) to the end, and the horizontal list
+        // scrolled to follow it on first load.
+        DiffUtil.calculateDiff(
             PlaylistDiffCallback(
                 oldItems = oldItems,
                 newItems = newItems
             )
-        )
-
-        playlists.clear()
-        playlists.addAll(newItems)
-        diffResult.dispatchUpdatesTo(this)
+        ).dispatchUpdatesTo(this)
     }
 
     private fun isPlaylistPosition(position: Int): Boolean {
@@ -307,23 +309,16 @@ class MainPlaylistAdapter(
         private val newItems: List<MusicSet.Playlist>
     ) : DiffUtil.Callback() {
 
-        override fun getOldListSize(): Int = oldItems.size + ADD_ITEM_COUNT
+        override fun getOldListSize(): Int = oldItems.size
 
-        override fun getNewListSize(): Int = newItems.size + ADD_ITEM_COUNT
+        override fun getNewListSize(): Int = newItems.size
 
         override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-            val oldPlaylist = oldItems.getOrNull(oldItemPosition)
-            val newPlaylist = newItems.getOrNull(newItemPosition)
-
-            return when {
-                oldPlaylist != null && newPlaylist != null -> oldPlaylist.id == newPlaylist.id
-                oldPlaylist == null && newPlaylist == null -> true
-                else -> false
-            }
+            return oldItems[oldItemPosition].id == newItems[newItemPosition].id
         }
 
         override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-            return oldItems.getOrNull(oldItemPosition) == newItems.getOrNull(newItemPosition)
+            return oldItems[oldItemPosition] == newItems[newItemPosition]
         }
     }
 

@@ -182,46 +182,59 @@ class SleepActivity : BaseActivity(), View.OnClickListener {
 
     private fun loadSavedBehavior() {
         lifecycleScope.launch {
+            // Prefs are the defaults; an active timer overrides duration / behavior once.
             endAction = sleepPreferenceStore.getEndAction()
-
             binding.sleepItemOperationSelect.isChecked =
                 sleepPreferenceStore.getStopAfterCurrentTrackEnabled()
 
+            hydrateFromActiveTimer()
             updateOperationText()
 
             if (binding.sleepItemCustomEdit.text.isNullOrBlank()) {
                 setCustomEditText(sleepPreferenceStore.getLastCustomMinutes())
             }
+            renderSelection(syncCustomEditText = selectedMinutes > 0 && selectedMinutes !in PRESET_MINUTES)
         }
+    }
+
+    /**
+     * Original [ActivitySleep]: `f7178e0 = q0.f().g()` once on create — scheduled duration
+     * minutes while the timer is running, else 0. Never refreshed from remaining-time ticks.
+     */
+    private fun hydrateFromActiveTimer() {
+        val state = SleepTimerManager.state.value
+        if (!state.isActive) {
+            selectedMinutes = 0
+            return
+        }
+        selectedMinutes = state.durationMinutes
+        endAction = state.action
+        binding.sleepItemOperationSelect.isChecked = state.stopAfterCurrentTrack
     }
 
     private fun observeSleepTimer() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                SleepTimerManager.state.collect(::renderSleepTimerState)
+                var previousStatus = SleepTimerManager.state.value.status
+                SleepTimerManager.state.collect { state ->
+                    val wasActive = previousStatus != SleepTimerState.STATUS_IDLE
+                    previousStatus = state.status
+
+                    // Original ActivitySleep.h(status, remaining):
+                    // - ignore RUNNING / PENDING ticks (do not touch radio selection)
+                    // - only when status becomes IDLE (2) reset UI to "Close sleep mode"
+                    if (hasPendingChange) return@collect
+                    if (state.status != SleepTimerState.STATUS_IDLE || !wasActive) return@collect
+
+                    selectedMinutes = 0
+                    endAction = sleepPreferenceStore.getEndAction()
+                    binding.sleepItemOperationSelect.isChecked =
+                        sleepPreferenceStore.getStopAfterCurrentTrackEnabled()
+                    updateOperationText()
+                    renderSelection(syncCustomEditText = false)
+                }
             }
         }
-    }
-
-    private suspend fun renderSleepTimerState(state: SleepTimerState) {
-        // Important:
-        // SleepTimerManager emits every second.
-        // Do not let timer ticks overwrite the user's new selection/custom input.
-        if (hasPendingChange) return
-
-        if (state.isActive) {
-            selectedMinutes = state.durationMinutes
-            endAction = state.action
-            binding.sleepItemOperationSelect.isChecked = state.stopAfterCurrentTrack
-        } else {
-            selectedMinutes = 0
-            endAction = sleepPreferenceStore.getEndAction()
-            binding.sleepItemOperationSelect.isChecked =
-                sleepPreferenceStore.getStopAfterCurrentTrackEnabled()
-        }
-
-        updateOperationText()
-        renderSelection(syncCustomEditText = true)
     }
 
     private fun selectDisabled() {

@@ -19,8 +19,12 @@ import android.view.View
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.isFavorite
+import gd.app.musicplayer.core.designsystem.image.AudioCover
 import gd.app.musicplayer.domain.model.Music
+import android.media.MediaMetadataRetriever
+import java.io.ByteArrayInputStream
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.playback.PlaybackMode
 import gd.app.musicplayer.feature.widget.WidgetArtworkStyle
@@ -528,28 +532,61 @@ internal object WidgetRenderer {
         if (track == null) return null
 
         return runCatching {
-            val source = track.albumPicture?.takeIf { it.isNotBlank() }
-                ?: track.albumId.takeIf { it.isNotBlank() }?.let { albumId ->
-                    "content://media/external/audio/albumart/$albumId"
+            when (val art = track.albumArtSource()) {
+                is AudioCover -> decodeEmbeddedArtwork(
+                    context = context,
+                    source = art.source,
+                    requestedSizePx = targetSizePx.coerceAtLeast(1),
+                )
+                else -> {
+                    val source = art.toString().takeIf { it.isNotBlank() }
+                        ?: return@runCatching null
+                    decodeSampledBitmap(
+                        context = context,
+                        source = source,
+                        requestedSizePx = targetSizePx.coerceAtLeast(1),
+                    )
                 }
-                ?: track.data
-
-            if (source.isNullOrBlank()) {
-                return@runCatching null
-            }
-
-            decodeSampledBitmap(
-                context = context,
-                source = source,
-                requestedSizePx = targetSizePx.coerceAtLeast(1)
-            )?.let { bitmap ->
+            }?.let { bitmap ->
                 transformArtwork(
                     bitmap = bitmap,
                     artworkStyle = artworkStyle,
-                    targetSizePx = targetSizePx.coerceAtLeast(1)
+                    targetSizePx = targetSizePx.coerceAtLeast(1),
                 )
             }
         }.getOrNull()
+    }
+
+    private fun decodeEmbeddedArtwork(
+        context: Context,
+        source: String,
+        requestedSizePx: Int,
+    ): Bitmap? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            if (source.contains("://")) {
+                retriever.setDataSource(context, source.toUri())
+            } else {
+                retriever.setDataSource(source)
+            }
+            val bytes = retriever.embeddedPicture ?: return null
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            ByteArrayInputStream(bytes).use { BitmapFactory.decodeStream(it, null, bounds) }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            val options = BitmapFactory.Options().apply {
+                inSampleSize = calculateInSampleSize(
+                    width = bounds.outWidth,
+                    height = bounds.outHeight,
+                    requestedSizePx = requestedSizePx,
+                )
+                inPreferredConfig = Bitmap.Config.RGB_565
+            }
+            ByteArrayInputStream(bytes).use { BitmapFactory.decodeStream(it, null, options) }
+        } catch (_: Exception) {
+            null
+        } finally {
+            runCatching { retriever.release() }
+        }
     }
 
     private fun transformArtwork(

@@ -6,6 +6,7 @@
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/current_list_header"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:gravity="center_vertical"
@@ -29,7 +30,6 @@
             android:ellipsize="end"
             android:maxLines="2"
             android:textAlignment="viewStart"
-            android:textColor="#ffffff"
             android:textSize="16sp" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -50,9 +50,9 @@
     </LinearLayout>
 
     <View
+        android:id="@+id/current_list_header_divider"
         android:layout_width="match_parent"
-        android:layout_height="1px"
-        android:background="#0dffffff" />
+        android:layout_height="1dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/current_list_recycler"
@@ -61,9 +61,9 @@
         android:layout_weight="1" />
 
     <View
+        android:id="@+id/current_list_footer_divider"
         android:layout_width="match_parent"
-        android:layout_height="1px"
-        android:background="#0dffffff" />
+        android:layout_height="1dp" />
 
     <TextView
         android:id="@+id/current_list_close"
@@ -73,6 +73,5 @@
         android:gravity="center"
         android:text="@string/close"
         android:textAlignment="center"
-        android:textColor="#ffffff"
         android:textSize="16sp" />
 </LinearLayout>

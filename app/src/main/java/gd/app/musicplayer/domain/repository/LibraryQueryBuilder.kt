@@ -412,7 +412,12 @@ internal object LibraryQueryBuilder {
         }
 
         if (sortStyle == SORT_RANDOM) {
-            return appendOrderBy("random()")
+            // Original stores a one-shot shuffle in sort, then ORDER BY sort — never SQL random().
+            return if (sourceId > 0) {
+                appendOrderBy("map.sort collate localized asc, map.rowid asc")
+            } else {
+                appendOrderBy("sort collate localized asc, title collate localized asc")
+            }
         }
 
         val sortColumn = mapTrackSortColumn(
@@ -602,8 +607,8 @@ internal object LibraryQueryBuilder {
         sourceId: Int
     ): String {
         return when (sortStyle) {
-            SORT_NAME,
-            SORT_RANDOM -> TRACK_TITLE_COLUMN
+            SORT_NAME -> TRACK_TITLE_COLUMN
+            SORT_RANDOM -> "sort"
 
             "artist" -> "artist"
             "album" -> "album"

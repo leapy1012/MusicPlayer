@@ -123,13 +123,12 @@ class MusicSetAdapter(
         position: Int
     ) {
         when (holder) {
-            is FolderFooterViewHolder -> applyTheme?.invoke(holder.itemView)
+            is FolderFooterViewHolder -> Unit
             is BaseViewHolder -> {
                 bindHolder(
                     holder = holder,
                     item = folderOrListItem(position)
                 )
-                applyTheme?.invoke(holder.itemView)
             }
         }
     }

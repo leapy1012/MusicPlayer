@@ -2,10 +2,12 @@ package gd.app.musicplayer.domain.usecase.library
 
 import gd.app.musicplayer.core.datastore.SortPreferencesDataStore
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.repository.LibraryRepo
 import javax.inject.Inject
 
 class UpdateLibrarySortUseCase @Inject constructor(
-    private val preference: SortPreferencesDataStore
+    private val preference: SortPreferencesDataStore,
+    private val libraryRepo: LibraryRepo
 ) {
     suspend operator fun invoke(
         musicSet: MusicSet,
@@ -13,6 +15,10 @@ class UpdateLibrarySortUseCase @Inject constructor(
         descending: Boolean,
         isSelectionMode: Boolean = false
     ) {
+        // Original: picking Random runs u5.d.o0 once before prefs refresh.
+        if (!isSelectionMode && sortStyle == SORT_RANDOM) {
+            libraryRepo.shuffleRandomSortRanks(musicSet)
+        }
 
         if (isSelectionMode) {
             if (musicSet is MusicSet.Folders) {
@@ -60,6 +66,9 @@ class UpdateLibrarySortUseCase @Inject constructor(
                 }
             }
         }
+    }
 
+    private companion object {
+        const val SORT_RANDOM = "random"
     }
 }

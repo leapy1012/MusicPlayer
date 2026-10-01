@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="false"
     android:tag="activityBackgroundColor">
 
     <FrameLayout
@@ -21,6 +22,8 @@
         app:behavior_hideable="false"
         app:behavior_peekHeight="@dimen/main_control_banner_height"
         app:behavior_skipCollapsed="false"
+        app:gestureInsetBottomIgnored="true"
+        app:paddingBottomSystemWindowInsets="false"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
         <!-- Original activity_album: empty FrameLayouts; banners added via FragmentTransaction.commit(). -->

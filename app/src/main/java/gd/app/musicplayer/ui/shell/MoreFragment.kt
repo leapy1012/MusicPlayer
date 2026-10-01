@@ -133,6 +133,8 @@ class MoreFragment : ViewBindingFragment<FragmentMoreBinding>(), DrawerLayout.Dr
         binding.slidingmenuSleepTime.text = state.sleepSummary
         binding.slidingmenuHiddenFolders.isVisible = state.isHiddenFoldersVisible
         binding.slidingmenuEqualizerText.text = state.equalizerSummary
+        // Re-tint after icon swap so light/dark drawer colors stay correct.
+        applyThemeTo(binding.slidingmenuModelImage)
     }
 
     private fun closeDrawer() {

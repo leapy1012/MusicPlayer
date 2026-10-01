@@ -16,13 +16,24 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.getMaxScreenSize
 import gd.app.musicplayer.core.common.extension.getMinScreenSize
 import gd.app.musicplayer.core.designsystem.drawable.rectRippleDrawable
+import gd.app.musicplayer.core.designsystem.theme.DialogSurfaceColors
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
+import gd.app.musicplayer.core.designsystem.theme.dialogPressedOverlayColor
 
-
+/**
+ * Grid bottom-sheet menu (album/track overflow, etc.).
+ *
+ * Layout XML hardcodes `#ffffff` for titles/labels (pictured/dark default). Theme-tag
+ * walks do not retint those views, so light dialogs painted a white plate and left
+ * white-on-white content. Colors are applied explicitly from [dialogContentColor].
+ */
 abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
 
     protected var titleView: TextView? = null
         private set
 
+    private var titleIconView: ImageView? = null
+    private var titleIconView2: ImageView? = null
     private var menuAdapter: MenuAdapter? = null
 
     private inner class MenuAdapter(
@@ -60,6 +71,10 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
             items.addAll(newItems)
             notifyDataSetChanged()
         }
+
+        fun retintVisible() {
+            notifyDataSetChanged()
+        }
     }
 
     private inner class MenuViewHolder(
@@ -79,7 +94,7 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
             boundItem = item
             iconView.setImageResource(item.iconResId)
             textView.text = item.label ?: itemView.context.getString(item.id)
-            applyCurrentTheme(itemView)
+            applyMenuItemChrome(iconView, textView, itemView)
         }
 
         override fun onClick(view: View) {
@@ -113,14 +128,37 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
         )
 
         val titleTextView = container.findViewById<TextView>(R.id.bottom_menu_title)
-        val titleIconView = container.findViewById<ImageView>(R.id.bottom_menu_title_icon)
+        val titleIcon = container.findViewById<ImageView>(R.id.bottom_menu_title_icon)
+        val titleIcon2 = container.findViewById<ImageView>(R.id.bottom_menu_title_icon_2)
 
         titleTextView.maxWidth = calculateTitleMaxWidth(
             requireContext().resources.configuration
         )
 
         titleView = titleTextView
-        onBindTitleArea(container, titleTextView, titleIconView)
+        titleIconView = titleIcon
+        titleIconView2 = titleIcon2
+        onBindTitleArea(container, titleTextView, titleIcon)
+        // Subclasses (e.g. CurrentTrackOptionsDialog) may replace the title layout;
+        // rebind refs so chrome tints the live views, not the detached originals.
+        titleView = container.findViewById(R.id.bottom_menu_title)
+        titleIconView = container.findViewById(R.id.bottom_menu_title_icon)
+        titleIconView2 = container.findViewById(R.id.bottom_menu_title_icon_2)
+        titleView?.maxWidth = calculateTitleMaxWidth(
+            requireContext().resources.configuration
+        )
+        applyTitleChrome()
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        applyTitleChrome()
+        menuAdapter?.retintVisible()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        applyTitleChrome()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -137,8 +175,28 @@ abstract class BaseBottomGridMenuDialog : BaseBottomRecyclerMenuDialog() {
         menuAdapter?.updateItems(provideMenuItems())
     }
 
-    private fun applyCurrentTheme(view: View) {
-        (activity as? BaseActivity)?.applyThemeTo(view)
+    private fun applyMenuItemChrome(iconView: ImageView, textView: TextView, itemView: View) {
+        val palette = themeEngine.currentTheme()
+        val color = dialogContentColor(palette)
+        applyDialogItemStyle(iconView, color)
+        applyDialogItemStyle(textView, color)
+        applyDialogItemBackground(itemView, palette.dialogPressedOverlayColor)
+    }
+
+    private fun applyTitleChrome() {
+        val palette = themeEngine.currentTheme()
+        val color = dialogContentColor(palette)
+        titleView?.let { applyDialogItemStyle(it, color) }
+        titleIconView?.let { applyDialogItemStyle(it, color) }
+        titleIconView2?.let { applyDialogItemStyle(it, color) }
+    }
+
+    /**
+     * Light dialog plate → dark content; pictured/dark plate → white content.
+     * Do not trust activity COUI tokens alone (Dark chrome overlay can leave LabelPrimary white).
+     */
+    private fun dialogContentColor(palette: ThemePalette): Int {
+        return DialogSurfaceColors.contentColor(palette)
     }
 
     protected open fun calculateTitleMaxWidth(configuration: Configuration): Int {

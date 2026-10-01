@@ -13,6 +13,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.theme.CouiAccentOverlay
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
@@ -199,9 +200,18 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     /**
      * Light status/nav icons when the header (and mini-player) chrome is dark —
      * pictured and dark themes. Light theme keeps dark icons for white surfaces.
+     * Subclasses with always-dark chrome (e.g. full player) may force dark bars.
      */
+    protected open fun prefersLightSystemBars(palette: ThemePalette): Boolean {
+        return palette.isHeaderSurfaceLight()
+    }
+
+    protected fun refreshSystemBarAppearance() {
+        applySystemBarAppearance(themeRepo.getCorePalette())
+    }
+
     private fun applySystemBarAppearance(palette: ThemePalette) {
-        val lightBars = palette.isHeaderSurfaceLight()
+        val lightBars = prefersLightSystemBars(palette)
         enableEdgeToEdge(
             statusBarStyle = if (lightBars) {
                 SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
@@ -214,6 +224,17 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
                 SystemBarStyle.dark(Color.TRANSPARENT)
             },
         )
+        // AppTheme still declares an opaque navigationBarColor; OEMs (and theme
+        // re-inflate) can restore it after enableEdgeToEdge. Force transparent so
+        // the player / sheet plate can paint behind the 3-button icons — same as
+        // BaseBottomSheetDialogFragment.applyNavigationChrome.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
     }
 
     private fun applyCouiAccentOverlay() {

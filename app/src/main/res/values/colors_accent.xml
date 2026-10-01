@@ -11,4 +11,6 @@
     <color name="app_accent_disable">#660066FF</color>
     <color name="app_accent_focus">#FF0066FF</color>
     <color name="app_accent_focus_outline">#4D0066FF</color>
+    <!-- COUI text selection wash (~30% accent); not the opaque primary fill. -->
+    <color name="app_accent_text_highlight">#4C0066FF</color>
 </resources>

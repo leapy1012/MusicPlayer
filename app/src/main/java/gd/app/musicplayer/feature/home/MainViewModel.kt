@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.SmartPlaylistConfig
+import gd.app.musicplayer.domain.usecase.library.GetMusicSetsUseCase
 import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.main.ObserveFavoriteCountUseCase
@@ -56,6 +57,7 @@ class MainViewModel @Inject constructor(
     private val updateMainPlaylistOrderUseCase: UpdateMainPlaylistOrderUseCase,
     private val resetPlaylistsSortUseCase: ResetPlaylistsSortUseCase,
     private val getTracksUseCase: GetTracksUseCase,
+    private val getMusicSetsUseCase: GetMusicSetsUseCase,
     private val playbackStartupInitializer: PlaybackStartupInitializer,
     private val playbackAudioController: gd.app.musicplayer.playback.PlaybackAudioController
 ) : ViewModel() {
@@ -68,10 +70,12 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             playbackStartupInitializer.initialize()
         }
-        // Warm Tracks snapshot while user is on Home (original Home COUNT warms DB;
-        // we also cache the list so Library opens without waiting on DataStore+Room).
+        // Warm Library tab snapshots while user is on Home so open paints from memory.
         viewModelScope.launch(Dispatchers.IO) {
             runCatching { getTracksUseCase(MusicSet.Tracks) }
+            for (set in listOf(MusicSet.Artists, MusicSet.Albums, MusicSet.Genres)) {
+                runCatching { getMusicSetsUseCase(set) }
+            }
         }
     }
 

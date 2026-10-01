@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:maxEms="10"
         android:singleLine="true"
-        android:textColor="#ffffff"
+        android:textColor="?attr/couiColorLabelPrimary"
         android:textSize="20sp" />
 
     <androidx.appcompat.widget.AppCompatImageView
