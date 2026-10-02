@@ -23,7 +23,8 @@ class DeleteTracksUseCase @Inject constructor(
 
         if (deletedIds.isNotEmpty()) {
             prunePlaybackQueueTracksUseCase(deletedIds)
-            libraryRepo.hideTracks(deletedIds, System.currentTimeMillis())
+            // Original [q5.j.k → B0]: storage-deleted tracks use show=2 (Deleted), not hide_time.
+            libraryRepo.markDeletedSourceFilesRemoved(deletedIds)
         }
 
         return deletedIds.size

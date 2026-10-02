@@ -310,6 +310,9 @@ class EditBottomMenuController(
                     activity,
                     if (deletedCount > 0) R.string.succeed else R.string.feature_not_implemented
                 )
+                if (deletedCount > 0) {
+                    activity.reloadTracks()
+                }
             }
         }
 
@@ -337,6 +340,7 @@ class EditBottomMenuController(
                 songIds = songs.map(Music::id)
             )
             ToastUtil.show(activity, R.string.hidden_folders_tips)
+            activity.reloadTracks()
         }
     }
 

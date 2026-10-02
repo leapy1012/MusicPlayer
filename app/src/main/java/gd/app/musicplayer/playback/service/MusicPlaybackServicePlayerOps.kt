@@ -143,7 +143,7 @@ internal fun MusicPlaybackService.maybeCorrectExternalMediaItemTransition(reason
 
         reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
             playbackModeResolver.resolveNextIndex(
-                queueSize = queue.size,
+                queue = queue,
                 currentIndex = currentIndex,
                 fromAutoTransition = true
             )
@@ -195,25 +195,20 @@ internal fun MusicPlaybackService.resolvePendingMedia3TransportTargetIndex(): In
     return when (pendingMedia3TransportCommand) {
         Player.COMMAND_SEEK_TO_NEXT,
         Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> {
+            playbackModeResolver.clearReverseSticky()
             playbackModeResolver.resolveNextIndex(
-                queueSize = queue.size,
+                queue = queue,
                 currentIndex = startIndex,
                 fromAutoTransition = false
             )
         }
 
-        Player.COMMAND_SEEK_TO_PREVIOUS -> {
-            playbackModeResolver.resolvePreviousIndex(
-                queueSize = queue.size,
-                currentIndex = startIndex,
-                shouldRestartCurrent = pendingMedia3TransportStartPositionMs >
-                        PREVIOUS_RESTART_WINDOW_MS
-            )
-        }
-
+        Player.COMMAND_SEEK_TO_PREVIOUS,
         Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> {
+            // Original [y6.y.D0]: always previous — no 5s restart window.
+            playbackModeResolver.markPreviousNavigated()
             playbackModeResolver.resolvePreviousIndex(
-                queueSize = queue.size,
+                queue = queue,
                 currentIndex = startIndex,
                 shouldRestartCurrent = false
             )

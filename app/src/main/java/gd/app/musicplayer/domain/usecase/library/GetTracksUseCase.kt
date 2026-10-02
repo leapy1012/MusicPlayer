@@ -9,8 +9,9 @@ class GetTracksUseCase @Inject constructor(
     private val libraryRepo: LibraryRepo
 ) {
     suspend operator fun invoke(
-        musicSet: MusicSet
+        musicSet: MusicSet,
+        forceRefresh: Boolean = false
     ): List<Music> {
-        return libraryRepo.getTracks(musicSet)
+        return libraryRepo.getTracks(musicSet, forceRefresh)
     }
 }

@@ -19,7 +19,7 @@ class TrackAdapter(
     private val theme: ThemePalette,
     private val onItemClick: (Music) -> Unit,
     private val onMenuClick: (Music) -> Unit,
-    private val onItemLongClick: ((Music) -> Unit)?
+    private val onItemLongClick: ((Music, Int) -> Unit)?
 ) : RecyclerView.Adapter<MusicViewHolder>(), ItemMoveListener {
 
     private val tracks = mutableListOf<Music>()

@@ -544,24 +544,24 @@ internal fun MusicPlaybackService.configureControllers() {
             }
 
             override fun resolveNextIndex(
-                queueSize: Int,
+                queue: List<Music>,
                 currentIndex: Int,
                 fromAutoTransition: Boolean
             ): Int? {
                 return playbackModeResolver.resolveNextIndex(
-                    queueSize = queueSize,
+                    queue = queue,
                     currentIndex = currentIndex,
                     fromAutoTransition = fromAutoTransition
                 )
             }
 
             override fun resolvePreviousIndex(
-                queueSize: Int,
+                queue: List<Music>,
                 currentIndex: Int,
                 shouldRestartCurrent: Boolean
             ): Int? {
                 return playbackModeResolver.resolvePreviousIndex(
-                    queueSize = queueSize,
+                    queue = queue,
                     currentIndex = currentIndex,
                     shouldRestartCurrent = shouldRestartCurrent
                 )
@@ -571,12 +571,28 @@ internal fun MusicPlaybackService.configureControllers() {
                 stopAtQueueStart()
             }
 
-            override fun currentPlayerPositionIsAfterPreviousRestartWindow(): Boolean {
-                return player.currentPosition > PREVIOUS_RESTART_WINDOW_MS
+            override fun markPreviousNavigated() {
+                playbackModeResolver.markPreviousNavigated()
             }
 
-            override fun seekCurrentToStart() {
-                seekToInternal(0)
+            override fun onQueueInitialized(queue: List<Music>, currentIndex: Int) {
+                playbackModeResolver.onQueueInitialized(queue, currentIndex)
+            }
+
+            override fun onQueueCleared() {
+                playbackModeResolver.onQueueCleared()
+            }
+
+            override fun onTracksAppended(queue: List<Music>, added: List<Music>) {
+                playbackModeResolver.onTracksAppended(queue, added)
+            }
+
+            override fun onTracksInsertedForNext(added: List<Music>) {
+                playbackModeResolver.onTracksInsertedForNext(added)
+            }
+
+            override fun onQueueMutated(queue: List<Music>, currentIndex: Int) {
+                playbackModeResolver.onQueueMutated(queue, currentIndex)
             }
 
             override fun resetPlaybackStatistics() {

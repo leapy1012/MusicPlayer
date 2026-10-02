@@ -11,6 +11,7 @@ import kotlin.math.max
 
 class SyncMediaStoreLibraryUseCase @Inject constructor(
     private val queryMediaStoreTracksUseCase: QueryMediaStoreTracksUseCase,
+    private val importMediaStorePlaylistsUseCase: ImportMediaStorePlaylistsUseCase,
     private val scanRepo: ScanRepo,
     private val prunePlaybackQueueTracksUseCase: PrunePlaybackQueueTracksUseCase
 ) {
@@ -79,12 +80,14 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
         }
 
         onBeforeUpsert(scannableTracks)
-        val updatedCount = if (incremental) {
+        if (incremental) {
             scanRepo.upsertChangedTracks(scannableTracks)
         } else {
             scanRepo.upsertTracks(scannableTracks)
-            scannableTracks.size
         }
+
+        // Original v5.j calls v5.k after track upsert to pull new MediaStore playlists.
+        runCatching { importMediaStorePlaylistsUseCase() }
 
         val summary = scanRepo.librarySummary()
         return ScanResultSummary(

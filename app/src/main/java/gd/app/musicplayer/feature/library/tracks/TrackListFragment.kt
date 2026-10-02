@@ -302,12 +302,12 @@ class TrackListFragment : BaseListFragment() {
             )
     }
 
-    private fun openMusicEditActivity(music: Music) {
+    private fun openMusicEditActivity(music: Music, topOffset: Int) {
         MusicEditActivity.start(
             context = requireContext(),
             musicSet = musicSet,
             selectedMusic = music,
-            offset = view?.top ?: 0
+            offset = topOffset
         )
     }
 

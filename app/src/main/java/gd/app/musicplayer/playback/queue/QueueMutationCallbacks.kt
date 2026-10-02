@@ -1,5 +1,7 @@
 package gd.app.musicplayer.playback.queue
 
+import gd.app.musicplayer.domain.model.Music
+
 interface QueueMutationCallbacks {
 
     fun markPlaybackRestored()
@@ -31,22 +33,30 @@ interface QueueMutationCallbacks {
     fun applyVolumeForPlaybackStart(playWhenReady: Boolean)
 
     fun resolveNextIndex(
-        queueSize: Int,
+        queue: List<Music>,
         currentIndex: Int,
         fromAutoTransition: Boolean
     ): Int?
 
     fun resolvePreviousIndex(
-        queueSize: Int,
+        queue: List<Music>,
         currentIndex: Int,
         shouldRestartCurrent: Boolean
     ): Int?
 
     fun onAutoTransitionReachedQueueEnd()
 
-    fun currentPlayerPositionIsAfterPreviousRestartWindow(): Boolean
+    fun markPreviousNavigated()
 
-    fun seekCurrentToStart()
+    fun onQueueInitialized(queue: List<Music>, currentIndex: Int)
+
+    fun onQueueCleared()
+
+    fun onTracksAppended(queue: List<Music>, added: List<Music>)
+
+    fun onTracksInsertedForNext(added: List<Music>)
+
+    fun onQueueMutated(queue: List<Music>, currentIndex: Int)
 
     fun currentTrackDurationMs(): Int
 

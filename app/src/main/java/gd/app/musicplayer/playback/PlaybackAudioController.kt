@@ -245,15 +245,14 @@ class PlaybackAudioController @Inject constructor(
     }
 
     /**
-     * Same index policy as [QueueActionController.playNext] / [PlaybackModeResolver]:
-     * Shuffle-all → random other index (original shuffle next), not queue+1.
+     * Same index policy as [QueueActionController.playNext] / [PlaybackModeResolver].
      */
     private suspend fun playNextInternal() {
         val queue = queueManager.queue
         if (queue.isEmpty()) return
 
         val nextIndex = playbackModeResolver.resolveNextIndex(
-            queueSize = queue.size,
+            queue = queue,
             currentIndex = queueManager.currentIndex,
             fromAutoTransition = false
         ) ?: return
@@ -265,19 +264,14 @@ class PlaybackAudioController @Inject constructor(
         val queue = queueManager.queue
         if (queue.isEmpty()) return
 
-        val player = processPlayerHolder.playerOrNull()
-        // Same restart window as service QueueMutationCallbacks (5s).
-        if (player != null && player.currentPosition > PREVIOUS_RESTART_WINDOW_MS) {
-            player.seekTo(0L)
-            return
-        }
-
+        // Original [y6.y.D0]: always previous — no 5s restart window.
         val previousIndex = playbackModeResolver.resolvePreviousIndex(
-            queueSize = queue.size,
+            queue = queue,
             currentIndex = queueManager.currentIndex,
             shouldRestartCurrent = false
         ) ?: return
 
+        playbackModeResolver.markPreviousNavigated()
         playResolvedIndex(previousIndex)
     }
 
@@ -339,10 +333,5 @@ class PlaybackAudioController @Inject constructor(
                 PlaybackServiceActions.ACTION_REFRESH_NOTIFICATION_STYLE
             )
         }
-    }
-
-    private companion object {
-        /** Same as service [PREVIOUS_RESTART_WINDOW_MS]. */
-        private const val PREVIOUS_RESTART_WINDOW_MS = 5_000L
     }
 }

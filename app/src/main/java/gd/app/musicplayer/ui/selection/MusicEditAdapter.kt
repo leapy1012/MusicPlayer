@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.coui.appcompat.checkbox.COUICheckBox
@@ -133,7 +132,6 @@ class MusicEditAdapter(
         fun bind(row: RowEntry) {
             currentRow = row
 
-            val context = binding.root.context
             val music = row.music
 
             binding.musicItemAlbum.loadMusicArtwork(music.albumArtSource())
@@ -259,7 +257,14 @@ class MusicEditAdapter(
         )
     }
 
-    fun submitList(items: List<Music>) {
+    /**
+     * Full list replace matching original o5.j0.H:
+     * assign rows, optional preselect (j0.y), rebuild filter (j0.z), notifyDataSetChanged.
+     */
+    fun replaceAll(
+        items: List<Music>,
+        preselected: Music? = null
+    ) {
         val nextRows = items.map { music ->
             RowEntry(
                 key = musicKey(music),
@@ -267,29 +272,24 @@ class MusicEditAdapter(
             )
         }
 
-        val validKeys = nextRows.mapTo(HashSet()) { row ->
-            row.key
+        val validKeys = nextRows.mapTo(HashSet(), RowEntry::key)
+        selectedKeys.retainAll(validKeys)
+        preselected?.let { music ->
+            selectedKeys.add(musicKey(music))
         }
 
-        selectedKeys.retainAll(validKeys)
         allRows = nextRows.toMutableList()
-
-        applyFilter(
-            keyword = normalizedSearchQuery,
-            dispatchDiff = true
-        )
-
+        rebuildFilteredRows()
+        notifyDataSetChanged()
         selectionCountListener?.onSelectionCountChanged(selectedKeys.size)
     }
 
     fun setSearchKeyword(keyword: String?) {
         rawSearchQuery = keyword.orEmpty().trim()
         normalizedSearchQuery = rawSearchQuery.lowercase()
-
-        applyFilter(
-            keyword = normalizedSearchQuery,
-            dispatchDiff = true
-        )
+        // Original j0.z + notifyDataSetChanged on text change.
+        rebuildFilteredRows()
+        notifyDataSetChanged()
     }
 
     fun setSelectionCountListener(listener: SelectionCountChangedListener?) {
@@ -369,88 +369,19 @@ class MusicEditAdapter(
         selectionCountListener?.onSelectionCountChanged(selectedKeys.size)
     }
 
-    private fun applyFilter(
-        keyword: String?,
-        dispatchDiff: Boolean
-    ) {
-        val nextFiltered = buildFilteredRows(keyword)
-
-        if (dispatchDiff) {
-            dispatchFilteredDiff(nextFiltered)
+    private fun rebuildFilteredRows() {
+        filteredRows.clear()
+        if (normalizedSearchQuery.isEmpty()) {
+            filteredRows.addAll(allRows)
             return
         }
-
-        filteredRows.clear()
-        filteredRows.addAll(nextFiltered)
-    }
-
-    private fun buildFilteredRows(keyword: String?): List<RowEntry> {
-        if (keyword.isNullOrEmpty()) {
-            return allRows.toList()
-        }
-
-        return allRows.filter { row ->
-            row.music.title.contains(keyword, ignoreCase = true) ||
-                    row.music.artist.contains(keyword, ignoreCase = true)
-        }
-    }
-
-    private fun dispatchFilteredDiff(nextFiltered: List<RowEntry>) {
-        val oldFiltered = filteredRows.toList()
-
-        val diff = DiffUtil.calculateDiff(
-            object : DiffUtil.Callback() {
-                override fun getOldListSize(): Int {
-                    return oldFiltered.size
-                }
-
-                override fun getNewListSize(): Int {
-                    return nextFiltered.size
-                }
-
-                override fun areItemsTheSame(
-                    oldItemPosition: Int,
-                    newItemPosition: Int
-                ): Boolean {
-                    return oldFiltered[oldItemPosition].key ==
-                            nextFiltered[newItemPosition].key
-                }
-
-                override fun areContentsTheSame(
-                    oldItemPosition: Int,
-                    newItemPosition: Int
-                ): Boolean {
-                    val oldItem = oldFiltered[oldItemPosition]
-                    val newItem = nextFiltered[newItemPosition]
-
-                    return oldItem.music == newItem.music &&
-                            isRowSelected(oldItem.key) == isRowSelected(newItem.key)
-                }
-
-                override fun getChangePayload(
-                    oldItemPosition: Int,
-                    newItemPosition: Int
-                ): Any? {
-                    val oldItem = oldFiltered[oldItemPosition]
-                    val newItem = nextFiltered[newItemPosition]
-
-                    val sameMusic = oldItem.music == newItem.music
-                    val selectionChanged =
-                        isRowSelected(oldItem.key) != isRowSelected(newItem.key)
-
-                    return if (sameMusic && selectionChanged) {
-                        PAYLOAD_SELECTION
-                    } else {
-                        null
-                    }
-                }
+        allRows.forEach { row ->
+            if (row.music.title.contains(normalizedSearchQuery, ignoreCase = true) ||
+                row.music.artist.contains(normalizedSearchQuery, ignoreCase = true)
+            ) {
+                filteredRows += row
             }
-        )
-
-        filteredRows.clear()
-        filteredRows.addAll(nextFiltered)
-
-        diff.dispatchUpdatesTo(this)
+        }
     }
 
     private fun findFilteredIndex(key: String): Int? {

@@ -22,7 +22,8 @@ class MusicViewHolder(
     private val musicSet: MusicSet,
     private val theme: ThemePalette,
     val onItemClick: ((Music) -> Unit)?,
-    val onItemLongClick: ((Music) -> Unit)?,
+    /** Second arg is itemView.top — same contract as original l5.m0 → ActivityEdit.n1(topOffset). */
+    val onItemLongClick: ((Music, Int) -> Unit)?,
     val onMenuClick: ((Music) -> Unit)?
 ) : BaseViewHolder(binding.root), ItemTouchStateListener {
 
@@ -74,8 +75,8 @@ class MusicViewHolder(
         }
 
         if (onItemLongClick != null) {
-            itemView.setOnLongClickListener {
-                onItemLongClick.invoke(music)
+            itemView.setOnLongClickListener { view ->
+                onItemLongClick.invoke(music, view.top)
                 true
             }
         } else {

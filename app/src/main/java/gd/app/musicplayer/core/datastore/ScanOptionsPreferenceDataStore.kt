@@ -41,7 +41,7 @@ class ScanOptionsPreferenceDataStore @Inject constructor(
 
     private fun Preferences.toScanOptions(): ScanOptions {
         return ScanOptions(
-            excludeBySeconds = this[PREF_EXCLUDE_MUSIC_BY_SECONDS] ?: true,
+            excludeBySeconds = this[PREF_EXCLUDE_MUSIC_BY_SECONDS] ?: false,
             excludeBySize = this[PREF_EXCLUDE_MUSIC_BY_SIZE] ?: true,
             excludeRingtone = this[PREF_EXCLUDE_RINGTONE] ?: false,
             excludeSeconds = this[PREF_EXCLUDE_MUSIC_SECONDS] ?: 60L,

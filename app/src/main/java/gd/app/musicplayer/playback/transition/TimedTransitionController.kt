@@ -98,7 +98,7 @@ class TimedTransitionController(
         if (isAlreadyHandling(currentTrack.id)) return
 
         val nextIndex = playbackModeResolver.resolveNextIndex(
-            queueSize = queue.size,
+            queue = queue,
             currentIndex = currentIndex,
             fromAutoTransition = true
         ) ?: return
@@ -160,7 +160,7 @@ class TimedTransitionController(
         val queue = queueProvider()
         val currentIndex = currentIndexProvider()
         val resolvedNextIndex = playbackModeResolver.resolveNextIndex(
-            queueSize = queue.size,
+            queue = queue,
             currentIndex = currentIndex,
             fromAutoTransition = true
         )

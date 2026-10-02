@@ -6,11 +6,8 @@ import android.os.Bundle
 import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.widget.Toolbar
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.SimpleItemAnimator
 import com.coui.appcompat.searchview.COUISearchBar
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
@@ -38,8 +35,10 @@ import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
 import gd.app.musicplayer.ui.common.menu.EditBottomMenuController
 import gd.app.musicplayer.util.SimpleTextWatcher
-import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class MusicEditActivity :
@@ -71,6 +70,7 @@ class MusicEditActivity :
 
     private var shouldApplyInitialSelection = true
     private var shouldScrollToInitialMusic = true
+    private var appliedTracks: List<Music> = emptyList()
 
     private val recyclerView: MusicRecyclerView
         get() = binding.layoutRecyclerview.recyclerview
@@ -94,7 +94,7 @@ class MusicEditActivity :
         setupRecyclerView()
         setupSearch()
         setupBottomMenu()
-        observeTracks()
+        loadTracksOnce()
     }
 
     override fun onDestroy() {
@@ -146,7 +146,8 @@ class MusicEditActivity :
             LinearLayoutManager.VERTICAL,
             false
         )
-        (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+        // Original j0.H uses notifyDataSetChanged — no insert animations.
+        itemAnimator = null
         adapter = buildAdapter().also {
             this@MusicEditActivity.adapter = it
         }
@@ -194,26 +195,50 @@ class MusicEditActivity :
         ).bindMenu()
     }
 
-    private fun observeTracks() {
+    /**
+     * Original ActivityEdit: G0 → background J0 → one UI M0.
+     * No continuous Room/DataStore observe on open (that was the extra cost).
+     * Mutations call [reloadTracks] once, same as original re-invoking B()/G0.
+     */
+    private fun loadTracksOnce() {
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.observeTracks(musicSet).collect(::renderTracks)
+            val tracks = withContext(Dispatchers.IO) {
+                viewModel.getTracks(musicSet)
             }
+            applyTracks(tracks, isInitial = true)
         }
     }
 
-    private fun renderTracks(tracks: List<Music>) {
-        adapter.submitList(tracks)
-        applyInitialSelectionIfNeeded()
-        scrollToInitialMusicIfNeeded(tracks)
-        renderSelectionChrome(adapter.getSelectedItems().size)
-        renderFilteredListChrome()
+    /** One-shot refresh after delete/hide (original re-runs G0 via library callback). */
+    fun reloadTracks() {
+        lifecycleScope.launch {
+            val tracks = withContext(Dispatchers.IO) {
+                viewModel.getTracks(musicSet, forceRefresh = true)
+            }
+            applyTracks(tracks, isInitial = false)
+        }
     }
 
-    private fun applyInitialSelectionIfNeeded() {
-        if (!shouldApplyInitialSelection) return
-        shouldApplyInitialSelection = false
-        selectedMusic?.let(adapter::selectItem)
+    private fun applyTracks(
+        tracks: List<Music>,
+        isInitial: Boolean
+    ) {
+        appliedTracks = tracks
+        val preselected = if (isInitial && shouldApplyInitialSelection) {
+            shouldApplyInitialSelection = false
+            selectedMusic
+        } else {
+            null
+        }
+        adapter.replaceAll(
+            items = tracks,
+            preselected = preselected
+        )
+        if (isInitial) {
+            scrollToInitialMusicIfNeeded(tracks)
+        }
+        renderSelectionChrome(adapter.getSelectedItems().size)
+        renderFilteredListChrome()
     }
 
     private fun scrollToInitialMusicIfNeeded(tracks: List<Music>) {
@@ -224,14 +249,17 @@ class MusicEditActivity :
             return
         }
         val index = tracks.indexOfFirst { it.id == music.id && it.data == music.data }
-        if (index < 0) {
+        // Original ActivityEdit.M0 only restores when index > 0.
+        if (index <= 0) {
             shouldScrollToInitialMusic = false
             return
         }
         shouldScrollToInitialMusic = false
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        layoutManager.scrollToPositionWithOffset(index, initialTopOffset)
+        // Original posts scrollToPosition after offset restore; no-op when already fully visible.
         recyclerView.post {
-            (recyclerView.layoutManager as? LinearLayoutManager)
-                ?.scrollToPositionWithOffset(index, initialTopOffset)
+            layoutManager.scrollToPosition(index)
         }
     }
 

@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.core.common.extension.supportsManualOrdering
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveMusicSetsUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveViewModeUseCase
@@ -20,9 +21,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
 @HiltViewModel
 class EditViewModel @Inject constructor(
     observePlaylistsUseCase: ObservePlaylistsUseCase,
+    private val getTracksUseCase: GetTracksUseCase,
     private val observeTracksUseCase: ObserveTracksUseCase,
     private val observeMusicSetsUseCase: ObserveMusicSetsUseCase,
     private val updatePlaylistTrackOrderUseCase: UpdatePlaylistTrackOrderUseCase,
@@ -37,6 +40,14 @@ class EditViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
             initialValue = emptyList()
         )
+
+    /** One-shot load (original ActivityEdit.J0 / u5.d.B). Prefer warm snapshot unless forced. */
+    suspend fun getTracks(
+        musicSet: MusicSet,
+        forceRefresh: Boolean = false
+    ): List<Music> {
+        return getTracksUseCase(musicSet, forceRefresh)
+    }
 
     fun observeTracks(musicSet: MusicSet): Flow<List<Music>> {
         return observeTracksUseCase(musicSet)

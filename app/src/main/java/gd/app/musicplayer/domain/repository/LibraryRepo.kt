@@ -77,9 +77,14 @@ class LibraryRepo @Inject constructor(
         }.distinctUntilChanged()
     }
 
-    suspend fun getTracks(musicSet: MusicSet): List<Music> {
+    suspend fun getTracks(
+        musicSet: MusicSet,
+        forceRefresh: Boolean = false
+    ): List<Music> {
         val cacheKey = snapshotCache.tracksKey(musicSet, selectionMode = false)
-        snapshotCache.getTracks(cacheKey)?.let { return it }
+        if (!forceRefresh) {
+            snapshotCache.getTracks(cacheKey)?.let { return it }
+        }
 
         val query = LibraryQueryBuilder.buildTrackQuery(
             musicSet = musicSet,
@@ -345,7 +350,9 @@ class LibraryRepo @Inject constructor(
     suspend fun markDeletedSourceFilesRemoved(trackIds: Collection<Long>) {
         val ids = trackIds.distinct()
         if (ids.isEmpty()) return
+        // Original [u5.d.B0]: show=2 + drop playlist map rows.
         libraryDao.markDeletedSourceFilesRemoved(ids, System.currentTimeMillis())
+        libraryDao.deleteMusicPlaylistRefsByTrackIds(ids)
     }
 
     private companion object {

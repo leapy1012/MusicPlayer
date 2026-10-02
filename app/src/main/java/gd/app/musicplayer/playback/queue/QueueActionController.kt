@@ -16,7 +16,7 @@ class QueueActionController(
         if (currentState.queue.isEmpty()) return
 
         val nextIndex = callbacks.resolveNextIndex(
-            queueSize = currentState.queue.size,
+            queue = currentState.queue,
             currentIndex = currentState.currentIndex,
             fromAutoTransition = fromAutoTransition
         ) ?: run {
@@ -40,18 +40,16 @@ class QueueActionController(
 
         if (currentState.queue.isEmpty()) return
 
-        if (callbacks.currentPlayerPositionIsAfterPreviousRestartWindow()) {
-            callbacks.seekCurrentToStart()
-            return
-        }
-
+        // Original [y6.y.D0]: always previous — no 5s restart window.
         val previousIndex = callbacks.resolvePreviousIndex(
-            queueSize = currentState.queue.size,
+            queue = currentState.queue,
             currentIndex = currentState.currentIndex,
             shouldRestartCurrent = false
         ) ?: return
 
         if (!callbacks.requestAudioFocus()) return
+
+        callbacks.markPreviousNavigated()
 
         playResolvedIndex(
             index = previousIndex,
@@ -96,9 +94,12 @@ class QueueActionController(
         queueManager.removeAt(index)
 
         if (queueManager.queue.isEmpty()) {
+            callbacks.onQueueCleared()
             callbacks.onQueueBecameEmpty()
             return
         }
+
+        callbacks.onQueueMutated(queueManager.queue, queueManager.currentIndex)
 
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
@@ -160,6 +161,8 @@ class QueueActionController(
             toIndex = toIndex
         )
 
+        callbacks.onQueueMutated(queueManager.queue, queueManager.currentIndex)
+
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
@@ -202,6 +205,12 @@ class QueueActionController(
             requestedIndex = nextIndex
         )
 
+        if (wasEmpty) {
+            callbacks.onQueueInitialized(queueManager.queue, queueManager.currentIndex)
+        } else {
+            callbacks.onTracksAppended(queueManager.queue, playableIncomingQueue)
+        }
+
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
@@ -237,6 +246,8 @@ class QueueActionController(
             newQueue = incomingQueue,
             requestedIndex = 0
         )
+
+        callbacks.onQueueInitialized(queueManager.queue, 0)
 
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
@@ -280,6 +291,8 @@ class QueueActionController(
             requestedIndex = currentState.currentIndex
         )
 
+        callbacks.onTracksInsertedForNext(incomingQueue)
+
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
 
@@ -294,6 +307,7 @@ class QueueActionController(
         val playableNewQueue = playableQueue(newQueue)
 
         if (playableNewQueue.isEmpty()) {
+            callbacks.onQueueCleared()
             callbacks.onReplaceWithEmptyQueue()
             return
         }
@@ -310,6 +324,8 @@ class QueueActionController(
             newQueue = playableNewQueue,
             requestedIndex = targetIndex
         )
+
+        callbacks.onQueueInitialized(queueManager.queue, queueManager.currentIndex)
 
         queueManager.save()
         callbacks.updateNotificationSessionQueue()
@@ -379,6 +395,8 @@ class QueueActionController(
             newQueue = playableIncomingQueue,
             requestedIndex = remappedIndex
         )
+
+        callbacks.onQueueInitialized(queueManager.queue, queueManager.currentIndex)
 
         // Original QueueSaver: persist only when queue content changed (debounced).
         queueManager.save()

@@ -46,10 +46,12 @@ class MusicPlaybackControllerImpl @Inject constructor(
     override fun shufflePlay(queue: List<Music>) {
         if (queue.isEmpty()) return
 
-        playQueue(
-            queue = queue.shuffled(),
-            startIndex = 0
+        // Original [y6.y.f1]: keep queue order, switch to shuffle bag mode, play from index 0.
+        dispatcher.dispatch(
+            context = context,
+            command = PlaybackCommand.SetShuffleAllMode
         )
+        playQueue(queue = queue, startIndex = 0)
     }
 
     override fun enqueue(items: List<Music>) {

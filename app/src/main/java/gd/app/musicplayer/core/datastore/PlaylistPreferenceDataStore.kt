@@ -63,6 +63,17 @@ class PlaylistPreferenceDataStore @Inject constructor(
         }
     }
 
+    /** Watermark for MediaStore playlist import (original preference_max_playlist_time). */
+    suspend fun getMediaStorePlaylistDateAddedWatermark(): Long {
+        return dataStore.data.first()[KEY_MEDIA_STORE_PLAYLIST_DATE_ADDED] ?: 0L
+    }
+
+    suspend fun setMediaStorePlaylistDateAddedWatermark(dateAddedSeconds: Long) {
+        dataStore.edit { preferences ->
+            preferences[KEY_MEDIA_STORE_PLAYLIST_DATE_ADDED] = dateAddedSeconds.coerceAtLeast(0L)
+        }
+    }
+
 
     suspend fun setSmartPlaylistSelection(
         selectionIndex: Int,
@@ -92,6 +103,8 @@ class PlaylistPreferenceDataStore @Inject constructor(
         private val KEY_PLAYLIST_TRACK_LIMIT = intPreferencesKey("preference_playlist_track_limit")
         private val KEY_PLAYLIST_TRACK_LIMIT_TIME = longPreferencesKey("playlist_track_limit_time")
         private val KEY_PLAYLIST_ADD_POSITION = intPreferencesKey("preference_playlist_add_position")
+        private val KEY_MEDIA_STORE_PLAYLIST_DATE_ADDED =
+            longPreferencesKey("preference_max_playlist_time")
 
         private const val DEFAULT_TRACK_LIMIT = -1
 
