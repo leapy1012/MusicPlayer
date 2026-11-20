@@ -6,6 +6,7 @@ import gd.app.musicplayer.core.datastore.SortPreferencesDataStore
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.SmartPlaylistConfig
+import gd.app.musicplayer.domain.model.defaultSortStyle
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -65,7 +66,9 @@ class LibraryRepo @Inject constructor(
 
             val fastQuery = LibraryQueryBuilder.buildTrackQuery(
                 musicSet = musicSet,
-                sortStyle = snapshotCache.sortStyleByKey[cacheKey] ?: DEFAULT_SORT_STYLE,
+                // Match original prefs default (RecentlyAdded → date DESC) so the cold
+                // one-shot is not reordered when live DataStore emits.
+                sortStyle = snapshotCache.sortStyleByKey[cacheKey] ?: musicSet.defaultSortStyle,
                 sortDescending = snapshotCache.sortDescendingByKey[cacheKey] ?: false,
                 smartConfig = snapshotCache.smartPlaylistConfig ?: defaultSmartPlaylistConfig()
             )
@@ -88,7 +91,7 @@ class LibraryRepo @Inject constructor(
 
         val query = LibraryQueryBuilder.buildTrackQuery(
             musicSet = musicSet,
-            sortStyle = snapshotCache.sortStyleByKey[cacheKey] ?: DEFAULT_SORT_STYLE,
+            sortStyle = snapshotCache.sortStyleByKey[cacheKey] ?: musicSet.defaultSortStyle,
             sortDescending = snapshotCache.sortDescendingByKey[cacheKey] ?: false,
             smartConfig = snapshotCache.smartPlaylistConfig ?: defaultSmartPlaylistConfig()
         )

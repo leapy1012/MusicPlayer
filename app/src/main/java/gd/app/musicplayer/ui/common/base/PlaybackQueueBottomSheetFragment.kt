@@ -60,6 +60,7 @@ class PlaybackQueueBottomSheetFragment : BaseBottomSheetDialogFragment() {
             accentColorProvider = themeRepo::getAccentColor,
             onTrackClicked = { position -> viewModel.playQueueAt(position)},
             onTrackRemoved = { position -> viewModel.removeQueueItem(position, playbackState) },
+            onTrackMoveStep = viewModel::moveQueueItem,
             onTrackMoved = { queue, currentIndex ->
                 viewModel.replaceQueuePreservingCurrentTrack(
                     updatedQueue = queue,
@@ -225,6 +226,7 @@ private class QueueAdapter(
     private val accentColorProvider: () -> Int,
     private val onTrackClicked: (Int) -> Unit,
     private val onTrackRemoved: (Int) -> Unit,
+    private val onTrackMoveStep: (Int, Int) -> Unit,
     private val onTrackMoved: (List<Music>, Int) -> Unit,
     private val onToggleFavorite: (Music) -> Unit
 ) : RecyclerView.Adapter<QueueAdapter.QueueViewHolder>(), ItemMoveListener {
@@ -370,6 +372,8 @@ private class QueueAdapter(
         notifyCurrentChanged(fromPosition)
         notifyCurrentChanged(toPosition)
         notifyCurrentChanged(currentIndex())
+        // Original p5.e1.onItemMove: commit each step to the playback queue (y6.y.i1).
+        onTrackMoveStep(fromPosition, toPosition)
     }
 
     private fun currentIndex(): Int {

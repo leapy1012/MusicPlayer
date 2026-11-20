@@ -24,6 +24,11 @@ abstract class ScrollAwareAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.A
         return scrollCalculator?.getScrollProgress() ?: 0f
     }
 
+    /** Original `o5.c.b.c`: total laid-out content height, used to decide if fast scroll is worth showing. */
+    fun getContentExtent(): Int {
+        return scrollCalculator?.getContentExtent() ?: 0
+    }
+
     fun refreshScrollCalculator() {
         if (attachedRecyclerView == null || scrollCalculator == null) return
         rebuildScrollCalculator()
@@ -82,6 +87,8 @@ abstract class ScrollAwareAdapter<VH : RecyclerView.ViewHolder> : RecyclerView.A
             itemCount: Int,
             itemExtent: Int
         )
+
+        fun getContentExtent(): Int = totalContentSize
 
         fun getScrollProgress(): Float {
             if (!::itemOffsets.isInitialized) return 0f

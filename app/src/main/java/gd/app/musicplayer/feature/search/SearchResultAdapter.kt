@@ -7,7 +7,10 @@ import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.StringRes
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
+import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.accentColor
@@ -24,7 +27,12 @@ import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 
 class SearchResultAdapter(
     context: Context,
-    private val theme: ThemePalette
+    private val theme: ThemePalette,
+    /**
+     * Original `i7.c`'s `z10`: the combined "All" tab caps each section and draws its header;
+     * the per-type tabs show the full list behind a zero-height header.
+     */
+    private val combined: Boolean
 ) : SectionedSearchAdapter() {
 
     interface Listener {
@@ -33,6 +41,9 @@ class SearchResultAdapter(
         fun onMusicSetClicked(musicSet: MusicSet)
 
         fun onMusicSetMenuClicked(musicSet: MusicSet)
+
+        /** Original `i7.c.InterfaceC0186c.x`: switch to the tab owning this section. */
+        fun onSeeAllClicked(@StringRes sectionTitleRes: Int)
     }
 
     private val inflater = LayoutInflater.from(context)
@@ -47,24 +58,43 @@ class SearchResultAdapter(
     private val sections = mutableListOf<SearchSection>()
     private var listener: Listener? = null
     private var query: String = ""
+    private var currentTrackId: Long = NO_TRACK_ID
+    private var isCurrentTrackPlaying: Boolean = false
 
     fun setListener(listener: Listener?) {
         this.listener = listener
     }
 
-    fun setQuery(query: String) {
+    /** Original `i7.c.u`: results and the term they are highlighted against arrive together. */
+    fun submitSections(newSections: List<SearchSection>, query: String) {
         this.query = query
-        reload()
-    }
-
-    fun submitSections(newSections: List<SearchSection>) {
         sections.clear()
         sections.addAll(newSections)
         reload()
     }
 
-    override fun getChildCount(sectionIndex: Int): Int =
-        if (sections[sectionIndex].expanded) sections[sectionIndex].items.size else 0
+    /** Original `i7.c.a.g`: the song row shows the play-state indicator for the current track. */
+    fun submitPlaybackHighlight(currentTrackId: Long?, isPlaying: Boolean) {
+        val nextTrackId = currentTrackId ?: NO_TRACK_ID
+        if (this.currentTrackId == nextTrackId && isCurrentTrackPlaying == isPlaying) return
+
+        this.currentTrackId = nextTrackId
+        this.isCurrentTrackPlaying = isPlaying
+
+        if (itemCount > 0) {
+            notifyItemRangeChanged(0, itemCount, PAYLOAD_PLAYBACK_STATE)
+        }
+    }
+
+    /** Original `i7.c.g`: songs cap at 5 and everything else at 3, but only on the combined tab. */
+    override fun getChildCount(sectionIndex: Int): Int {
+        val section = sections[sectionIndex]
+        return when {
+            !section.expanded -> 0
+            combined -> minOf(section.items.size, section.collapsedLimit)
+            else -> section.items.size
+        }
+    }
 
     override fun getSectionCount(): Int = sections.size
 
@@ -98,7 +128,8 @@ class SearchResultAdapter(
 
     override fun onCreateHeaderViewHolder(parent: ViewGroup): RecyclerView.ViewHolder =
         SearchHeaderViewHolder(
-            FragmentSearchHeaderItemBinding.inflate(inflater, parent, false)
+            binding = FragmentSearchHeaderItemBinding.inflate(inflater, parent, false),
+            combined = combined
         )
 
     override fun onBindItemViewHolder(
@@ -108,10 +139,26 @@ class SearchResultAdapter(
         payloads: List<Any>
     ) {
         val item = sections[sectionIndex].items[childIndex]
-        (holder as BaseViewHolder).bind(item)
 
         when {
             holder is MusicViewHolder && item is ListItem.MusicItem -> {
+                val isCurrentTrack = item.music.id == currentTrackId
+
+                if (payloads.contains(PAYLOAD_PLAYBACK_STATE)) {
+                    holder.updatePlaybackState(
+                        musicId = item.music.id,
+                        isCurrentTrack = isCurrentTrack,
+                        isPlaying = isCurrentTrack && isCurrentTrackPlaying
+                    )
+                    return
+                }
+
+                holder.bind(
+                    item = item,
+                    isCurrentTrack = isCurrentTrack,
+                    isPlaying = isCurrentTrack && isCurrentTrackPlaying,
+                    viewInfo = ""
+                )
                 holder.itemView.setOnClickListener {
                     listener?.onSongClicked(item.music, childIndex)
                 }
@@ -120,6 +167,9 @@ class SearchResultAdapter(
             }
 
             holder is MusicSetListViewHolder && item is ListItem.MusicSetItem -> {
+                if (payloads.contains(PAYLOAD_PLAYBACK_STATE)) return
+
+                holder.bind(item)
                 holder.binding.musicItemTitle.text = highlight(item.musicSet.name)
                 holder.itemView.setOnClickListener {
                     listener?.onMusicSetClicked(item.musicSet)
@@ -136,43 +186,65 @@ class SearchResultAdapter(
         sectionIndex: Int,
         payloads: List<Any>
     ) {
-        (holder as SearchHeaderViewHolder).bind(sections[sectionIndex]) { expanded ->
-            updateSectionExpanded(sectionIndex, expanded)
-        }
+        (holder as SearchHeaderViewHolder).bind(
+            section = sections[sectionIndex],
+            onExpandedChanged = { expanded -> updateSectionExpanded(sectionIndex, expanded) },
+            onSeeAllClicked = { listener?.onSeeAllClicked(sections[sectionIndex].titleRes) }
+        )
     }
 
+    /** Original `i7.d`: one result type, with the cap the combined view applies to it. */
     data class SearchSection(
         @param:StringRes @field:StringRes val titleRes: Int,
         val items: List<ListItem>,
         var expanded: Boolean = true
-    )
+    ) {
+        val collapsedLimit: Int
+            get() = if (titleRes == R.string.songs) SONG_SECTION_LIMIT else OTHER_SECTION_LIMIT
+    }
 
     private class SearchHeaderViewHolder(
-        private val binding: FragmentSearchHeaderItemBinding
+        private val binding: FragmentSearchHeaderItemBinding,
+        private val combined: Boolean
     ) : RecyclerView.ViewHolder(binding.root) {
 
         private var section: SearchSection? = null
-        private var onChanged: ((Boolean) -> Unit)? = null
+        private var onExpandedChanged: ((Boolean) -> Unit)? = null
+        private var onSeeAllClicked: (() -> Unit)? = null
 
         init {
+            // Original i7.c.b: the per-type tabs collapse the header row to zero height.
+            if (!combined) {
+                binding.root.updateLayoutParams { height = 0 }
+            }
             binding.root.installCouiPressFeedback()
             binding.root.setOnClickListener {
                 val current = section ?: return@setOnClickListener
                 if (current.items.isEmpty()) return@setOnClickListener
                 val expanded = !current.expanded
                 binding.musicItemExpanded.setExpanded(expanded, true)
-                onChanged?.invoke(expanded)
+                onExpandedChanged?.invoke(expanded)
+            }
+            binding.seeAllLayout.installCouiPressFeedback()
+            binding.seeAllLayout.setOnClickListener {
+                onSeeAllClicked?.invoke()
             }
         }
 
-        fun bind(section: SearchSection, onChanged: (Boolean) -> Unit) {
+        fun bind(
+            section: SearchSection,
+            onExpandedChanged: (Boolean) -> Unit,
+            onSeeAllClicked: () -> Unit
+        ) {
             val sameSection = this.section?.titleRes == section.titleRes
             this.section = section
-            this.onChanged = onChanged
+            this.onExpandedChanged = onExpandedChanged
+            this.onSeeAllClicked = onSeeAllClicked
             binding.musicItemTitle.setText(section.titleRes)
             binding.root.isEnabled = section.items.isNotEmpty()
             binding.musicItemExpanded.alpha = if (section.items.isNotEmpty()) 1f else DISABLED_ALPHA
             binding.musicItemExpanded.setExpanded(section.expanded, sameSection)
+            binding.seeAllLayout.isVisible = combined && section.expanded
         }
     }
 
@@ -223,6 +295,11 @@ class SearchResultAdapter(
         private const val VIEW_TYPE_MUSIC = 100
         private const val VIEW_TYPE_MUSIC_SET = 101
         private const val PAYLOAD_HEADER = "header"
+        private const val PAYLOAD_PLAYBACK_STATE = "payload_playback_state"
         private const val DISABLED_ALPHA = 0.3f
+        private const val NO_TRACK_ID = -1L
+
+        private const val SONG_SECTION_LIMIT = 5
+        private const val OTHER_SECTION_LIMIT = 3
     }
 }

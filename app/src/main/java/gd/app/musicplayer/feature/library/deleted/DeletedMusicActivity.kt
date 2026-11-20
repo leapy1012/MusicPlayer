@@ -132,7 +132,14 @@ class DeletedMusicActivity : BaseActivity() {
     private fun observeTracks() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.tracks.collect(::renderTracks)
+                launch {
+                    viewModel.sortStyle.collect { style ->
+                        adapter.sortStyle = style
+                    }
+                }
+                launch {
+                    viewModel.tracks.collect(::renderTracks)
+                }
             }
         }
     }

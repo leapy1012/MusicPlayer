@@ -1,5 +1,8 @@
 package gd.app.musicplayer.ui.selection
 
+import android.content.res.ColorStateList
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -12,6 +15,8 @@ import com.fueled.draggablerecyclerview.DragItemTouchHelperCallback
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
 import gd.app.musicplayer.core.common.extension.applyRoundedOutline
+import gd.app.musicplayer.core.common.extension.formatAddedDate
+import gd.app.musicplayer.core.common.extension.formatFileSize
 import gd.app.musicplayer.core.common.extension.highlight
 import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.isRtl
@@ -51,6 +56,23 @@ class MusicEditAdapter(
     private var selectionCountListener: SelectionCountChangedListener? = null
     private var itemTouchHelper: ItemTouchHelper? = null
 
+    /** Sort style of [musicSet]; "size" / "date" drive the music_item_size column (original o5.j0). */
+    var metadataSortStyle: String = ""
+        set(value) {
+            if (field == value) return
+            field = value
+            if (itemCount > 0) {
+                notifyItemRangeChanged(0, itemCount, PAYLOAD_METADATA)
+            }
+        }
+
+    private var currentTrackId: Long? = null
+    private var isCurrentTrackPlaying: Boolean = false
+
+    private val persistHandler = Handler(Looper.getMainLooper())
+    private var persistPending = false
+    private val persistRunnable = Runnable { persistSortedMusic() }
+
     init {
         setHasStableIds(true)
 
@@ -64,7 +86,7 @@ class MusicEditAdapter(
                     normalizedSearchQuery.isEmpty() && position in filteredRows.indices
                 }
                 .onItemDragListener(::onItemMove)
-                .onDragFinishedListener(::persistSortedMusic)
+                .onDragFinishedListener(::schedulePersistSortedMusic)
                 .build()
 
             itemTouchHelper = ItemTouchHelper(callback)
@@ -79,6 +101,10 @@ class MusicEditAdapter(
         View.OnTouchListener {
 
         private var currentRow: RowEntry? = null
+
+        private val defaultTitleColors: ColorStateList = binding.musicItemTitle.textColors
+        private val defaultArtistColors: ColorStateList = binding.musicItemArtist.textColors
+        private val defaultSizeColors: ColorStateList = binding.musicItemSize.textColors
 
         init {
             setupTextDirection()
@@ -139,6 +165,9 @@ class MusicEditAdapter(
             binding.musicItemTitle.text = music.title.highlight(rawSearchQuery, accentColor)
             binding.musicItemArtist.text = music.artist.highlight(rawSearchQuery, accentColor)
 
+            bindMetadata(music)
+            renderPlaybackHighlight(music)
+
             binding.root.alpha = DragItemTouchHelperCallback.ALPHA_FULL
 
             if (dragEnabled) {
@@ -151,6 +180,41 @@ class MusicEditAdapter(
         fun bindSelection(row: RowEntry) {
             currentRow = row
             renderSelectionState(isRowSelected(row.key))
+        }
+
+        fun bindMetadataAndPlayback(row: RowEntry) {
+            currentRow = row
+            bindMetadata(row.music)
+            renderPlaybackHighlight(row.music)
+        }
+
+        fun bindPlayback(row: RowEntry) {
+            currentRow = row
+            renderPlaybackHighlight(row.music)
+        }
+
+        private fun bindMetadata(music: Music) {
+            val text = when (metadataSortStyle) {
+                SORT_STYLE_SIZE -> music.formatFileSize(binding.root.context)
+                SORT_STYLE_DATE -> music.formatAddedDate()
+                else -> ""
+            }
+            binding.musicItemSize.text = text
+            binding.musicItemSize.visibility = if (text.isBlank()) View.GONE else View.VISIBLE
+        }
+
+        /** Original o5.j0: accent tint on title/artist/size only while the current track is playing. */
+        private fun renderPlaybackHighlight(music: Music) {
+            val highlighted = isCurrentTrackPlaying && currentTrackId == music.id
+            if (highlighted) {
+                binding.musicItemTitle.setTextColor(accentColor)
+                binding.musicItemArtist.setTextColor(accentColor)
+                binding.musicItemSize.setTextColor(accentColor)
+            } else {
+                binding.musicItemTitle.setTextColor(defaultTitleColors)
+                binding.musicItemArtist.setTextColor(defaultArtistColors)
+                binding.musicItemSize.setTextColor(defaultSizeColors)
+            }
         }
 
         private fun renderSelectionState(selected: Boolean) {
@@ -190,6 +254,16 @@ class MusicEditAdapter(
     ) {
         if (payloads.contains(PAYLOAD_SELECTION)) {
             holder.bindSelection(filteredRows[position])
+            return
+        }
+
+        if (payloads.contains(PAYLOAD_METADATA)) {
+            holder.bindMetadataAndPlayback(filteredRows[position])
+            return
+        }
+
+        if (payloads.contains(PAYLOAD_PLAYBACK)) {
+            holder.bindPlayback(filteredRows[position])
             return
         }
 
@@ -255,6 +329,45 @@ class MusicEditAdapter(
             fromPosition,
             toPosition
         )
+
+        schedulePersistSortedMusic()
+    }
+
+    /** Mirrors TrackAdapter.submitPlaybackHighlight; tint applies to the current track while playing. */
+    fun submitPlaybackHighlight(
+        currentTrackId: Long?,
+        isPlaying: Boolean
+    ) {
+        if (this.currentTrackId == currentTrackId && isCurrentTrackPlaying == isPlaying) return
+
+        val previousId = this.currentTrackId
+        this.currentTrackId = currentTrackId
+        this.isCurrentTrackPlaying = isPlaying
+
+        filteredRows.forEachIndexed { index, row ->
+            if (row.music.id == previousId || row.music.id == currentTrackId) {
+                notifyItemChanged(index, PAYLOAD_PLAYBACK)
+            }
+        }
+    }
+
+    /** Flush a pending debounced reorder immediately (call from onStop so it is not lost). */
+    fun flushPendingPersist() {
+        if (!persistPending) return
+        persistHandler.removeCallbacks(persistRunnable)
+        persistSortedMusic()
+    }
+
+    fun cancelPendingPersist() {
+        persistPending = false
+        persistHandler.removeCallbacks(persistRunnable)
+    }
+
+    private fun schedulePersistSortedMusic() {
+        if (!dragEnabled || normalizedSearchQuery.isNotEmpty()) return
+        persistPending = true
+        persistHandler.removeCallbacks(persistRunnable)
+        persistHandler.postDelayed(persistRunnable, PERSIST_DEBOUNCE_MS)
     }
 
     /**
@@ -376,9 +489,8 @@ class MusicEditAdapter(
             return
         }
         allRows.forEach { row ->
-            if (row.music.title.contains(normalizedSearchQuery, ignoreCase = true) ||
-                row.music.artist.contains(normalizedSearchQuery, ignoreCase = true)
-            ) {
+            // Original o5.j0 filters on title only.
+            if (row.music.title.contains(normalizedSearchQuery, ignoreCase = true)) {
                 filteredRows += row
             }
         }
@@ -437,6 +549,7 @@ class MusicEditAdapter(
     }
 
     private fun persistSortedMusic() {
+        persistPending = false
         if (!dragEnabled || normalizedSearchQuery.isNotEmpty()) return
 
         onOrderChanged(
@@ -449,6 +562,11 @@ class MusicEditAdapter(
 
     private companion object {
         private const val PAYLOAD_SELECTION = "payload_selection"
+        private const val PAYLOAD_METADATA = "payload_metadata"
+        private const val PAYLOAD_PLAYBACK = "payload_playback"
+        private const val SORT_STYLE_SIZE = "size"
+        private const val SORT_STYLE_DATE = "date"
+        private const val PERSIST_DEBOUNCE_MS = 1500L
 
         private fun musicKey(music: Music): String {
             return "${music.id}|${music.data.orEmpty()}"

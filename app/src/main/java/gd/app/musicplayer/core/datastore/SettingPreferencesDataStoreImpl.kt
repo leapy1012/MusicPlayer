@@ -124,6 +124,14 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
         return dataStore.observe(SettingsKeys.SHOW_HIDDEN_FOLDERS, true)
     }
 
+    override suspend fun getShowDirectory(): Boolean {
+        return dataStore.observe(SettingsKeys.SHOW_DIRECTORY, true).first()
+    }
+
+    override fun observeShowDirectory(): Flow<Boolean> {
+        return dataStore.observe(SettingsKeys.SHOW_DIRECTORY, true)
+    }
+
     override suspend fun getShakeLevel(): Float {
         return dataStore.observe(SettingsKeys.SHAKE_LEVEL, 0.5f).first()
     }
@@ -140,6 +148,10 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
         return dataStore.observe(SettingsKeys.REPLAY_SONG, false).first()
     }
 
+    override suspend fun getClickAddQueueEnabled(): Boolean {
+        return dataStore.observe(SettingsKeys.CLICK_ADD_QUEUE, false).first()
+    }
+
     override suspend fun updatePlayMode(mode: Int) {
         dataStore.set(SettingsKeys.PLAY_MODE, mode)
     }
@@ -154,6 +166,10 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
 
     override suspend fun updateShowHiddenFolders(enabled: Boolean) {
         dataStore.set(SettingsKeys.SHOW_HIDDEN_FOLDERS, enabled)
+    }
+
+    override suspend fun updateShowDirectory(enabled: Boolean) {
+        dataStore.set(SettingsKeys.SHOW_DIRECTORY, enabled)
     }
 
     override suspend fun updateShowKeepAliveDot(enabled: Boolean) {
@@ -292,6 +308,7 @@ class SettingPreferencesDataStoreImpl @Inject constructor(
                 showKeepAliveDot = preferences[SettingsKeys.SHOW_KEEP_ALIVE_DOT] ?: true,
                 queueForSearchingMode = preferences[SettingsKeys.QUEUE_FOR_SEARCHING] ?: 0,
                 showHiddenFolders = preferences[SettingsKeys.SHOW_HIDDEN_FOLDERS] ?: true,
+                showDirectory = preferences[SettingsKeys.SHOW_DIRECTORY] ?: true,
                 libraryTabConfig = LibraryTabConfigStore.parse(preferences[SettingsKeys.LIBRARY_TAB_CONFIG])
             ),
             lyrics = LyricsSettingPreference(

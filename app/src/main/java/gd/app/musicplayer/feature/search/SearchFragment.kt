@@ -1,54 +1,45 @@
 package gd.app.musicplayer.feature.search
 
-import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.View
+import androidx.core.view.doOnPreDraw
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.COUIRecyclerView
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.SimpleItemAnimator
+import androidx.viewpager2.widget.ViewPager2
 import com.coui.appcompat.searchview.COUISearchBar
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.domain.repository.ThemeRepo
-import gd.app.musicplayer.databinding.FragmentSearchBinding
-import gd.app.musicplayer.ui.common.base.ViewBindingFragment
-import gd.app.musicplayer.domain.model.isConcreteCollection
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.hideKeyboard
-import gd.app.musicplayer.core.common.extension.navigateBack
 import gd.app.musicplayer.core.common.extension.showKeyboardDelayed
-import gd.app.musicplayer.core.designsystem.theme.ThemeManager
-import gd.app.musicplayer.ui.common.enableTapToEdit
-import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
-import gd.app.musicplayer.feature.library.albums.AlbumMusicActivity
-import gd.app.musicplayer.feature.library.musicset.MusicSetOptionsDialog
-import gd.app.musicplayer.feature.library.options.MusicOptionsDialog
+import gd.app.musicplayer.databinding.FragmentSearchBinding
 import gd.app.musicplayer.feature.player.full.MusicPlayActivity
-import javax.inject.Inject
+import gd.app.musicplayer.ui.common.CouiTabLayoutMediator
+import gd.app.musicplayer.ui.common.base.ViewBindingFragment
+import gd.app.musicplayer.ui.common.enableTapToEdit
 import kotlinx.coroutines.launch
 
+/**
+ * Port of `l5.t1`: search bar plus the All/Songs/Albums/Artists/Folders/Playlists pager.
+ *
+ * The query lives in [SearchViewModel], which is scoped to this fragment so every page
+ * collects the same result set (original `t1.g` fanning the query out to each child).
+ */
 @AndroidEntryPoint
-class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
-    SearchResultAdapter.Listener {
+class SearchFragment : ViewBindingFragment<FragmentSearchBinding>() {
 
-    @Inject lateinit var themeRepo: ThemeRepo
-
-    private val adapter by lazy {
-        SearchResultAdapter(
-            context = requireContext(),
-            theme = themeRepo.getCorePalette()
-        ).also { it.setListener(this) }
-    }
     private val viewModel: SearchViewModel by viewModels()
-    private lateinit var emptyStateController: RecyclerEmptyStateController
+
+    private var tabMediator: CouiTabLayoutMediator? = null
+    private var pageChangeCallback: ViewPager2.OnPageChangeCallback? = null
 
     override fun onCreateBinding(inflater: LayoutInflater): FragmentSearchBinding =
         FragmentSearchBinding.inflate(inflater)
@@ -57,8 +48,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         super.onBindingCreated(binding, savedInstanceState)
 
         setupToolbar()
-        setupList()
-        observeSections()
+        setupPager()
         observeEvents()
         viewModel.refreshSortOrder()
     }
@@ -70,24 +60,28 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
 
     private fun setupToolbar() {
         val binding = requireBinding()
+        // Bottom pad only in 3-button nav; gesture mode stays edge-to-edge behind the indicator.
         binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
-        binding.toolbar.navigateBack(this)
         binding.appBar.bringToFront()
 
         val searchBar = binding.searchBar
         searchBar.setSearchAnimateType(COUISearchBar.TYPE_INSTANT_SEARCH)
         searchBar.changeStateImmediately(COUISearchBar.STATE_EDIT)
         searchBar.enableTapToEdit()
+        // COUISearchBar's functional button is the standard Cancel text (coui_search_view_cancel).
+        searchBar.functionalButton?.setOnClickListener {
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
         val editText = searchBar.searchEditText ?: return
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun afterTextChanged(s: Editable?) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                onQueryTextChange(s?.toString().orEmpty())
+                viewModel.setQuery(s?.toString().orEmpty())
             }
         })
         editText.setOnEditorActionListener { view, _, _ ->
-            onQueryTextSubmit(view.text?.toString().orEmpty())
+            viewModel.setQuery(view.text?.toString().orEmpty())
             editText.hideKeyboard()
             true
         }
@@ -97,43 +91,29 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         }, 100L)
     }
 
-    private fun setupList() {
+    private fun setupPager() {
         val binding = requireBinding()
-        val recyclerView: RecyclerView = binding.root.findViewById(R.id.recyclerview)
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = adapter
-        (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
-        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
-                    binding.searchBar.searchEditText?.hideKeyboard()
-                }
-            }
-        })
-        if (themeRepo.getCorePalette().getThemeType() == ThemeManager.THEME_TYPE_LIGHT) {
-            val typed = requireContext().obtainStyledAttributes(
-                intArrayOf(com.coui.appcompat.R.attr.couiColorCardBackground)
-            )
-            recyclerView.setBackgroundColor(typed.getColor(0, Color.WHITE))
-            typed.recycle()
-        }
-        emptyStateController = RecyclerEmptyStateController(
-            recyclerView = recyclerView,
-            emptyViewStub = binding.root.findViewById(R.id.layout_list_empty)
-        )
-        emptyStateController.applyTheme(themeRepo.getCorePalette())
-        emptyStateController.setEmptyMessage(getString(R.string.queue_search_result))
-    }
 
-    private fun observeSections() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.sections.collect { sections ->
-                    adapter.submitSections(sections)
-                    emptyStateController.setVisible(sections.isEmpty())
-                }
+        binding.viewPager.adapter = SearchPagerAdapter(this)
+        // Original t1.Y: keep every page alive so the query reaches all of them at once.
+        binding.viewPager.offscreenPageLimit = SearchPage.pages.size
+
+        tabMediator = CouiTabLayoutMediator(
+            tabLayout = binding.tabLayout,
+            viewPager = binding.viewPager
+        ) { tab, position ->
+            tab.text = getString(SearchPage.at(position).titleRes)
+        }.also { it.attach() }
+
+        val callback = object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                scheduleBindAppBarToCurrentList()
             }
         }
+        pageChangeCallback = callback
+        binding.viewPager.registerOnPageChangeCallback(callback)
+
+        scheduleBindAppBarToCurrentList()
     }
 
     private fun observeEvents() {
@@ -148,40 +128,60 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>(),
         }
     }
 
-    private fun onQueryTextChange(query: String) {
-        viewModel.setQuery(query)
-        adapter.setQuery(query)
+    /** Original `t1.x`: "See all" on a section header selects that section's tab. */
+    fun selectPage(page: SearchPage) {
+        binding?.viewPager?.setCurrentItem(page.ordinal, true)
     }
 
-    private fun onQueryTextSubmit(query: String) {
-        viewModel.setQuery(query)
-        adapter.setQuery(query)
+    fun hideSearchKeyboard() {
+        binding?.searchBar?.searchEditText?.hideKeyboard()
     }
 
-    override fun onSongClicked(song: Music, preferredIndex: Int?) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.onSongClicked(song, preferredIndex)
+    /**
+     * The include-wrapped list of each page is created asynchronously by the pager, so the
+     * app-bar divider is wired once the page is about to draw (same as [LibraryFragment]).
+     */
+    private fun scheduleBindAppBarToCurrentList() {
+        val binding = binding ?: return
+        binding.viewPager.post {
+            val list = findCurrentRecyclerView()
+            if (list != null) {
+                list.doOnPreDraw { bindAppBarToCurrentList() }
+            } else {
+                binding.viewPager.post { bindAppBarToCurrentList() }
+            }
         }
     }
 
-    override fun onSongMenuClicked(song: Music) {
-        MusicOptionsDialog.newInstance(song, MusicSet.Tracks)
-            .show(parentFragmentManager, MusicOptionsDialog::class.java.simpleName)
-    }
-
-    override fun onMusicSetClicked(musicSet: MusicSet) {
-        if (musicSet.isConcreteCollection) {
-            AlbumMusicActivity.start(requireContext(), musicSet)
+    private fun bindAppBarToCurrentList() {
+        val binding = binding ?: return
+        val list = findCurrentRecyclerView() ?: return
+        list.isNestedScrollingEnabled = true
+        list.overScrollMode = View.OVER_SCROLL_ALWAYS
+        if (list is COUIRecyclerView) {
+            list.setOverScrollEnable(true)
         }
+        binding.appBar.bindRecyclerView(list)
     }
 
-    override fun onMusicSetMenuClicked(musicSet: MusicSet) {
-        MusicSetOptionsDialog
-            .newInstance(musicSet)
-            .show(
-                parentFragmentManager,
-                MusicSetOptionsDialog::class.java.simpleName
-            )
+    private fun findCurrentRecyclerView(): RecyclerView? =
+        currentPageFragment()?.view?.findViewById(R.id.recyclerview)
+
+    private fun currentPageFragment(): Fragment? {
+        val binding = binding ?: return null
+        val adapter = binding.viewPager.adapter ?: return null
+        return childFragmentManager.findFragmentByTag(
+            "f${adapter.getItemId(binding.viewPager.currentItem)}"
+        )
+    }
+
+    override fun onDestroyBinding(binding: FragmentSearchBinding) {
+        pageChangeCallback?.let(binding.viewPager::unregisterOnPageChangeCallback)
+        pageChangeCallback = null
+        tabMediator?.detach()
+        tabMediator = null
+        binding.appBar.bindRecyclerView(null)
+        binding.viewPager.adapter = null
+        super.onDestroyBinding(binding)
     }
 }
-

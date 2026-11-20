@@ -79,8 +79,12 @@ configurations.configureEach {
 }
 
 dependencies {
-    // Local AAR — does not pull Maven transitives; keep COUI deps below in sync.
-    implementation(files("libs/coui-1.0.0.aar"))
+    // COUI from DreamCOUI/dist (D960_Patch vendor/greendream/{coui,physicsengine}).
+    // Local AARs do not pull Maven transitives; keep COUI deps below in sync
+    // (DreamCOUI/dist/USAGE.txt). com.dream.* comes from dream-framework on the device.
+    implementation(files("libs/dream-coui-2.1.0.aar"))
+    implementation(files("libs/dream-physicsengine-2.1.0.aar"))
+    compileOnly(files("libs/dream-framework-stubs-2.1.0.jar"))
     // COUI spring overscroll writes View.mScrollY via reflection; blocked on
     // targetSdk 28+ for user apps (DuraSpeed is platform-exempt).
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")

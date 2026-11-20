@@ -3,8 +3,9 @@ package gd.app.musicplayer.ui.selection
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -47,8 +48,10 @@ import gd.app.musicplayer.ui.common.menu.EditMorePopupMenu
 import gd.app.musicplayer.ui.common.menu.OnItemClickListener
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Collections
 import javax.inject.Inject
 
@@ -68,6 +71,9 @@ class PlaylistEditActivity : BaseActivity() {
     private lateinit var itemTouchHelper: ItemTouchHelper
 
     private val selectedIds = linkedSetOf<Long>()
+    private val persistHandler = Handler(Looper.getMainLooper())
+    private var persistOrderPending = false
+    private val persistOrderRunnable = Runnable { persistOrder() }
     private var currentItems: List<MusicSet.Playlist> = emptyList()
     private val preloadedItems by lazy { readPreloadedItemsFromIntent() }
 
@@ -116,11 +122,13 @@ class PlaylistEditActivity : BaseActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
         recyclerView.adapter = adapter
         (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
-        if (usesCouiStyling) {
-            recyclerView.setBackgroundColor(
-                resolveAttrColor(com.coui.appcompat.R.attr.couiColorCardBackground, Color.WHITE)
-            )
-        }
+        // List plate matches track-edit / COUI page surface (gray), not white card.
+        val listSurface = resolveAttrColor(
+            com.coui.appcompat.R.attr.couiColorBackgroundWithCard,
+            0xFFF0F1F2.toInt()
+        )
+        recyclerView.setBackgroundColor(listSurface)
+        binding.layoutRecyclerview.root.setBackgroundColor(listSurface)
         binding.appBar.bindRecyclerView(recyclerView)
 
         val callback = DragItemTouchHelperCallback.Builder(
@@ -308,11 +316,36 @@ class PlaylistEditActivity : BaseActivity() {
             .distinctBy(Music::id)
     }
 
+    /** Original: persist 1500ms after the last move; Handler removeCallbacks + postDelayed. */
     private fun onOrderChanged(reordered: List<MusicSet.Playlist>) {
         currentItems = reordered
+        persistOrderPending = true
+        persistHandler.removeCallbacks(persistOrderRunnable)
+        persistHandler.postDelayed(persistOrderRunnable, PERSIST_DEBOUNCE_MS)
+    }
+
+    private fun persistOrder() {
+        persistOrderPending = false
+        val ids = currentItems.map { it.id }
+        // NonCancellable: the flush from onStop must survive the activity finishing right after.
         lifecycleScope.launch {
-            updatePlaylistOrderUseCase(reordered.map { it.id })
+            withContext(NonCancellable) {
+                updatePlaylistOrderUseCase(ids)
+            }
         }
+    }
+
+    override fun onStop() {
+        if (persistOrderPending) {
+            persistHandler.removeCallbacks(persistOrderRunnable)
+            persistOrder()
+        }
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        persistHandler.removeCallbacks(persistOrderRunnable)
+        super.onDestroy()
     }
 
     private fun readPreferredIdsFromIntent(): List<Long> {
@@ -430,6 +463,7 @@ class PlaylistEditActivity : BaseActivity() {
         private const val EXTRA_PLAYLIST_ITEMS = "extra_playlist_items"
         private const val EXTRA_PRESELECTED_ID = "extra_preselected_playlist_id"
         private const val TAG_RENAME_PLAYLIST_DIALOG = "rename_playlist_dialog"
+        private const val PERSIST_DEBOUNCE_MS = 1500L
 
         fun start(
             context: Context,
@@ -489,6 +523,8 @@ private class PlaylistEditAdapter(
             }
         }
         notifyItemMoved(fromPosition, toPosition)
+        // Original schedules the (debounced) persist on every move.
+        onOrderChanged(items.toList())
     }
 
     fun onDragFinished() {

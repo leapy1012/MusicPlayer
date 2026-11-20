@@ -10,6 +10,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.albumArtSource
+import gd.app.musicplayer.core.common.extension.formatAddedDate
+import gd.app.musicplayer.core.common.extension.formatFileSize
 import gd.app.musicplayer.core.common.extension.installCouiPressFeedback
 import gd.app.musicplayer.core.common.extension.isRtl
 import gd.app.musicplayer.core.common.extension.isRtlLayoutSupported
@@ -23,6 +25,16 @@ class DeletedMusicAdapter(
 ) : ListAdapter<Music, DeletedMusicAdapter.ViewHolder>(DiffCallback) {
 
     private val selectedIds = linkedSetOf<Long>()
+
+    /** "size" shows file size, anything else ("date" by default, MusicSet -15) shows the added date. */
+    var sortStyle: String = DEFAULT_SORT_STYLE
+        set(value) {
+            if (field == value) return
+            field = value
+            if (itemCount > 0) {
+                notifyItemRangeChanged(0, itemCount, PAYLOAD_METADATA)
+            }
+        }
 
     init {
         setHasStableIds(true)
@@ -51,6 +63,10 @@ class DeletedMusicAdapter(
     ) {
         if (payloads.contains(PAYLOAD_SELECTION)) {
             holder.bindSelection(getItem(position))
+            return
+        }
+        if (payloads.contains(PAYLOAD_METADATA)) {
+            holder.bindMetadata(getItem(position))
             return
         }
         super.onBindViewHolder(holder, position, payloads)
@@ -138,8 +154,17 @@ class DeletedMusicAdapter(
             binding.musicItemAlbum.loadMusicArtwork(music.albumArtSource())
             binding.musicItemTitle.text = music.title
             binding.musicItemArtist.text = music.artist
-            binding.musicItemSize.visibility = View.GONE
+            bindMetadata(music)
             bindSelection(music)
+        }
+
+        fun bindMetadata(music: Music) {
+            val text = when (sortStyle) {
+                SORT_STYLE_SIZE -> music.formatFileSize(binding.root.context)
+                else -> music.formatAddedDate()
+            }
+            binding.musicItemSize.text = text
+            binding.musicItemSize.visibility = if (text.isBlank()) View.GONE else View.VISIBLE
         }
 
         fun bindSelection(music: Music) {
@@ -169,5 +194,8 @@ class DeletedMusicAdapter(
 
     private companion object {
         private const val PAYLOAD_SELECTION = "selection"
+        private const val PAYLOAD_METADATA = "metadata"
+        private const val DEFAULT_SORT_STYLE = "date"
+        private const val SORT_STYLE_SIZE = "size"
     }
 }

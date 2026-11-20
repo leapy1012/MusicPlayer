@@ -40,11 +40,9 @@
         style="@style/Widget.COUI.COUISearchBar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/coui_search_view_height"
-        android:layout_marginStart="16dp"
         android:layout_marginTop="4dp"
-        android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
-        app:couiHideFunctionalButton="true"
+        app:couiHideFunctionalButton="false"
         app:searchHint="@string/search_library" />
 
     <View

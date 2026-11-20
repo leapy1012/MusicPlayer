@@ -454,8 +454,11 @@ private class HiddenFoldersAddAdapter(
         val oldMode = currentMode
         val oldQuery = searchQuery
 
+        // Original: live filter only in songs mode (mode == 1); folders mode shows every folder.
+        val effectiveQuery = if (mode == HiddenAddMode.SONGS) query else ""
+
         currentMode = mode
-        searchQuery = query
+        searchQuery = effectiveQuery
 
         selectedFolderPaths.retainAll(
             folders.mapTo(hashSetOf()) { folder ->
@@ -483,11 +486,11 @@ private class HiddenFoldersAddAdapter(
             }
         }
 
-        val newVisibleItems = if (query.isBlank()) {
+        val newVisibleItems = if (effectiveQuery.isBlank()) {
             allItems
         } else {
             allItems.filter { item ->
-                item.matches(query)
+                item.matches(effectiveQuery)
             }
         }
 
@@ -496,7 +499,7 @@ private class HiddenFoldersAddAdapter(
             oldMode = oldMode,
             newMode = mode,
             oldQuery = oldQuery,
-            newQuery = query
+            newQuery = effectiveQuery
         )
 
         selectionCountListener?.invoke(getSelectionCount())

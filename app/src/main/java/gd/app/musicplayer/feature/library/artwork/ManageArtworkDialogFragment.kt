@@ -11,6 +11,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.designsystem.dialog.BaseBottomSheetDialogFragment
+import gd.app.musicplayer.core.designsystem.theme.DialogSurfaceColors
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.common.util.ToastUtil
 import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.MusicSet
@@ -65,7 +67,19 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
         binding.albumApplyAll.setOnClickListener(this)
 
         renderApplyAll()
+        paintSheetChrome()
         loadTrackAlbumArtwork()
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        paintSheetChrome()
+    }
+
+    private fun paintSheetChrome() {
+        val root = _binding?.root ?: return
+        // White checkbox vectors + labels need plate-aware tint (light plate = dark ink).
+        DialogSurfaceColors.paintContent(root, themeEngine.currentTheme())
     }
 
     override fun onDestroyView() {

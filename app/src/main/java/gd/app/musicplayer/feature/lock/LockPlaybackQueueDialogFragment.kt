@@ -72,6 +72,7 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         adapter = LockQueueAdapter(
+            accentColorProvider = themeRepo::getAccentColor,
             onTrackClicked = { position ->
                 viewModel.playQueueAt(position, false)
             },
@@ -330,6 +331,7 @@ class LockPlaybackQueueDialogFragment : BaseBottomSheetDialogFragment() {
 }
 
 private class LockQueueAdapter(
+    private val accentColorProvider: () -> Int,
     private val onTrackClicked: (Int) -> Unit,
     private val onTrackRemoved: (Int) -> Unit,
     private val onToggleFavorite: (Music) -> Unit
@@ -375,6 +377,7 @@ private class LockQueueAdapter(
             music = queue[position],
             position = position,
             isCurrent = position == currentIndex(),
+            accentColor = accentColorProvider(),
             onClick = {
                 holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
                     ?.let(onTrackClicked)
@@ -397,7 +400,10 @@ private class LockQueueAdapter(
     ) {
         when {
             payloads.contains(PAYLOAD_CURRENT) -> {
-                holder.bindCurrentState(isCurrent = position == currentIndex())
+                holder.bindCurrentState(
+                    isCurrent = position == currentIndex(),
+                    accentColor = accentColorProvider()
+                )
             }
             else -> super.onBindViewHolder(holder, position, payloads)
         }
@@ -428,6 +434,7 @@ private class LockQueueAdapter(
             music: Music,
             position: Int,
             isCurrent: Boolean,
+            accentColor: Int,
             onClick: () -> Unit,
             onRemove: () -> Unit,
             onFavoriteClick: () -> Unit
@@ -443,7 +450,7 @@ private class LockQueueAdapter(
                 binding.musicItemArtist.text = " - ${music.artist}"
             }
 
-            bindCurrentState(isCurrent)
+            bindCurrentState(isCurrent, accentColor)
             bindFavorite(music)
 
             binding.root.setOnClickListener { onClick() }
@@ -451,9 +458,9 @@ private class LockQueueAdapter(
             binding.musicItemFavorite.setOnClickListener { onFavoriteClick() }
         }
 
-        fun bindCurrentState(isCurrent: Boolean) {
+        fun bindCurrentState(isCurrent: Boolean, accentColor: Int) {
             val titleColor = if (isCurrent) {
-                Color.rgb(255, 90, 90)
+                accentColor
             } else {
                 Color.WHITE
             }

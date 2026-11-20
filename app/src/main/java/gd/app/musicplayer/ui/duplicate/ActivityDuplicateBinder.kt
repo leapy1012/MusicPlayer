@@ -23,7 +23,9 @@ import java.util.Locale
 class ActivityDuplicateBinder(
     private val onGroupClick: (String) -> Unit,
     private val onTrackClick: (Long) -> Unit,
-    private val applyTheme: (View) -> Unit
+    private val applyTheme: (View) -> Unit,
+    /** Receives the adapter position of the last child of a group that just expanded. */
+    private val onGroupExpanded: (lastChildPosition: Int) -> Unit = {}
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var rows: List<Row> = emptyList()
@@ -55,6 +57,8 @@ class ActivityDuplicateBinder(
             }
         })
         diff.dispatchUpdatesTo(this)
+
+        findNewlyExpandedLastChild(oldRows, newRows)?.let(onGroupExpanded)
 
         if (oldRows == newRows && oldSelectedIds != this.selectedIds) {
             notifyItemRangeChanged(0, itemCount, PAYLOAD_SELECTION)
@@ -121,6 +125,19 @@ class ActivityDuplicateBinder(
             return
         }
         super.onBindViewHolder(holder, position, payloads)
+    }
+
+    private fun findNewlyExpandedLastChild(oldRows: List<Row>, newRows: List<Row>): Int? {
+        if (oldRows.isEmpty() || newRows.size <= oldRows.size) return null
+        val oldChildGroups = oldRows.filterIsInstance<Row.ChildRow>()
+            .mapTo(hashSetOf()) { it.groupKey }
+        var lastChild: Int? = null
+        newRows.forEachIndexed { index, row ->
+            if (row is Row.ChildRow && row.groupKey !in oldChildGroups) {
+                lastChild = index
+            }
+        }
+        return lastChild
     }
 
     private fun buildRows(groups: List<DuplicateGroup>): List<Row> {

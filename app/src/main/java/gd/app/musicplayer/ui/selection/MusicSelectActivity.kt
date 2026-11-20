@@ -16,7 +16,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.coui.appcompat.searchview.COUISearchBar
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.applyLengthFilter
@@ -30,6 +29,7 @@ import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.ui.common.enableInPlaceFilterSearch
 import gd.app.musicplayer.ui.common.menu.SortByContextMenu
 import gd.app.musicplayer.util.SimpleTextWatcher
 import kotlinx.coroutines.launch
@@ -139,7 +139,9 @@ class MusicSelectActivity : BaseActivity() {
             editText.hideKeyboard()
             false
         }
-        binding.searchBar.setSearchAnimateType(COUISearchBar.TYPE_INSTANT_SEARCH)
+        binding.searchBar.enableInPlaceFilterSearch {
+            editText.hideKeyboard()
+        }
     }
 
     private fun setupActions() = with(binding) {
@@ -223,7 +225,8 @@ class MusicSelectActivity : BaseActivity() {
             items = state.content.songItems,
             selectedIds = state.actions.selectedSongIds,
             lockedIds = state.actions.lockedSongIds,
-            highlightQuery = state.header.query
+            highlightQuery = state.header.query,
+            sortStyle = state.header.currentSortStyle
         )
 
         emptyStateController.setEmptyLottieAsset("music_empty.json")

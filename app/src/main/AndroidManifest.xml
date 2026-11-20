@@ -251,6 +251,11 @@
             android:launchMode="singleTop" />
 
         <activity
+            android:name=".feature.library.directory.MusicDirectoryActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
             android:name=".feature.library.hidden.HiddenFoldersAddActivity"
             android:exported="false"
             android:launchMode="singleTop" />

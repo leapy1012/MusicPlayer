@@ -14,7 +14,8 @@ class PlaybackRestoreResolverTest {
             queue = emptyList(),
             progress = PlaybackProgress(
                 trackId = 10L,
-                progressMs = 5_000
+                progressMs = 5_000,
+                currentIndex = 0
             )
         )
 
@@ -33,7 +34,8 @@ class PlaybackRestoreResolverTest {
             queue = queue,
             progress = PlaybackProgress(
                 trackId = 7L,
-                progressMs = 42_000
+                progressMs = 42_000,
+                currentIndex = 1
             )
         )
 
@@ -43,7 +45,7 @@ class PlaybackRestoreResolverTest {
     }
 
     @Test
-    fun `resolve falls back to first track and zero progress when track id is missing`() {
+    fun `resolve rejects a missing track instead of restoring an unrelated queue item`() {
         val queue = listOf(
             music(id = 1L),
             music(id = 7L),
@@ -54,13 +56,12 @@ class PlaybackRestoreResolverTest {
             queue = queue,
             progress = PlaybackProgress(
                 trackId = 99L,
-                progressMs = 42_000
+                progressMs = 42_000,
+                currentIndex = 1
             )
         )
 
-        assertEquals(0, restored?.index)
-        assertEquals(0L, restored?.positionMs)
-        assertEquals(1L, restored?.queue?.get(restored.index)?.id)
+        assertNull(restored)
     }
 
     @Test
@@ -71,7 +72,8 @@ class PlaybackRestoreResolverTest {
             queue = queue,
             progress = PlaybackProgress(
                 trackId = 7L,
-                progressMs = -100
+                progressMs = -100,
+                currentIndex = 0
             )
         )
 

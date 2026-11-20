@@ -144,6 +144,10 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
             viewModel.setShowHiddenFolders(newValue as Boolean)
             true
         }
+        switchPref(KEY_SHOW_DIRECTORY)?.setOnPreferenceChangeListener { _, newValue ->
+            viewModel.setShowDirectory(newValue as Boolean)
+            true
+        }
         switchPref(KEY_DARK_MODE)?.setOnPreferenceChangeListener { _, newValue ->
             viewModel.setDarkModeEnabled(newValue as Boolean)
             true
@@ -358,6 +362,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
             isEnabled = state.useTenBandAvailable
         }
         switchPref(KEY_SHOW_HIDDEN_FOLDERS)?.isChecked = state.showHiddenFolders
+        switchPref(KEY_SHOW_DIRECTORY)?.isChecked = state.showDirectory
         switchPref(KEY_DARK_MODE)?.isChecked = state.darkModeEnabled
         switchPref(KEY_SHOW_FORWARD_BACKWARD)?.isChecked = state.showForwardBackward
         menuPref(KEY_TIME_FORWARD_BACKWARD)?.apply {
@@ -791,6 +796,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
 
         const val KEY_USE_TEN_BAND = "use_ten_band"
         const val KEY_SHOW_HIDDEN_FOLDERS = "show_hidden_folders"
+        const val KEY_SHOW_DIRECTORY = "show_directory"
         const val KEY_DARK_MODE = "preference_dark_mode"
         const val KEY_SHOW_FORWARD_BACKWARD = "show_forward_backward"
         const val KEY_TIME_FORWARD_BACKWARD = "preference_time_forward_backward"

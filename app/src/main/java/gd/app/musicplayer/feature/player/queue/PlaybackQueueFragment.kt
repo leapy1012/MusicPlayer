@@ -180,6 +180,7 @@ class PlaybackQueueFragment : ViewBindingFragment<FragmentQueueBinding>(),
                 }
             },
             onTrackMoved = ::onTrackMovedLocally,
+            onTrackMoveStep = viewModel::moveQueueItem,
             onTrackMoveFinished = ::replaceQueuePreservingCurrentTrack,
             formatDuration = { durationMs -> durationMs.toLong().toDurationString() },
             onTrackMenu = { track, position ->
@@ -302,6 +303,7 @@ private class QueueListAdapter(
     private val onTrackClicked: (Int) -> Unit,
     private val onToggleFavorite: (Music) -> Unit,
     private val onTrackMoved: (List<Music>) -> Unit,
+    private val onTrackMoveStep: (Int, Int) -> Unit,
     private val onTrackMoveFinished: (List<Music>, Int) -> Unit,
     private val formatDuration: (Int) -> String,
     private val onTrackMenu: (Music, Int) -> Unit
@@ -314,6 +316,8 @@ private class QueueListAdapter(
     private var hasPendingReorder = false
 
     fun submitQueue(items: List<Music>, currentIndex: Int) {
+        // Per-step playback emissions must not reset the list mid-drag.
+        if (hasPendingReorder) return
         queue.clear()
         queue.addAll(
             items.map { music ->
@@ -384,6 +388,8 @@ private class QueueListAdapter(
         notifyItemMoved(fromPosition, toPosition)
         onTrackMoved(queue.toList())
         hasPendingReorder = true
+        // Original l5.n1.onItemMove: commit each step to the playback queue (y6.y.i1).
+        onTrackMoveStep(fromPosition, toPosition)
     }
 
     class QueueViewHolder(

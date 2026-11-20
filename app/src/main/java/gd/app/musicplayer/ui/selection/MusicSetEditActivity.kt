@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
-import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.view.ViewStub
@@ -35,7 +34,7 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
-import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
+import gd.app.musicplayer.feature.library.folder.isFolderSpecialEntry
 import gd.app.musicplayer.feature.library.options.DeleteConfirmDialogFragment
 import gd.app.musicplayer.feature.playlist.PlaylistSelectActivity
 import gd.app.musicplayer.ui.common.base.BaseActivity
@@ -215,17 +214,23 @@ class MusicSetEditActivity : BaseActivity() {
 
         setPadding(spacing, spacing, spacing, spacing)
         addItemDecoration(SpacingItemDecoration.all(spacing))
+        applyListSurfaceBackground()
     }
 
     private fun RecyclerView.setupListRecycler() {
         layoutManager = LinearLayoutManager(this@MusicSetEditActivity)
         setPadding(0, 0, 0, 0)
+        applyListSurfaceBackground()
+    }
 
-        if (usesCouiStyling) {
-            setBackgroundColor(
-                resolveAttrColor(com.coui.appcompat.R.attr.couiColorCardBackground, Color.WHITE)
-            )
-        }
+    private fun RecyclerView.applyListSurfaceBackground() {
+        // Same plate as track-edit page: couiColorBackgroundWithCard (gray), not white card.
+        val listSurface = resolveAttrColor(
+            com.coui.appcompat.R.attr.couiColorBackgroundWithCard,
+            0xFFF0F1F2.toInt()
+        )
+        setBackgroundColor(listSurface)
+        binding.layoutRecyclerview.root.setBackgroundColor(listSurface)
     }
 
     private fun setupBottomMenu() {
@@ -327,7 +332,7 @@ class MusicSetEditActivity : BaseActivity() {
 
     private fun restorePreselectedItem() {
         readPreselectedMusicSetFromIntent()
-            ?.takeUnless(MusicSet::isHiddenFoldersEntry)
+            ?.takeUnless(MusicSet::isFolderSpecialEntry)
             ?.let { item ->
                 selectedKeys.add(item.stableId)
             }
@@ -353,13 +358,23 @@ class MusicSetEditActivity : BaseActivity() {
             item.stableId == preselectedKey
         }
 
-        if (index >= 0) {
-            recyclerView.layoutManager?.scrollToPosition(index)
+        if (index < 0) return
+
+        val layoutManager = recyclerView.layoutManager
+        if (intent.hasExtra(ARG_TOP_OFFSET) && layoutManager is LinearLayoutManager) {
+            // Same restore as MusicEditActivity: offset first, then scrollToPosition (no-op if fully visible).
+            val topOffset = intent.getIntExtra(ARG_TOP_OFFSET, 0)
+            layoutManager.scrollToPositionWithOffset(index, topOffset)
+            recyclerView.post {
+                layoutManager.scrollToPosition(index)
+            }
+        } else {
+            layoutManager?.scrollToPosition(index)
         }
     }
 
     private fun toggleSelection(item: MusicSet) {
-        if (item.isHiddenFoldersEntry()) return
+        if (item.isFolderSpecialEntry()) return
 
         val key = item.stableId
 
@@ -394,7 +409,7 @@ class MusicSetEditActivity : BaseActivity() {
     }
 
     private fun selectableItems(): List<MusicSet> {
-        return currentItems.filterNot(MusicSet::isHiddenFoldersEntry)
+        return currentItems.filterNot(MusicSet::isFolderSpecialEntry)
     }
 
     private fun syncSelectionWithCurrentItems() {
@@ -618,6 +633,7 @@ class MusicSetEditActivity : BaseActivity() {
     companion object {
         private const val EXTRA_PRESELECTED_SET = "preselected_set"
         private const val EXTRA_SESSION_ID = "session_id"
+        const val ARG_TOP_OFFSET = "topOffset"
 
         private const val STATE_SESSION_ID = "state_session_id"
         private const val STATE_SELECTED_KEYS = "state_selected_keys"
@@ -632,14 +648,15 @@ class MusicSetEditActivity : BaseActivity() {
             context: Context,
             musicSet: MusicSet,
             visibleItems: List<MusicSet> = emptyList(),
-            preselectedSet: MusicSet? = null
+            preselectedSet: MusicSet? = null,
+            topOffset: Int? = null
         ) {
             val sessionId = UUID.randomUUID().toString()
-            val sanitizedItems = visibleItems.filterNot(MusicSet::isHiddenFoldersEntry)
+            val sanitizedItems = visibleItems.filterNot(MusicSet::isFolderSpecialEntry)
 
             val selectedItems = buildList {
                 preselectedSet
-                    ?.takeUnless(MusicSet::isHiddenFoldersEntry)
+                    ?.takeUnless(MusicSet::isFolderSpecialEntry)
                     ?.let(::add)
             }
 
@@ -658,6 +675,9 @@ class MusicSetEditActivity : BaseActivity() {
                     putExtra(EXTRA_SESSION_ID, sessionId)
                     preselectedSet?.let {
                         putExtra(EXTRA_PRESELECTED_SET, it)
+                    }
+                    topOffset?.let {
+                        putExtra(ARG_TOP_OFFSET, it)
                     }
                 }
             )

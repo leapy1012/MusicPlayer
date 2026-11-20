@@ -29,6 +29,7 @@
             android:contentDescription="@string/cancel"
             android:padding="8dp"
             android:scaleType="fitCenter"
+            android:tag="itemTextColor"
             app:srcCompat="@drawable/vector_crop_close" />
 
         <TextView
@@ -38,6 +39,7 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:ellipsize="end"
+            android:tag="itemTextColor"
             android:text="@string/edit_photo"
             android:textAppearance="@style/textAppearanceSecondTitle" />
 
@@ -49,6 +51,7 @@
             android:contentDescription="@string/save"
             android:padding="8dp"
             android:scaleType="fitCenter"
+            android:tag="itemTextColor"
             app:srcCompat="@drawable/vector_crop_save" />
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -57,6 +60,7 @@
             android:layout_height="40dp"
             android:padding="8dp"
             android:scaleType="fitCenter"
+            android:tag="itemTextColor"
             android:visibility="gone"
             app:srcCompat="@drawable/vector_crop_loader_animated" />
     </LinearLayout>

@@ -6,9 +6,10 @@ import android.os.Bundle
 import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.coui.appcompat.searchview.COUISearchBar
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.parcelable
@@ -18,6 +19,7 @@ import gd.app.musicplayer.databinding.ActivityMusicEditBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.hidden.HideSelectionUseCase
+import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.library.RemoveTrackFromGeneratedMusicSetUseCase
 import gd.app.musicplayer.domain.usecase.playback.EnqueueTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayNextTracksUseCase
@@ -29,14 +31,19 @@ import gd.app.musicplayer.domain.usecase.track.DeleteTracksFromLibraryUseCase
 import gd.app.musicplayer.domain.usecase.track.DeleteTracksUseCase
 import gd.app.musicplayer.feature.library.ARG_MUSIC
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
+import gd.app.musicplayer.feature.player.full.PlayerViewModel
 import gd.app.musicplayer.ui.common.base.BaseActivity
 import gd.app.musicplayer.ui.common.base.RecyclerEmptyStateController
 import gd.app.musicplayer.ui.common.base.inflateThemedMenu
 import gd.app.musicplayer.ui.common.base.setupEdgeToEdgeToolbar
+import gd.app.musicplayer.core.common.extension.hideKeyboard
+import gd.app.musicplayer.ui.common.enableInPlaceFilterSearch
 import gd.app.musicplayer.ui.common.menu.EditBottomMenuController
 import gd.app.musicplayer.util.SimpleTextWatcher
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -56,8 +63,10 @@ class MusicEditActivity :
     @Inject lateinit var deleteTracksUseCase: DeleteTracksUseCase
     @Inject lateinit var hideSelectionUseCase: HideSelectionUseCase
     @Inject lateinit var addTracksToPlaylistsUseCase: AddTracksToPlaylistsUseCase
+    @Inject lateinit var observeSortUseCase: ObserveSortUseCase
 
     private val viewModel: EditViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     private lateinit var binding: ActivityMusicEditBinding
     private lateinit var adapter: MusicEditAdapter
@@ -94,11 +103,20 @@ class MusicEditActivity :
         setupRecyclerView()
         setupSearch()
         setupBottomMenu()
+        observeSortStyle()
+        observePlaybackHighlight()
         loadTracksOnce()
+    }
+
+    override fun onStop() {
+        // Debounced reorder (1500ms) must not be lost when leaving the screen.
+        if (::adapter.isInitialized) adapter.flushPendingPersist()
+        super.onStop()
     }
 
     override fun onDestroy() {
         binding.searchBar.searchEditText?.removeTextChangedListener(searchWatcher)
+        if (::adapter.isInitialized) adapter.cancelPendingPersist()
         super.onDestroy()
     }
 
@@ -155,6 +173,7 @@ class MusicEditActivity :
             recyclerView = this,
             emptyViewStub = binding.layoutRecyclerview.layoutListEmpty
         ).apply {
+            setEmptyLottieAsset("music_empty.json")
             setEmptyMessage(getString(R.string.music_empty))
         }
     }
@@ -171,10 +190,37 @@ class MusicEditActivity :
         }
     }
 
+    /** Original o5.j0 reads the sort style of this music set for the size/date column. */
+    private fun observeSortStyle() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                observeSortUseCase(musicSet)
+                    .map { (style, _) -> style }
+                    .distinctUntilChanged()
+                    .collect { style ->
+                        adapter.metadataSortStyle = style
+                    }
+            }
+        }
+    }
+
+    private fun observePlaybackHighlight() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playerViewModel.playbackHighlightState.collect { state ->
+                    adapter.submitPlaybackHighlight(state.currentMusicId, state.isPlaying)
+                }
+            }
+        }
+    }
+
     private fun setupSearch() {
         val editText = binding.searchBar.searchEditText ?: return
         editText.addTextChangedListener(searchWatcher)
-        binding.searchBar.setSearchAnimateType(COUISearchBar.TYPE_INSTANT_SEARCH)
+        // NON_INSTANT keeps the bar under the selection toolbar; INSTANT slides it up and breaks UI.
+        binding.searchBar.enableInPlaceFilterSearch {
+            editText.hideKeyboard()
+        }
     }
 
     private fun setupBottomMenu() {

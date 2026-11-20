@@ -15,6 +15,7 @@ import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.RestartCurrentTrackUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ObservePlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ObserveSelectablePlaylistsUseCase
+import gd.app.musicplayer.domain.usecase.preferences.GetClickAddQueueEnabledUseCase
 import gd.app.musicplayer.domain.usecase.preferences.GetReplaySongEnabledUseCase
 import gd.app.musicplayer.domain.usecase.preferences.IsTrackClickOperationEnabledUseCase
 import gd.app.musicplayer.playback.PlaybackController
@@ -35,6 +36,7 @@ class SearchViewModel @Inject constructor(
     private val observeMusicSetsUseCase: ObserveMusicSetsUseCase,
     private val observeSelectablePlaylistsUseCase: ObserveSelectablePlaylistsUseCase,
     private val getReplaySongEnabledUseCase: GetReplaySongEnabledUseCase,
+    private val getClickAddQueueEnabledUseCase: GetClickAddQueueEnabledUseCase,
     private val isTrackClickOperationEnabledUseCase: IsTrackClickOperationEnabledUseCase,
     private val playTracksUseCase: PlayTracksUseCase,
     private val restartCurrentTrackUseCase: RestartCurrentTrackUseCase,
@@ -104,6 +106,9 @@ class SearchViewModel @Inject constructor(
         this.query.value = query
     }
 
+    /** The term each page highlights matches against (original `t1.g` → `i7.c.u`). */
+    fun currentQuery(): String = query.value.trim()
+
     fun refreshSortOrder() {
         sortVersion.value += 1
     }
@@ -139,11 +144,27 @@ class SearchViewModel @Inject constructor(
             return
         }
 
-        val (queue, startIndex) = resolvePlaybackQueue(song, preferredIndex)
-        playTracksUseCase(queue, startIndex)
+        if (getClickAddQueueEnabledUseCase()) {
+            // Original w7.v.w1 → y6.y.R0(music, 1): append to playing queue and play.
+            appendAndPlayTrack(song)
+        } else {
+            val (queue, startIndex) = resolvePlaybackQueue(song, preferredIndex)
+            playTracksUseCase(queue, startIndex)
+        }
         if (isTrackClickOperationEnabledUseCase()) {
             _events.emit(SearchEvent.OpenNowPlaying)
         }
+    }
+
+    /** Original [y6.y.R0]: append if missing, jump current index to that track, play. */
+    private fun appendAndPlayTrack(track: Music) {
+        val queue = playbackController.state.value.queue.toMutableList()
+        var index = queue.indexOfFirst { it.id == track.id }
+        if (index < 0) {
+            queue += track
+            index = queue.lastIndex
+        }
+        playTracksUseCase(queue, index)
     }
 
     suspend fun resolvePlaybackQueue(

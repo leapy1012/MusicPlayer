@@ -19,3 +19,12 @@ keystore.properties
 /.idea/
 /wrapper
 /Reference
+# Local captures and inspection output
+/.vscode/
+/*.png
+/*.trace
+/u_dump.xml
+/com/
+*.class
+*.log
+*.hprof

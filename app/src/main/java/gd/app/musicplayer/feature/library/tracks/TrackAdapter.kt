@@ -12,6 +12,7 @@ import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.ui.common.viewholder.MusicViewHolder
 import gd.app.musicplayer.ui.selection.ItemMoveListener
+import gd.app.musicplayer.ui.selection.ScrollAwareAdapter
 import java.util.Collections
 
 class TrackAdapter(
@@ -20,7 +21,7 @@ class TrackAdapter(
     private val onItemClick: (Music) -> Unit,
     private val onMenuClick: (Music) -> Unit,
     private val onItemLongClick: ((Music, Int) -> Unit)?
-) : RecyclerView.Adapter<MusicViewHolder>(), ItemMoveListener {
+) : ScrollAwareAdapter<MusicViewHolder>(), ItemMoveListener {
 
     private val tracks = mutableListOf<Music>()
 
@@ -29,6 +30,7 @@ class TrackAdapter(
     private var metadataDisplayMode: String = ""
     private var positionByTrackId: Map<Long, Int> = emptyMap()
     private var hasPendingReorder = false
+    private var itemExtentPx: Int = 0
 
     init {
         setHasStableIds(true)
@@ -37,6 +39,9 @@ class TrackAdapter(
     override fun getItemCount(): Int = tracks.size
 
     override fun getItemId(position: Int): Long = tracks[position].id
+
+    /** Original `o5.c.g`: every row is one fixed-height music item. */
+    override fun getItemExtent(viewType: Int): Int = itemExtentPx
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -47,6 +52,10 @@ class TrackAdapter(
             parent,
             false
         )
+
+        if (itemExtentPx == 0) {
+            itemExtentPx = parent.resources.getDimensionPixelSize(R.dimen.item_recycler_height)
+        }
 
         binding.musicItemAlbum.applyRoundedOutline(R.dimen.item_image_corner_radius)
 

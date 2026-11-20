@@ -8,4 +8,8 @@
         <item quantity="one">%d Track</item>
         <item quantity="other">%d Tracks</item>
     </plurals>
+    <plurals name="plurals_folder_item">
+        <item quantity="one">%d Item</item>
+        <item quantity="other">%d Items</item>
+    </plurals>
 </resources>

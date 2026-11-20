@@ -22,6 +22,7 @@ data class NormalSettingPreference(
     val showKeepAliveDot: Boolean = true,
     val queueForSearchingMode: Int = 0,
     val showHiddenFolders: Boolean = true,
+    val showDirectory: Boolean = true,
     val libraryTabConfig: List<LibraryTabConfig> = LibraryTabConfigStore.defaultItems
 )
 

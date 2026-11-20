@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
+import gd.app.musicplayer.core.datastore.SortPreferencesDataStore
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.track.DeleteDeletedTrackFilesUseCase
 import gd.app.musicplayer.domain.usecase.track.MarkDeletedSourceFilesRemovedUseCase
@@ -21,8 +22,17 @@ class DeletedMusicViewModel @Inject constructor(
     private val restoreDeletedTracksUseCase: RestoreDeletedTracksUseCase,
     private val deleteDeletedTrackFilesUseCase: DeleteDeletedTrackFilesUseCase,
     private val markDeletedSourceFilesRemovedUseCase: MarkDeletedSourceFilesRemovedUseCase,
-    private val dispatchers: AppDispatchers
+    private val dispatchers: AppDispatchers,
+    sortPreferences: SortPreferencesDataStore
 ) : ViewModel() {
+
+    /** Metadata column style for the list (size/date); defaults to "date" for MusicSet -15. */
+    val sortStyle: StateFlow<String> = sortPreferences.observeDeletedTracksSortStyle()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            initialValue = DEFAULT_SORT_STYLE
+        )
 
     val tracks: StateFlow<List<Music>> = observeDeletedTracksUseCase()
         .stateIn(
@@ -51,5 +61,6 @@ class DeletedMusicViewModel @Inject constructor(
 
     private companion object {
         private const val STOP_TIMEOUT_MS = 5_000L
+        private const val DEFAULT_SORT_STYLE = "date"
     }
 }

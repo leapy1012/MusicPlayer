@@ -317,6 +317,11 @@ class PlayerViewModel @Inject constructor(
         )
     }
 
+    /** Original `y6.y.i1(from, to)` per drag step (`l5.n1.onItemMove`). */
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        playbackController.moveQueueItem(fromIndex, toIndex)
+    }
+
     fun clearQueue(context: Context) {
         playbackController.clearQueue()
     }

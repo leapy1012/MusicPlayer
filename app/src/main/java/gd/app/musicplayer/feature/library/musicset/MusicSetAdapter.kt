@@ -15,7 +15,7 @@ import gd.app.musicplayer.databinding.FragmentFolderFooterBinding
 import gd.app.musicplayer.databinding.FragmentFolderListItemBinding
 import gd.app.musicplayer.domain.model.ListItem
 import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
+import gd.app.musicplayer.feature.library.folder.isFolderSpecialEntry
 import gd.app.musicplayer.ui.common.viewholder.BaseViewHolder
 import gd.app.musicplayer.ui.common.viewholder.FolderListMusicSetViewHolder
 import gd.app.musicplayer.ui.common.viewholder.MusicSetGridViewHolder
@@ -33,7 +33,8 @@ class MusicSetAdapter(
     private val musicSetType: MusicSet,
     private var viewMode: Int = VIEW_MODE_LIST,
     private val onItemClick: ((MusicSet) -> Unit)? = null,
-    private val onItemLongClick: ((MusicSet) -> Unit)? = null,
+    /** Second arg is itemView.top — same contract as MusicViewHolder / original l5 → ActivityEdit topOffset. */
+    private val onItemLongClick: ((MusicSet, Int) -> Unit)? = null,
     private val onItemMenuClick: ((MusicSet, View) -> Unit)? = null,
     private val onFolderScanClick: (() -> Unit)? = null,
     private val applyTheme: ((View) -> Unit)? = null
@@ -157,7 +158,7 @@ class MusicSetAdapter(
         holder: BaseViewHolder,
         item: MusicSet
     ) {
-        val supportsActions = !item.isHiddenFoldersEntry()
+        val supportsActions = !item.isFolderSpecialEntry()
 
         holder.bind(ListItem.MusicSetItem(item))
 
@@ -165,12 +166,12 @@ class MusicSetAdapter(
             onItemClick?.invoke(item)
         }
 
-        holder.itemView.setOnLongClickListener {
+        holder.itemView.setOnLongClickListener { view ->
             if (!supportsActions || onItemLongClick == null) {
                 return@setOnLongClickListener false
             }
 
-            onItemLongClick.invoke(item)
+            onItemLongClick.invoke(item, view.top)
             true
         }
 

@@ -1,6 +1,8 @@
 package gd.app.musicplayer.feature.playlist
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -168,6 +170,39 @@ class PlaylistFragment :
 
         requireBinding().recyclerview.recyclerview.isVisible =
             state.playlists.isNotEmpty()
+
+        restoreScrollPosition()
+    }
+
+    /**
+     * Original `l5.i1.k0`: remember the first visible row before leaving for a playlist, skipping
+     * the save when the list is already at the top.
+     */
+    private fun saveScrollPosition() {
+        val firstChild = playlistLayoutManager.getChildAt(0) ?: return
+        val offset = firstChild.top
+        val position = playlistLayoutManager.getPosition(firstChild)
+
+        if (offset == 0 && position == 0) return
+
+        lastPosition = position
+        lastOffset = offset
+    }
+
+    /**
+     * Original `l5.i1.j0`: restore right after the playlist rows are submitted. `o8.v.c(key, true)`
+     * consumes the entry, so the offset only applies to the first load after returning.
+     */
+    private fun restoreScrollPosition() {
+        val position = lastPosition ?: return
+        val offset = lastOffset ?: return
+
+        lastPosition = null
+        lastOffset = null
+
+        requireBinding().recyclerview.recyclerview.post {
+            playlistLayoutManager.scrollToPositionWithOffset(position, offset)
+        }
     }
 
     private fun handleEvent(event: PlaylistEvent) {
@@ -240,6 +275,8 @@ class PlaylistFragment :
     }
 
     private fun openPlaylist(playlist: MusicSet.Playlist) {
+        saveScrollPosition()
+
         AlbumMusicActivity.start(
             context = requireContext(),
             musicSet = playlist
@@ -265,8 +302,33 @@ class PlaylistFragment :
 
         private val playlists = mutableListOf<MusicSet.Playlist>()
 
+        private val persistHandler = Handler(Looper.getMainLooper())
+        private var persistPending = false
+        private val persistRunnable = Runnable { persistOrder() }
+
         init {
             setHasStableIds(true)
+        }
+
+        /** Original: reorder is persisted 1500ms after the last move (Handler removeCallbacks + postDelayed). */
+        private fun schedulePersistOrder() {
+            persistPending = true
+            persistHandler.removeCallbacks(persistRunnable)
+            persistHandler.postDelayed(persistRunnable, PERSIST_DEBOUNCE_MS)
+        }
+
+        private fun persistOrder() {
+            persistPending = false
+            onPlaylistOrderChanged(
+                playlists.map(MusicSet.Playlist::id)
+            )
+        }
+
+        /** Persist a pending debounced reorder immediately so leaving the screen cannot drop it. */
+        fun flushPendingPersist() {
+            if (!persistPending) return
+            persistHandler.removeCallbacks(persistRunnable)
+            persistOrder()
         }
 
         override fun getItemCount(): Int {
@@ -333,9 +395,7 @@ class PlaylistFragment :
                 toPosition
             )
 
-            onPlaylistOrderChanged(
-                playlists.map(MusicSet.Playlist::id)
-            )
+            schedulePersistOrder()
         }
 
         private fun canMoveItem(
@@ -390,8 +450,18 @@ class PlaylistFragment :
         }
     }
 
+    override fun onStop() {
+        playlistAdapter.flushPendingPersist()
+        super.onStop()
+    }
+
     companion object {
         private const val DRAG_GUIDE_TAG = "playlist_drag_guide"
+        private const val PERSIST_DEBOUNCE_MS = 1500L
+
+        /** Original `o8.v` transient store keys `FragmentPlaylist_lastPosition` / `_lastOffset`. */
+        private var lastPosition: Int? = null
+        private var lastOffset: Int? = null
 
         fun newInstance(): PlaylistFragment {
             return PlaylistFragment()

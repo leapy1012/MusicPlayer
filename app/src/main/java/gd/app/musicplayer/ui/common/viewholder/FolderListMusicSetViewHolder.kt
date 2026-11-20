@@ -8,6 +8,7 @@ import gd.app.musicplayer.databinding.FragmentFolderListItemBinding
 import gd.app.musicplayer.ui.common.model.loadArtwork
 import gd.app.musicplayer.ui.common.model.resolvePlaceholderRes
 import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
+import gd.app.musicplayer.feature.library.folder.isMusicDirectoryEntry
 
 class FolderListMusicSetViewHolder(
     private val binding: FragmentFolderListItemBinding
@@ -21,6 +22,11 @@ class FolderListMusicSetViewHolder(
             if (musicSet.isHiddenFoldersEntry()) {
                 binding.musicItemAlbum.setImageResource(R.drawable.main_hidden_folder_simple)
                 binding.musicItemTitle.setText(R.string.hidden_folders)
+                binding.musicItemArtist.visibility = View.GONE
+                binding.musicItemDes.visibility = View.GONE
+            } else if (musicSet.isMusicDirectoryEntry()) {
+                binding.musicItemAlbum.setImageResource(R.drawable.main_directory_simple)
+                binding.musicItemTitle.setText(R.string.music_directory)
                 binding.musicItemArtist.visibility = View.GONE
                 binding.musicItemDes.visibility = View.GONE
             } else {

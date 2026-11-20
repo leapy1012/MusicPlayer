@@ -28,14 +28,18 @@ interface SettingPreferencesDataStore {
     suspend fun cyclePlayMode(): Int
     suspend fun getTrackClickOperationEnabled(): Boolean
     suspend fun getReplaySongEnabled(): Boolean
+    suspend fun getClickAddQueueEnabled(): Boolean
     suspend fun getShakeLevel(): Float
     suspend fun getShakeEnabled(): Boolean
     suspend fun getShowHiddenFolders(): Boolean
     fun observeShowHiddenFolders(): Flow<Boolean>
+    suspend fun getShowDirectory(): Boolean
+    fun observeShowDirectory(): Flow<Boolean>
     suspend fun updatePlayMode(mode: Int)
     suspend fun updateForwardBackwardSeconds(seconds: Int)
     suspend fun updateShowForwardBackward(enabled: Boolean)
     suspend fun updateShowHiddenFolders(enabled: Boolean)
+    suspend fun updateShowDirectory(enabled: Boolean)
     suspend fun updateShowKeepAliveDot(enabled: Boolean)
     suspend fun updateFadeDurationSeconds(seconds: Int)
     suspend fun updateSwipeChangeSongsEnabled(enabled: Boolean)

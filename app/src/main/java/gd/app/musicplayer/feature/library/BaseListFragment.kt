@@ -11,6 +11,8 @@ import gd.app.musicplayer.core.common.extension.dpToPx
 import gd.app.musicplayer.core.common.extension.isTablet
 import gd.app.musicplayer.core.common.extension.parcelable
 import gd.app.musicplayer.core.designsystem.view.MusicRecyclerView
+import gd.app.musicplayer.core.designsystem.view.RecyclerIndexBarBinder
+import gd.app.musicplayer.ui.selection.ScrollAwareAdapter
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.databinding.LayoutRecyclerviewBinding
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
@@ -28,6 +30,9 @@ abstract class BaseListFragment :
     ListMoreMenuHost {
 
     private var gridDecoration: RecyclerView.ItemDecoration? = null
+
+    protected var indexBarBinder: RecyclerIndexBarBinder? = null
+        private set
 
     protected lateinit var musicSet: MusicSet
         private set
@@ -61,6 +66,31 @@ abstract class BaseListFragment :
         musicSet = newSet
     }
 
+    /**
+     * Original `j5.f` + `com.ijoysoft.music.view.index.d`: list screens own a
+     * [RecyclerIndexBar] overlay that is driven either by letters or by scroll percentage.
+     */
+    protected fun attachIndexBar(
+        headerCount: () -> Int = { 0 },
+        scrollAwareAdapter: () -> ScrollAwareAdapter<*>? = {
+            musicRecyclerView.adapter as? ScrollAwareAdapter<*>
+        }
+    ) {
+        indexBarBinder?.detach()
+        indexBarBinder = RecyclerIndexBarBinder(
+            recyclerView = musicRecyclerView,
+            indexBar = requireBinding().recyclerviewIndex,
+            headerCount = headerCount,
+            scrollAwareAdapter = scrollAwareAdapter
+        )
+    }
+
+    override fun onDestroyBinding(binding: LayoutRecyclerviewBinding) {
+        indexBarBinder?.detach()
+        indexBarBinder = null
+        super.onDestroyBinding(binding)
+    }
+
     protected fun setupRecyclerView(
         adapter: RecyclerView.Adapter<*>
     ) {
@@ -89,6 +119,28 @@ abstract class BaseListFragment :
             requireContext()
         )
 
+        musicRecyclerView.setPadding(0, 0, 0, 0)
+        musicRecyclerView.clipToPadding = true
+    }
+
+    /**
+     * Multi-column list (no grid padding/decoration), e.g. original `m0.f` 2-column all-tracks
+     * list in landscape/tablet. Rows listed as full width in [spanSizeLookup] span every column.
+     */
+    protected fun setSpannedListLayoutManager(
+        spanCount: Int,
+        spanSizeLookup: GridLayoutManager.SpanSizeLookup
+    ) {
+        val current = musicRecyclerView.layoutManager
+        if (current is GridLayoutManager && current.spanCount == spanCount) {
+            current.spanSizeLookup = spanSizeLookup
+            return
+        }
+
+        clearGridDecoration()
+        musicRecyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount).also {
+            it.spanSizeLookup = spanSizeLookup
+        }
         musicRecyclerView.setPadding(0, 0, 0, 0)
         musicRecyclerView.clipToPadding = true
     }

@@ -17,6 +17,34 @@
         android:textColor="?attr/couiColorSecondNeutral"
         android:textSize="14sp" />
 
+    <!-- Original i7.c.b: "See all" cluster shown on the combined view when a section is capped. -->
+    <LinearLayout
+        android:id="@+id/see_all_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/see_all"
+            android:textColor="?attr/couiColorPrimaryNeutral"
+            android:textSize="13sp" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:importantForAccessibility="no"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            app:srcCompat="@drawable/vector_arrow_right"
+            app:tint="?attr/couiColorHintNeutral" />
+    </LinearLayout>
+
     <com.coui.appcompat.rotateview.COUIRotateView
         android:id="@+id/music_item_expanded"
         android:layout_width="wrap_content"

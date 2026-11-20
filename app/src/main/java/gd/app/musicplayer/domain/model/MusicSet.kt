@@ -165,6 +165,7 @@ sealed class MusicSet : Parcelable {
         const val USER_PLAYLIST = -7L
         const val HIDDEN_FOLDERS = -14L
         const val DELETED_TRACKS = -15L
+        const val MUSIC_DIRECTORY = -16L
         const val HIDDEN_TRACKS = -18L
 
         @Deprecated(
@@ -186,6 +187,16 @@ val MusicSet.isConcreteCollection: Boolean
 
 val MusicSet.isUserPlaylist: Boolean
     get() = this is MusicSet.Playlist && id != MusicSet.FAVORITES
+
+/**
+ * Original SharedPreferences default ([w7.v.m1]): RecentlyAdded (`-3`) → `"date"`
+ * (numeric column → DESC when reverse is false). Everything else → `"name"`.
+ */
+val MusicSet.defaultSortStyle: String
+    get() = when (this) {
+        is MusicSet.RecentlyAdded -> "date"
+        else -> "name"
+    }
 
 fun MusicSet.asBrowseCategory(): MusicSet.BrowseCategory? {
     return this as? MusicSet.BrowseCategory

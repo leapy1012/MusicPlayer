@@ -432,6 +432,8 @@
     <string name="show_forward_backward">Forward and backward</string>
     <string name="show_forward_backward_tip">Show forward and backward buttons on nowplaying page</string>
     <string name="show_hidden_folders">Show hidden files</string>
+    <string name="show_directory">Show directories</string>
+    <string name="see_all">See all</string>
     <string name="shuffle">Shuffle</string>
     <string name="shuffle_all">Shuffle all</string>
     <string name="simultaneous_play">Allow others playing music while Music Player playing</string>

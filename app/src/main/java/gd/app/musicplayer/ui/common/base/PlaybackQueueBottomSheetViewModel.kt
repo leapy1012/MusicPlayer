@@ -7,6 +7,7 @@ import gd.app.musicplayer.R
 import gd.app.musicplayer.core.common.extension.isFavorite
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.playback.ClearQueueUseCase
+import gd.app.musicplayer.domain.usecase.playback.MoveQueueItemUseCase
 import gd.app.musicplayer.domain.usecase.playback.ObservePlaybackStateUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.ResolvePlaybackQueueIndexUseCase
@@ -59,6 +60,7 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
     private val resolvePlaybackQueueIndexUseCase: ResolvePlaybackQueueIndexUseCase,
     private val toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase,
     private val replaceQueueUseCase: ReplaceQueueUseCase,
+    private val moveQueueItemUseCase: MoveQueueItemUseCase,
     private val clearQueueUseCase: ClearQueueUseCase,
     private val observePlayModeUseCase: ObservePlayModeUseCase,
     private val cyclePlayModeUseCase: CyclePlayModeUseCase
@@ -148,6 +150,11 @@ class PlaybackQueueBottomSheetViewModel @Inject constructor(
         }.coerceIn(0, updatedQueue.lastIndex)
 
         replaceQueueUseCase(updatedQueue, nextIndex)
+    }
+
+    /** Original `p5.e1.onItemMove` -> `y6.y.i1(from, to)` on every drag step. */
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        moveQueueItemUseCase(fromIndex, toIndex)
     }
 
     fun replaceQueuePreservingCurrentTrack(

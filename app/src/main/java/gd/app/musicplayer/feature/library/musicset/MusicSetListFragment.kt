@@ -17,7 +17,10 @@ import gd.app.musicplayer.ui.common.menu.ContextMenu
 import gd.app.musicplayer.ui.common.menu.ContextMenuAction
 import gd.app.musicplayer.ui.scan.ScanMusicActivity
 import gd.app.musicplayer.ui.selection.MusicSetEditActivity
+import gd.app.musicplayer.feature.library.directory.MusicDirectoryActivity
+import gd.app.musicplayer.feature.library.folder.isFolderSpecialEntry
 import gd.app.musicplayer.feature.library.folder.isHiddenFoldersEntry
+import gd.app.musicplayer.feature.library.folder.isMusicDirectoryEntry
 import gd.app.musicplayer.feature.library.hidden.HiddenFoldersActivity
 import gd.app.musicplayer.feature.library.ARG_MUSIC_SET
 import gd.app.musicplayer.feature.library.BaseListFragment
@@ -69,6 +72,7 @@ class MusicSetListFragment : BaseListFragment() {
 
         // Folders: single adapter + trailing footer (original l5.d), not ConcatAdapter.
         setupRecyclerView(adapter)
+        attachIndexBar()
         applyViewModeIfNeeded(MusicSetAdapter.VIEW_MODE_LIST)
     }
 
@@ -116,6 +120,13 @@ class MusicSetListFragment : BaseListFragment() {
         adapter.submitItems(state.items)
 
         emptyStateController.setVisible(state.isEmpty)
+
+        indexBarBinder?.bindMusicSets(
+            type = musicSet,
+            sets = state.items,
+            sortStyle = state.currentSortStyle,
+            reversed = state.sortDescending
+        )
     }
 
     private fun applyViewModeIfNeeded(viewMode: Int) {
@@ -150,6 +161,10 @@ class MusicSetListFragment : BaseListFragment() {
                 HiddenFoldersActivity.start(requireContext())
             }
 
+            set.isMusicDirectoryEntry() -> {
+                MusicDirectoryActivity.start(requireContext())
+            }
+
             else -> {
                 AlbumMusicActivity.start(
                     context = requireContext(),
@@ -159,14 +174,15 @@ class MusicSetListFragment : BaseListFragment() {
         }
     }
 
-    private fun onMusicSetLongClicked(selectedSet: MusicSet) {
-        if (selectedSet.isHiddenFoldersEntry()) return
+    private fun onMusicSetLongClicked(selectedSet: MusicSet, topOffset: Int) {
+        if (selectedSet.isFolderSpecialEntry()) return
 
         MusicSetEditActivity.start(
             context = requireContext(),
             musicSet = musicSet,
             visibleItems = adapter.displayedItems(),
-            preselectedSet = selectedSet
+            preselectedSet = selectedSet,
+            topOffset = topOffset
         )
     }
 

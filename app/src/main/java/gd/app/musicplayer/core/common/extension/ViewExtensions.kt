@@ -94,7 +94,11 @@ fun View.applySystemBarInsets(
             }
         }
 
-        bottomPaddingView.updatePadding(bottom = systemBars.bottom)
+        // Gesture nav: tappable.bottom == 0 → draw edge-to-edge behind the indicator.
+        // 3-button nav: tappable.bottom > 0 → pad so content clears the buttons.
+        val tappableBottom = insets.getInsets(WindowInsetsCompat.Type.tappableElement()).bottom
+        val bottomPadding = if (tappableBottom > 0) systemBars.bottom else 0
+        bottomPaddingView.updatePadding(bottom = bottomPadding)
 
         insets
     }

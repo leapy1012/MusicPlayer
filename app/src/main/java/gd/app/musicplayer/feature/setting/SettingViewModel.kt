@@ -83,6 +83,10 @@ class SettingsViewModel @Inject constructor(
         settingPreferences.updateShowHiddenFolders(enabled)
     }
 
+    fun setShowDirectory(enabled: Boolean) = update {
+        settingPreferences.updateShowDirectory(enabled)
+    }
+
     fun setKeepAliveTipSeen() = update {
         settingPreferences.updateShowKeepAliveDot(false)
     }
@@ -245,6 +249,7 @@ class SettingsViewModel @Inject constructor(
             useTenBand = useTenBand,
             useTenBandAvailable = SoundEffectPreferences.supportsTenBandEqualizer(),
             showHiddenFolders = normal.showHiddenFolders,
+            showDirectory = normal.showDirectory,
             showKeepAliveDot = normal.showKeepAliveDot,
             darkModeEnabled = themeRepo.isUserDarkModePreferred(),
             showForwardBackward = normal.showForwardBackward,

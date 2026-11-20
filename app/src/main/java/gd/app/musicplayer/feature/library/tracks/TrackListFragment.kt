@@ -1,7 +1,11 @@
 package gd.app.musicplayer.feature.library.tracks
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
+import androidx.recyclerview.widget.GridLayoutManager
+import gd.app.musicplayer.core.common.extension.isLandscape
+import gd.app.musicplayer.core.common.extension.isTablet
 import androidx.fragment.app.setFragmentResultListener
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.fragment.app.activityViewModels
@@ -20,6 +24,7 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.model.displayName
 import gd.app.musicplayer.domain.repository.ThemeRepo
 import gd.app.musicplayer.databinding.LayoutRecyclerviewBinding
+import gd.app.musicplayer.domain.usecase.preferences.GetClickAddQueueEnabledUseCase
 import gd.app.musicplayer.domain.usecase.preferences.GetReplaySongEnabledUseCase
 import gd.app.musicplayer.domain.usecase.preferences.IsTrackClickOperationEnabledUseCase
 import gd.app.musicplayer.feature.library.albums.ArtistAlbumHeaderAdapter
@@ -54,6 +59,7 @@ class TrackListFragment : BaseListFragment() {
     private val playerViewModel: PlayerViewModel by activityViewModels ()
     @Inject lateinit var themeRepo: ThemeRepo
     @Inject lateinit var getReplaySongEnabledUseCase: GetReplaySongEnabledUseCase
+    @Inject lateinit var getClickAddQueueEnabledUseCase: GetClickAddQueueEnabledUseCase
     @Inject lateinit var isTrackClickOperationEnabledUseCase: IsTrackClickOperationEnabledUseCase
     @Inject lateinit var deletePlaylistUseCase: DeletePlaylistUseCase
 
@@ -86,6 +92,11 @@ class TrackListFragment : BaseListFragment() {
 
         setupAdapters()
         setupRecyclerView(concatAdapter)
+        attachIndexBar(
+            headerCount = { artistAlbumHeaderAdapter?.itemCount ?: 0 },
+            scrollAwareAdapter = { trackAdapter }
+        )
+        applyTrackListLayout()
         setupDragAndDrop(binding)
         setupEmptyStateController(binding)
 
@@ -97,6 +108,34 @@ class TrackListFragment : BaseListFragment() {
         observeDeletePlaylistDialogResult()
 
         viewModel.bind(musicSet)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (view != null && ::concatAdapter.isInitialized) {
+            applyTrackListLayout()
+        }
+    }
+
+    /**
+     * Original `m0.f`: all-tracks list uses 2 columns in landscape/tablet; phone portrait stays
+     * linear. Non-track rows (e.g. artist album header) span the full width.
+     */
+    private fun applyTrackListLayout() {
+        val context = requireContext()
+        if (musicSet is MusicSet.Tracks && (context.isLandscape() || context.isTablet())) {
+            setSpannedListLayoutManager(
+                spanCount = TRACKS_GRID_SPAN_COUNT,
+                spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                    override fun getSpanSize(position: Int): Int {
+                        val headerCount = artistAlbumHeaderAdapter?.itemCount ?: 0
+                        return if (position < headerCount) TRACKS_GRID_SPAN_COUNT else 1
+                    }
+                }
+            )
+        } else {
+            setListLayoutManager()
+        }
     }
 
     private fun setupAdapters() {
@@ -160,6 +199,7 @@ class TrackListFragment : BaseListFragment() {
         collectWhenStarted(viewModel.sortState) { state ->
             currentSortState = state
             trackAdapter.setMetadataDisplayMode(state.sortStyle)
+            refreshIndexBar()
         }
     }
 
@@ -181,6 +221,17 @@ class TrackListFragment : BaseListFragment() {
 
         trackAdapter.submitList(state.tracks)
         artistAlbumHeaderAdapter?.submitAlbums(state.artistAlbums)
+
+        refreshIndexBar()
+    }
+
+    private fun refreshIndexBar() {
+        indexBarBinder?.bindTracks(
+            musicSet = musicSet,
+            tracks = currentTracks,
+            sortStyle = currentSortState.sortStyle,
+            reversed = currentSortState.sortDescending
+        )
     }
 
     private fun handleEvent(event: TrackListEvent) {
@@ -263,9 +314,13 @@ class TrackListFragment : BaseListFragment() {
                     playerViewModel.play(context)
                 }
 
+                getClickAddQueueEnabledUseCase() -> {
+                    // Original w7.v.w1 → y6.y.R0(music, 1): append to playing queue and play.
+                    appendAndPlayTrack(track)
+                }
+
                 else -> {
-                    // Match the obfuscated app: tapping another track should switch playback,
-                    // while tapping the current track pauses only when it is actively playing.
+                    // Original T0: replace queue with the visible list and play.
                     playTrackFromCurrentList(track)
                 }
             }
@@ -274,6 +329,22 @@ class TrackListFragment : BaseListFragment() {
                 MusicPlayActivity.start(context)
             }
         }
+    }
+
+    /** Original [y6.y.R0]: append if missing, jump current index to that track, play. */
+    private fun appendAndPlayTrack(track: Music) {
+        val playback = playerViewModel.playbackState.value
+        val queue = playback.queue.toMutableList()
+        var index = queue.indexOfFirst { it.id == track.id }
+        if (index < 0) {
+            queue += track
+            index = queue.lastIndex
+        }
+        playerViewModel.playQueue(
+            context = requireContext(),
+            queue = queue,
+            startIndex = index
+        )
     }
 
     private fun playTrackFromCurrentList(track: Music) {
@@ -502,6 +573,7 @@ class TrackListFragment : BaseListFragment() {
 
     companion object {
         private const val TAG_RENAME_PLAYLIST_DIALOG = "rename_playlist_dialog"
+        private const val TRACKS_GRID_SPAN_COUNT = 2
 
         fun newInstance(set: MusicSet): TrackListFragment {
             return TrackListFragment().apply {

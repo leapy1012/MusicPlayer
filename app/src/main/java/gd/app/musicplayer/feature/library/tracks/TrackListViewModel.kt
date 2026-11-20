@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.R
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.model.defaultSortStyle
 import gd.app.musicplayer.domain.usecase.library.ObserveAlbumsByArtistUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
@@ -94,7 +95,11 @@ class TrackListViewModel @Inject constructor(
             .filterNotNull()
             .flatMapLatest { musicSet ->
                 // Don't gate metadata display on DataStore; prefs catch up after first paint.
-                observeSortUseCase(musicSet).onStart { emit("name" to false) }
+                // Use the set's original default (RecentlyAdded → date) so UI metadata mode
+                // matches the cold track query before DataStore arrives.
+                observeSortUseCase(musicSet).onStart {
+                    emit(musicSet.defaultSortStyle to false)
+                }
             }
             .map { (style, descending) ->
                 TrackListSortState(

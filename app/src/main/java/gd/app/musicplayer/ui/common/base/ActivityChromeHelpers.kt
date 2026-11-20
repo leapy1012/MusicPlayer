@@ -23,7 +23,7 @@ fun BaseActivity.setupEdgeToEdgeToolbar(
 ) {
     // Original ActivitySetting.y0 only calls w0.h(status_bar_space) — sync cached height.
     // Do not remasure the full settings ScrollView when nav-bar insets arrive mid-fade.
-    // Keep optional bottom padding only when caller explicitly needs it for gesture nav.
+    // Bottom padding is applied only for 3-button nav (tappable); gesture stays edge-to-edge.
     if (bottomPaddingView === root) {
         statusBarView.applyCachedStatusBarHeight()
     } else {

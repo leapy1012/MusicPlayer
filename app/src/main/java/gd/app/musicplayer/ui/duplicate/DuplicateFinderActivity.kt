@@ -108,7 +108,8 @@ class DuplicateFinderActivity : BaseActivity() {
         duplicateBinder = ActivityDuplicateBinder(
             onGroupClick = viewModel::toggleGroupExpansion,
             onTrackClick = viewModel::toggleTrackSelection,
-            applyTheme = ::applyThemeTo
+            applyTheme = ::applyThemeTo,
+            onGroupExpanded = ::revealExpandedGroup
         )
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = duplicateBinder
@@ -120,6 +121,16 @@ class DuplicateFinderActivity : BaseActivity() {
             )
             recyclerView.setBackgroundColor(typed.getColor(0, Color.WHITE))
             typed.recycle()
+        }
+    }
+
+    /** Original `o5.i.g(parent, pos)`: reveal the last child of a freshly expanded group. */
+    private fun revealExpandedGroup(lastChildPosition: Int) {
+        recyclerView.post {
+            val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return@post
+            if (lastChildPosition > layoutManager.findLastCompletelyVisibleItemPosition()) {
+                recyclerView.scrollToPosition(lastChildPosition)
+            }
         }
     }
 

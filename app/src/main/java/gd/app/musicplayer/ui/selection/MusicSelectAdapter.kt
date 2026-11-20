@@ -52,7 +52,8 @@ class MusicSelectAdapter(
         items: List<Music>,
         selectedIds: Set<Long>,
         lockedIds: Set<Long>,
-        highlightQuery: String
+        highlightQuery: String,
+        sortStyle: String = ""
     ) {
         val models = items.map { music ->
             val locked = music.id in lockedIds
@@ -62,7 +63,8 @@ class MusicSelectAdapter(
                 selected = locked || music.id in selectedIds,
                 locked = locked,
                 highlightQuery = highlightQuery,
-                accentColor = accentColor
+                accentColor = accentColor,
+                sortStyle = sortStyle
             )
         }
 
@@ -75,7 +77,8 @@ class MusicSelectAdapter(
             selected = item.selected,
             locked = item.locked,
             highlightQuery = item.highlightQuery,
-            accentColor = item.accentColor
+            accentColor = item.accentColor,
+            sortStyle = item.sortStyle
         )
     }
 
@@ -84,7 +87,8 @@ class MusicSelectAdapter(
         val selected: Boolean,
         val locked: Boolean,
         val highlightQuery: String,
-        val accentColor: Int
+        val accentColor: Int,
+        val sortStyle: String = ""
     )
 
     private object DiffCallback : DiffUtil.ItemCallback<SelectableMusicItem>() {
@@ -110,7 +114,8 @@ class MusicSelectAdapter(
                 oldItem.selected != newItem.selected ||
                 oldItem.locked != newItem.locked ||
                 oldItem.highlightQuery != newItem.highlightQuery ||
-                oldItem.accentColor != newItem.accentColor
+                oldItem.accentColor != newItem.accentColor ||
+                oldItem.sortStyle != newItem.sortStyle
             ) {
                 PAYLOAD_SELECTION_STATE
             } else {

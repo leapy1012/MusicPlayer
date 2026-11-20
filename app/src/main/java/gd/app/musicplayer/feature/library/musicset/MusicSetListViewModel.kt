@@ -8,9 +8,11 @@ import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.usecase.library.ObserveSortUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveMusicSetsUseCase
 import gd.app.musicplayer.domain.usecase.library.SetListViewModeUseCase
+import gd.app.musicplayer.domain.usecase.library.ShouldShowDirectoryEntryUseCase
 import gd.app.musicplayer.domain.usecase.library.ShouldShowHiddenFoldersEntryUseCase
 import gd.app.musicplayer.domain.usecase.library.UpdateLibrarySortUseCase
 import gd.app.musicplayer.feature.library.folder.hiddenFoldersEntry
+import gd.app.musicplayer.feature.library.folder.musicDirectoryEntry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +55,7 @@ class MusicSetListViewModel @Inject constructor(
     private val observeViewModeUseCase: ObserveViewModeUseCase,
     private val setListViewModeUseCase: SetListViewModeUseCase,
     private val shouldShowHiddenFoldersEntryUseCase: ShouldShowHiddenFoldersEntryUseCase,
+    private val shouldShowDirectoryEntryUseCase: ShouldShowDirectoryEntryUseCase,
     private val updateLibrarySortUseCase: UpdateLibrarySortUseCase
 ) : ViewModel() {
 
@@ -76,12 +79,14 @@ class MusicSetListViewModel @Inject constructor(
                     observeViewModeUseCase(musicSet).onStart {
                         emit(MusicSetAdapter.VIEW_MODE_LIST)
                     },
-                    shouldShowHiddenFoldersEntryUseCase().onStart { emit(false) }
-                ) { items, sortSelection, viewMode, shouldShowHiddenFoldersEntry ->
+                    shouldShowHiddenFoldersEntryUseCase().onStart { emit(false) },
+                    shouldShowDirectoryEntryUseCase().onStart { emit(false) }
+                ) { items, sortSelection, viewMode, shouldShowHiddenFoldersEntry, shouldShowDirectoryEntry ->
                         val displayItems = buildDisplayItems(
                             musicSet = musicSet,
                             items = items,
-                            shouldShowHiddenFoldersEntry = shouldShowHiddenFoldersEntry
+                            shouldShowHiddenFoldersEntry = shouldShowHiddenFoldersEntry,
+                            shouldShowDirectoryEntry = shouldShowDirectoryEntry
                         )
 
                         MusicSetListUiState(
@@ -131,22 +136,37 @@ class MusicSetListViewModel @Inject constructor(
     private fun buildDisplayItems(
         musicSet: MusicSet,
         items: List<MusicSet>,
-        shouldShowHiddenFoldersEntry: Boolean
+        shouldShowHiddenFoldersEntry: Boolean,
+        shouldShowDirectoryEntry: Boolean
     ): List<MusicSet> {
         if (musicSet !is MusicSet.Folders) {
             return items
         }
 
-        return buildFolderDisplayItems(items, shouldShowHiddenFoldersEntry)
+        return buildFolderDisplayItems(
+            items = items,
+            shouldShowHiddenFoldersEntry = shouldShowHiddenFoldersEntry,
+            shouldShowDirectoryEntry = shouldShowDirectoryEntry
+        )
     }
 
+    /**
+     * Original `l5.d.W`: `show_directory` inserts `w7.w.d` (`-16`) at index 0 and
+     * `show_hidden_folders` appends `w7.w.f` (`-14`). Dream keeps both special rows leading so
+     * the folder list itself stays contiguous for the trailing scan footer.
+     */
     private fun buildFolderDisplayItems(
         items: List<MusicSet>,
-        shouldShowHiddenFoldersEntry: Boolean
+        shouldShowHiddenFoldersEntry: Boolean,
+        shouldShowDirectoryEntry: Boolean
     ): List<MusicSet> {
         val folders = items.filterIsInstance<MusicSet.Folder>()
 
         return buildList {
+            if (shouldShowDirectoryEntry) {
+                add(musicDirectoryEntry(appContext))
+            }
+
             if (shouldShowHiddenFoldersEntry) {
                 add(hiddenFoldersEntry(appContext))
             }

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.edit
 import gd.app.musicplayer.domain.model.MusicSet
+import gd.app.musicplayer.domain.model.defaultSortStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -51,7 +52,8 @@ class SortPreferencesDataStore @Inject constructor(
         )
 
         return dataStore.data.map { preferences ->
-            preferences[key] ?: "name"
+            // Original w7.v.m1: RecentlyAdded (id -3) defaults to "date", others "name".
+            preferences[key] ?: musicSet.defaultSortStyle
         }.distinctUntilChanged()
     }
 
@@ -92,6 +94,15 @@ class SortPreferencesDataStore @Inject constructor(
 
         return dataStore.data.map { preferences ->
             preferences[key] ?: false
+        }.distinctUntilChanged()
+    }
+
+    /** Deleted-tracks screen (id -15): shares the per-set key, defaults to "date" (deleted time/added date). */
+    fun observeDeletedTracksSortStyle(): Flow<String> {
+        val key = stringPreferencesKey("pref_sort_style${MusicSet.DELETED_TRACKS}")
+
+        return dataStore.data.map { preferences ->
+            preferences[key] ?: "date"
         }.distinctUntilChanged()
     }
 

@@ -3,7 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">    <androidx.coordinatorlayout.widget.CoordinatorLayout
+    android:orientation="vertical">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
@@ -21,38 +23,47 @@
             android:tag="titleBackgroundColor">
 
             <View
-
                 android:id="@+id/status_bar_space"
                 android:layout_width="match_parent"
-
                 android:layout_height="0dp" />
 
-            <com.coui.appcompat.toolbar.COUIToolbar
-                android:id="@+id/toolbar"
-                style="@style/Secondary.Toolbar"
+            <!--
+              match_parent with no horizontal margins: COUISearchBar's responsive padding
+              already insets the pill/Cancel (16dp). Extra layout margins double-inset it.
+            -->
+            <com.coui.appcompat.searchview.COUISearchBar
+                android:id="@+id/search_bar"
+                style="@style/Widget.COUI.COUISearchBar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/transparent"
-                android:minHeight="@dimen/toolbar_min_height"
-                app:contentInsetStartWithNavigation="0dp"
-                app:supportNavigationIcon="@drawable/coui_back_arrow"
-                app:titleCenter="false">
+                android:layout_height="@dimen/coui_search_view_height"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp"
+                app:couiHideFunctionalButton="false"
+                app:searchHint="@string/search_library" />
 
-                <com.coui.appcompat.searchview.COUISearchBar
-                    android:id="@+id/search_bar"
-                    style="@style/Widget.COUI.COUISearchBar"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/coui_search_view_height"
-                    android:layout_marginEnd="16dp"
-                    app:couiHideFunctionalButton="true"
-                    app:searchHint="@string/search_library" />
-            </com.coui.appcompat.toolbar.COUIToolbar>
+            <!--
+              Original l5.t1: All | Songs | Albums | Artists | Folders | Playlists, scrollable
+              because six tabs do not fit a phone width at the Library tab size.
+            -->
+            <com.coui.appcompat.tablayout.COUITabLayout
+                android:id="@+id/tab_layout"
+                style="@style/COUILargestTabLayoutStyle"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/tablayout_large_layout_height"
+                android:background="@android:color/transparent"
+                app:couiTabBackground="@android:color/transparent"
+                app:couiTabIndicatorColor="?attr/couiColorLabelTheme"
+                app:couiTabIndicatorHeight="2dp"
+                app:couiTabMode="scrollable"
+                app:couiTabSelectedTextColor="?attr/couiColorLabelTheme"
+                app:couiTabTextColor="?attr/couiColorSecondNeutral" />
         </com.google.android.material.appbar.COUIDividerAppBarLayout>
 
-        <include
-            layout="@layout/layout_recyclerview"
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@android:color/transparent"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

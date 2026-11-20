@@ -20,6 +20,11 @@
             android:title="@string/show_hidden_folders" />
 
         <com.coui.appcompat.preference.COUISwitchPreference
+            android:key="show_directory"
+            android:persistent="false"
+            android:title="@string/show_directory" />
+
+        <com.coui.appcompat.preference.COUISwitchPreference
             android:key="preference_dark_mode"
             android:persistent="false"
             android:title="@string/night_mode" />
