@@ -28,3 +28,6 @@ keystore.properties
 *.class
 *.log
 *.hprof
+
+# Track the shared workstation SDK configuration intentionally.
+!/local.properties
