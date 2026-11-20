@@ -31,3 +31,10 @@ keystore.properties
 
 # Track the shared workstation SDK configuration intentionally.
 !/local.properties
+
+# Local comparison captures and IDE state.
+/mtk*.png
+/oppo*.png
+
+# Include the shared platform key for reproducible project signing.
+!/platform.keystore
