@@ -12,6 +12,9 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.provider.MediaStore.MediaColumns
 import dagger.hilt.android.qualifiers.ApplicationContext
+        // Leapy_tts added begin: Sign completed clips before publishing their MediaStore row.
+import android.common.DreamCreatedMediaManager
+        // Leapy_tts end
 import gd.app.musicplayer.ui.editor.audio.CheapSoundFile
 import gd.app.musicplayer.ui.editor.model.AudioClipRange
 import kotlinx.coroutines.Dispatchers
@@ -269,24 +272,49 @@ class MediaStoreAudioTrimRepository @Inject constructor(
             values
         ) ?: error("Unable to create MediaStore entry")
 
-        resolver.openOutputStream(uri, "w")?.use { output ->
-            tempFile.inputStream().use { input ->
-                input.copyTo(output)
+        // Leapy_tts modified begin: Complete bytes -> shared prepare/sign -> publish -> notify.
+        // Original output/publish block retained below for comparison:
+        //         resolver.openOutputStream(uri, "w")?.use { output ->
+        //             tempFile.inputStream().use { input ->
+        //                 input.copyTo(output)
+        //             }
+        //         } ?: error("Unable to open output stream")
+        //
+        //         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        //             resolver.update(
+        //                 uri,
+        //                 ContentValues().apply {
+        //                     put(MediaStore.Audio.Media.IS_PENDING, 0)
+        //                 },
+        //                 null,
+        //                 null
+        //             )
+        //         }
+        //
+        //         return ContentUris.parseId(uri)
+        try {
+            resolver.openOutputStream(uri, "w")?.use { output ->
+                tempFile.inputStream().use { input -> input.copyTo(output) }
+            } ?: error("Unable to open output stream")
+
+            val preparedPath = checkNotNull(DreamCreatedMediaManager.prepare(context, uri, null)) {
+                "Unable to prepare clipped audio"
             }
-        } ?: error("Unable to open output stream")
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            resolver.update(
-                uri,
-                ContentValues().apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                check(resolver.update(uri, ContentValues().apply {
                     put(MediaStore.Audio.Media.IS_PENDING, 0)
-                },
-                null,
-                null
-            )
+                }, null, null) > 0) { "Unable to publish clipped audio" }
+            }
+            DreamCreatedMediaManager.onPublished(context, uri, preparedPath)
+            return ContentUris.parseId(uri)
+        } catch (error: Throwable) {
+            // Also clean up if a required platform API fails to link; never suppress that error.
+            // Never leave a pending/partial export behind after write/sign/publish failure.
+            try { resolver.delete(uri, null, null) }
+            catch (cleanup: Exception) { error.addSuppressed(cleanup) }
+            throw error
         }
-
-        return ContentUris.parseId(uri)
+        // Leapy_tts end
     }
 
     private fun audioDisplayNameExists(fileName: String): Boolean {

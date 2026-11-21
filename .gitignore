@@ -38,3 +38,7 @@ keystore.properties
 
 # Include the shared platform key for reproducible project signing.
 !/platform.keystore
+
+# Leapy_tts added begin: JVM-test Android SDK artifacts are local build cache.
+/.m2/
+# Leapy_tts end

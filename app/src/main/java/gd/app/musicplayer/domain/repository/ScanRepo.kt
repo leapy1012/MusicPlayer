@@ -2,26 +2,46 @@ package gd.app.musicplayer.domain.repository
 
 import gd.app.musicplayer.core.database.dao.LibraryDao
 import gd.app.musicplayer.core.database.entity.MusicEntity
+// Leapy_tts added begin: All Room audio imports share this file gate on the IO dispatcher.
+import gd.app.musicplayer.core.media.LegalAudioFilePolicy
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+// Leapy_tts end
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ScanRepo @Inject constructor(
-    private val libraryDao: LibraryDao
+    private val libraryDao: LibraryDao,
+    // Leapy_tts added begin
+    private val legalFiles: LegalAudioFilePolicy
+    // Leapy_tts end
 ) {
-    suspend fun upsertTracks(items: List<MusicEntity>) {
-        if (items.isEmpty()) return
+    // Leapy_tts modified begin: Return accepted tracks for accurate scan summary counts.
+    // Original: suspend fun upsertTracks(items: List<MusicEntity>) { ... upsertAll(items.map { ... }) }
+    suspend fun upsertTracks(items: List<MusicEntity>): List<MusicEntity> {
+        val accepted = checkedTracks(items)
+        if (accepted.isEmpty()) return accepted
         val existingById = libraryDao.getAllMusicForSync().associateBy(MusicEntity::id)
-        libraryDao.upsertAll(items.map { item -> item.mergeLocalState(existingById[item.id]) })
+        // libraryDao.upsertAll(items.map { item -> item.mergeLocalState(existingById[item.id]) })
+        libraryDao.upsertAll(accepted.map { item -> item.mergeLocalState(existingById[item.id]) })
+        return accepted
     }
+    // Leapy_tts end
 
-    suspend fun upsertChangedTracks(items: List<MusicEntity>): Int {
-        if (items.isEmpty()) return 0
+    // Leapy_tts modified begin: Check every candidate before comparing metadata, including unchanged rows.
+    // Original: suspend fun upsertChangedTracks(items: List<MusicEntity>): Int
+    suspend fun upsertChangedTracks(items: List<MusicEntity>): List<MusicEntity> {
+        // if (items.isEmpty()) return 0
+        val accepted = checkedTracks(items)
+        if (accepted.isEmpty()) return accepted
 
-        val existingById = libraryDao.getMusicEntitiesByIds(items.map(MusicEntity::id))
+        // val existingById = libraryDao.getMusicEntitiesByIds(items.map(MusicEntity::id))
+        val existingById = libraryDao.getMusicEntitiesByIds(accepted.map(MusicEntity::id))
             .associateBy(MusicEntity::id)
 
-        val changedItems = items.mapNotNull { item ->
+        // val changedItems = items.mapNotNull { item ->
+        val changedItems = accepted.mapNotNull { item ->
             val existing = existingById[item.id]
             val merged = item.mergeLocalState(existing)
             if (existing == null || merged != existing) {
@@ -31,11 +51,28 @@ class ScanRepo @Inject constructor(
             }
         }
 
-        if (changedItems.isEmpty()) return 0
-
-        libraryDao.upsertAll(changedItems)
-        return changedItems.size
+        // if (changedItems.isEmpty()) return 0
+        if (changedItems.isNotEmpty()) libraryDao.upsertAll(changedItems)
+        // return changedItems.size
+        return accepted
     }
+    // Leapy_tts end
+
+    // Leapy_tts added begin: This is the only repository writing imported MusicEntity rows.
+    private suspend fun checkedTracks(items: List<MusicEntity>): List<MusicEntity> = withContext(Dispatchers.IO) {
+        val accepted = ArrayList<MusicEntity>(items.size)
+        val rejected = ArrayList<Long>()
+        for (item in items) {
+            when (legalFiles.inspect(item.data)) {
+                LegalAudioFilePolicy.Decision.ALLOWED -> accepted += item
+                LegalAudioFilePolicy.Decision.REJECTED, LegalAudioFilePolicy.Decision.MISSING -> rejected += item.id
+            }
+        }
+        // Existing library entries must not remain playable after their file is rejected/deleted.
+        if (rejected.isNotEmpty()) libraryDao.markSourceDeletedSongs(rejected.distinct(), System.currentTimeMillis())
+        accepted
+    }
+    // Leapy_tts end
 
     suspend fun getAllTracks(): List<MusicEntity> {
         return libraryDao.getAllMusicForSync()

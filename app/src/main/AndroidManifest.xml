@@ -10,6 +10,11 @@
         android:maxSdkVersion="32"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Leapy_tts added begin: Approved automatic deletion of rejected shared audio.
+         MANAGE_EXTERNAL_STORAGE is signature|appop|preinstalled on this AOSP 14 ROM.
+         The platform-signed system app uses the existing permission/AppOps grant path. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
+    <!-- Leapy_tts end -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE"

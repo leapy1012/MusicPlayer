@@ -85,6 +85,10 @@ dependencies {
     implementation(files("libs/dream-coui-2.1.0.aar"))
     implementation(files("libs/dream-physicsengine-2.1.0.aar"))
     compileOnly(files("libs/dream-framework-stubs-2.1.0.jar"))
+    // Leapy_tts added begin: Real API class files exported from the matching AOSP build.
+    // Required at compile time; implementations remain in the device framework.
+    compileOnly(files("libs/dream-tts-framework-api.jar"))
+    // Leapy_tts end
     // COUI spring overscroll writes View.mScrollY via reflection; blocked on
     // targetSdk 28+ for user apps (DuraSpeed is platform-exempt).
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
@@ -126,3 +130,10 @@ dependencies {
     implementation("net.jthink:jaudiotagger:3.0.1")
     implementation("jp.wasabeef:glide-transformations:4.3.0")
 }
+
+// Leapy_tts added begin: Robolectric 4.12 needs this for real ParcelFileDescriptor stream cleanup on JDK 17.
+// This applies only to JVM tests, not the application or device runtime.
+tasks.withType<Test>().configureEach {
+    jvmArgs("--add-opens=java.base/java.io=ALL-UNNAMED")
+}
+// Leapy_tts end

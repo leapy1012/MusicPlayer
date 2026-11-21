@@ -80,11 +80,14 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
         }
 
         onBeforeUpsert(scannableTracks)
-        if (incremental) {
+        // Leapy_tts modified begin: Counts must describe accepted rows, not rejected files.
+        // Original: if (incremental) { ... } else { ... } ignored the import result.
+        val acceptedTracks = if (incremental) {
             scanRepo.upsertChangedTracks(scannableTracks)
         } else {
             scanRepo.upsertTracks(scannableTracks)
         }
+        // Leapy_tts end
 
         // Original v5.j calls v5.k after track upsert to pull new MediaStore playlists.
         runCatching { importMediaStorePlaylistsUseCase() }
@@ -92,8 +95,12 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
         val summary = scanRepo.librarySummary()
         return ScanResultSummary(
             importedCount = pathMatchedTracks.size,
-            filteredOutCount = max(0, pathMatchedTracks.size - scannableTracks.size),
-            addedCount = scannableTracks.count { track -> track.id !in existingIds },
+            // Leapy_tts modified begin
+            // filteredOutCount = max(0, pathMatchedTracks.size - scannableTracks.size),
+            // addedCount = scannableTracks.count { track -> track.id !in existingIds },
+            filteredOutCount = max(0, pathMatchedTracks.size - acceptedTracks.size),
+            addedCount = acceptedTracks.count { track -> track.id !in existingIds },
+            // Leapy_tts end
             deletedCount = summary.sourceDeletedSongs,
             hiddenCount = summary.hiddenItems,
             libraryInfo = ScanLibraryInfo(
