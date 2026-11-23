@@ -50,7 +50,7 @@ class ThemeManager @Inject constructor(
             setImageName(ThemeSettingPreferenceStore.DEFAULT_THEME_IMAGE)
             setBlurAmount(ThemeSettingPreferenceStore.DEFAULT_THEME_BLUR)
             setBackgroundOverlayColor(ThemeSettingPreferenceStore.DEFAULT_THEME_OVERLAY_COLOR)
-            setAccentColor(ThemeSettingPreferenceStore.DEFAULT_THEME_COLOR)
+            setAccentColor(resolvedAccent(ThemeSettings()))
         }
     }
 
@@ -75,6 +75,7 @@ class ThemeManager @Inject constructor(
         // Persist the user preference type from cache, not a system-followed Dark palette.
         // System dark can apply DarkThemePalette while theme_type stays PICTURE.
         val typeToPersist = cachedSettings.themeType
+        val persistAccent = cachedSettings.hasCustomAccent
 
         cachedSettings = cachedSettings.copy(
             themeType = typeToPersist,
@@ -87,7 +88,7 @@ class ThemeManager @Inject constructor(
         appScope.launch {
             themeSettingPreferenceStore.setThemeType(typeToPersist)
             themeSettingPreferenceStore.setThemeImageName(pictureTheme.getImageName())
-            themeSettingPreferenceStore.setThemeColor(pictureTheme.getAccentColor())
+            if (persistAccent) themeSettingPreferenceStore.setThemeColor(pictureTheme.getAccentColor())
             themeSettingPreferenceStore.setThemeBlur(pictureTheme.getBlurAmount())
             themeSettingPreferenceStore.setThemeOverlayColor(
                 pictureTheme.getBackgroundOverlayColor()
@@ -105,7 +106,7 @@ class ThemeManager @Inject constructor(
         val resolvedType = resolveThemeType(safeContext, cachedSettings.themeType)
         val current = getCurrentTheme()
 
-        if (needsSettingsReload || current.getThemeType() != resolvedType) {
+        if (needsSettingsReload || current.getThemeType() != resolvedType || current.getAccentColor() != resolvedAccent(cachedSettings)) {
             // Prefs reload → new palette (original g()). Type-only switch may reuse bitmaps (O).
             val rebuilt = if (needsSettingsReload) {
                 createPalette(resolvedType)
@@ -226,7 +227,7 @@ class ThemeManager @Inject constructor(
      * Original [o7.f.v]: mutate accent on current palette + notify (no full rebuild).
      */
     fun updateAccentColor(accentColor: Int) {
-        cachedSettings = cachedSettings.copy(themeColor = accentColor)
+        cachedSettings = cachedSettings.copy(themeColor = accentColor, hasCustomAccent = true)
 
         appScope.launch {
             themeSettingPreferenceStore.setThemeColor(accentColor)
@@ -261,7 +262,7 @@ class ThemeManager @Inject constructor(
                 // Keep settings metadata in sync with cache (accent/blur/image).
                 val settings = cachedSettings
                 copy.setImageName(settings.imageName)
-                copy.setAccentColor(settings.themeColor)
+                copy.setAccentColor(resolvedAccent(settings))
                 copy.setBlurAmount(settings.blur)
                 copy.setBackgroundOverlayColor(settings.overlayColor)
             }
@@ -300,11 +301,16 @@ class ThemeManager @Inject constructor(
             else -> PictureThemePalette()
         }.apply {
             setImageName(settings.imageName)
-            setAccentColor(settings.themeColor)
+            setAccentColor(resolvedAccent(settings))
             setBlurAmount(settings.blur)
             setBackgroundOverlayColor(settings.overlayColor)
         }
     }
+
+    private fun resolvedAccent(settings: ThemeSettings): Int = SystemDefaultAccent.choose(
+        settings.hasCustomAccent, settings.themeColor,
+        if (settings.hasCustomAccent) null else SystemDefaultAccent.resolve(appContext),
+    )
 
     private fun persistLastNonDarkType(themeType: Int) {
         if (themeType == THEME_TYPE_DARK) return

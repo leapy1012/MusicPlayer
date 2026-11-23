@@ -82,6 +82,7 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        themeRepo.refreshTheme()
         // Exact accent → ResourcesLoader + ThemeOverlay.App.Accent before inflate so
         // COUI switches/tabs/prefs resolve couiColorPrimary* to the picker color.
         applyCouiAccentOverlay()
@@ -135,7 +136,6 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
         super.onResume()
         isStateSaved = false
         RingtoneActionHandler.handlePendingPermissionResult(this)
-        // Original does not retheme on resume.
     }
 
     fun applyThemeTo(root: View?) {

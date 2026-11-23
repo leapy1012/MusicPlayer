@@ -40,6 +40,7 @@
         android:label="@string/music_player"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <meta-data android:name="color_material_enable" android:value="true" />
 
         <activity
             android:name=".ui.WelcomeActivity"

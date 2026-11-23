@@ -23,7 +23,9 @@ data class ThemeSettings(
     val imageName: String = ThemeSettingPreferenceStore.DEFAULT_THEME_IMAGE,
     val imageUris: List<String> = emptyList(),
     /** Last White/Picture choice — restored when Night mode is turned off. */
-    val lastNonDarkThemeType: Int = ThemeSettingPreferenceStore.DEFAULT_THEME_TYPE
+    val lastNonDarkThemeType: Int = ThemeSettingPreferenceStore.DEFAULT_THEME_TYPE,
+    /** Keep an explicit in-app accent; otherwise the system Colors selection is the default. */
+    val hasCustomAccent: Boolean = false
 )
 
 @Singleton
@@ -137,6 +139,7 @@ class ThemeSettingPreferenceStore @Inject constructor(
             overlayColor = this[KEY_THEME_OVERLAY_COLOR] ?: DEFAULT_THEME_OVERLAY_COLOR,
             blur = this[KEY_THEME_BLUR] ?: DEFAULT_THEME_BLUR,
             themeColor = this[KEY_THEME_COLOR] ?: DEFAULT_THEME_COLOR,
+            hasCustomAccent = this[KEY_THEME_COLOR] != null,
             themeDialogEnabled = this[KEY_THEME_DIALOG] ?: DEFAULT_THEME_DIALOG_ENABLED,
             imageName = this[KEY_IMAGE_NAME] ?: DEFAULT_THEME_IMAGE,
             imageUris = getThemeImageUris(),
