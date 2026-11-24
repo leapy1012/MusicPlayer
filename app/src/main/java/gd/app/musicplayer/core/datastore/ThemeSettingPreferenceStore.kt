@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.ThemeAccentDefaults
 import gd.app.musicplayer.di.ThemeSettingsDataStore
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,7 +25,7 @@ data class ThemeSettings(
     val imageUris: List<String> = emptyList(),
     /** Last White/Picture choice — restored when Night mode is turned off. */
     val lastNonDarkThemeType: Int = ThemeSettingPreferenceStore.DEFAULT_THEME_TYPE,
-    /** Keep an explicit in-app accent; otherwise the system Colors selection is the default. */
+    /** An explicit accent lasts until the user selects a different theme type. */
     val hasCustomAccent: Boolean = false
 )
 
@@ -47,10 +48,15 @@ class ThemeSettingPreferenceStore @Inject constructor(
         return getInt(KEY_THEME_TYPE, DEFAULT_THEME_TYPE)
     }
 
-    suspend fun setThemeType(themeType: Int) {
-        set(KEY_THEME_TYPE, themeType)
-        if (themeType != ThemeManager.THEME_TYPE_DARK) {
-            set(KEY_LAST_NON_DARK_THEME_TYPE, themeType)
+    suspend fun setThemeType(themeType: Int, resetAccent: Boolean = true) {
+        dataStore.edit { preferences ->
+            if (resetAccent) {
+                preferences.remove(KEY_THEME_COLOR)
+            }
+            preferences[KEY_THEME_TYPE] = themeType
+            if (themeType != ThemeManager.THEME_TYPE_DARK) {
+                preferences[KEY_LAST_NON_DARK_THEME_TYPE] = themeType
+            }
         }
     }
 
@@ -76,7 +82,7 @@ class ThemeSettingPreferenceStore @Inject constructor(
     }
 
     suspend fun getThemeColor(): Int {
-        return getInt(KEY_THEME_COLOR, DEFAULT_THEME_COLOR)
+        return getSettingsSnapshot().themeColor
     }
 
     suspend fun setThemeColor(color: Int) {
@@ -138,7 +144,7 @@ class ThemeSettingPreferenceStore @Inject constructor(
             themeType = themeType,
             overlayColor = this[KEY_THEME_OVERLAY_COLOR] ?: DEFAULT_THEME_OVERLAY_COLOR,
             blur = this[KEY_THEME_BLUR] ?: DEFAULT_THEME_BLUR,
-            themeColor = this[KEY_THEME_COLOR] ?: DEFAULT_THEME_COLOR,
+            themeColor = this[KEY_THEME_COLOR] ?: ThemeAccentDefaults.forTheme(themeType),
             hasCustomAccent = this[KEY_THEME_COLOR] != null,
             themeDialogEnabled = this[KEY_THEME_DIALOG] ?: DEFAULT_THEME_DIALOG_ENABLED,
             imageName = this[KEY_IMAGE_NAME] ?: DEFAULT_THEME_IMAGE,

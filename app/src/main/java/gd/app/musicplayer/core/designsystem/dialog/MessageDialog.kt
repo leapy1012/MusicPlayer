@@ -47,6 +47,7 @@ class MessageDialog(
         var neutralButtonBackground: Drawable? = null
 
         var positiveButtonTextColor: Int = 0
+        var positiveButtonDestructive: Boolean = false
         var negativeButtonTextColor: Int = 0
         var neutralButtonTextColor: Int = 0
 

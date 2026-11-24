@@ -178,7 +178,7 @@ class SelectAccentColorDialog : DialogFragment(),
 
     private fun renderSelectionOnly() {
         val content = binding ?: return
-        val isDefaultSelected = state.selectedAccentColor == DEFAULT_ACCENT
+        val isDefaultSelected = state.selectedAccentColor == defaultAccent
         content.accentColorDefaultSelect.isSelected = isDefaultSelected
         content.accentColorDefaultText.isSelected = isDefaultSelected
         presetAdapter.setSelectedColor(state.selectedAccentColor)
@@ -198,7 +198,7 @@ class SelectAccentColorDialog : DialogFragment(),
 
     private fun selectDefaultAccent() {
         state = state.copy(
-            selectedAccentColor = DEFAULT_ACCENT,
+            selectedAccentColor = defaultAccent,
             isCustomPageVisible = false
         )
         renderState()
@@ -212,6 +212,11 @@ class SelectAccentColorDialog : DialogFragment(),
         )
         dismiss()
     }
+
+    private val defaultAccent: Int
+        get() = gd.app.musicplayer.core.designsystem.theme.ThemeAccentDefaults.forTheme(
+            themeRepo.getCorePalette().getThemeType()
+        )
 
     companion object {
         private const val DEFAULT_ACCENT = -16752385 // #FF0066FF — COUI Blue primary

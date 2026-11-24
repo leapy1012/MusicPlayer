@@ -316,11 +316,8 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
             viewLifecycleOwner
         ) { _, bundle ->
             if (bundle.containsKey(SelectAccentColorDialog.RESULT_COLOR)) {
-                val color = bundle.getInt(SelectAccentColorDialog.RESULT_COLOR)
-                // Dialog already persisted; ensure repo is in sync then recreate so
-                // CouiAccentOverlay.applyStyle runs before the next setContentView.
-                themeRepo.updateAccentColor(color)
-                activity?.recreate()
+                // The dialog persists and notifies the live theme observers before dismissing.
+                (activity as? gd.app.musicplayer.ui.common.base.BaseActivity)?.applyThemeTo(view)
             }
         }
         parentFragmentManager.setFragmentResultListener(

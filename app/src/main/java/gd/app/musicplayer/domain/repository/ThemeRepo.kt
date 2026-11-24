@@ -67,7 +67,8 @@ class ThemeRepo @Inject constructor(
         savePictureTheme(
             imageName = imageName,
             overlayColor = overlayColor,
-            blur = blur
+            blur = blur,
+            resetAccent = false
         )
 
         return themeManager.applySettingsAndNotify()
@@ -114,9 +115,10 @@ class ThemeRepo @Inject constructor(
     private suspend fun savePictureTheme(
         imageName: String,
         overlayColor: Int,
-        blur: Int
+        blur: Int,
+        resetAccent: Boolean = true
     ) {
-        themeSettingPreferences.setThemeType(ThemeManager.THEME_TYPE_PICTURE)
+        themeSettingPreferences.setThemeType(ThemeManager.THEME_TYPE_PICTURE, resetAccent)
         themeSettingPreferences.setThemeImageName(imageName)
         themeSettingPreferences.setThemeOverlayColor(overlayColor)
         themeSettingPreferences.setThemeBlur(blur)

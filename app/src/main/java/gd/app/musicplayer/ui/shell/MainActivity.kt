@@ -129,8 +129,9 @@ class MainActivity : BasePlayerSheetActivity() {
         val config = materialDialogConfigFactory
             .createMaterialMessageDialogConfig(this)
             .apply {
-                messageText = getString(R.string.adv_quit_message)
+                titleText = getString(R.string.adv_quit_message)
                 positiveButtonText = getString(R.string.adv_quit_confirm)
+                positiveButtonDestructive = true
                 negativeButtonText = getString(R.string.adv_quit_cancel)
                 positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->
                     dialog.dismiss()

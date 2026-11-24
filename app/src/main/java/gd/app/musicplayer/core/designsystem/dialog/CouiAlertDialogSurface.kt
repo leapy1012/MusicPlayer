@@ -11,18 +11,27 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.drawable.toDrawable
 import dagger.hilt.android.EntryPointAccessors
 import gd.app.musicplayer.di.ThemeEntryPoint
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.ui.common.base.BaseActivity
 
 /**
- * Applies [ThemePalette.getDialogSurfaceDrawable] onto COUI alert chrome.
- * COUI paints a solid `?couiColorSurface` on [parentPanel]; pictured/dark need the
- * blurred theme surface instead. Call after the dialog is shown (or from onShow).
+ * Keeps COUI's native surface, clipping and day/night colors for solid themes.
+ * Only picture themes replace the surface with their blurred wallpaper.
  */
 object CouiAlertDialogSurface {
+
+    /** Re-resolve native chrome after an existing dialog's Context theme changes. */
+    fun refresh(dialog: AlertDialog) {
+        val panel = dialog.findViewById<View>(com.coui.appcompat.R.id.parentPanel)
+        panel?.setBackgroundResource(com.coui.appcompat.R.drawable.coui_alert_dialog_builder_background)
+        apply(dialog)
+    }
 
     @JvmStatic
     @JvmOverloads
     fun apply(dialog: AlertDialog, surface: Drawable? = null) {
+        val palette = resolvePalette(dialog) ?: return
+        if (palette.getThemeType() != ThemeManager.THEME_TYPE_PICTURE) return
         val window = dialog.window ?: return
         window.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
 
@@ -30,7 +39,7 @@ object CouiAlertDialogSurface {
         val rootView = dialog.findViewById<View>(com.coui.appcompat.R.id.rootView)
         val target = parentPanel ?: rootView ?: return
 
-        val resolved = (surface ?: resolveSurface(dialog) ?: return).mutate()
+        val resolved = (surface ?: palette.getDialogSurfaceDrawable(dialog.context)).mutate()
         target.background = if (parentPanel != null) {
             insetLikeCouiBuilder(parentPanel.context, resolved)
         } else {
@@ -38,12 +47,10 @@ object CouiAlertDialogSurface {
         }
     }
 
-    private fun resolveSurface(dialog: AlertDialog): Drawable? {
+    private fun resolvePalette(dialog: AlertDialog): gd.app.musicplayer.core.designsystem.theme.ThemePalette? {
         val activity = findActivity(dialog.ownerActivity) ?: findActivity(dialog.context)
-        val palette = (activity as? BaseActivity)?.themeEngine?.currentTheme()
+        return (activity as? BaseActivity)?.themeEngine?.currentTheme()
             ?: resolvePaletteFromApplication(dialog.context)
-            ?: return null
-        return palette.getDialogSurfaceDrawable(dialog.context)
     }
 
     private fun resolvePaletteFromApplication(context: Context) = try {

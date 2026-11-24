@@ -10,6 +10,12 @@ internal object DialogRegistry {
     private val alertDialogs = ConcurrentHashMap<String, DialogInterface>()
     private var bulkDismissInProgress = false
 
+    fun refresh(activity: Activity, refreshDialog: (android.app.Dialog) -> Unit) {
+        alertDialogs.filterKeys { it.startsWith("${activity}_") }.values.toList().forEach {
+            (it as? android.app.Dialog)?.takeIf { dialog -> dialog.isShowing }?.let(refreshDialog)
+        }
+    }
+
     fun register(dialog: BaseDialog) {
         dialogs[dialog.dialogKey] = dialog
     }

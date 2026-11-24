@@ -58,7 +58,7 @@ class ThemeEditActivity : BaseActivity() {
 
     private val pickImageLauncher =
         registerForActivityResult(
-            ActivityResultContracts.GetContent()
+            gd.app.musicplayer.core.common.GalleryImagePicker()
         ) { uri ->
 
             if (uri == null) return@registerForActivityResult

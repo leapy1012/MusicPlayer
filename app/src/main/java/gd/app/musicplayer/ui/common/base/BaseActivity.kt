@@ -40,6 +40,8 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     private var appliedAccentColor: Int = 0
     /** Whether COUI Dark chrome overlay was applied for pictured/dark themes. */
     private var appliedDarkChrome: Boolean = false
+    private lateinit var initialActivityTheme: android.content.res.Resources.Theme
+    private val liveThemeUpdater = gd.app.musicplayer.core.designsystem.theme.LiveThemeUpdater { applyThemeTo(it) }
 
     @Inject lateinit var themeEngine: ThemeEngine
     @Inject lateinit var themeRegistry: ThemeRegistry
@@ -82,6 +84,7 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initialActivityTheme = resources.newTheme().apply { setTo(this@BaseActivity.theme) }
         themeRepo.refreshTheme()
         // Exact accent → ResourcesLoader + ThemeOverlay.App.Accent before inflate so
         // COUI switches/tabs/prefs resolve couiColorPrimary* to the picker color.
@@ -145,12 +148,11 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     override fun onStart() {
         super.onStart()
         isStateSaved = false
-        // Accent / chrome mode may have changed in another activity; recreate so
-        // CouiAccentOverlay reinstalls before the next inflate.
+        // Back-stack activities keep their view hierarchy and catch up in place.
         val palette = themeRepo.getCorePalette()
         val darkChrome = !palette.isContentSurfaceLight()
         if (themeRepo.getAccentColor() != appliedAccentColor || darkChrome != appliedDarkChrome) {
-            recreate()
+            onThemeChanged(palette)
         }
     }
 
@@ -170,10 +172,19 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onThemeChanged(palette: ThemePalette?) {
         val resolved = palette ?: themeRepo.getCorePalette()
-        // Dark COUI overlay is inflate-time only — recreate when chrome mode flips.
-        if (!resolved.isContentSurfaceLight() != appliedDarkChrome) {
-            recreate()
-            return
+        val changed = !resolved.isContentSurfaceLight() != appliedDarkChrome ||
+            themeRepo.getAccentColor() != appliedAccentColor
+        if (changed && ::initialActivityTheme.isInitialized) {
+            liveThemeUpdater.rememberColors(theme, appliedAccentColor)
+            theme.setTo(initialActivityTheme)
+            applyCouiAccentOverlay()
+            liveThemeUpdater.refresh(window.decorView)
+            refreshFragmentThemes(supportFragmentManager)
+            gd.app.musicplayer.core.designsystem.dialog.DialogRegistry.refresh(this) { dialog ->
+                refreshDialogTheme(dialog)
+            }
+            if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) android.util.Log.d("MusicLiveTheme",
+                "Updated ${javaClass.simpleName}@${System.identityHashCode(this)} dark=$appliedDarkChrome")
         }
         applySystemBarAppearance(resolved)
         applyThemeTo(findViewById(android.R.id.content))
@@ -184,8 +195,27 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
         // Ensure palette follows system night if type must change; notify only when swapped.
         themeRepo.refreshTheme()
         val palette = themeRepo.getCorePalette()
-        applySystemBarAppearance(palette)
-        applyThemeTo(findViewById(android.R.id.content))
+        onThemeChanged(palette)
+    }
+
+    private fun refreshFragmentThemes(manager: androidx.fragment.app.FragmentManager) {
+        manager.fragments.forEach { fragment ->
+            if (fragment is androidx.fragment.app.DialogFragment) fragment.dialog?.let(::refreshDialogTheme)
+            if (fragment is androidx.preference.PreferenceFragmentCompat) {
+                // Rebind theme-derived row decorations; RecyclerView retains its position.
+                fragment.listView?.adapter?.notifyDataSetChanged()
+            }
+            refreshFragmentThemes(fragment.childFragmentManager)
+        }
+    }
+
+    private fun refreshDialogTheme(dialog: android.app.Dialog) {
+        liveThemeUpdater.refreshContext(dialog.context)
+        if (dialog is com.coui.appcompat.panel.COUIBottomSheetDialog) dialog.refresh()
+        dialog.window?.decorView?.let(liveThemeUpdater::refresh)
+        if (dialog is androidx.appcompat.app.AlertDialog) {
+            gd.app.musicplayer.core.designsystem.dialog.CouiAlertDialogSurface.refresh(dialog)
+        }
     }
 
     /**

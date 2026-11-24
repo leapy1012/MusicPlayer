@@ -31,6 +31,10 @@
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <queries>
+        <package android:name="com.android.gallery" />
+    </queries>
+
     <application
         android:name=".MusicPlayerApp"
         android:allowBackup="true"
@@ -88,24 +92,27 @@
 
         <activity
             android:name=".ui.theme.ThemeActivity"
-            android:configChanges="screenSize|orientation|keyboardHidden|keyboard" />
+            android:configChanges="uiMode|screenSize|orientation|keyboardHidden|keyboard" />
 
         <activity
             android:name=".ui.theme.ThemeEditActivity"
-            android:configChanges="keyboardHidden|keyboard" />
+            android:configChanges="uiMode|keyboardHidden|keyboard" />
 
         <activity
             android:name=".feature.library.albums.AlbumActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.library.albums.AlbumMusicActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".ui.shortcut.MusicSetShortcutActivity"
+            android:configChanges="uiMode"
             android:excludeFromRecents="true"
             android:exported="true"
             android:launchMode="singleTop"
@@ -113,47 +120,56 @@
 
         <activity
             android:name=".ui.selection.MusicEditActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".ui.selection.MusicSelectActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.playlist.PlaylistSelectActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".ui.selection.MusicSetEditActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".ui.selection.PlaylistEditActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.search.SearchActivity"
-            android:configChanges="screenSize|orientation|keyboardHidden|keyboard"
+            android:configChanges="uiMode|screenSize|orientation|keyboardHidden|keyboard"
             android:windowSoftInputMode="adjustPan" />
 
         <activity
             android:name=".ui.scan.ScanMusicActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".ui.scan.ScanSettingActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".feature.library.deleted.DeletedMusicActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".ui.duplicate.DuplicateFinderActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
@@ -161,43 +177,52 @@
             android:name=".feature.equalizer.EqualizerActivity"
             android:exported="false"
             android:launchMode="singleTop"
-            android:configChanges="screenSize|orientation|keyboardHidden|keyboard" />
+            android:configChanges="uiMode|screenSize|orientation|keyboardHidden|keyboard" />
         <activity
             android:name=".feature.equalizer.EffectGroupActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".ui.tags.EditTagsActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".feature.lyrics.LyricEditActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".feature.lyrics.LyricListActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".feature.lyrics.LrcBrowserActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".feature.library.artwork.ArtworkCropActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".ui.editor.AudioEditorActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.widget.WidgetActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".feature.widget.WidgetConfigActivity"
+            android:configChanges="uiMode"
             android:excludeFromRecents="true"
             android:exported="true"
             android:launchMode="singleTop"
@@ -210,28 +235,34 @@
 
         <activity
             android:name=".ui.sleep.SleepActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".ui.drivemode.DriveModeActivity"
+            android:configChanges="uiMode"
             android:theme="@style/AppTheme.Transparent" />
         <activity
             android:name=".ui.drivemode.DriveRemindActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.setting.SettingActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
         <activity
             android:name=".feature.lyrics.StatusBarLyricsActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.lock.LockActivity"
+            android:configChanges="uiMode"
             android:launchMode="singleInstance"
             android:showOnLockScreen="true"
             android:showWhenLocked="true"
@@ -240,7 +271,7 @@
 
         <activity
             android:name=".feature.player.full.MusicPlayActivity"
-            android:configChanges="keyboardHidden|keyboard"
+            android:configChanges="uiMode|keyboardHidden|keyboard"
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleTop"
@@ -248,21 +279,25 @@
 
         <activity
             android:name=".feature.player.queue.PlayQueueActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.library.hidden.HiddenFoldersActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.library.directory.MusicDirectoryActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
             android:name=".feature.library.hidden.HiddenFoldersAddActivity"
+            android:configChanges="uiMode"
             android:exported="false"
             android:launchMode="singleTop" />
 

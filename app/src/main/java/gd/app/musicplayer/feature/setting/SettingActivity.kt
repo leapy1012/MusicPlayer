@@ -102,6 +102,13 @@ class SettingActivity : BaseActivity() {
         requestNotificationPermission()
     }
 
+    override fun onThemeChanged(palette: gd.app.musicplayer.core.designsystem.theme.ThemePalette?) {
+        super.onThemeChanged(palette)
+        applyBodyBackgroundForTheme()
+        (supportFragmentManager.findFragmentById(R.id.settings_body_host)
+            as? SettingsPreferenceFragment)?.listView?.let(::bindCouiDivider)
+    }
+
     override fun onNotificationPermissionResult() {
         super.onNotificationPermissionResult()
         (supportFragmentManager.findFragmentById(R.id.settings_body_host)

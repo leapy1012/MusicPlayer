@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,19 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+}
+
+val localSigningFile = rootProject.file("keystore.properties")
+val localSigning = Properties().apply {
+    if (localSigningFile.isFile) localSigningFile.inputStream().use { load(it) }
+}
+if (localSigningFile.isFile) {
+    require(listOf("storeFile", "storePassword", "keyAlias", "keyPassword").all {
+        !localSigning.getProperty(it).isNullOrBlank()
+    }) { "keystore.properties must specify storeFile, storePassword, keyAlias and keyPassword" }
+    require(rootProject.file(localSigning.getProperty("storeFile")).isFile) {
+        "Signing keystore does not exist: ${localSigning.getProperty("storeFile")}"
+    }
 }
 
 android {
@@ -24,11 +39,12 @@ android {
 
     signingConfigs {
         create("platform") {
-            // Keystore lives at repo root (not app/).
-            storeFile = rootProject.file("platform.keystore")
-            storePassword = "123456"
-            keyAlias = "platform"
-            keyPassword = "123456"
+            // Local firmware signing overrides the bundled generic AOSP test key.
+            // Resolve relative paths from the repository root, not app/.
+            storeFile = rootProject.file(localSigning.getProperty("storeFile", "platform.keystore"))
+            storePassword = localSigning.getProperty("storePassword", "123456")
+            keyAlias = localSigning.getProperty("keyAlias", "platform")
+            keyPassword = localSigning.getProperty("keyPassword", "123456")
         }
     }
 
@@ -56,6 +72,9 @@ android {
 
     buildFeatures {
         viewBinding = true
+    }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
     }
 }
 

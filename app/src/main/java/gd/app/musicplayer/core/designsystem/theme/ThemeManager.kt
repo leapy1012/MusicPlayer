@@ -86,7 +86,7 @@ class ThemeManager @Inject constructor(
         )
 
         appScope.launch {
-            themeSettingPreferenceStore.setThemeType(typeToPersist)
+            themeSettingPreferenceStore.setThemeType(typeToPersist, resetAccent = false)
             themeSettingPreferenceStore.setThemeImageName(pictureTheme.getImageName())
             if (persistAccent) themeSettingPreferenceStore.setThemeColor(pictureTheme.getAccentColor())
             themeSettingPreferenceStore.setThemeBlur(pictureTheme.getBlurAmount())
@@ -106,7 +106,7 @@ class ThemeManager @Inject constructor(
         val resolvedType = resolveThemeType(safeContext, cachedSettings.themeType)
         val current = getCurrentTheme()
 
-        if (needsSettingsReload || current.getThemeType() != resolvedType || current.getAccentColor() != resolvedAccent(cachedSettings)) {
+        if (needsSettingsReload || current.getThemeType() != resolvedType || current.getAccentColor() != resolvedAccent(cachedSettings, resolvedType)) {
             // Prefs reload → new palette (original g()). Type-only switch may reuse bitmaps (O).
             val rebuilt = if (needsSettingsReload) {
                 createPalette(resolvedType)
@@ -162,7 +162,8 @@ class ThemeManager @Inject constructor(
             resolveLastNonDarkType()
         }
 
-        cachedSettings = cachedSettings.copy(themeType = themeType)
+        cachedSettings = cachedSettings.copy(themeType = themeType,
+            themeColor = ThemeAccentDefaults.forTheme(themeType), hasCustomAccent = false)
 
         appScope.launch {
             themeSettingPreferenceStore.setThemeType(themeType)
@@ -175,6 +176,7 @@ class ThemeManager @Inject constructor(
         } else {
             createPalette(resolvedType)
         }
+        cloned.setAccentColor(resolvedAccent(cachedSettings, resolvedType))
 
         appScope.launch(Dispatchers.Default) {
             if (!cloned.ensureResourcesLoaded(appContext, themeBitmapLoader())) {
@@ -207,7 +209,8 @@ class ThemeManager @Inject constructor(
      */
     fun applyLightTheme() {
         persistLastNonDarkType(THEME_TYPE_LIGHT)
-        cachedSettings = cachedSettings.copy(themeType = THEME_TYPE_LIGHT)
+        cachedSettings = cachedSettings.copy(themeType = THEME_TYPE_LIGHT,
+            themeColor = ThemeAccentDefaults.BLUE, hasCustomAccent = false)
         appScope.launch {
             themeSettingPreferenceStore.setThemeType(THEME_TYPE_LIGHT)
         }
@@ -215,6 +218,7 @@ class ThemeManager @Inject constructor(
         val resolvedType = resolveThemeType(appContext, THEME_TYPE_LIGHT)
         val cloned = current?.copyAsThemeType(resolvedType, reuseBitmaps = true)
             ?: createPalette(resolvedType)
+        cloned.setAccentColor(resolvedAccent(cachedSettings, resolvedType))
         appScope.launch(Dispatchers.Default) {
             if (!cloned.ensureResourcesLoaded(appContext, themeBitmapLoader())) return@launch
             withContext(Dispatchers.Main.immediate) {
@@ -262,7 +266,7 @@ class ThemeManager @Inject constructor(
                 // Keep settings metadata in sync with cache (accent/blur/image).
                 val settings = cachedSettings
                 copy.setImageName(settings.imageName)
-                copy.setAccentColor(resolvedAccent(settings))
+                copy.setAccentColor(resolvedAccent(settings, targetType))
                 copy.setBlurAmount(settings.blur)
                 copy.setBackgroundOverlayColor(settings.overlayColor)
             }
@@ -301,16 +305,14 @@ class ThemeManager @Inject constructor(
             else -> PictureThemePalette()
         }.apply {
             setImageName(settings.imageName)
-            setAccentColor(resolvedAccent(settings))
+            setAccentColor(resolvedAccent(settings, themeType))
             setBlurAmount(settings.blur)
             setBackgroundOverlayColor(settings.overlayColor)
         }
     }
 
-    private fun resolvedAccent(settings: ThemeSettings): Int = SystemDefaultAccent.choose(
-        settings.hasCustomAccent, settings.themeColor,
-        if (settings.hasCustomAccent) null else SystemDefaultAccent.resolve(appContext),
-    )
+    private fun resolvedAccent(settings: ThemeSettings, themeType: Int = settings.themeType): Int =
+        ThemeAccentDefaults.resolve(themeType, settings.hasCustomAccent, settings.themeColor)
 
     private fun persistLastNonDarkType(themeType: Int) {
         if (themeType == THEME_TYPE_DARK) return

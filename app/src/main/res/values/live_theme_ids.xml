@@ -1,0 +1,6 @@
+<resources>
+    <item name="live_theme_recycler_binding" type="id" />
+    <item name="live_theme_text_attribute" type="id" />
+    <item name="live_theme_hint_attribute" type="id" />
+    <item name="live_theme_icon_attribute" type="id" />
+</resources>

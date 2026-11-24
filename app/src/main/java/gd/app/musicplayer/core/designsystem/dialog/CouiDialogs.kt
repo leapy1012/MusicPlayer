@@ -71,6 +71,17 @@ internal object CouiDialogs {
             )
             builder.updateViewAfterShown()
             CouiAlertDialogSurface.apply(dialog, config.backgroundDrawable)
+            if (config.positiveButtonDestructive) {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.let { button ->
+                    button.setTag(gd.app.musicplayer.R.id.live_theme_text_attribute, CouiR.attr.couiColorError)
+                    val colors = button.context.obtainStyledAttributes(intArrayOf(CouiR.attr.couiColorError))
+                    try {
+                        colors.getColorStateList(0)?.let(button::setTextColor)
+                    } finally {
+                        colors.recycle()
+                    }
+                }
+            }
         }
         dialog.show()
     }

@@ -34,7 +34,7 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
     private var applyToAll = false
 
     private val galleryPicker =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        registerForActivityResult(gd.app.musicplayer.core.common.GalleryImagePicker()) { uri ->
             if (uri == null) return@registerForActivityResult
             val context = context ?: return@registerForActivityResult
             val pendingFile = ArtworkImageStore.createManagedArtworkFile(context)

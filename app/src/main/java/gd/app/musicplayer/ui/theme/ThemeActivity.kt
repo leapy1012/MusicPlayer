@@ -44,7 +44,7 @@ class ThemeActivity : BaseActivity() {
     private var pendingUiState: ThemeUiState? = null
 
     private val pickImageLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        registerForActivityResult(gd.app.musicplayer.core.common.GalleryImagePicker()) { uri: Uri? ->
             uri ?: return@registerForActivityResult
             viewModel.onCustomThemeImagePicked(uri)
         }

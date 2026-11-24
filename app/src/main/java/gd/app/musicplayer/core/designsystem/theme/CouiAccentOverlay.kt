@@ -10,6 +10,8 @@ import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.color.ThemeUtils
 import gd.app.musicplayer.R
+import java.util.WeakHashMap
+import android.content.res.Resources
 
 /**
  * Overrides COUI primary/label/container tokens with the **exact** app accent.
@@ -27,7 +29,8 @@ object CouiAccentOverlay {
 
     private const val TAG = "CouiAccentOverlay"
 
-    private var installedLoader: ResourcesLoader? = null
+    private val installedLoaders = WeakHashMap<Resources, ResourcesLoader>()
+    private val installedAccents = WeakHashMap<Resources, Int>()
 
     /**
      * Must run after Hilt inject (post-[Activity] super.onCreate) and before
@@ -39,10 +42,11 @@ object CouiAccentOverlay {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return false
         }
-        val colorMap = colorReplacementMap(accent)
-        if (!installColorLoader(activity, colorMap)) {
+        val resources = activity.resources
+        if (installedAccents[resources] != accent && !installColorLoader(activity, colorReplacementMap(accent))) {
             return false
         }
+        installedAccents[resources] = accent
         ThemeUtils.applyThemeOverlay(activity, R.style.ThemeOverlay_App_Accent)
         return true
     }
@@ -105,11 +109,11 @@ object CouiAccentOverlay {
                 return false
             }
             val resources = context.resources
-            installedLoader?.let { previous ->
+            installedLoaders[resources]?.let { previous ->
                 runCatching { resources.removeLoaders(previous) }
             }
             resources.addLoaders(loader)
-            installedLoader = loader
+            installedLoaders[resources] = loader
             true
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to install accent ResourcesLoader", t)

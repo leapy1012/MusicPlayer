@@ -186,8 +186,8 @@ class MainPlaylistAdapter(
             )
         }
 
-        private val lightPlaylistPlaceholder by lazy(LazyThreadSafetyMode.NONE) {
-            PlaylistCardPlaceholderDrawable(
+        private val lightPlaylistPlaceholder: Drawable
+            get() = PlaylistCardPlaceholderDrawable(
                 context = binding.root.context,
                 iconResId = R.drawable.main_list,
                 backgroundColor = Color.TRANSPARENT,
@@ -196,10 +196,9 @@ class MainPlaylistAdapter(
                     0xFF2660F5.toInt(),
                 ),
             )
-        }
 
-        private val lightAddPlaceholder by lazy(LazyThreadSafetyMode.NONE) {
-            PlaylistCardPlaceholderDrawable(
+        private val lightAddPlaceholder: Drawable
+            get() = PlaylistCardPlaceholderDrawable(
                 context = binding.root.context,
                 iconResId = R.drawable.main_new_list,
                 backgroundColor = Color.TRANSPARENT,
@@ -208,7 +207,6 @@ class MainPlaylistAdapter(
                     0xFF8A9199.toInt(),
                 ),
             )
-        }
 
         private var appliedSizePx = 0
 

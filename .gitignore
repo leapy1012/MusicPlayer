@@ -16,6 +16,7 @@
 .android
 local.properties
 keystore.properties
+/target-platform.keystore
 /.idea/
 /wrapper
 /Reference
