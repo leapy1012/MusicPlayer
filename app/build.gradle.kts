@@ -53,7 +53,10 @@ android {
             signingConfig = signingConfigs.getByName("platform")
         }
         release {
-            isMinifyEnabled = false
+            // Leapy modified begin: Original isMinifyEnabled = false.
+            isMinifyEnabled = true
+            // Leapy end
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -98,11 +101,20 @@ configurations.configureEach {
 }
 
 dependencies {
+    // Leapy added begin: The locally imported uCrop AAR does not supply its HTTP dependency transitively.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Leapy end
     // COUI from DreamCOUI/dist (D960_Patch vendor/greendream/{coui,physicsengine}).
     // Local AARs do not pull Maven transitives; keep COUI deps below in sync
     // (DreamCOUI/dist/USAGE.txt). com.dream.* comes from dream-framework on the device.
-    implementation(files("libs/dream-coui-2.1.0.aar"))
-    implementation(files("libs/dream-physicsengine-2.1.0.aar"))
+    // Leapy modified begin: Use the R8 release AAR directly.
+    // Original: implementation(files("libs/dream-coui-2.1.0.aar"))
+    implementation(files("${rootDir}/libs/dream-coui-2.1.0.aar"))
+    // Leapy end
+    // Leapy modified begin: Use the R8 release AAR directly.
+    // Original: implementation(files("libs/dream-physicsengine-2.1.0.aar"))
+    implementation(files("${rootDir}/libs/dream-physicsengine-2.1.0.aar"))
+    // Leapy end
     compileOnly(files("libs/dream-framework-stubs-2.1.0.jar"))
     // Leapy_tts added begin: Real API class files exported from the matching AOSP build.
     // Required at compile time; implementations remain in the device framework.
@@ -156,3 +168,7 @@ tasks.withType<Test>().configureEach {
     jvmArgs("--add-opens=java.base/java.io=ALL-UNNAMED")
 }
 // Leapy_tts end
+
+// Leapy added begin: Targeted release-only R8 policy; debug remains unchanged.
+apply(from = rootProject.file("protection/release.gradle"))
+// Leapy end

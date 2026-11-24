@@ -1,0 +1,50 @@
+// Leapy added begin: Shared release protection; debug variants keep their existing behavior.
+def contractDir = rootProject.file('protection')
+def generatedRules = new File(contractDir, 'generated/contracts.pro')
+def configuredPython = providers.environmentVariable('DREAM_PYTHON').orNull
+def localPython = new File(System.getenv('LOCALAPPDATA') ?: '', 'Programs/Python/Python313/python.exe')
+def python = configuredPython ?: (localPython.isFile() ? localPython.absolutePath : 'python3')
+def release = android.buildTypes.getByName('release')
+release.minifyEnabled = true
+// Framework/theme clients use dynamic resource names. Code protection must not break that ABI.
+release.shrinkResources = false
+def existing = release.proguardFiles.findAll { !it.name.startsWith('proguard-android') }
+def configured = (existing + [android.getDefaultProguardFile('proguard-android-optimize.txt'),
+        new File(contractDir, 'common.pro'), new File(contractDir, 'app.pro'), generatedRules]).unique()
+release.setProguardFiles(configured)
+// Some platform-built dependencies reference JSR-305 annotations without publishing them transitively.
+// Supply annotation definitions to the optimizer rather than suppressing missing-class diagnostics.
+dependencies.add('compileOnly', 'com.google.code.findbugs:jsr305') {
+    // Respect a runtime-pinned annotation version under AGP's consistent resolution.
+    version { prefer '3.0.2' }
+}
+
+def contracts = tasks.register('generateDreamReleaseContracts', Exec) {
+    dependsOn(providers.provider {
+        rootProject.allprojects.collectMany { dependencyProject ->
+            dependencyProject.tasks.matching { candidate -> candidate.name.startsWith('compile') &&
+                (candidate.name.endsWith('ReleaseJavaWithJavac') || candidate.name.endsWith('ReleaseKotlin')) }.toList()
+        }
+    })
+    inputs.files(providers.provider { fileTree(rootProject.projectDir) {
+        include '**/build/intermediates/javac/**/classes/**/*.class'
+        include '**/build/tmp/kotlin-classes/**/*.class'
+        exclude '**/test*/**', '**/tmp_verify/**', '**/.git/**', '**/.gradle/**'
+    }.files.findAll { it.path.toLowerCase().contains('release') } })
+    inputs.files(providers.provider { fileTree(rootProject.projectDir) {
+        include '**/src/**/*.xml', '**/res/**/*.xml', '**/*.cpp', '**/*.h'
+        exclude '**/build/**', '**/test*/**', '**/tmp_verify/**', '**/.git/**', '**/.gradle/**'
+    }.files })
+    inputs.file(new File(contractDir, 'generate-contracts.py'))
+    inputs.file(new File(contractDir, 'classfile_api.py'))
+    outputs.files(generatedRules, new File(contractDir, 'generated/audit.json'))
+    commandLine(python, new File(contractDir, 'generate-contracts.py'),
+            '--project', rootProject.projectDir, '--output', generatedRules)
+}
+tasks.configureEach { task ->
+    def isReleaseLint = task.name.toLowerCase().contains('release') && task.name.toLowerCase().contains('lint')
+    if (task.name.startsWith('minify') && task.name.endsWith('ReleaseWithR8') || isReleaseLint) {
+        task.dependsOn(contracts)
+    }
+}
+// Leapy end
