@@ -60,7 +60,7 @@ import gd.app.musicplayer.playback.favorite.CurrentFavoriteController
 import gd.app.musicplayer.playback.headset.HeadsetMediaButtonHandler
 import gd.app.musicplayer.playback.lock.LockScreenController
 import gd.app.musicplayer.playback.notification.NotificationCloseController
-import gd.app.musicplayer.playback.notification.NotificationMediaSessionBridge
+import gd.app.musicplayer.playback.player.PlaybackSessionMetadata
 import gd.app.musicplayer.playback.notification.PlaybackNotificationController
 import gd.app.musicplayer.playback.player.MusicPlayerFactory
 import gd.app.musicplayer.playback.player.PlaybackEngine
@@ -150,7 +150,8 @@ class MusicPlaybackService : MediaSessionService() {
     internal lateinit var commandHandler: PlaybackCommandHandler
     internal lateinit var playbackServiceRuntime: PlaybackServiceRuntime
     internal lateinit var lifecycleController: PlaybackLifecycleController
-    internal lateinit var notificationSessionBridge: NotificationMediaSessionBridge
+    internal lateinit var sessionPlayer: gd.app.musicplayer.playback.player.QueueAwareSessionPlayer
+    internal lateinit var sessionMetadata: PlaybackSessionMetadata
     internal lateinit var notificationController: PlaybackNotificationController
     internal lateinit var playbackModeResolver: PlaybackModeResolver
     internal lateinit var playbackTuningController: PlaybackTuningController
@@ -181,7 +182,6 @@ class MusicPlaybackService : MediaSessionService() {
     @Volatile
     internal var deferForcedStartupUiUpdates = false
     @Volatile
-    internal var pendingQueueSessionSyncAfterStartupPlay = false
 
     internal var keepIdleNotification = false
     internal var stopAfterCurrentTrack = false
@@ -306,6 +306,8 @@ class MusicPlaybackService : MediaSessionService() {
                 .add(SessionCommand(MEDIA3_COMMAND_CYCLE_PLAYBACK_MODE, Bundle.EMPTY))
                 .add(SessionCommand(MEDIA3_COMMAND_STOP_AFTER_CURRENT, Bundle.EMPTY))
                 .add(SessionCommand(MEDIA3_COMMAND_CLOSE_NOTIFICATION, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackServiceActions.ACTION_PREVIOUS, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackServiceActions.ACTION_NEXT, Bundle.EMPTY))
                 .build()
 
             val playerCommands = MediaSession.ConnectionResult
@@ -315,7 +317,15 @@ class MusicPlaybackService : MediaSessionService() {
                 .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                 .add(Player.COMMAND_SEEK_TO_PREVIOUS)
                 .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                .build()
+                .apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        session.isMediaNotificationController(controller)) {
+                        remove(Player.COMMAND_SEEK_TO_NEXT)
+                        remove(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                        remove(Player.COMMAND_SEEK_TO_PREVIOUS)
+                        remove(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    }
+                }.build()
 
             return MediaSession.ConnectionResult
                 .AcceptedResultBuilder(session)
@@ -359,6 +369,14 @@ class MusicPlaybackService : MediaSessionService() {
             args: Bundle
         ): ListenableFuture<SessionResult> {
             return when (customCommand.customAction) {
+                PlaybackServiceActions.ACTION_PREVIOUS -> {
+                    playPrevious()
+                    successSessionResult()
+                }
+                PlaybackServiceActions.ACTION_NEXT -> {
+                    playNext()
+                    successSessionResult()
+                }
                 MEDIA3_COMMAND_TOGGLE_FAVORITE -> {
                     toggleCurrentFavorite()
                     successSessionResult()
@@ -590,8 +608,8 @@ class MusicPlaybackService : MediaSessionService() {
     internal fun isLifecycleControllerInitialized(): Boolean =
         ::lifecycleController.isInitialized
 
-    internal fun isNotificationSessionBridgeInitialized(): Boolean =
-        ::notificationSessionBridge.isInitialized
+    internal fun isSessionMetadataInitialized(): Boolean =
+        ::sessionMetadata.isInitialized
 
     internal fun isNotificationControllerInitialized(): Boolean =
         ::notificationController.isInitialized

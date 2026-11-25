@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -58,9 +59,11 @@ class MusicDirectoryActivity : BaseActivity() {
             root = binding.root,
             statusBarView = binding.statusBarSpace,
             bottomPaddingView = binding.root,
-            toolbar = binding.toolbar,
-            titleRes = R.string.music_directory
+            toolbar = binding.toolbar
         )
+        // This screen owns a two-line header; leave COUI's built-in title views unused.
+        binding.toolbar.title = null
+        binding.toolbar.subtitle = null
 
         binding.appBar.bringToFront()
     }
@@ -142,8 +145,9 @@ class MusicDirectoryActivity : BaseActivity() {
     }
 
     private fun render(state: MusicDirectoryUiState) {
-        binding.toolbar.title = state.title
-        binding.toolbar.subtitle = state.subtitle
+        binding.directoryTitle.text = state.title
+        binding.directoryPath.text = state.subtitle
+        binding.directoryPath.isVisible = !state.subtitle.isNullOrBlank()
 
         adapter.submitEntries(state.entries)
         emptyStateController.setVisible(state.isEmpty)

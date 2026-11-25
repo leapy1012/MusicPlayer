@@ -13,7 +13,6 @@ import gd.app.musicplayer.domain.usecase.library.ObserveMusicSetsUseCase
 import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.PlayTracksUseCase
 import gd.app.musicplayer.domain.usecase.playback.RestartCurrentTrackUseCase
-import gd.app.musicplayer.domain.usecase.playlist.ObservePlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.playlist.ObserveSelectablePlaylistsUseCase
 import gd.app.musicplayer.domain.usecase.preferences.GetClickAddQueueEnabledUseCase
 import gd.app.musicplayer.domain.usecase.preferences.GetReplaySongEnabledUseCase
@@ -53,9 +52,12 @@ class SearchViewModel @Inject constructor(
         val artists: List<MusicSet>,
         val folders: List<MusicSet>,
         val playlists: List<MusicSet.Playlist>
-    )
+    ) {
+        val index = SearchIndex(tracks, albums, artists, folders, playlists)
+    }
 
-    private val searchSource: StateFlow<SearchSource> =
+    // null means the sources have not all emitted yet; an empty snapshot is real data.
+    private val searchSource: StateFlow<SearchSource?> =
         combine(
             observeTracksUseCase(MusicSet.Tracks),
             observeMusicSetsUseCase(MusicSet.Albums),
@@ -73,41 +75,27 @@ class SearchViewModel @Inject constructor(
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SearchSource(
-                tracks = emptyList(),
-                albums = emptyList(),
-                artists = emptyList(),
-                folders = emptyList(),
-                playlists = emptyList()
-            )
+            initialValue = null
         )
 
-    val sections: StateFlow<List<SearchResultAdapter.SearchSection>> =
+    /** null is initial loading; loaded results always include the query used to filter them. */
+    val results: StateFlow<SearchResults?> =
         combine(
             searchSource,
             query,
             sortVersion
         ) { source, rawQuery, _ ->
-            val normalizedQuery = rawQuery.trim().lowercase()
-            buildSections(
-                tracks = filterTracks(source.tracks, normalizedQuery),
-                albums = filterMusicSets(source.albums, normalizedQuery),
-                artists = filterMusicSets(source.artists, normalizedQuery),
-                folders = filterMusicSets(source.folders, normalizedQuery),
-                playlists = filterPlaylists(source.playlists, normalizedQuery)
-            )
+            if (source == null) return@combine null
+            source.index.search(rawQuery)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList()
+            initialValue = null
         )
 
     fun setQuery(query: String) {
         this.query.value = query
     }
-
-    /** The term each page highlights matches against (original `t1.g` → `i7.c.u`). */
-    fun currentQuery(): String = query.value.trim()
 
     fun refreshSortOrder() {
         sortVersion.value += 1
@@ -171,10 +159,11 @@ class SearchViewModel @Inject constructor(
         clickedTrack: Music,
         preferredIndex: Int? = null
     ): Pair<List<Music>, Int> {
-        val queue = if (query.value.isBlank()) {
-            searchSource.value.tracks
+        val result = results.value
+        val queue = if (result == null || result.query.isBlank()) {
+            searchSource.value?.tracks.orEmpty()
         } else {
-            sections.value.firstOrNull { it.titleRes == R.string.songs }
+            result.sections.firstOrNull { it.titleRes == R.string.songs }
                 ?.items
                 ?.mapNotNull { (it as? ListItem.MusicItem)?.music }
                 .orEmpty()
@@ -187,88 +176,6 @@ class SearchViewModel @Inject constructor(
             ?: queue.indexOfFirst { it.id == clickedTrack.id }.takeIf { it >= 0 }
             ?: 0
         return queue to startIndex
-    }
-
-    private fun buildSections(
-        tracks: List<Music>,
-        albums: List<MusicSet>,
-        artists: List<MusicSet>,
-        folders: List<MusicSet>,
-        playlists: List<MusicSet.Playlist>
-    ): List<SearchResultAdapter.SearchSection> {
-        return buildList {
-            if (tracks.isNotEmpty()) {
-                add(
-                    SearchResultAdapter.SearchSection(
-                        titleRes = R.string.songs,
-                        items = tracks.map { ListItem.MusicItem(it) }
-                    )
-                )
-            }
-            if (albums.isNotEmpty()) {
-                add(
-                    SearchResultAdapter.SearchSection(
-                        titleRes = R.string.albums,
-                        items = albums.map { ListItem.MusicSetItem(it) }
-                    )
-                )
-            }
-            if (artists.isNotEmpty()) {
-                add(
-                    SearchResultAdapter.SearchSection(
-                        titleRes = R.string.artists,
-                        items = artists.map { ListItem.MusicSetItem(it) }
-                    )
-                )
-            }
-            if (folders.isNotEmpty()) {
-                add(
-                    SearchResultAdapter.SearchSection(
-                        titleRes = R.string.folders,
-                        items = folders.map { ListItem.MusicSetItem(it) }
-                    )
-                )
-            }
-            if (playlists.isNotEmpty()) {
-                add(
-                    SearchResultAdapter.SearchSection(
-                        titleRes = R.string.playlists,
-                        items = playlists.map { ListItem.MusicSetItem(it) }
-                    )
-                )
-            }
-        }
-    }
-
-    private fun filterTracks(
-        tracks: List<Music>,
-        query: String
-    ): List<Music> {
-        if (query.isBlank()) return tracks
-        return tracks.filter { track ->
-            track.title.contains(query, ignoreCase = true) ||
-                track.artist.contains(query, ignoreCase = true)
-        }
-    }
-
-    private fun filterMusicSets(
-        musicSets: List<MusicSet>,
-        query: String
-    ): List<MusicSet> {
-        if (query.isBlank()) return musicSets
-        return musicSets.filter { musicSet ->
-            musicSet.name.contains(query, ignoreCase = true)
-        }
-    }
-
-    private fun filterPlaylists(
-        playlists: List<MusicSet.Playlist>,
-        query: String
-    ): List<MusicSet.Playlist> {
-        if (query.isBlank()) return playlists
-        return playlists.filter { playlist ->
-            playlist.name.contains(query, ignoreCase = true)
-        }
     }
 
 }

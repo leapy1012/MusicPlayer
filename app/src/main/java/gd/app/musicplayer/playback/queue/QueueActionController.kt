@@ -102,7 +102,6 @@ class QueueActionController(
         callbacks.onQueueMutated(queueManager.queue, queueManager.currentIndex)
 
         queueManager.save()
-        callbacks.updateNotificationSessionQueue()
 
         if (removedCurrent) {
             playerQueueController.setPlayerQueue(
@@ -164,7 +163,6 @@ class QueueActionController(
         callbacks.onQueueMutated(queueManager.queue, queueManager.currentIndex)
 
         queueManager.save()
-        callbacks.updateNotificationSessionQueue()
 
         // Single-track player: reorder is memory-only; reload only if current track identity changed.
         val currentStillLoaded = playerQueueController.isCurrentTrackLoaded(queueManager.currentIndex)
@@ -212,7 +210,6 @@ class QueueActionController(
         }
 
         queueManager.save()
-        callbacks.updateNotificationSessionQueue()
 
         // Original append: only load player when queue was empty; otherwise memory-only.
         if (wasEmpty) {
@@ -250,7 +247,6 @@ class QueueActionController(
         callbacks.onQueueInitialized(queueManager.queue, 0)
 
         queueManager.save()
-        callbacks.updateNotificationSessionQueue()
 
         if (!callbacks.requestAudioFocus()) {
             return
@@ -294,7 +290,6 @@ class QueueActionController(
         callbacks.onTracksInsertedForNext(incomingQueue)
 
         queueManager.save()
-        callbacks.updateNotificationSessionQueue()
 
         // Keep current ExoPlayer item; inserted tracks load when they become current.
         callbacks.publishPlayerEvent(forceNotification = false)
@@ -328,7 +323,6 @@ class QueueActionController(
         callbacks.onQueueInitialized(queueManager.queue, queueManager.currentIndex)
 
         queueManager.save()
-        callbacks.updateNotificationSessionQueue()
 
         val shouldPreservePosition =
             previousTrackIdentity != null &&
@@ -400,7 +394,6 @@ class QueueActionController(
 
         // Original QueueSaver: persist only when queue content changed (debounced).
         queueManager.save()
-        callbacks.updateNotificationSessionQueue()
 
         if (!callbacks.requestAudioFocus()) {
             callbacks.publishPlayerEvent(forceNotification = false)

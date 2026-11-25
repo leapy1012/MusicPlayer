@@ -9,7 +9,6 @@ import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import com.coui.appcompat.toolbar.COUIToolbar
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.extension.applyCachedStatusBarHeight
 import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.navigateBack
 
@@ -21,17 +20,12 @@ fun BaseActivity.setupEdgeToEdgeToolbar(
     @StringRes titleRes: Int? = null,
     @DrawableRes navigationIconRes: Int = com.coui.appcompat.R.drawable.coui_back_arrow,
 ) {
-    // Original ActivitySetting.y0 only calls w0.h(status_bar_space) — sync cached height.
-    // Do not remasure the full settings ScrollView when nav-bar insets arrive mid-fade.
-    // Bottom padding is applied only for 3-button nav (tappable); gesture stays edge-to-edge.
-    if (bottomPaddingView === root) {
-        statusBarView.applyCachedStatusBarHeight()
-    } else {
-        root.applySystemBarInsets(
-            statusBarView = statusBarView,
-            bottomPaddingView = bottomPaddingView
-        )
-    }
+    // Cache the status spacer immediately, but always listen for navigation
+    // insets, including when the activity's root is the padding target.
+    root.applySystemBarInsets(
+        statusBarView = statusBarView,
+        bottomPaddingView = bottomPaddingView
+    )
     toolbar.setNavigationIcon(navigationIconRes)
     titleRes?.let(toolbar::setTitle)
     toolbar.navigateBack(this)

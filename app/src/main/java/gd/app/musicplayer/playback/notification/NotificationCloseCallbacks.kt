@@ -17,7 +17,6 @@ interface NotificationCloseCallbacks {
         persistQueue: Boolean
     )
 
-    fun updateNotificationSessionPlaybackState()
 
     fun publishPausedSnapshot(snapshot: PlaybackSnapshot)
 

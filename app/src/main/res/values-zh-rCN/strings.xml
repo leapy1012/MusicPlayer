@@ -347,6 +347,7 @@
     <string name="queue_all_songs">全部歌曲</string>
     <string name="queue_for_searching">搜索后加入队列</string>
     <string name="queue_search_result">搜索结果</string>
+    <string name="no_search_results">无搜索结果</string>
     <string name="recent_add">最近添加</string>
     <string name="recent_play">最近播放</string>
     <string name="recently_added">最近添加</string>

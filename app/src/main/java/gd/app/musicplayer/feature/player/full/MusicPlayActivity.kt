@@ -16,6 +16,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.lib.view.DragDismissLayout
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.common.extension.applySystemBarInsets
 import gd.app.musicplayer.core.common.extension.loadBlurredArtworkBackground
 import gd.app.musicplayer.core.common.extension.startActivityCompat
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
@@ -75,6 +76,9 @@ class MusicPlayActivity : BaseActivity() {
     }
 
     private fun setupViews() {
+        // Both player pages share this container. Reserve button navigation once
+        // here; the translucent content view intentionally ignores inset listeners.
+        binding.root.applySystemBarInsets(bottomPaddingView = binding.musicPlayContent.parent as View)
         backgroundImage = binding.musicPlaySkin
         // Full-player chrome is always a dark plate (white icons). Don't let the light
         // window background show through before / without artwork.

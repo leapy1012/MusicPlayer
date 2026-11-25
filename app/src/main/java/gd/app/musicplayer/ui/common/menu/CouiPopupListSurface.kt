@@ -1,53 +1,26 @@
 package gd.app.musicplayer.ui.common.menu
 
-import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.view.ContextThemeWrapper
-import android.view.View
-import android.view.ViewGroup
-import android.view.ViewOutlineProvider
 import android.widget.BaseAdapter
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.ListView
-import android.widget.TextView
-import androidx.core.graphics.drawable.toDrawable
-import androidx.core.widget.ImageViewCompat
+import androidx.appcompat.content.res.AppCompatResources
 import com.coui.appcompat.poplist.COUIPopupListWindow
 import com.coui.appcompat.poplist.PopupListItem
+import com.coui.appcompat.poplist.RoundFrameLayout
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.dialogTitleColor
 import gd.app.musicplayer.ui.common.base.BaseActivity
 
 /**
- * Themes COUI popup lists to match the dialog plate.
- *
- * ## Why labels/icons stay white in light mode
- * [PopupListItem] defaults `mForceTint = MENU_ITEM_FORCE_TINT_ALL (7)`.
- * [DefaultAdapter] then always tints title/icon from
- * `R.color.coui_popup_list_window_item_tint_selector` → `?couiColorLabelPrimary`,
- * and **ignores** [PopupListItem.getTitleColorList] while the TITLE bit is set.
- *
- * Pictured/dark activities overlay [Theme_COUI_Main_Dark], so `LabelPrimary` is
- * `#e6ffffff`. Light theme paints a white dialog plate (or we skip the custom plate),
- * leaving white-on-white. Setting `titleColorList` alone does nothing unless the
- * TITLE force-tint bit is cleared (Builder does `forceTint &= ~TITLE` only when
- * color is supplied at [PopupListItem.Builder.build] time — not via setters after).
- *
- * Fix: wrap the popup in Light/Dark COUI theme for correct token defaults, clear
- * TITLE|ICON force-tint, and set an explicit title [ColorStateList].
+ * Applies the app's dialog contrast and pictured surface without changing COUI's
+ * child hierarchy, animated clipping, row effects, or selected/disabled label states.
  */
 object CouiPopupListSurface {
-
-    private const val TAG_PICTURED_PLATE = "coui_popup_pictured_plate"
-    private const val FORCE_TINT_TITLE_OR_ICON =
-        PopupListItem.MENU_ITEM_FORCE_TINT_TITLE or PopupListItem.MENU_ITEM_FORCE_TINT_ICON
 
     /**
      * Context whose COUI label tokens match [palette]'s dialog contrast.
@@ -69,38 +42,42 @@ object CouiPopupListSurface {
     fun apply(
         popup: COUIPopupListWindow,
         context: Context,
-        surface: Drawable? = null
+        palette: ThemePalette? = null
     ) {
-        val palette = resolvePalette(context)
-        val textColor = resolveItemTextColor(palette)
-        applyItemTextColors(popup, textColor)
+        val resolved = palette ?: resolvePalette(context)
+        popup.itemList?.let { paintItemTitles(context, it, resolved) }
+        (popup.adapter as? BaseAdapter)?.notifyDataSetChanged()
 
-        if (shouldPaintCustomSurface(palette)) {
-            val resolved = (surface ?: palette?.getDialogSurfaceDrawable(context) ?: return).mutate()
-            popup.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-            paintWrapper(popup.contentView, resolved)
-            paintWrapper(popup.subMenuListView?.parent as? View, resolved)
-            paintWrapper(popup.mainMenuListView?.parent as? View, resolved)
-        }
-
-        tintVisibleRows(popup.mainMenuListView, textColor)
-        tintVisibleRows(popup.subMenuListView, textColor)
-        tintVisibleRows(popup.listView, textColor)
-        popup.contentView?.post {
-            tintVisibleRows(popup.mainMenuListView, textColor)
-            tintVisibleRows(popup.subMenuListView, textColor)
-            tintVisibleRows(popup.listView, textColor)
+        if (shouldPaintCustomSurface(resolved)) {
+            // Both wrappers already exist, including the detached submenu. Each needs its own
+            // drawable: pictured surfaces have no ConstantState and mutate() does not clone them.
+            listOfNotNull(
+                popup.mainMenuListView?.parent as? RoundFrameLayout,
+                popup.subMenuListView?.parent as? RoundFrameLayout
+            ).distinct().forEach { wrapper ->
+                paintWrapper(wrapper, checkNotNull(resolved).getBottomDialogSurfaceDrawable(context))
+            }
         }
     }
 
     /**
-     * Stamp dialog-contrast title colors and clear TITLE/ICON force-tint so
-     * [DefaultAdapter] honors [PopupListItem.getTitleColorList].
+     * Clear only TITLE force-tint so COUI honors our contrast colors, while retaining
+     * its native selected/disabled states and icon tinting.
      */
     @JvmStatic
     fun paintItemTitles(context: Context, items: List<PopupListItem>, palette: ThemePalette? = null) {
-        val colors = ColorStateList.valueOf(
-            resolveItemTextColor(palette ?: resolvePalette(context))
+        val resolved = palette ?: resolvePalette(context)
+        val nativeColors = checkNotNull(AppCompatResources.getColorStateList(
+            popupContext(context, resolved),
+            com.coui.appcompat.R.color.coui_popup_list_window_item_tint_selector
+        ))
+        val colors = ColorStateList(
+            arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf(android.R.attr.state_selected), intArrayOf()),
+            intArrayOf(
+                nativeColors.getColorForState(intArrayOf(-android.R.attr.state_enabled), nativeColors.defaultColor),
+                nativeColors.getColorForState(intArrayOf(android.R.attr.state_enabled, android.R.attr.state_selected), nativeColors.defaultColor),
+                resolveItemTextColor(resolved)
+            )
         )
         items.forEach { item ->
             paintItemTitle(item, colors)
@@ -120,46 +97,10 @@ object CouiPopupListSurface {
         return palette.getThemeType() != ThemeManager.THEME_TYPE_LIGHT
     }
 
-    private fun applyItemTextColors(popup: COUIPopupListWindow, color: Int) {
-        val colors = ColorStateList.valueOf(color)
-        val items = popup.itemList ?: return
-        items.forEach { item ->
-            paintItemTitle(item, colors)
-            item.subMenuItemList?.forEach { paintItemTitle(it, colors) }
-            item.subArray?.forEach { paintItemTitle(it, colors) }
-        }
-        (popup.adapter as? BaseAdapter)?.notifyDataSetChanged()
-    }
-
     private fun paintItemTitle(item: PopupListItem, colors: ColorStateList) {
         item.setTitleColorList(colors)
         // Default forceTint=ALL makes DefaultAdapter ignore titleColorList.
-        item.setForceTint(item.forceTint and FORCE_TINT_TITLE_OR_ICON.inv())
-    }
-
-    private fun tintVisibleRows(listView: ListView?, color: Int) {
-        if (listView == null) return
-        val colors = ColorStateList.valueOf(color)
-        for (index in 0 until listView.childCount) {
-            tintTree(listView.getChildAt(index), colors)
-        }
-    }
-
-    private fun tintTree(view: View?, colors: ColorStateList) {
-        when (view) {
-            null -> return
-            is TextView -> view.setTextColor(colors)
-            is ImageView -> {
-                if (view.id == com.coui.appcompat.R.id.popup_list_window_item_icon) {
-                    ImageViewCompat.setImageTintList(view, colors)
-                }
-            }
-            is ViewGroup -> {
-                for (index in 0 until view.childCount) {
-                    tintTree(view.getChildAt(index), colors)
-                }
-            }
-        }
+        item.setForceTint(item.forceTint and PopupListItem.MENU_ITEM_FORCE_TINT_TITLE.inv())
     }
 
     private fun resolveItemTextColor(palette: ThemePalette?): Int {
@@ -181,56 +122,20 @@ object CouiPopupListSurface {
         return r >= 0xF0 && g >= 0xF0 && b >= 0xF0
     }
 
-    private fun paintWrapper(root: View?, surface: Drawable) {
-        if (root == null) return
-        val wrapper = root.findViewById<View>(com.coui.appcompat.R.id.coui_popup_wrapper)
-            ?: if (root.id == com.coui.appcompat.R.id.coui_popup_wrapper) root else null
-        val group = wrapper as? ViewGroup ?: return
-
-        val pictured = surface.constantState?.newDrawable()?.mutate() ?: surface.mutate()
-
-        val plate = group.findViewWithTag<View>(TAG_PICTURED_PLATE)
-            ?: View(group.context).also { plateView ->
-                plateView.tag = TAG_PICTURED_PLATE
-                plateView.isClickable = false
-                plateView.isFocusable = false
-                plateView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                group.addView(
-                    plateView,
-                    0,
-                    FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                )
-            }
-        plate.background = pictured
-
-        if (group.background !is com.coui.appcompat.state.COUIMaskEffectDrawable) {
-            group.setBackgroundColor(Color.TRANSPARENT)
-        }
-
-        ensureRoundClip(group)
-    }
-
-    private fun ensureRoundClip(wrapper: View) {
-        val radius = wrapper.resources.getDimension(
-            com.coui.appcompat.R.dimen.coui_round_corner_m
-        )
-        wrapper.outlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: Outline) {
-                outline.setRoundRect(0, 0, view.width, view.height, radius)
-            }
-        }
-        wrapper.clipToOutline = true
-        if (wrapper is ViewGroup) {
-            wrapper.clipChildren = true
-        }
+    private fun paintWrapper(wrapper: RoundFrameLayout, surface: Drawable) {
+        // COUI animates background bounds and its override outline, and assumes child 0 is
+        // the list. Never insert a plate view or replace the native outline provider.
+        wrapper.background = surface.mutate()
     }
 
     private fun resolvePalette(context: Context): ThemePalette? {
-        val activity = context as? Activity
-            ?: ((context as? ContextWrapper)?.baseContext as? Activity)
-        return (activity as? BaseActivity)?.themeEngine?.currentTheme()
+        var current = context
+        while (current is ContextWrapper) {
+            if (current is BaseActivity) return current.themeEngine.currentTheme()
+            val base = current.baseContext
+            if (base === current) break
+            current = base
+        }
+        return null
     }
 }

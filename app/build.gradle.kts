@@ -168,7 +168,3 @@ tasks.withType<Test>().configureEach {
     jvmArgs("--add-opens=java.base/java.io=ALL-UNNAMED")
 }
 // Leapy_tts end
-
-// Leapy added begin: Targeted release-only R8 policy; debug remains unchanged.
-apply(from = rootProject.file("protection/release.gradle"))
-// Leapy end

@@ -12,7 +12,6 @@ interface QueueMutationCallbacks {
 
     fun currentPlayerPositionMs(): Long
 
-    fun updateNotificationSessionQueue()
 
     fun refreshArtworkAndSession(force: Boolean)
 

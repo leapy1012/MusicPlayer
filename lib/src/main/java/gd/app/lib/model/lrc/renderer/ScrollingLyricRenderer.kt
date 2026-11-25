@@ -112,7 +112,7 @@ class ScrollingLyricRenderer(
                 verticalDragging = abs(distanceY) > abs(distanceX)
 
                 if (verticalDragging) {
-                    lyricView.parent.requestDisallowInterceptTouchEvent(true)
+                    lyricView.parent?.requestDisallowInterceptTouchEvent(true)
                 } else if (isDragging) {
                     hideIndicatorNow()
                 }
@@ -121,12 +121,13 @@ class ScrollingLyricRenderer(
             if (!verticalDragging) return false
 
             if (!isDragging) {
-                if (distanceY < touchSlop) {
-                    pendingScrollDistance += distanceY
-                    return true
-                }
-
+                pendingScrollDistance += distanceY
+                if (abs(pendingScrollDistance) <= touchSlop) return true
+                val distance = pendingScrollDistance
                 pendingScrollDistance = 0f
+                showIndicator()
+                scrollBy(distance.toInt())
+                return true
             }
 
             showIndicator()
@@ -150,7 +151,7 @@ class ScrollingLyricRenderer(
         override fun onSingleTapConfirmed(event: MotionEvent): Boolean {
             val selectedLine = lyricData.findLineByVerticalPosition(event.y - scrollOffset, true)
 
-            if (selectedLine != null) {
+            if (selectedLine != null && lyricData.getMode() == MODE_NORMAL && selectedLine.startTime >= 0) {
                 isDragging = false
                 view?.removeCallbacks(hideIndicatorRunnable)
 
@@ -600,6 +601,7 @@ class ScrollingLyricRenderer(
     }
 
     override fun detachFromView(view: LyricView) {
+        view.removeCallbacks(hideIndicatorRunnable)
         if (autoScrollEnabled) {
             this.view?.removeCallbacks(autoScrollRunnable)
         }
@@ -630,12 +632,14 @@ class ScrollingLyricRenderer(
     }
 
     override fun setNormalTextSize(size: Float) {
+        if (normalPaint.textSize == size) return
         normalPaint.textSize = size
         previewPaint.textSize = size
         setScrollOffsetImmediately(targetScrollOffset(true))
     }
 
     override fun setCurrentTextSize(size: Float) {
+        if (currentPaint.textSize == size) return
         currentPaint.textSize = size
         setScrollOffsetImmediately(targetScrollOffset(true))
     }

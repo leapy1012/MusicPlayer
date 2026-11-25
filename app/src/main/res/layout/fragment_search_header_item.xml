@@ -45,11 +45,4 @@
             app:tint="?attr/couiColorHintNeutral" />
     </LinearLayout>
 
-    <com.coui.appcompat.rotateview.COUIRotateView
-        android:id="@+id/music_item_expanded"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="20dp"
-        android:importantForAccessibility="no"
-        app:srcCompat="@drawable/coui_line_arrow" />
 </LinearLayout>

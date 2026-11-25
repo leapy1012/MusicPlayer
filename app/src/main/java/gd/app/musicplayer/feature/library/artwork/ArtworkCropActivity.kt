@@ -33,7 +33,7 @@ class ArtworkCropActivity : BaseActivity() {
         binding = ActivityCropPhotoboxBinding.inflate(layoutInflater)
         setContentView(binding.root)
         applyThemeTo(binding.root)
-        binding.root.applySystemBarInsets(binding.statusBarSpace)
+        binding.root.applySystemBarInsets(binding.statusBarSpace, binding.root)
 
         val sourceUri = intent.parcelable<Uri>(EXTRA_SOURCE_URI)
         val outputPath = intent.getStringExtra(EXTRA_OUTPUT_PATH)

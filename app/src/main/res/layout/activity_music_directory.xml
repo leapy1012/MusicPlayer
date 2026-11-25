@@ -37,9 +37,47 @@
                 android:background="@android:color/transparent"
                 android:minHeight="@dimen/toolbar_min_height"
                 app:supportNavigationIcon="@drawable/coui_back_arrow"
-                app:supportTitle="@string/music_directory"
-                app:supportTitleTextAppearance="@style/textAppearanceSecondTitle"
-                app:titleCenter="false" />
+                app:titleCenter="false">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="@dimen/coui_toolbar_gap_between_navigation_and_title"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/toolbar_min_height"
+                    android:orientation="vertical"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/directory_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:gravity="start"
+                        android:maxLines="1"
+                        android:tag="itemTextColor"
+                        android:text="@string/music_directory"
+                        android:textAlignment="viewStart"
+                        android:textAppearance="@style/textAppearanceSecondTitle"
+                        android:textColor="?attr/couiColorPrimaryNeutral" />
+
+                    <TextView
+                        android:id="@+id/directory_path"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="middle"
+                        android:gravity="start"
+                        android:maxLines="1"
+                        android:tag="itemTextExtraColor"
+                        android:textAlignment="viewStart"
+                        android:textColor="?attr/couiColorSecondNeutral"
+                        android:textDirection="ltr"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.coui.appcompat.toolbar.COUIToolbar>
         </com.google.android.material.appbar.COUIDividerAppBarLayout>
 
         <include

@@ -128,15 +128,9 @@ private fun MusicPlaybackService.handlePlaybackRestoreFailed() {
 internal fun MusicPlaybackService.syncControllersAfterQueueRestore(
     forceArtwork: Boolean
 ) {
-    if (isNotificationSessionBridgeInitialized()) {
-        notificationSessionBridge.updateQueue()
-    }
 
     refreshArtworkAndSession(force = forceArtwork)
 
-    if (isNotificationSessionBridgeInitialized()) {
-        notificationSessionBridge.updatePlaybackState()
-    }
 
     updateNotification(force = true)
 }

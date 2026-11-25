@@ -10,7 +10,9 @@ import gd.app.lib.model.lrc.view.LyricView
 import java.util.WeakHashMap
 
 private data class LyricCompatState(
-    val hasTimedLyrics: Boolean
+    val hasTimedLyrics: Boolean,
+    val text: String?,
+    val maxLines: Int,
 )
 
 private val lyricCompatState = WeakHashMap<LyricView, LyricCompatState>()
@@ -21,9 +23,12 @@ fun LyricView.setLyricText(text: String?) {
         ?.replace("\r\n", "\n")
         ?.trim()
 
+    val previous = lyricCompatState[this]
+    if (previous != null && previous.text == normalized && previous.maxLines == getMaxLines()) return
+
     if (normalized.isNullOrBlank()) {
         setLyricRenderer(StaticMessageLyricRenderer(""))
-        lyricCompatState[this] = LyricCompatState(hasTimedLyrics = false)
+        lyricCompatState[this] = LyricCompatState(false, normalized, getMaxLines())
         return
     }
 
@@ -39,7 +44,7 @@ fun LyricView.setLyricText(text: String?) {
             ScrollingLyricRenderer(lyricText.copy())
         }
     )
-    lyricCompatState[this] = LyricCompatState(hasTimedLyrics = parseResult.hasTimedLyrics)
+    lyricCompatState[this] = LyricCompatState(parseResult.hasTimedLyrics, normalized, getMaxLines())
 }
 
 fun LyricView.hasTimedLyrics(): Boolean =

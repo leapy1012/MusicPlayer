@@ -77,6 +77,7 @@ class FullLyricFragment : Fragment() {
 
         fullLyricView.setOnLyricLineClickListener { positionMs ->
             playerViewModel.seekTo(requireContext(), positionMs)
+            playerViewModel.play(requireContext())
         }
     }
 

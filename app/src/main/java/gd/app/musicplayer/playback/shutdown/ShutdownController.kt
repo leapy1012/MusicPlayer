@@ -29,7 +29,7 @@ class ShutdownController(
                 callbacks.clearPersistedQueue()
             }
 
-            callbacks.clearNotificationSession()
+            callbacks.clearSessionMetadata()
             callbacks.markRestoreEmpty()
         }
 

@@ -29,7 +29,7 @@ interface ShutdownCallbacks {
 
     fun clearPersistedQueue()
 
-    fun clearNotificationSession()
+    fun clearSessionMetadata()
 
     fun markRestoreEmpty()
 

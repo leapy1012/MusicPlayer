@@ -37,8 +37,8 @@
             android:layout_height="143dp"
             android:importantForAccessibility="no"
             android:visibility="gone"
-            app:lottie_autoPlay="true"
-            app:lottie_loop="true" />
+            app:lottie_autoPlay="false"
+            app:lottie_loop="false" />
 
         <TextView
             android:id="@+id/empty_text"

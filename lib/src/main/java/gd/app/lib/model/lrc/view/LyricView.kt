@@ -245,7 +245,7 @@ class LyricView @JvmOverloads constructor(
     }
 
     fun dispatchLyricLineClick(timeMs: Long) {
-        lyricLineClickListener?.invoke(timeMs)
+        lyricLineClickListener?.invoke((timeMs - timeOffset).coerceAtLeast(0L))
     }
 
     fun setParagraphSpacing(spacing: Int) {

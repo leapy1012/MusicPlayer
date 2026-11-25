@@ -98,7 +98,7 @@
                 android:layout_height="30dp"
                 android:padding="3dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/notify_previous_new" />
+                android:src="@drawable/ic_player_previous_outline" />
 
             <TextView
                 android:layout_width="0dp"
@@ -125,7 +125,7 @@
                 android:layout_height="30dp"
                 android:padding="3dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/notify_next_new" />
+                android:src="@drawable/ic_player_next_outline" />
 
             <TextView
                 android:layout_width="0dp"

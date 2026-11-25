@@ -280,10 +280,11 @@ class EditTagsActivity : BaseActivity(), Toolbar.OnMenuItemClickListener {
     }
 
     private fun setupKeyboardInsets() {
+        val initialBottom = binding.editTagsScroll.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(binding.editTagsScroll) { view, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            val systemBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-            view.updatePadding(bottom = imeBottom.coerceAtLeast(systemBottom))
+            // The activity root already reserves button-navigation space.
+            view.updatePadding(bottom = initialBottom + (imeBottom - binding.root.paddingBottom).coerceAtLeast(0))
             insets
         }
     }

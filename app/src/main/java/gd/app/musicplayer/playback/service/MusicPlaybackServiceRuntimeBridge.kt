@@ -217,7 +217,6 @@ private fun MusicPlaybackService.releaseTickersAndJobs() {
     cachedDefaultTracks = emptyList()
     cachedPlayableDefaultTracks = emptyList()
     deferForcedStartupUiUpdates = false
-    pendingQueueSessionSyncAfterStartupPlay = false
 }
 
 private fun MusicPlaybackService.releaseObservers() {
@@ -259,8 +258,9 @@ private fun MusicPlaybackService.releaseMediaSessionResources() {
     media3Session?.release()
     media3Session = null
 
-    if (isNotificationSessionBridgeInitialized()) {
-        notificationSessionBridge.release()
+    if (isSessionMetadataInitialized()) {
+        sessionMetadata.clear()
+        sessionPlayer.detach()
     }
 }
 

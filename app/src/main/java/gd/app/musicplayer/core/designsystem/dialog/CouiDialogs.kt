@@ -82,6 +82,7 @@ internal object CouiDialogs {
                     }
                 }
             }
+            config.onShowListener?.onShow(dialog)
         }
         dialog.show()
     }

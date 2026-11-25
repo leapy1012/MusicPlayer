@@ -81,7 +81,11 @@ fun View.applySystemBarInsets(
 
     if (bottomPaddingView == null) return
 
-    ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+    val initialLeft = paddingLeft
+    val initialRight = paddingRight
+    val initialBottom = bottomPaddingView.paddingBottom
+
+    ViewCompat.setOnApplyWindowInsetsListener(this) { root, insets ->
         val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
         // Only update status spacer if cache missed (foldables / unusual cutouts).
@@ -94,11 +98,18 @@ fun View.applySystemBarInsets(
             }
         }
 
-        // Gesture nav: tappable.bottom == 0 → draw edge-to-edge behind the indicator.
-        // 3-button nav: tappable.bottom > 0 → pad so content clears the buttons.
-        val tappableBottom = insets.getInsets(WindowInsetsCompat.Type.tappableElement()).bottom
-        val bottomPadding = if (tappableBottom > 0) systemBars.bottom else 0
-        bottomPaddingView.updatePadding(bottom = bottomPadding)
+        // Reserve button navigation on its occupied edge, including landscape.
+        // Gesture navigation stays edge-to-edge. Use the original padding so
+        // repeated dispatches and navigation-mode changes cannot add stale space.
+        val navigation = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+        val tappable = insets.getInsets(WindowInsetsCompat.Type.tappableElement())
+        root.updatePadding(
+            left = initialLeft + if (tappable.left > 0) maxOf(navigation.left, tappable.left) else 0,
+            right = initialRight + if (tappable.right > 0) maxOf(navigation.right, tappable.right) else 0,
+        )
+        bottomPaddingView.updatePadding(
+            bottom = initialBottom + if (tappable.bottom > 0) maxOf(navigation.bottom, tappable.bottom) else 0,
+        )
 
         insets
     }

@@ -347,6 +347,7 @@
     <string name="queue_all_songs">모든 노래</string>
     <string name="queue_for_searching">검색 후 대기열</string>
     <string name="queue_search_result">검색 결과</string>
+    <string name="no_search_results">검색 결과가 없습니다</string>
     <string name="recent_add">최근 추가</string>
     <string name="recent_play">최근 재생</string>
     <string name="recently_added">최근 추가됨</string>

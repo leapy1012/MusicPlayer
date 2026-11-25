@@ -75,6 +75,7 @@ class EqualizerFragment : ViewBindingFragment<ViewBinding>() {
     private var virtualizerApplyJob: Job? = null
     private var bassTracking: Boolean = false
     private var virtualizerTracking: Boolean = false
+    private var presetActionsPopup: com.coui.appcompat.poplist.COUIPopupListWindow? = null
 
     private val picturedStyle: Boolean
         get() = (activity as? EqualizerActivity)?.usesPicturedStyle()
@@ -110,6 +111,8 @@ class EqualizerFragment : ViewBindingFragment<ViewBinding>() {
         requireBinding() as FragmentEqualizerPicturedBinding
 
     override fun onDestroyView() {
+        presetActionsPopup?.dismiss()
+        presetActionsPopup = null
         (activity as? EqualizerActivity)?.equalizerTipGuard()?.clearShieldViews()
         super.onDestroyView()
     }
@@ -534,6 +537,7 @@ class EqualizerFragment : ViewBindingFragment<ViewBinding>() {
     }
 
     private fun showEditActionsDialog(record: EqualizerPresetRecord) {
+        presetActionsPopup?.dismiss()
         val options = buildList {
             add(getString(R.string.rename))
             if (record.canDelete) {
@@ -541,20 +545,24 @@ class EqualizerFragment : ViewBindingFragment<ViewBinding>() {
             }
         }
 
-        val config = materialDialogConfigFactory
-            .createMaterialListDialogConfig(requireContext(), options)
-            .apply {
-                titleText = getString(R.string.equalizer_edit)
-                onItemClickListener = AdapterView.OnItemClickListener { _, _, which, _ ->
-                    BaseDialog.dismissAll(requireActivity())
-                    when {
-                        which == 0 -> showRenamePresetDialog(record)
-                        which == 1 && record.canDelete -> deletePreset(record)
-                    }
-                }
+        val anchor = if (picturedStyle) pictured().equalizerEdit else coui().equalizerEdit
+        val popup = com.coui.appcompat.poplist.COUIPopupListWindow(
+            gd.app.musicplayer.ui.common.menu.CouiPopupListSurface.popupContext(requireContext())
+        )
+        presetActionsPopup = popup
+        popup.setOnDismissListener { if (presetActionsPopup === popup) presetActionsPopup = null }
+        val items = ArrayList(options.map { com.coui.appcompat.poplist.PopupListItem.Builder().setTitle(it).build() })
+        gd.app.musicplayer.ui.common.menu.CouiPopupListSurface.paintItemTitles(requireContext(), items)
+        popup.setItemList(items)
+        popup.setOnItemClickListener { _, _, which, _ ->
+            popup.dismiss()
+            when {
+                which == 0 -> showRenamePresetDialog(record)
+                which == 1 && record.canDelete -> deletePreset(record)
             }
-
-        OptionsListDialog.show(requireActivity(), config)
+        }
+        popup.show(anchor)
+        gd.app.musicplayer.ui.common.menu.CouiPopupListSurface.apply(popup, requireContext())
     }
 
     private fun showRenamePresetDialog(record: EqualizerPresetRecord) {
@@ -652,15 +660,17 @@ class EqualizerFragment : ViewBindingFragment<ViewBinding>() {
     }
 
     private fun buildPresetInput(initialValue: String): EditText {
-        val input = layoutInflater.inflate(
-            R.layout.layout_edittext,
+        val content = layoutInflater.inflate(
+            R.layout.dialog_equalizer_preset_name,
             null as ViewGroup?
-        ) as com.coui.appcompat.edittext.COUIEditText
+        )
+        val input = content.findViewById<com.coui.appcompat.edittext.COUIEditText>(R.id.edit)
         input.applyLengthFilter(120)
         input.setFastDeletable(true)
         input.setText(initialValue)
         applyThemeTo(input)
-        input.showKeyboardDelayed()
+        input.setSelectAllOnFocus(false)
+        input.setSelection(input.text?.length ?: 0)
         return input
     }
 
@@ -673,7 +683,9 @@ class EqualizerFragment : ViewBindingFragment<ViewBinding>() {
             .createMaterialMessageDialogConfig(requireContext())
             .apply {
                 titleText = title
-                customView = input
+                customView = input.parent as? android.view.View ?: input
+                onShowListener = DialogInterface.OnShowListener { input.showKeyboardDelayed(0L) }
+                onDismissListener = DialogInterface.OnDismissListener { input.clearFocus() }
                 positiveButtonText = getString(R.string.ok)
                 negativeButtonText = getString(R.string.cancel)
                 positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->

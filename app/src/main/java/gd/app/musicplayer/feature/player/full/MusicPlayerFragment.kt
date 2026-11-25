@@ -342,6 +342,10 @@ class MusicPlayerFragment :
     }
 
     private fun setupLyricPage(binding: MusicPlayFragmentLrcBinding) = with(binding) {
+        musicPlayLrc.setOnLyricLineClickListener { positionMs ->
+            playerViewModel.seekTo(requireContext(), positionMs)
+            playerViewModel.play(requireContext())
+        }
         musicPlayLrcSearch.setOnClickListener(this@MusicPlayerFragment)
         musicPlayLrc.setOnClickListener {
             if (musicPlayLrc.a()) {

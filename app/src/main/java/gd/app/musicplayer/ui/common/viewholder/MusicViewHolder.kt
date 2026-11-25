@@ -46,7 +46,9 @@ class MusicViewHolder(
         item: ListItem,
         isCurrentTrack: Boolean,
         isPlaying: Boolean,
-        viewInfo: String
+        viewInfo: String,
+        titleText: CharSequence? = null,
+        artistText: CharSequence? = null
     ) {
         val music = (item as ListItem.MusicItem).music
 
@@ -54,8 +56,17 @@ class MusicViewHolder(
 
         binding.musicItemAlbum.loadMusicArtwork(music.albumArtSource())
 
-        binding.musicItemTitle.text = music.title
-        binding.musicItemArtist.text = music.artist
+        // Search changes color spans in place; this avoids measuring unchanged text on typing.
+        if (titleText != null) {
+            binding.musicItemTitle.setText(titleText, android.widget.TextView.BufferType.SPANNABLE)
+        } else {
+            binding.musicItemTitle.text = music.title
+        }
+        if (artistText != null) {
+            binding.musicItemArtist.setText(artistText, android.widget.TextView.BufferType.SPANNABLE)
+        } else {
+            binding.musicItemArtist.text = music.artist
+        }
 
         bindMetadata(
             music = music,

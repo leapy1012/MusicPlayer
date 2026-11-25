@@ -48,6 +48,7 @@ class RecyclerEmptyStateController(
     private var extraText: String? = null
     private var emptyImageResId: Int = 0
     private var emptyLottieAsset: String? = null
+    private var isEmptyShown = false
     private var actionClickListener: View.OnClickListener? = null
     private var theme: ThemePalette? = null
     private var emptyContainer: ConfigurationLinearLayout? = null
@@ -73,12 +74,22 @@ class RecyclerEmptyStateController(
     }
 
     fun showList() {
+        isEmptyShown = false
         if (emptyRootView != null) {
             recyclerView.post {
+                if (isEmptyShown) return@post
                 emptyContainer?.findViewById<LottieAnimationView>(R.id.empty_lottie)?.pauseAnimation()
                 emptyRootView?.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
             }
+        }
+    }
+
+    /** Keep the final pose when its page is hidden, without continuing off-screen frames. */
+    fun finishAnimation() {
+        emptyContainer?.findViewById<LottieAnimationView>(R.id.empty_lottie)?.let {
+            it.pauseAnimation()
+            it.progress = 1f
         }
     }
 
@@ -157,16 +168,16 @@ class RecyclerEmptyStateController(
     fun setEmptyImage(imageResId: Int) {
         emptyImageResId = imageResId
         emptyLottieAsset = null
-        emptyContainer?.let(::applyEmptyArtwork)
+        emptyContainer?.let { applyEmptyArtwork(it) }
     }
 
     /**
-     * Prefer a looping Lottie from `assets/` over the static [empty_image] drawable.
+     * Play a Lottie from `assets/` once when the empty state appears.
      * Pass null/blank to fall back to [setEmptyImage].
      */
     fun setEmptyLottieAsset(assetFileName: String?) {
         emptyLottieAsset = assetFileName?.takeIf { it.isNotBlank() }
-        emptyContainer?.let(::applyEmptyArtwork)
+        emptyContainer?.let { applyEmptyArtwork(it) }
     }
 
     fun setEmptyMessage(text: String) {
@@ -204,6 +215,8 @@ class RecyclerEmptyStateController(
     }
 
     fun showEmpty() {
+        val restartAnimation = !isEmptyShown
+        isEmptyShown = true
         if (emptyRootView == null) {
             val inflated = emptyViewStub.inflate()
             emptyRootView = inflated
@@ -236,21 +249,22 @@ class RecyclerEmptyStateController(
                 container.findViewById<TextView>(R.id.empty_text).text = it
             }
 
-            applyEmptyArtwork(container)
+            applyEmptyArtwork(container, restartAnimation)
 
             // The stub inflates after the screen's theme pass, so theme it here.
             applyTheme(resolveTheme())
         } else {
-            emptyContainer?.let(::applyEmptyArtwork)
+            emptyContainer?.let { applyEmptyArtwork(it, restartAnimation) }
         }
 
         recyclerView.post {
+            if (!isEmptyShown) return@post
             emptyRootView?.visibility = View.VISIBLE
             recyclerView.visibility = View.GONE
         }
     }
 
-    private fun applyEmptyArtwork(container: ViewGroup) {
+    private fun applyEmptyArtwork(container: ViewGroup, restartAnimation: Boolean = false) {
         val image = container.findViewById<ImageView>(R.id.empty_image) ?: return
         val lottie = container.findViewById<LottieAnimationView>(R.id.empty_lottie) ?: return
         val asset = emptyLottieAsset
@@ -259,15 +273,21 @@ class RecyclerEmptyStateController(
             image.visibility = View.GONE
             image.imageTintList = null
             lottie.visibility = View.VISIBLE
-            if (lottie.tag != asset) {
+            lottie.repeatCount = 0
+            val assetChanged = lottie.tag != asset
+            if (assetChanged) {
                 lottie.setAnimation(asset)
                 lottie.tag = asset
             }
-            if (!lottie.isAnimating) {
+            // Completed animations are also "not animating". Do not restart them for
+            // another empty-result emission while this same state remains visible.
+            if (isEmptyShown && (restartAnimation || assetChanged)) {
+                lottie.progress = 0f
                 lottie.playAnimation()
             }
         } else {
             lottie.pauseAnimation()
+            lottie.tag = null
             lottie.visibility = View.GONE
             image.visibility = View.VISIBLE
             if (emptyImageResId != 0) {

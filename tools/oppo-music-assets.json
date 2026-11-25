@@ -1,0 +1,17 @@
+{
+  "package": "com.heytap.music",
+  "versionName": "40.17.5.2",
+  "versionCode": 191170502,
+  "apkSha256": "29631397aab43704a1e4d74c608d6fb9f016587345d97ed6411c4eb26aa17bb5",
+  "resources": {
+    "vector_mini_queue": "drawable-night/miniplayer_action_playlist.xml",
+    "vector_mode_circle": "drawable/player_control_cycle_order.xml",
+    "vector_mode_random": "drawable/player_control_cycle_random.xml",
+    "vector_mode_single": "drawable/player_control_cycle_single.xml",
+    "vector_mode_order": "drawable/player_control_songlist_playmode.xml",
+    "vector_backward_15": "drawable/ico_phone_playing_back15.xml",
+    "vector_forward_15": "drawable/ico_phone_playing_forward15.xml",
+    "vector_sound_effect": "drawable/ico_phone_playing_sound_effect.xml",
+    "vector_play_queue_menu": "drawable/player_control_songlist.xml"
+  }
+}

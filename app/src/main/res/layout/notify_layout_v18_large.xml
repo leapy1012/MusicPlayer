@@ -140,7 +140,7 @@
                 android:layout_height="@dimen/notification_icon_size"
                 android:padding="@dimen/notification_icon_padding"
                 android:scaleType="fitCenter"
-                android:src="@drawable/notify_previous_new" />
+                android:src="@drawable/ic_player_previous_outline" />
 
             <ImageView
                 android:layout_width="0dp"
@@ -187,7 +187,7 @@
                 android:layout_height="@dimen/notification_icon_size"
                 android:padding="@dimen/notification_icon_padding"
                 android:scaleType="fitCenter"
-                android:src="@drawable/notify_next_new" />
+                android:src="@drawable/ic_player_next_outline" />
         </LinearLayout>
     </LinearLayout>
 </RelativeLayout>

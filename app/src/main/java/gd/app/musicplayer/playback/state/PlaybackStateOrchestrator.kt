@@ -1,11 +1,9 @@
 package gd.app.musicplayer.playback.state
 
 import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.playback.notification.NotificationMediaSessionBridge
 import gd.app.musicplayer.playback.notification.PlaybackNotificationController
 
 class PlaybackStateOrchestrator(
-    private val notificationSessionBridge: NotificationMediaSessionBridge,
     private val notificationController: PlaybackNotificationController,
     private val statePublisher: PlaybackStatePublisher,
     private val isEffectivelyPlayingProvider: () -> Boolean,
@@ -42,8 +40,6 @@ class PlaybackStateOrchestrator(
             updateNotification(force = forceNotification)
         }
 
-        // Original y.d(pos) → e7.j.n(pos) every progress tick — keep lockscreen/BT position live
-        notificationSessionBridge.updatePlaybackState()
 
         statePublisher.publish(
             forceWidgetUpdate = forceWidgetUpdate
@@ -65,7 +61,6 @@ class PlaybackStateOrchestrator(
         snapshot: PlaybackSnapshot? = null,
         notifyWidgets: Boolean = true
     ) {
-        notificationSessionBridge.updatePlaybackState()
 
         if (snapshot == null) {
             publishPlaybackState(

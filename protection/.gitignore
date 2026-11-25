@@ -1,5 +1,0 @@
-# Leapy added begin: Private generated rules, audits and build logs.
-/generated/
-*.log
-__pycache__/
-# Leapy end

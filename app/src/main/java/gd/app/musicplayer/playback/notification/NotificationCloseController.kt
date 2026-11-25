@@ -23,7 +23,6 @@ class NotificationCloseController(
             persistQueue = true
         )
 
-        callbacks.updateNotificationSessionPlaybackState()
 
         callbacks.publishPausedSnapshot(snapshot)
 

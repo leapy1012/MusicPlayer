@@ -95,8 +95,8 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>() {
         val binding = requireBinding()
 
         binding.viewPager.adapter = SearchPagerAdapter(this)
-        // Original t1.Y: keep every page alive so the query reaches all of them at once.
-        binding.viewPager.offscreenPageLimit = SearchPage.pages.size
+        // Results are shared by the ViewModel; hidden pages do not need live row hierarchies.
+        binding.viewPager.offscreenPageLimit = 1
 
         tabMediator = CouiTabLayoutMediator(
             tabLayout = binding.tabLayout,
@@ -107,6 +107,7 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>() {
 
         val callback = object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
+                (currentPageFragment() as? SearchPageFragment)?.renderLatestResults()
                 scheduleBindAppBarToCurrentList()
             }
         }
@@ -136,6 +137,9 @@ class SearchFragment : ViewBindingFragment<FragmentSearchBinding>() {
     fun hideSearchKeyboard() {
         binding?.searchBar?.searchEditText?.hideKeyboard()
     }
+
+    internal fun isSelectedPage(page: SearchPage): Boolean =
+        binding?.viewPager?.currentItem == page.ordinal
 
     /**
      * The include-wrapped list of each page is created asynchronously by the pager, so the

@@ -102,10 +102,6 @@ internal fun MusicPlaybackService.handleMediaItemTransition(reason: Int) {
     if (player.mediaItemCount > 1 && playerIndex in queue.indices) {
         queueManager.updateCurrentIndex(playerIndex)
     }
-    if (pendingQueueSessionSyncAfterStartupPlay) {
-        pendingQueueSessionSyncAfterStartupPlay = false
-        notificationSessionBridge.updateQueue()
-    }
 
     resetTimedTransitionState()
     if (isVolumeFaderInitialized()) {
@@ -768,7 +764,7 @@ internal fun MusicPlaybackService.promoteCrossfadePlayerToPrimary(
         )
     }
 
-    rebuildMedia3SessionAfterPlayerPromote()
+    replaceSessionPlaybackPlayer()
 
     if (nextIndex in queue.indices) {
         queueManager.updateCurrentIndex(nextIndex)
@@ -808,9 +804,8 @@ private fun MusicPlaybackService.releaseOutgoingPlayer(outgoing: ExoPlayer?) {
     }
 }
 
-private fun MusicPlaybackService.rebuildMedia3SessionAfterPlayerPromote() {
-    media3Session?.release()
-    media3Session = buildMedia3Session()
+private fun MusicPlaybackService.replaceSessionPlaybackPlayer() {
+    sessionPlayer.replacePlaybackPlayer(player)
     updateMedia3CommandButtons()
 }
 

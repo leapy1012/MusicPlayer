@@ -84,25 +84,10 @@ abstract class SectionedSearchAdapter : RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     fun reload() {
-        val oldCount = getItemCount()
         clearPositionCache()
-        val newCount = getItemCount()
-
-        when {
-            oldCount == 0 && newCount == 0 -> Unit
-            oldCount == 0 -> notifyItemRangeInserted(0, newCount)
-            newCount == 0 -> notifyItemRangeRemoved(0, oldCount)
-            oldCount == newCount -> notifyItemRangeChanged(0, newCount)
-            else -> {
-                val overlap = minOf(oldCount, newCount)
-                if (overlap > 0) notifyItemRangeChanged(0, overlap)
-                if (newCount > oldCount) {
-                    notifyItemRangeInserted(overlap, newCount - oldCount)
-                } else {
-                    notifyItemRangeRemoved(overlap, oldCount - newCount)
-                }
-            }
-        }
+        // Original i7.a.m(): replace the filtered view immediately, without insert/remove
+        // transitions on every keystroke. Result positions do not represent stable identities.
+        notifyDataSetChanged()
     }
 
     private fun bindViewHolder(

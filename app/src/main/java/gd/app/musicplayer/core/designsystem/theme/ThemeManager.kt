@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /**
@@ -29,12 +30,15 @@ class ThemeManager @Inject constructor(
     private val themeBinder = DefaultThemeBinder()
 
     @Volatile
-    private var cachedSettings: ThemeSettings = ThemeSettings()
+    private var cachedSettings: ThemeSettings = runBlocking(Dispatchers.IO) {
+        // Every entry point can request a palette before the application-scope collector runs.
+        // Read the small settings snapshot once before exposing that first palette. The
+        // DataStore uses its own IO scope; this does not wait for bitmap decoding or Welcome.
+        themeSettingPreferenceStore.getSettingsSnapshot()
+    }
 
     init {
         appScope.launch {
-            // Load theme_type (and the rest) before collecting, so first refresh is correct.
-            cachedSettings = themeSettingPreferenceStore.getSettingsSnapshot()
             themeSettingPreferenceStore.settings.collectLatest { settings ->
                 cachedSettings = settings
             }

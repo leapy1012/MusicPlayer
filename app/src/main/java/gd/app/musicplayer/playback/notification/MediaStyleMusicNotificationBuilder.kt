@@ -60,7 +60,7 @@ class MediaStyleMusicNotificationBuilder(
             )
             .addAction(
                 NotificationCompat.Action.Builder(
-                    R.drawable.notify_previous_new,
+                    R.drawable.ic_player_previous_outline,
                     "PREVIOUS",
                     content.createPreviousIntent(context),
                 ).build(),
@@ -75,7 +75,7 @@ class MediaStyleMusicNotificationBuilder(
             )
             .addAction(
                 NotificationCompat.Action.Builder(
-                    R.drawable.notify_next_new,
+                    R.drawable.ic_player_next_outline,
                     "NEXT",
                     content.createNextIntent(context),
                 ).build(),

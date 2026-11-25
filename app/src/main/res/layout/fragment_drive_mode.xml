@@ -131,6 +131,7 @@
             android:id="@+id/drive_mode_play_pause"
             android:layout_width="64dp"
             android:layout_height="64dp"
+            android:padding="12dp"
             android:scaleType="fitCenter"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/drive_mode_next"

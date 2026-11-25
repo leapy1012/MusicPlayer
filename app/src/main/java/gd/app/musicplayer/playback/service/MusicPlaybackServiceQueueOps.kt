@@ -49,7 +49,7 @@ import gd.app.musicplayer.playback.artwork.ArtworkLoader
 import gd.app.musicplayer.playback.effects.AudioEffectsManager
 import gd.app.musicplayer.playback.AudioFocusController
 import gd.app.musicplayer.playback.headset.HeadsetMediaButtonHandler
-import gd.app.musicplayer.playback.notification.NotificationMediaSessionBridge
+import gd.app.musicplayer.playback.player.PlaybackSessionMetadata
 import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.notification.PlaybackNotificationController
 import gd.app.musicplayer.playback.command.PlaybackCommandPayloadStore
@@ -151,7 +151,6 @@ internal fun MusicPlaybackService.resumeWithDefaultQueue() {
         )
 
         restoreManager.markRestored()
-        pendingQueueSessionSyncAfterStartupPlay = true
 
         val shouldAutoResume = pendingResumeAfterDefaultQueue
         pendingResumeAfterDefaultQueue = false
@@ -369,7 +368,6 @@ internal fun MusicPlaybackService.updateEditedTrackMetadata(
     val changed = queueManager.updateTrackMetadata(music)
     if (!changed) return
 
-    notificationSessionBridge.updateQueue()
     refreshArtworkAndSession(force = true)
     persistSessionFromCurrentStateAsync()
     publishPlaybackState(
@@ -385,7 +383,6 @@ internal fun MusicPlaybackService.updateEditedTracksMetadata(
     val changed = queueManager.updateTracksMetadata(music)
     if (!changed) return
 
-    notificationSessionBridge.updateQueue()
     refreshArtworkAndSession(force = true)
     persistSessionFromCurrentStateAsync()
     publishPlaybackState(

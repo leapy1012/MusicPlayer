@@ -10,9 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.SimpleItemAnimator
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.databinding.LayoutRecyclerviewBinding
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
@@ -70,13 +70,25 @@ class SearchPageFragment :
         setupList(binding)
         observeSections()
         observePlaybackHighlight()
+        renderLatestResults()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        renderLatestResults()
+    }
+
+    override fun onPause() {
+        // Off-screen tabs must not keep drawing their empty-state animation.
+        if (::emptyStateController.isInitialized) emptyStateController.finishAnimation()
+        super.onPause()
     }
 
     private fun setupList(binding: LayoutRecyclerviewBinding) {
         val recyclerView = binding.recyclerview
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
-        (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+        recyclerView.itemAnimator = null
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
@@ -85,45 +97,60 @@ class SearchPageFragment :
             }
         })
 
-        // Same gray plate as edit screens (BackgroundWithCard), not white CardBackground.
-        val typed = requireContext().obtainStyledAttributes(
-            intArrayOf(com.coui.appcompat.R.attr.couiColorBackgroundWithCard)
-        )
-        val listSurface = typed.getColor(0, 0xFFF0F1F2.toInt())
-        typed.recycle()
-        binding.root.setBackgroundColor(listSurface)
-        recyclerView.setBackgroundColor(listSurface)
-
         emptyStateController = RecyclerEmptyStateController(
             recyclerView = recyclerView,
             emptyViewStub = binding.layoutListEmpty
         )
-        emptyStateController.applyTheme(themeRepo.getCorePalette())
-        emptyStateController.setEmptyMessage(getString(R.string.queue_search_result))
+        applyPageTheme(themeRepo.getCorePalette())
+        emptyStateController.setEmptyLottieAsset("music_empty.json")
+        emptyStateController.setEmptyMessage(getString(R.string.no_search_results))
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        applyPageTheme(palette ?: themeRepo.getCorePalette())
+    }
+
+    private fun applyPageTheme(palette: ThemePalette) {
+        val binding = binding ?: return
+        SearchPageSurface.apply(binding.root, binding.recyclerview, palette)
+        if (::emptyStateController.isInitialized) {
+            emptyStateController.applyTheme(palette)
+        }
     }
 
     private fun observeSections() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.sections.collect { sections ->
-                    val pageSections = sectionsForPage(sections)
-                    adapter.submitSections(pageSections, viewModel.currentQuery())
-                    emptyStateController.setVisible(pageSections.isEmpty())
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                viewModel.results.collect { result ->
+                    // Initial loading is not a confirmed empty search result.
+                    if (result == null) return@collect
+                    renderResults(result)
                 }
             }
         }
     }
 
-    /** Each page owns its section expansion state, so sections are copied rather than shared. */
+    internal fun renderLatestResults() {
+        if (binding == null) return
+        viewModel.results.value?.let(::renderResults)
+    }
+
+    private fun renderResults(result: SearchResults) {
+        if ((parentFragment as? SearchFragment)?.isSelectedPage(page) != true) return
+        val pageSections = sectionsForPage(result.sections)
+        adapter.submitSections(pageSections, result.query)
+        emptyStateController.setVisible(pageSections.isEmpty())
+    }
+
     private fun sectionsForPage(
         sections: List<SearchResultAdapter.SearchSection>
     ): List<SearchResultAdapter.SearchSection> = sections
         .filter { page.isCombined || it.titleRes == page.titleRes }
-        .map { it.copy() }
 
     private fun observePlaybackHighlight() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 playerViewModel.playbackHighlightState.collect { state ->
                     adapter.submitPlaybackHighlight(state.currentMusicId, state.isPlaying)
                 }

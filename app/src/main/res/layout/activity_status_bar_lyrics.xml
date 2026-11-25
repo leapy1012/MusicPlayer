@@ -66,7 +66,7 @@
                 android:id="@+id/preference_sbar_lyric_container_1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/couiColorCardBackground"
+                android:background="@drawable/setting_catory_bg"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -200,7 +200,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:background="?attr/couiColorCardBackground"
+                android:background="@drawable/setting_catory_bg"
                 android:orientation="vertical">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
@@ -307,7 +307,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:background="?attr/couiColorCardBackground"
+                android:background="@drawable/setting_catory_bg"
                 android:orientation="vertical">
 
                 <LinearLayout

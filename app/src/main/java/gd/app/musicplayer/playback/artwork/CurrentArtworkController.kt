@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
 import gd.app.musicplayer.playback.artwork.ArtworkLoader
-import gd.app.musicplayer.playback.notification.NotificationMediaSessionBridge
+import gd.app.musicplayer.playback.player.PlaybackSessionMetadata
 import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.queue.PlaybackQueueManager
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +23,7 @@ class CurrentArtworkController(
     private val observeAlbumPictureUseCase: ObserveAlbumPictureUseCase,
     private val queueManager: PlaybackQueueManager,
     private val runtimeStateStore: PlaybackRuntimeStateStore,
-    private val notificationSessionBridge: NotificationMediaSessionBridge,
+    private val sessionMetadata: PlaybackSessionMetadata,
     private val callbacks: Callbacks
 ) {
 
@@ -82,13 +82,13 @@ class CurrentArtworkController(
             currentArtwork = null
             currentArtworkTrackId = NO_TRACK_ID
 
-            notificationSessionBridge.clearMetadata()
+            sessionMetadata.clear()
             callbacks.onArtworkCleared()
             return
         }
 
         if (!force && currentArtworkTrackId == music.id) {
-            notificationSessionBridge.updateMetadata(
+            sessionMetadata.updateMetadata(
                 music = music,
                 artwork = currentArtwork ?: defaultArtwork
             )
@@ -98,6 +98,13 @@ class CurrentArtworkController(
         }
 
         val requestedTrackId = music.id
+
+        // Never leave the previous song's cover attached while the new image loads.
+        if (currentArtworkTrackId != requestedTrackId) {
+            currentArtwork = null
+            currentArtworkTrackId = NO_TRACK_ID
+            sessionMetadata.updateMetadata(music, defaultArtwork)
+        }
 
         artworkLoader.load(
             music = music,
@@ -168,7 +175,7 @@ class CurrentArtworkController(
         currentArtwork = bitmap
         currentArtworkTrackId = music.id
 
-        notificationSessionBridge.updateMetadata(
+        sessionMetadata.updateMetadata(
             music = music,
             artwork = bitmap
         )

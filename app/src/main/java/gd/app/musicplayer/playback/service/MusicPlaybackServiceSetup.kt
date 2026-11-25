@@ -50,7 +50,7 @@ import gd.app.musicplayer.playback.artwork.ArtworkLoader
 import gd.app.musicplayer.playback.effects.AudioEffectsManager
 import gd.app.musicplayer.playback.AudioFocusController
 import gd.app.musicplayer.playback.headset.HeadsetMediaButtonHandler
-import gd.app.musicplayer.playback.notification.NotificationMediaSessionBridge
+import gd.app.musicplayer.playback.player.PlaybackSessionMetadata
 import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.notification.PlaybackNotificationController
 import gd.app.musicplayer.playback.command.PlaybackCommandPayloadStore
@@ -384,34 +384,26 @@ internal fun MusicPlaybackService.configureControllers() {
         }
     )
 
-    notificationSessionBridge = NotificationMediaSessionBridge(
-        context = this,
-        playerProvider = { player },
-        queueProvider = {
-            queue
-        },
-        currentIndexProvider = {
-            currentIndex
-        },
-        isEffectivelyPlaying = {
-            isEffectivelyPlaying()
-        },
-        headsetMediaButtonHandler = headsetMediaButtonHandler,
-        callbacks = object : NotificationMediaSessionBridge.Callbacks {
-            override fun play() = resumePlayback()
-            override fun pause() = pausePlayback()
-            override fun next() = playNext()
-            override fun previous() = playPrevious()
-            override fun seekTo(positionMs: Int) = this@configureControllers.seekTo(positionMs)
-            override fun toggleFavorite() = handleNotificationFavoriteToggle()
-            override fun setFavorite(isFavorite: Boolean) = setCurrentFavorite(isFavorite)
-            override fun quit() = exitService()
-            override fun stop() = exitService()
-        }
+    sessionPlayer = QueueAwareSessionPlayer(
+        player = player,
+        onPlay = { resumePlayback() },
+        onPause = { pausePlayback() },
+        onSeekNext = { playNext() },
+        onSeekPrevious = { playPrevious() }
     )
-
-    notificationSessionBridge.updateQueue()
-    notificationSessionBridge.updatePlaybackState()
+    sessionMetadata = PlaybackSessionMetadata(
+        scope = serviceScope,
+        sessionPlayer = { sessionPlayer },
+        currentMusic = { queue.getOrNull(currentIndex) },
+        queueSize = { queue.size },
+        currentIndex = { currentIndex }
+    )
+    media3Session = buildMedia3Session()
+    // Register app-created sessions too: onGetSession is not called when the
+    // app starts playback through its own service commands. Registration connects
+    // Media3's notification controller and publishes its custom system actions.
+    addSession(checkNotNull(media3Session))
+    updateMedia3CommandButtons()
 
     artworkController = CurrentArtworkController(
         defaultArtwork = defaultArtwork,
@@ -419,7 +411,7 @@ internal fun MusicPlaybackService.configureControllers() {
         observeAlbumPictureUseCase = observeAlbumPictureUseCase,
         queueManager = queueManager,
         runtimeStateStore = playbackRuntimeStateStore,
-        notificationSessionBridge = notificationSessionBridge,
+        sessionMetadata = sessionMetadata,
         callbacks = object : CurrentArtworkController.Callbacks {
 
             override fun onQueueArtworkChanged() {
@@ -440,8 +432,6 @@ internal fun MusicPlaybackService.configureControllers() {
         }
     )
 
-    media3Session = buildMedia3Session()
-    updateMedia3CommandButtons()
 
     val notificationManager =
         getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -450,7 +440,7 @@ internal fun MusicPlaybackService.configureControllers() {
         service = this,
         notificationManager = notificationManager,
         mediaSessionTokenProvider = {
-            notificationSessionBridge.session.sessionToken
+            media3Session?.platformToken
         },
         currentMusicProvider = {
             queue.getOrNull(currentIndex)
@@ -484,7 +474,6 @@ internal fun MusicPlaybackService.configureControllers() {
     )
 
     stateOrchestrator = PlaybackStateOrchestrator(
-        notificationSessionBridge = notificationSessionBridge,
         notificationController = notificationController,
         statePublisher = statePublisher,
         isEffectivelyPlayingProvider = {
@@ -635,9 +624,6 @@ internal fun MusicPlaybackService.configureControllers() {
                 return player.currentPosition.coerceAtLeast(0L)
             }
 
-            override fun updateNotificationSessionQueue() {
-                notificationSessionBridge.updateQueue()
-            }
 
             override fun refreshArtworkAndSession(force: Boolean) {
                 this@configureControllers.refreshArtworkAndSession(force)
@@ -747,10 +733,9 @@ internal fun MusicPlaybackService.configureControllers() {
                 clearPersistedQueueBlocking()
             }
 
-            override fun clearNotificationSession() {
-                if (isNotificationSessionBridgeInitialized()) {
-                    notificationSessionBridge.clearMetadata()
-                    notificationSessionBridge.clearQueue()
+            override fun clearSessionMetadata() {
+                if (isSessionMetadataInitialized()) {
+                    sessionMetadata.clear()
                 }
             }
 
@@ -815,9 +800,6 @@ internal fun MusicPlaybackService.configureControllers() {
                 )
             }
 
-            override fun updateNotificationSessionPlaybackState() {
-                notificationSessionBridge.updatePlaybackState()
-            }
 
             override fun publishPausedSnapshot(snapshot: PlaybackSnapshot) {
                 stateOrchestrator.publishSnapshot(
@@ -849,16 +831,7 @@ internal fun MusicPlaybackService.buildMedia3Session(): MediaSession {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
-    return MediaSession.Builder(
-        this,
-        QueueAwareSessionPlayer(
-            exoPlayer = player,
-            onPlay = { resumePlayback() },
-            onPause = { pausePlayback() },
-            onSeekNext = { playNext() },
-            onSeekPrevious = { playPrevious() }
-        )
-    )
+    return MediaSession.Builder(this, sessionPlayer)
         .setSessionActivity(sessionActivity)
         .setCallback(media3SessionCallback)
         .build()
@@ -880,44 +853,11 @@ internal fun MusicPlaybackService.updateMedia3CommandButtons() {
     session.setMediaButtonPreferences(buttons)
 }
 
-internal fun MusicPlaybackService.buildMedia3CommandButtons(): List<CommandButton> {
-    val favorite = queue.getOrNull(currentIndex)?.playlistId == MusicSet.FAVORITES
-
-    return listOf(
-        CommandButton.Builder(
-            if (favorite) {
-                CommandButton.ICON_HEART_FILLED
-            } else {
-                CommandButton.ICON_HEART_UNFILLED
-            }
-        )
-            .setSessionCommand(
-                SessionCommand(
-                    MEDIA3_COMMAND_TOGGLE_FAVORITE,
-                    Bundle.EMPTY
-                )
-            )
-            .setDisplayName(
-                getString(
-                    if (favorite) {
-                        R.string.music_unfavorite
-                    } else {
-                        R.string.favorite
-                    }
-                )
-            )
-            .build(),
-        CommandButton.Builder(CommandButton.ICON_STOP)
-            .setSessionCommand(
-                SessionCommand(
-                    MEDIA3_COMMAND_CLOSE_NOTIFICATION,
-                    Bundle.EMPTY
-                )
-            )
-            .setDisplayName(getString(R.string.operation_stop))
-            .build()
+internal fun MusicPlaybackService.buildMedia3CommandButtons(): List<CommandButton> =
+    gd.app.musicplayer.playback.notification.musicSessionButtons(
+        this, queue.getOrNull(currentIndex)?.playlistId == MusicSet.FAVORITES
     )
-}
+
 
 internal fun MusicPlaybackService.registerScreenOffReceiver() {
     serviceScope.launch {
