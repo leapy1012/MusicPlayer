@@ -11,6 +11,7 @@ internal fun MusicPlaybackService.observePreferences() {
     observeDesktopLyricPreference()
     observeStatusBarLyricPreference()
     observeAudioEffectPreferences()
+    observeAppVisibility()
 }
 
 internal fun MusicPlaybackService.observeCurrentTrackArtwork() {
@@ -18,7 +19,6 @@ internal fun MusicPlaybackService.observeCurrentTrackArtwork() {
         artworkController.observe(serviceScope)
     }
 }
-
 
 internal fun MusicPlaybackService.observeCurrentTrackFavorite() {
     if (isFavoriteControllerInitialized()) {
@@ -47,14 +47,6 @@ internal fun MusicPlaybackService.observeDesktopLyricPreference() {
                 desktopLyricsController.renderPreference(preference)
             }
             updateNotification(force = true)
-        }
-        .launchIn(serviceScope)
-
-    AppForegroundTracker.isForeground
-        .onEach { isForeground ->
-            if (isDesktopLyricsControllerInitialized()) {
-                desktopLyricsController.renderAppForeground(isForeground)
-            }
         }
         .launchIn(serviceScope)
 
@@ -102,3 +94,14 @@ internal fun MusicPlaybackService.observeAudioEffectPreferences() {
 }
 
 
+
+internal fun MusicPlaybackService.observeAppVisibility() {
+    var wasForeground = AppForegroundTracker.isForeground.value
+    AppForegroundTracker.isForeground.onEach { foreground ->
+        if (wasForeground && !foreground && !playbackShuttingDown && isEffectivelyPlaying()) {
+            persistSessionFromCurrentStateAsync()
+        }
+        wasForeground = foreground
+        if (isDesktopLyricsControllerInitialized()) desktopLyricsController.renderAppForeground(foreground)
+    }.launchIn(serviceScope)
+}

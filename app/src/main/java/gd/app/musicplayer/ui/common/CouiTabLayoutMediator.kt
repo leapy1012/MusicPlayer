@@ -39,7 +39,7 @@ class CouiTabLayoutMediator(
             viewPager.registerOnPageChangeCallback(it)
         }
 
-        val tabSelectedListener = ViewPagerOnTabSelectedListener(viewPager, pageChangeCallback).also {
+        val tabSelectedListener = ViewPagerOnTabSelectedListener(tabLayout, viewPager, pageChangeCallback).also {
             onTabSelectedListener = it
             tabLayout.addOnTabSelectedListener(it)
         }
@@ -115,6 +115,11 @@ class CouiTabLayoutMediator(
         override fun onPageScrollStateChanged(state: Int) {
             previousScrollState = scrollState
             scrollState = state
+            if (state == ViewPager2.SCROLL_STATE_IDLE) {
+                val tabs = tabLayoutRef.get() ?: return
+                val selected = tabs.selectedTabPosition
+                if (selected >= 0) tabs.setScrollPosition(selected, 0f, true, true)
+            }
         }
 
         override fun onPageScrolled(
@@ -153,6 +158,7 @@ class CouiTabLayoutMediator(
     }
 
     private class ViewPagerOnTabSelectedListener(
+        private val tabLayout: COUITabLayout,
         private val viewPager: ViewPager2,
         private val onPageChangeCallback: TabLayoutOnPageChangeCallback
     ) : COUITabLayout.OnTabSelectedListener {
@@ -168,6 +174,10 @@ class CouiTabLayoutMediator(
             }
             onPageChangeCallback.setUserClickTriggered(true)
             viewPager.setCurrentItem(tab.position, false)
+            // Match the instant page swap with an instant indicator position. This
+            // cancels COUI's older indicator animator instead of racing layout updates.
+            tabLayout.setScrollPosition(tab.position, 0f, true, true)
+            viewPager.removeCallbacks(resetUserClickTriggered)
             viewPager.post(resetUserClickTriggered)
         }
 

@@ -42,12 +42,6 @@ data class ShutdownOptions(
             stopService = false
         )
 
-        val TaskRemovedWhenPaused = ShutdownOptions(
-            clearQueue = false,
-            clearPersistedQueue = false,
-            clearRuntimeState = false,
-            removeNotification = true,
-            stopService = true
-        )
+
     }
 }

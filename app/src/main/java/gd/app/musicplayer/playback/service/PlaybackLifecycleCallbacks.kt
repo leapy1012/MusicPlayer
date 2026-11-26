@@ -42,10 +42,6 @@ class PlaybackLifecycleCallbacks(
         service.createNotificationChannelFromLifecycle()
     }
 
-    override fun restoreLastSessionIntoRuntimeStateIfNeeded() {
-        service.restoreLastSessionIntoRuntimeStateIfNeeded()
-    }
-
     override fun registerScreenOffReceiver() {
         service.registerScreenOffReceiver()
     }
@@ -95,6 +91,10 @@ class PlaybackLifecycleCallbacks(
 
     override fun notifyOverlayConfigurationChanged() {
         service.notifyOverlayConfigurationChanged()
+    }
+
+    override fun handleTaskRemovedWhenPaused() {
+        service.handleTaskRemovedWhenPaused()
     }
 
     override fun handleTaskRemovedWhilePlaying() {

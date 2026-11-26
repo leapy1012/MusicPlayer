@@ -509,4 +509,12 @@
     <string name="write_to_database">데이터 저장 중…</string>
     <string name="widget_size_format">크기: %1$s</string>
     <string name="feature_not_implemented">아직 구현되지 않은 기능</string>
+    <string name="music_follow_system">시스템 설정 사용</string>
+    <string name="music_custom_color">사용자 지정 색상</string>
+    <string name="music_lock_lyrics">바탕화면 가사 잠금</string>
+    <string name="music_unlock_lyrics">바탕화면 가사 잠금 해제</string>
+    <string name="playback_file_unavailable">파일을 사용할 수 없습니다: %1$s</string>
+    <string name="playback_format_unsupported">지원하지 않는 오디오: %1$s</string>
+    <string name="playback_track_failed">재생할 수 없습니다: %1$s</string>
+    <string name="playback_no_playable_music">재생할 수 있는 음악이 없습니다</string>
 </resources>

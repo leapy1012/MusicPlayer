@@ -51,6 +51,15 @@ class PresetColorAdapter(
 
     private val colorIndexMap: Map<Int, Int> = presetColors.withIndex().associate { it.value to it.index }
 
+    private var selectionEnabled = true
+
+    fun setSelectionEnabled(enabled: Boolean) {
+        if (selectionEnabled == enabled) return
+        selectionEnabled = enabled
+        if (selectedPresetIndex >= 0) notifyItemChanged(selectedPresetIndex, PAYLOAD_SELECTION)
+        else notifyItemChanged(customItemPosition(), PAYLOAD_SELECTION)
+    }
+
     private var selectedColor: Int = DEFAULT_ACCENT
     private var selectedPresetIndex: Int = colorIndexMap[selectedColor] ?: -1
 
@@ -119,7 +128,7 @@ class PresetColorAdapter(
         when (holder) {
             is PresetColorViewHolder -> {
                 val color = presetColors[position]
-                val isSelected = position == selectedPresetIndex
+                val isSelected = selectionEnabled && position == selectedPresetIndex
                 if (isSelectionPayloadOnly) {
                     holder.bindSelection(isSelected)
                 } else {
@@ -132,7 +141,7 @@ class PresetColorAdapter(
             }
 
             is CustomColorViewHolder -> {
-                val isSelected = selectedPresetIndex < 0
+                val isSelected = selectionEnabled && selectedPresetIndex < 0
                 if (isSelectionPayloadOnly) {
                     holder.bindSelection(isSelected)
                 } else {

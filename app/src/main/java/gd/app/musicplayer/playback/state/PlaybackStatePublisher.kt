@@ -7,6 +7,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import gd.app.musicplayer.domain.model.Music
+import gd.app.musicplayer.core.common.extension.toQueueMediaId
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import gd.app.musicplayer.feature.widget.WidgetCatalog
 
@@ -39,7 +40,11 @@ class PlaybackStatePublisher(
             player = progressPlayer,
             track = currentTrack
         )
-        val positionMs = PlaybackDurationResolver.safePositionMs(progressPlayer, durationMs)
+        val retained = runtimeStateStore.state.value
+        val playerOwnsTrack = currentTrack != null && progressPlayer.currentMediaItem?.mediaId == currentTrack.toQueueMediaId()
+        val positionMs = if (playerOwnsTrack) PlaybackDurationResolver.safePositionMs(progressPlayer, durationMs)
+            else if (currentTrack != null && retained.currentTrack?.id == currentTrack.id) retained.positionMs
+            else 0L
         val transitionPlaying =
             (player.playWhenReady || progressPlayer.playWhenReady) &&
                     currentIndex in queue.indices &&
@@ -189,7 +194,7 @@ class PlaybackStatePublisher(
     private data class WidgetSignature(
         val queueIds: List<Long>,
         val currentIndex: Int,
-        val currentTrackId: Long?,
+        val currentTrack: Music?,
         val isPlaying: Boolean,
         val progressBucket: Long
     ) {
@@ -198,7 +203,7 @@ class PlaybackStatePublisher(
                 return WidgetSignature(
                     queueIds = state.queue.map { music -> music.id },
                     currentIndex = state.currentIndex,
-                    currentTrackId = state.currentTrack?.id,
+                    currentTrack = state.currentTrack,
                     isPlaying = state.isPlaying,
                     progressBucket = state.positionMs / WIDGET_PROGRESS_UPDATE_INTERVAL_MS
                 )
@@ -211,6 +216,6 @@ class PlaybackStatePublisher(
             "gd.app.musicplayer.action.WIDGET_PLAYBACK_SESSION_UPDATED"
 
         private const val NO_INDEX = -1
-        private const val WIDGET_PROGRESS_UPDATE_INTERVAL_MS = 15_000L
+        private const val WIDGET_PROGRESS_UPDATE_INTERVAL_MS = 1_000L
     }
 }

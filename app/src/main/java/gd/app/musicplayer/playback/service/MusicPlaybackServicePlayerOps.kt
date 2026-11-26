@@ -12,25 +12,26 @@ import gd.app.musicplayer.playback.state.PlaybackSnapshot
 import gd.app.musicplayer.playback.shutdown.ShutdownOptions
 import gd.app.musicplayer.playback.state.PublishReason
 import gd.app.musicplayer.playback.timer.SleepTimerState
-import gd.app.musicplayer.playback.ProcessPlayerHolder
 import gd.app.musicplayer.playback.effects.VolumeFader
 import gd.app.musicplayer.playback.transition.TimedTransitionController
-
 
 internal fun MusicPlaybackService.configurePlayer() {
     // Original: BassPlayer lives in AudioController process scope; service attaches later.
     processPlayerHolder.externalCallbacks = object : PlaybackEngine.Callbacks {
 
             override fun onPlayerReady() {
+                if (playbackShuttingDown) return
                 applyAudioEffectsFromPreferences()
                 publishAllRuntimeState()
             }
 
             override fun onTrackEnded() {
+                if (playbackShuttingDown) return
                 handleTrackEnded()
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (playbackShuttingDown) return
                 lockScreenController.setPlaying(isPlaying)
 
                 if (isPlaying) {
@@ -46,6 +47,7 @@ internal fun MusicPlaybackService.configurePlayer() {
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean) {
+                if (playbackShuttingDown) return
                 if (
                     playWhenReady &&
                     isAudioFocusControllerInitialized() &&
@@ -59,11 +61,13 @@ internal fun MusicPlaybackService.configurePlayer() {
             }
 
             override fun onMediaItemTransition(reason: Int) {
+                if (playbackShuttingDown) return
                 handleMediaItemTransition(reason)
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                playNextInternal()
+                if (playbackShuttingDown) return
+                recoverPlaybackError(error)
             }
         }
 
@@ -82,6 +86,7 @@ internal fun MusicPlaybackService.configurePlayer() {
 }
 
 internal fun MusicPlaybackService.handleMediaItemTransition(reason: Int) {
+    if (playbackShuttingDown || queue.getOrNull(currentIndex) == null) return
     if (
         suppressNextCrossfadeCommitTransition &&
         reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK
@@ -118,7 +123,7 @@ internal fun MusicPlaybackService.handleMediaItemTransition(reason: Int) {
         )
     }
 
-    persistSessionFromCurrentStateAsync()
+    persistCurrentTrackProgressFromPlayerAsync()
     updateMedia3CommandButtons()
     publishAllRuntimeState(forceNotification = true)
 }
@@ -221,6 +226,7 @@ internal fun MusicPlaybackService.clearPendingMedia3TransportCommand() {
 }
 
 internal fun MusicPlaybackService.handleMedia3PlayerInteractionFinished() {
+    if (playbackShuttingDown) return
     pendingMedia3StopSnapshot?.let { snapshot ->
         handleMedia3StopFinished(snapshot)
         pendingMedia3StopSnapshot = null
@@ -228,6 +234,7 @@ internal fun MusicPlaybackService.handleMedia3PlayerInteractionFinished() {
         return
     }
 
+    if (queue.isEmpty()) return
     syncCurrentIndexWithPlayer()
     persistSessionFromCurrentStateAsync()
     updateMedia3CommandButtons()
@@ -380,9 +387,9 @@ internal fun MusicPlaybackService.applyVolumeForPlaybackStart(playWhenReady: Boo
 }
 
 internal fun MusicPlaybackService.resumePlaybackInternal() {
+    if (playbackShuttingDown) return
     if (queue.isEmpty()) {
-        pendingResumeAfterDefaultQueue = true
-        resumeWithDefaultQueue()
+        resumePlayback()
         return
     }
 
@@ -403,7 +410,7 @@ internal fun MusicPlaybackService.resumePlaybackInternal() {
         setPlayerQueue(
             queue = queue,
             startIndex = currentIndex,
-            startPositionMs = player.currentPosition.coerceAtLeast(0L),
+            startPositionMs = capturePlaybackSnapshot().positionMs,
             playWhenReady = true
         )
 
@@ -413,6 +420,11 @@ internal fun MusicPlaybackService.resumePlaybackInternal() {
             forceNotification = false
         )
         return
+    }
+
+    if (player.playbackState == Player.STATE_ENDED) {
+        player.seekTo(0L)
+        persistCurrentTrackProgressAsync(0)
     }
 
     if (player.playbackState == Player.STATE_IDLE) {
@@ -449,7 +461,11 @@ internal fun MusicPlaybackService.resumePlaybackInternal() {
 internal fun MusicPlaybackService.pausePlaybackInternal(
     withFade: Boolean = playbackFadeController.isPlayPauseFadeEnabled()
 ) {
-    if (!isEffectivelyPlaying()) return
+    if (!isEffectivelyPlaying()) {
+        if (isVolumeFaderInitialized()) volumeFader.cancel()
+        if (isPlayerInitialized()) player.pause()
+        return
+    }
 
     cancelTimedTransitionAndRestoreVolume()
 
@@ -488,10 +504,7 @@ internal fun MusicPlaybackService.restartCurrentTrack() {
 }
 
 internal fun MusicPlaybackService.playNext(fromAutoTransition: Boolean = false) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-        playNextInternal(fromAutoTransition)
-    }
+    launchPlaybackRequest { playNextInternal(fromAutoTransition) }
 }
 
 internal fun MusicPlaybackService.playNextInternal(fromAutoTransition: Boolean = false) {
@@ -503,10 +516,7 @@ internal fun MusicPlaybackService.playNextInternal(fromAutoTransition: Boolean =
 }
 
 internal fun MusicPlaybackService.playPrevious() {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-        playPreviousInternal()
-    }
+    launchPlaybackRequest { playPreviousInternal() }
 }
 
 internal fun MusicPlaybackService.playPreviousInternal() {
@@ -541,6 +551,7 @@ internal fun MusicPlaybackService.applyAudioEffectsFromPreferences() {
 }
 
 internal fun MusicPlaybackService.stopPlayback() {
+    cancelPendingPlayback()
     keepIdleNotification = false
     updateStopAfterCurrentTrackMode(false)
     notificationDismissedByUser = false
@@ -582,6 +593,7 @@ internal fun MusicPlaybackService.stopAndClearQueue() {
 }
 
 internal fun MusicPlaybackService.stopPlaybackWithoutClearingQueue() {
+    cancelPendingPlayback()
     notificationDismissedByUser = false
     shutdownPlayback(ShutdownOptions.StopWithoutClearingQueue)
 }

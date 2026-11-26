@@ -92,6 +92,7 @@ class DesktopLyricsOverlayController(
 
     private var preference = DesktopLyricPreference()
     private var appInForeground = false
+    private var latestPlaybackState = MusicPlaybackState()
     private val currentTrack = MutableStateFlow<TrackRequest?>(null)
     private var lyricsLoadJob: Job? = null
     private var currentLoadKey: LyricLoadKey? = null
@@ -127,6 +128,7 @@ class DesktopLyricsOverlayController(
     }
 
     fun renderPlaybackState(state: MusicPlaybackState) {
+        latestPlaybackState = state
         val root = rootView ?: return
         val lyric = lyricView ?: return
         val currentTrack = state.currentTrack
@@ -363,6 +365,9 @@ class DesktopLyricsOverlayController(
             )
         }
 
+        // The service may have published a paused track before the overlay existed.
+        lyricView?.showStaticMessage(context.getString(R.string.no_lrc_1))
+        renderPlaybackState(latestPlaybackState)
         return root
     }
 

@@ -5,6 +5,7 @@ class ShutdownController(
 ) {
 
     fun shutdown(options: ShutdownOptions) {
+        callbacks.beginShutdown()
         val shutdownSnapshot = callbacks.capturePlaybackSnapshot()
 
         if (!options.clearQueue) {

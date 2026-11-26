@@ -27,11 +27,11 @@ abstract class BaseMusicAppWidgetProvider : AppWidgetProvider() {
     ) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
 
+        val pendingResult = goAsync()
         widgetScope.launch {
-            coordinator(context).updateWidgets(
-                appWidgetIds = appWidgetIds,
-                classify = classify
-            )
+            try {
+                coordinator(context).updateWidgets(appWidgetIds, classify, forceFull = true)
+            } finally { pendingResult.finish() }
         }
     }
 

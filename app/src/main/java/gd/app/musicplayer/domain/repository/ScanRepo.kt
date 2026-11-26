@@ -29,11 +29,11 @@ class ScanRepo @Inject constructor(
     }
     // Leapy_tts end
 
-    // Leapy_tts modified begin: Check every candidate before comparing metadata, including unchanged rows.
+    // Leapy_tts modified begin: Reuse accepted file versions on incremental Room updates.
     // Original: suspend fun upsertChangedTracks(items: List<MusicEntity>): Int
     suspend fun upsertChangedTracks(items: List<MusicEntity>): List<MusicEntity> {
         // if (items.isEmpty()) return 0
-        val accepted = checkedTracks(items)
+        val accepted = checkedTracks(items, reuseAccepted = true)
         if (accepted.isEmpty()) return accepted
 
         // val existingById = libraryDao.getMusicEntitiesByIds(items.map(MusicEntity::id))
@@ -59,11 +59,18 @@ class ScanRepo @Inject constructor(
     // Leapy_tts end
 
     // Leapy_tts added begin: This is the only repository writing imported MusicEntity rows.
-    private suspend fun checkedTracks(items: List<MusicEntity>): List<MusicEntity> = withContext(Dispatchers.IO) {
+    private suspend fun checkedTracks(
+        items: List<MusicEntity>,
+        reuseAccepted: Boolean = false
+    ): List<MusicEntity> = withContext(Dispatchers.IO) {
         val accepted = ArrayList<MusicEntity>(items.size)
         val rejected = ArrayList<Long>()
+        val decisionsByPath = mutableMapOf<String, LegalAudioFilePolicy.Decision>()
         for (item in items) {
-            when (legalFiles.inspect(item.data)) {
+            val decision = decisionsByPath.getOrPut(item.data) {
+                legalFiles.inspect(item.data, reuseAccepted)
+            }
+            when (decision) {
                 LegalAudioFilePolicy.Decision.ALLOWED -> accepted += item
                 LegalAudioFilePolicy.Decision.REJECTED, LegalAudioFilePolicy.Decision.MISSING -> rejected += item.id
             }
@@ -80,10 +87,6 @@ class ScanRepo @Inject constructor(
 
     suspend fun getAllTrackIds(): Set<Long> {
         return libraryDao.getAllTrackIdsForSync().toSet()
-    }
-
-    suspend fun getMaxTrackDateModified(): Long {
-        return libraryDao.getMaxTrackDateModifiedForSync()?.coerceAtLeast(0L) ?: 0L
     }
 
     suspend fun markSourceDeleted(trackIds: Collection<Long>) {

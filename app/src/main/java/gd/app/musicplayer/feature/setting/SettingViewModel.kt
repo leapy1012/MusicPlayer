@@ -91,10 +91,6 @@ class SettingsViewModel @Inject constructor(
         settingPreferences.updateShowKeepAliveDot(false)
     }
 
-    fun setDarkModeEnabled(enabled: Boolean) = update {
-        themeRepo.toggleDarkMode(enabled)
-    }
-
     fun setShowForwardBackward(enabled: Boolean) = update {
         settingPreferences.updateShowForwardBackward(enabled)
     }
@@ -251,7 +247,6 @@ class SettingsViewModel @Inject constructor(
             showHiddenFolders = normal.showHiddenFolders,
             showDirectory = normal.showDirectory,
             showKeepAliveDot = normal.showKeepAliveDot,
-            darkModeEnabled = themeRepo.isUserDarkModePreferred(),
             showForwardBackward = normal.showForwardBackward,
             forwardBackwardSeconds = normal.forwardBackwardSeconds,
             queueForSearchingMode = normal.queueForSearchingMode,

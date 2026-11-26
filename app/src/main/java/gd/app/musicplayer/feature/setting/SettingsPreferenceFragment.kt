@@ -117,6 +117,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
 
     override fun onResume() {
         super.onResume()
+        refreshAccentPreference()
         renderPostAnimationResumeWork()
     }
 
@@ -148,10 +149,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
             viewModel.setShowDirectory(newValue as Boolean)
             true
         }
-        switchPref(KEY_DARK_MODE)?.setOnPreferenceChangeListener { _, newValue ->
-            viewModel.setDarkModeEnabled(newValue as Boolean)
-            true
-        }
+        refreshAccentPreference()
         switchPref(KEY_SHOW_FORWARD_BACKWARD)?.setOnPreferenceChangeListener { _, newValue ->
             viewModel.setShowForwardBackward(newValue as Boolean)
             true
@@ -351,6 +349,12 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         }
     }
 
+    fun refreshAccentPreference() {
+        jumpPref(KEY_ACCENT_COLOR)?.summary = getString(
+            if (themeRepo.followsSystemAccent()) R.string.music_follow_system else R.string.music_custom_color
+        )
+    }
+
     private fun applyState(state: SettingsUiState) {
         if (state == appliedState) return
         appliedState = state
@@ -360,7 +364,7 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         }
         switchPref(KEY_SHOW_HIDDEN_FOLDERS)?.isChecked = state.showHiddenFolders
         switchPref(KEY_SHOW_DIRECTORY)?.isChecked = state.showDirectory
-        switchPref(KEY_DARK_MODE)?.isChecked = state.darkModeEnabled
+        refreshAccentPreference()
         switchPref(KEY_SHOW_FORWARD_BACKWARD)?.isChecked = state.showForwardBackward
         menuPref(KEY_TIME_FORWARD_BACKWARD)?.apply {
             isEnabled = state.showForwardBackward
@@ -794,7 +798,6 @@ class SettingsPreferenceFragment : COUIPreferenceFragment() {
         const val KEY_USE_TEN_BAND = "use_ten_band"
         const val KEY_SHOW_HIDDEN_FOLDERS = "show_hidden_folders"
         const val KEY_SHOW_DIRECTORY = "show_directory"
-        const val KEY_DARK_MODE = "preference_dark_mode"
         const val KEY_SHOW_FORWARD_BACKWARD = "show_forward_backward"
         const val KEY_TIME_FORWARD_BACKWARD = "preference_time_forward_backward"
         const val KEY_KEEP_ALIVE = "preference_keep_alive_background"

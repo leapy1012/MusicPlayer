@@ -90,15 +90,15 @@ private fun COUITabLayout.applyEqualWidthTabs(): Boolean {
     }
     if (changed) {
         strip.requestLayout()
+        if (visibility == View.VISIBLE) post {
+            if (selectedTabPosition >= 0) setScrollPosition(selectedTabPosition, 0f, true, true)
+        }
     }
     return true
 }
 
 private fun COUITabLayout.revealAfterIndicatorReady() {
-    if (visibility == View.VISIBLE) {
-        tabStrip?.updateIndicatorPosition()
-        return
-    }
+    if (visibility == View.VISIBLE) return
     if (getTag(EqualWidthRevealPending) == true) return
     setTag(EqualWidthRevealPending, true)
 

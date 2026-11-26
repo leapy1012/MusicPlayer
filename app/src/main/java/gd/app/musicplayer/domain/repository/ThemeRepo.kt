@@ -80,25 +80,18 @@ class ThemeRepo @Inject constructor(
         return themeRegistry.getCurrentTheme()
     }
 
-    fun toggleDarkMode(enabled: Boolean): ThemePalette {
-        // Original o7.f.u — clone + bg H() + notify (no second refreshTheme).
-        themeManager.toggleDarkMode(enabled)
-        return themeRegistry.getCurrentTheme()
-    }
-
-    /** User-selected night switch — not system-followed dark appearance. */
-    fun isUserDarkModePreferred(): Boolean {
-        return themeManager.isUserDarkModePreferred()
-    }
+    fun applyDarkTheme() = themeManager.applyDarkTheme()
 
     fun applyLightTheme(): ThemePalette {
         themeManager.applyLightTheme()
         return themeRegistry.getCurrentTheme()
     }
 
-    fun isUserLightModePreferred(): Boolean {
-        return themeManager.isUserLightModePreferred()
-    }
+    fun getSelectedThemeType(): Int = themeManager.getSelectedThemeType()
+    fun followsSystemAccent(): Boolean = themeManager.followsSystemAccent()
+    fun getCustomAccentColor(): Int = themeManager.getCustomAccentColor()
+    fun followSystemAccent() = themeManager.followSystemAccent()
+    fun getSystemAccentColor(): Int = themeManager.getSystemAccentColor()
 
     fun getAccentColor(): Int {
         return getCorePalette().accentColor
@@ -116,7 +109,7 @@ class ThemeRepo @Inject constructor(
         imageName: String,
         overlayColor: Int,
         blur: Int,
-        resetAccent: Boolean = true
+        resetAccent: Boolean = false
     ) {
         themeSettingPreferences.setThemeType(ThemeManager.THEME_TYPE_PICTURE, resetAccent)
         themeSettingPreferences.setThemeImageName(imageName)

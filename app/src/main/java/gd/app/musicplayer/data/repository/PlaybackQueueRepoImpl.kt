@@ -54,17 +54,10 @@ class PlaybackQueueRepoImpl @Inject constructor(
         val items = queue.first()
         if (items.isEmpty()) return null
 
-        val progress = playbackStatePreferenceStore.getMusicProgress()
-        val index = items
-            .indexOfFirst { music -> music.id == progress.trackId }
-            .takeIf { it >= 0 }
-            ?: return null
-
-        return PersistedQueueSnapshot(
-            queue = items,
-            index = index,
-            positionMs = progress.progressMs
-        )
+        val restored = gd.app.musicplayer.playback.restore.PlaybackRestoreResolver.resolve(
+            items, playbackStatePreferenceStore.getMusicProgress()
+        ) ?: return null
+        return PersistedQueueSnapshot(restored.queue, restored.index, restored.positionMs.toInt())
     }
 
     override suspend fun clearNowPlayingQueue() {

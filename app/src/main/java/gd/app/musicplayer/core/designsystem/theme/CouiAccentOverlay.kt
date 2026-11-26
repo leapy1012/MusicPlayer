@@ -82,6 +82,7 @@ object CouiAccentOverlay {
         val opaque = accent or 0xFF000000.toInt()
         return mapOf(
             R.color.app_accent to opaque,
+            R.color.color_theme to opaque,
             R.color.app_accent_container to ColorUtils.setAlphaComponent(opaque, 0x1A),
             R.color.app_accent_container_halftone to ColorUtils.setAlphaComponent(opaque, 0x0D),
             R.color.app_accent_disable to ColorUtils.setAlphaComponent(opaque, 0x66),

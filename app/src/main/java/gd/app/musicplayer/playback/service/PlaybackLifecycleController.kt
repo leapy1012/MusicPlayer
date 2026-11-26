@@ -24,7 +24,6 @@ class PlaybackLifecycleController(
         fun observeCurrentTrackFavorite()
         fun setSleepTimerPlaybackProvider()
         fun createNotificationChannel()
-        fun restoreLastSessionIntoRuntimeStateIfNeeded()
         fun registerScreenOffReceiver()
         fun startProgressTicker()
         /** True when AudioController already created players — notification-only attach. */
@@ -43,6 +42,7 @@ class PlaybackLifecycleController(
         fun updateNotificationFromLifecycle(force: Boolean)
         fun notifyOverlayConfigurationChanged()
 
+        fun handleTaskRemovedWhenPaused()
         fun handleTaskRemovedWhilePlaying()
         fun shutdownPlayback(options: ShutdownOptions)
         fun releasePlaybackResources()
@@ -63,7 +63,6 @@ class PlaybackLifecycleController(
         }
         callbacks.setSleepTimerPlaybackProvider()
         callbacks.createNotificationChannel()
-        callbacks.restoreLastSessionIntoRuntimeStateIfNeeded()
         callbacks.registerScreenOffReceiver()
         callbacks.startProgressTicker()
     }
@@ -89,8 +88,7 @@ class PlaybackLifecycleController(
             return
         }
 
-        callbacks.setServiceRunning(false)
-        callbacks.shutdownPlayback(ShutdownOptions.TaskRemovedWhenPaused)
+        callbacks.handleTaskRemovedWhenPaused()
     }
 
     fun onConfigurationChanged(configuration: Configuration) {

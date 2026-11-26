@@ -6,6 +6,10 @@
       uses it as fill with white label text. Halftone = soft fill (HalfColor).
     -->
     <style name="ThemeOverlay.App.Accent" parent="">
+        <item name="colorAccent">@color/app_accent</item>
+        <item name="android:colorAccent">@color/app_accent</item>
+        <item name="colorPrimary">@color/app_accent</item>
+        <item name="colorControlActivated">@color/app_accent</item>
         <item name="couiColorPrimary">@color/app_accent</item>
         <item name="couiColorPrimaryText">@color/app_accent</item>
         <item name="couiColorPrimaryTextOnPopup">@color/app_accent</item>

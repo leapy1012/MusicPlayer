@@ -11,10 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * UI façade. Transport play/pause/next matches original [y6.y] via [PlaybackAudioController]
- * (in-process). Queue mutations and other ops still go through the service command bus.
- */
+/** UI facade. Every transport uses the service's command flow and published runtime state. */
 @Singleton
 class MusicPlaybackControllerImpl @Inject constructor(
     @param:ApplicationContext private val context: Context,

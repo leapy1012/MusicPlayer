@@ -104,9 +104,13 @@ class SettingActivity : BaseActivity() {
 
     override fun onThemeChanged(palette: gd.app.musicplayer.core.designsystem.theme.ThemePalette?) {
         super.onThemeChanged(palette)
+        if (isThemeRecreationPending) return
         applyBodyBackgroundForTheme()
         (supportFragmentManager.findFragmentById(R.id.settings_body_host)
-            as? SettingsPreferenceFragment)?.listView?.let(::bindCouiDivider)
+            as? SettingsPreferenceFragment)?.let { fragment ->
+            fragment.refreshAccentPreference()
+            fragment.listView?.let(::bindCouiDivider)
+        }
     }
 
     override fun onNotificationPermissionResult() {

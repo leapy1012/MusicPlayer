@@ -71,11 +71,12 @@ class LegalAudioImportTest {
         assertTrue(tracks.drop(2).none { File(it.data).exists() })
     }
 
-    @Test fun `incremental scan rechecks unchanged files and hides rejected existing rows`() = runBlocking {
+    @Test fun `incremental scan checks changed files and hides rejected existing rows`() = runBlocking {
         val item = track(1)
         repo.upsertTracks(listOf(item))
         api.checked.clear()
         api.results[item.data] = 0
+        File(item.data).appendText("changed")
         assertTrue(repo.upsertChangedTracks(listOf(item)).isEmpty())
         assertEquals(listOf(item.data), api.checked)
         assertEquals(0, db.libraryDao().getMusicEntityById(item.id)!!.visible)
@@ -85,12 +86,31 @@ class LegalAudioImportTest {
     @Test fun `API failure cannot delete a file or mark an existing row deleted`() = runBlocking {
         val item = track(1)
         repo.upsertTracks(listOf(item))
+        File(item.data).appendText("changed")
         api.failCheck = true
         val error = runCatching { repo.upsertChangedTracks(listOf(item)) }.exceptionOrNull()
         assertTrue(error is IllegalStateException)
         assertTrue(api.deleted.isEmpty())
         assertTrue(File(item.data).exists())
         assertEquals(1, db.libraryDao().getMusicEntityById(item.id)!!.visible)
+    }
+
+    @Test fun `incremental scan checks only new or changed audio and full scan rechecks all`() = runBlocking {
+        val unchanged = track(1)
+        val changed = track(2)
+        repo.upsertTracks(listOf(unchanged, changed))
+        api.checked.clear()
+        val added = track(3)
+        File(changed.data).appendText("updated")
+        val candidates = listOf(unchanged.copy(title = "metadata only"), changed, added)
+
+        assertEquals(3, repo.upsertChangedTracks(candidates).size)
+        assertEquals(listOf(changed.data, added.data), api.checked)
+        api.checked.clear()
+        repo.upsertChangedTracks(candidates)
+        assertTrue(api.checked.isEmpty())
+        repo.upsertTracks(candidates)
+        assertEquals(candidates.map { it.data }, api.checked)
     }
 
     @Test fun `rejected file remains excluded even when deletion is denied`() = runBlocking {

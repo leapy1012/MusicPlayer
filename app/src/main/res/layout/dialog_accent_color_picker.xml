@@ -40,24 +40,19 @@
                 android:textColor="?attr/couiColorPrimaryNeutral" />
         </FrameLayout>
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <com.coui.appcompat.checkbox.COUICheckBox
             android:id="@+id/accent_color_default_select"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="8dp"
-            android:padding="2dp"
-            android:scaleType="fitCenter"
-            app:srcCompat="@drawable/vector_multi_check_w_selector" />
-
-        <TextView
-            android:id="@+id/accent_color_default_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:maxWidth="120dp"
-            android:paddingStart="2dp"
-            android:text="@string/accent_color_default"
+            android:layout_marginStart="8dp"
+            android:minHeight="48dp"
+            android:minWidth="0dp"
+            android:maxWidth="160dp"
+            android:gravity="center_vertical"
+            android:text="@string/music_follow_system"
+            android:textAllCaps="false"
             android:textAppearance="?attr/couiTextAppearanceBody"
-            android:textColor="?attr/couiColorSecondNeutral" />
+            android:textColor="?attr/couiColorPrimaryNeutral" />
     </LinearLayout>
 
     <ViewFlipper

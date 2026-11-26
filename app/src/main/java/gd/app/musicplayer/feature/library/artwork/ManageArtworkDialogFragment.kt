@@ -1,6 +1,11 @@
 package gd.app.musicplayer.feature.library.artwork
 
+import android.app.Activity
+// Leapy_tts added begin: Reuse the firmware save hook for newly cropped artwork.
+import android.common.DreamCreatedMediaManager
+// Leapy_tts end
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,8 +23,11 @@ import gd.app.musicplayer.domain.model.ArtworkRequest
 import gd.app.musicplayer.domain.model.MusicSet
 import gd.app.musicplayer.domain.repository.ArtworkRepo
 import gd.app.musicplayer.databinding.DialogManageArtworkBinding
+import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClickListener {
@@ -45,9 +53,12 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
 
     private val cropLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
             val path = result.data?.getStringExtra(ArtworkCropActivity.RESULT_ARTWORK_PATH)
                 ?: return@registerForActivityResult
-            applyArtwork(path)
+            // Leapy_tts added begin: Only the Manage artwork crop result needs the save hook.
+            applyArtwork(path, newlyCropped = true)
+            // Leapy_tts end
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -144,9 +155,24 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
         }
     }
 
-    private fun applyArtwork(path: String?) {
+    private fun applyArtwork(path: String?, newlyCropped: Boolean = false) {
         val appContext = context ?: return
         lifecycleScope.launch {
+            // Leapy_tts added begin: Prepare the finished private JPEG before assigning it.
+            if (newlyCropped && path != null) {
+                val ready = withContext(Dispatchers.IO) {
+                    val photo = File(path)
+                    if (!photo.isFile || photo.length() == 0L) return@withContext false
+                    try {
+                        DreamCreatedMediaManager.prepare(appContext, null, photo.absolutePath)
+                    } catch (error: LinkageError) {
+                        Log.d(TAG, "Artwork save hook unavailable", error)
+                    }
+                    true
+                }
+                if (!ready) return@launch
+            }
+            // Leapy_tts end
             when (val current = request) {
                 is ArtworkRequest.Track -> {
                     artworkRepo.updateTrackArtwork(current.music, path)
@@ -173,6 +199,7 @@ class ManageArtworkDialogFragment : BaseBottomSheetDialogFragment(), View.OnClic
     }
 
     companion object {
+        private const val TAG = "ManageArtworkDialog"
         private const val ARG_REQUEST = "artwork_request"
         private const val ARG_DEFAULT_APPLY_TO_ALL = "default_apply_to_all"
         const val RESULT_KEY_ARTWORK_APPLIED = "result_artwork_applied"

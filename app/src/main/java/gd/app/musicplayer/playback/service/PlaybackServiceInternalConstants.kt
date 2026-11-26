@@ -1,6 +1,5 @@
 ﻿package gd.app.musicplayer.playback.service
 
-
 import android.app.Service
 
 internal const val START_STICKY: Int = Service.START_STICKY

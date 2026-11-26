@@ -1,6 +1,5 @@
 ﻿package gd.app.musicplayer.playback.service
 
-import android.os.SystemClock
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.feature.widget.provider.WidgetPlaybackSnapshot
 import gd.app.musicplayer.playback.restore.RestoreStatus
@@ -12,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 internal fun MusicPlaybackService.handleProgressTick() {
+    if (playbackShuttingDown) return
     val prefs = latestSettingPreferences
     val wantsTimedTransition =
         prefs.audio.crossFadeEnabled || prefs.audio.gaplessPlaybackEnabled
@@ -43,27 +43,13 @@ internal fun MusicPlaybackService.handleProgressTick() {
     maybePersistSessionFromProgressTick()
 }
 
-internal fun MusicPlaybackService.restoreLastSessionIntoRuntimeStateIfNeeded() {
-    // Original MusicPlayService does not re-hydrate queue on notification attach —
-    // AudioController ([y6.y]) already owns warm state. Skip when queue is live.
-    if (queueManager.queue.isNotEmpty() || processPlayerHolder.isCreated) {
-        if (isRestoreManagerInitialized()) {
-            restoreManager.markRestored()
-        }
-        return
-    }
-    serviceScope.launch {
-        ensurePlaybackRestored()
-    }
-}
-
 internal suspend fun MusicPlaybackService.ensurePlaybackRestored() {
     restoreManager.ensureRestored(
         onRestored = { restored ->
-            handlePlaybackRestored(restored)
+            if (queue.isEmpty()) handlePlaybackRestored(restored)
         },
         onEmpty = {
-            handlePlaybackRestoreEmpty()
+            if (queue.isEmpty()) handlePlaybackRestoreEmpty()
         },
         onFailed = {
             handlePlaybackRestoreFailed()
@@ -74,6 +60,7 @@ internal suspend fun MusicPlaybackService.ensurePlaybackRestored() {
 private fun MusicPlaybackService.handlePlaybackRestored(
     restored: gd.app.musicplayer.playback.restore.RestoredPlayback
 ) {
+    if (playbackShuttingDown) return
     val restoredTrackId = restored.queue.getOrNull(restored.index)?.id
 
     setQueueState(
@@ -131,7 +118,6 @@ internal fun MusicPlaybackService.syncControllersAfterQueueRestore(
 
     refreshArtworkAndSession(force = forceArtwork)
 
-
     updateNotification(force = true)
 }
 
@@ -162,6 +148,7 @@ internal fun MusicPlaybackService.publishStateAfterShutdown(
 internal fun MusicPlaybackService.publishAllRuntimeState(
     forceNotification: Boolean = false
 ) {
+    if (playbackShuttingDown) return
     val effectiveForceNotification = forceNotification && !deferForcedStartupUiUpdates
     if (isStateUpdateCoordinatorInitialized()) {
         stateUpdateCoordinator.publishAllRuntimeState(
@@ -184,6 +171,7 @@ internal fun MusicPlaybackService.publishPlaybackState(
     forceNotification: Boolean = false,
     forceWidgetUpdate: Boolean = forceNotification
 ) {
+    if (playbackShuttingDown) return
     val effectiveForceNotification = forceNotification && !deferForcedStartupUiUpdates
     val effectiveForceWidgetUpdate = forceWidgetUpdate && !deferForcedStartupUiUpdates
     if (isStateUpdateCoordinatorInitialized()) {
@@ -260,7 +248,7 @@ internal fun MusicPlaybackService.clearQueueState() {
 internal fun MusicPlaybackService.shouldPublishProgressState(): Boolean {
     return when (restoreManager.status) {
         RestoreStatus.NotStarted -> {
-            queue.isNotEmpty() || playbackRuntimeStateStore.isInitialized()
+            queue.isNotEmpty()
         }
 
         RestoreStatus.Restoring -> false
@@ -311,14 +299,15 @@ internal fun MusicPlaybackService.persistPlaybackSnapshotAsync(
 }
 
 internal fun MusicPlaybackService.persistSessionFromCurrentStateAsync() {
-    // Obfuscated parity: avoid broad session-triggered progress persistence.
-    // Progress is persisted explicitly by player-driven operations (seek/pause/stop).
+    // Capture on Main before dispatching the ordered DataStore write. No timer writes.
+    persistPlaybackSnapshotAsync(capturePlaybackSnapshot(), persistQueue = false)
 }
 
 internal fun MusicPlaybackService.persistCurrentTrackProgressAsync(
     positionMs: Int
 ) {
     val track = queueManager.currentTrack ?: return
+    val index = queueManager.currentIndex
 
     if (!isServiceScopeInitialized()) return
 
@@ -326,7 +315,7 @@ internal fun MusicPlaybackService.persistCurrentTrackProgressAsync(
         snapshotManager.persistProgress(
             track = track,
             positionMs = positionMs.toLong().coerceAtLeast(0L),
-            currentIndex = queueManager.currentIndex
+            currentIndex = index
         )
     }
 }
@@ -379,7 +368,7 @@ internal fun MusicPlaybackService.clearPersistedPlaybackState() {
 internal fun MusicPlaybackService.clearPersistedQueueBlocking() {
     runBlocking {
         withContext(dispatchers.io) {
-            playbackQueueRepo.clearQueue()
+            queueManager.clearPersisted()
         }
     }
 }

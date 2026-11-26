@@ -34,11 +34,14 @@ class SelectAccentColorDialog : DialogFragment(),
     private var state = DialogState()
     private var suppressPickerCallback = false
     private var lastPickerColor: Int? = null
+    private var renderingSelection = false
 
     private data class DialogState(
         val initialAccentColor: Int = DEFAULT_ACCENT,
         val selectedAccentColor: Int = DEFAULT_ACCENT,
-        val isCustomPageVisible: Boolean = false
+        val customAccentColor: Int = DEFAULT_ACCENT,
+        val isCustomPageVisible: Boolean = false,
+        val followsSystem: Boolean = true
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,13 +86,17 @@ class SelectAccentColorDialog : DialogFragment(),
         super.onSaveInstanceState(outState)
         outState.putInt(STATE_INITIAL, state.initialAccentColor)
         outState.putInt(STATE_SELECTED, state.selectedAccentColor)
+        outState.putInt(STATE_CUSTOM_COLOR, state.customAccentColor)
         outState.putBoolean(STATE_CUSTOM_PAGE, state.isCustomPageVisible)
+        outState.putBoolean(STATE_SYSTEM, state.followsSystem)
     }
 
     override fun onPresetColorSelected(color: Int) {
         val wasCustomPageVisible = state.isCustomPageVisible
         state = state.copy(
             selectedAccentColor = color,
+            customAccentColor = color,
+            followsSystem = false,
             isCustomPageVisible = false
         )
         syncPickerColorIfNeeded(color)
@@ -112,7 +119,6 @@ class SelectAccentColorDialog : DialogFragment(),
                 state = state.copy(isCustomPageVisible = false)
                 renderState()
             }
-            else -> selectDefaultAccent()
         }
     }
 
@@ -126,7 +132,9 @@ class SelectAccentColorDialog : DialogFragment(),
             state = DialogState(
                 initialAccentColor = savedInstanceState.getInt(STATE_INITIAL, DEFAULT_ACCENT),
                 selectedAccentColor = savedInstanceState.getInt(STATE_SELECTED, DEFAULT_ACCENT),
-                isCustomPageVisible = savedInstanceState.getBoolean(STATE_CUSTOM_PAGE, false)
+                customAccentColor = savedInstanceState.getInt(STATE_CUSTOM_COLOR, themeRepo.getCustomAccentColor()),
+                isCustomPageVisible = savedInstanceState.getBoolean(STATE_CUSTOM_PAGE, false),
+                followsSystem = savedInstanceState.getBoolean(STATE_SYSTEM, themeRepo.followsSystemAccent())
             )
             return
         }
@@ -134,6 +142,8 @@ class SelectAccentColorDialog : DialogFragment(),
         state = DialogState(
             initialAccentColor = initialColor,
             selectedAccentColor = initialColor,
+            customAccentColor = themeRepo.getCustomAccentColor(),
+            followsSystem = themeRepo.followsSystemAccent(),
             isCustomPageVisible = false
         )
     }
@@ -142,7 +152,7 @@ class SelectAccentColorDialog : DialogFragment(),
         contentBinding.accentColorPicker.setOnColorChangedListener(object : ColorPickerView.c {
             override fun a(color: Int) {
                 if (suppressPickerCallback) return
-                state = state.copy(selectedAccentColor = color)
+                state = state.copy(selectedAccentColor = color, customAccentColor = color, followsSystem = false)
                 renderSelectionOnly()
             }
         })
@@ -159,8 +169,9 @@ class SelectAccentColorDialog : DialogFragment(),
     }
 
     private fun setupClickListeners(contentBinding: DialogAccentColorPickerBinding) {
-        contentBinding.accentColorDefaultSelect.setOnClickListener(this)
-        contentBinding.accentColorDefaultText.setOnClickListener(this)
+        contentBinding.accentColorDefaultSelect.setOnStateChangeListener { checkBox, _ ->
+            if (!renderingSelection) setFollowSystem(checkBox.isChecked)
+        }
         contentBinding.dialogButtonPrevious.setOnClickListener(this)
     }
 
@@ -178,9 +189,14 @@ class SelectAccentColorDialog : DialogFragment(),
 
     private fun renderSelectionOnly() {
         val content = binding ?: return
-        val isDefaultSelected = state.selectedAccentColor == defaultAccent
-        content.accentColorDefaultSelect.isSelected = isDefaultSelected
-        content.accentColorDefaultText.isSelected = isDefaultSelected
+        val isDefaultSelected = state.followsSystem
+        renderingSelection = true
+        try {
+            content.accentColorDefaultSelect.isChecked = isDefaultSelected
+        } finally {
+            renderingSelection = false
+        }
+        presetAdapter.setSelectionEnabled(!state.followsSystem)
         presetAdapter.setSelectedColor(state.selectedAccentColor)
     }
 
@@ -196,16 +212,18 @@ class SelectAccentColorDialog : DialogFragment(),
         }
     }
 
-    private fun selectDefaultAccent() {
+    private fun setFollowSystem(follow: Boolean) {
         state = state.copy(
-            selectedAccentColor = defaultAccent,
+            selectedAccentColor = if (follow) themeRepo.getSystemAccentColor() else state.customAccentColor,
+            followsSystem = follow,
             isCustomPageVisible = false
         )
         renderState()
     }
 
     private fun applySelectionAndDismiss() {
-        themeRepo.updateAccentColor(state.selectedAccentColor)
+        if (state.followsSystem) themeRepo.followSystemAccent()
+        else themeRepo.updateAccentColor(state.selectedAccentColor)
         parentFragmentManager.setFragmentResult(
             RESULT_KEY,
             bundleOf(RESULT_COLOR to state.selectedAccentColor)
@@ -213,14 +231,11 @@ class SelectAccentColorDialog : DialogFragment(),
         dismiss()
     }
 
-    private val defaultAccent: Int
-        get() = gd.app.musicplayer.core.designsystem.theme.ThemeAccentDefaults.forTheme(
-            themeRepo.getCorePalette().getThemeType()
-        )
-
     companion object {
         private const val DEFAULT_ACCENT = -16752385 // #FF0066FF — COUI Blue primary
         private const val ARG_CURRENT = "arg_current"
+        private const val STATE_CUSTOM_COLOR = "state_custom_color"
+        private const val STATE_SYSTEM = "state_system"
         private const val STATE_INITIAL = "state_initial"
         private const val STATE_SELECTED = "state_selected"
         private const val STATE_CUSTOM_PAGE = "state_custom_page"

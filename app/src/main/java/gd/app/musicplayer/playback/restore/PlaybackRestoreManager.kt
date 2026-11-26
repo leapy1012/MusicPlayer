@@ -1,18 +1,13 @@
 package gd.app.musicplayer.playback.restore
 
-import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
-import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
-import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 
 class PlaybackRestoreManager(
-    private val playbackQueueRepo: PlaybackQueueRepo,
-    private val playbackStatePreferenceStore: PlaybackStatePreferenceStore,
-    private val playbackRuntimeStateStore: PlaybackRuntimeStateStore,
-    private val dispatchers: AppDispatchers
+    private val resumeLoader: PlaybackResumeLoader,
+    private val playbackRuntimeStateStore: PlaybackRuntimeStateStore
 ) {
 
     private val restoreMutex = Mutex()
@@ -40,10 +35,14 @@ class PlaybackRestoreManager(
                     status = RestoreStatus.Empty
                     onEmpty()
                 } else {
-                    status = RestoreStatus.Restored
                     onRestored(restoredPlayback)
+                    status = RestoreStatus.Restored
                 }
             }.onFailure { error ->
+                if (error is CancellationException) {
+                    status = RestoreStatus.NotStarted
+                    throw error
+                }
                 status = RestoreStatus.Failed
                 playbackRuntimeStateStore.initializeIfNeeded()
                 onFailed(error)
@@ -64,19 +63,8 @@ class PlaybackRestoreManager(
     }
 
     private suspend fun restore(): RestoredPlayback? {
-        val restoredQueue = withContext(dispatchers.io) {
-            playbackQueueRepo.getQueue()
-        }
-
+        val restored = resumeLoader.load()
         playbackRuntimeStateStore.initializeIfNeeded()
-
-        val progress = withContext(dispatchers.io) {
-            playbackStatePreferenceStore.getMusicProgress()
-        }
-
-        return PlaybackRestoreResolver.resolve(
-            queue = restoredQueue,
-            progress = progress
-        )
+        return restored
     }
 }

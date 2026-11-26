@@ -509,4 +509,12 @@
     <string name="write_to_database">正在保存数据…</string>
     <string name="widget_size_format">尺寸：%1$s</string>
     <string name="feature_not_implemented">功能尚未实现</string>
+    <string name="music_follow_system">跟随系统</string>
+    <string name="music_custom_color">自定义颜色</string>
+    <string name="music_lock_lyrics">锁定桌面歌词</string>
+    <string name="music_unlock_lyrics">解锁桌面歌词</string>
+    <string name="playback_file_unavailable">文件不可用：%1$s</string>
+    <string name="playback_format_unsupported">不支持的音频：%1$s</string>
+    <string name="playback_track_failed">无法播放：%1$s</string>
+    <string name="playback_no_playable_music">没有可播放的音乐</string>
 </resources>

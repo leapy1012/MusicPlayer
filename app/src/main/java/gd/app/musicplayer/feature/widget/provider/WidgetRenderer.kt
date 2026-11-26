@@ -44,6 +44,19 @@ import gd.app.musicplayer.playback.command.PlaybackServiceActions
 
 internal object WidgetRenderer {
 
+    fun updatePlaybackControls(context: Context, manager: AppWidgetManager, appWidgetId: Int,
+        classify: String, config: WidgetConfig, snapshot: WidgetPlaybackSnapshot) {
+        val spec = WidgetCatalog.specForClassify(classify)
+        val style = WidgetCatalog.resolveStyleOption(spec, config.styleKey)
+        val theme = WidgetCatalog.themeOption(config.themeType, config.themeIndex)
+        val views = RemoteViews(context.packageName, style.layoutRes)
+        views.setInt(R.id.widget_flipper_play_pause, "setDisplayedChild", if (snapshot.isPlaying) 1 else 0)
+        views.setViewVisibility(R.id.widget_play, if (snapshot.isPlaying) View.GONE else View.VISIBLE)
+        views.setViewVisibility(R.id.widget_pause, if (snapshot.isPlaying) View.VISIBLE else View.GONE)
+        bindProgress(views, snapshot.currentTrack, snapshot.positionMs, theme.shouldUseDarkForeground())
+        manager.partiallyUpdateAppWidget(appWidgetId, views)
+    }
+
     fun updateWidgets(
         context: Context,
         manager: AppWidgetManager,

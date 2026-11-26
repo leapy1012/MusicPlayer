@@ -18,9 +18,11 @@ import gd.app.musicplayer.di.ApplicationScope
 import gd.app.musicplayer.domain.usecase.scan.SyncMediaStoreLibraryUseCase
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * MediaStore → Room sync scheduler.
@@ -43,6 +45,9 @@ class MediaStoreLibraryObserver @Inject constructor(
     private var syncScheduled = false
     private var syncJob: Job? = null
     private var syncPendingWhileRunning = false
+    // Leapy_tts added begin: The first successful pass checks the whole library.
+    private var initialSyncComplete = false
+    // Leapy_tts end
     private val observedUris by lazy(::buildObservedUris)
 
     private val observer = object : ContentObserver(handler) {
@@ -87,6 +92,10 @@ class MediaStoreLibraryObserver @Inject constructor(
      * Original [v5.m.f]: fire-and-forget schedule. Safe to call from UI.
      */
     fun scheduleSync() {
+        if (Looper.myLooper() != handler.looper) {
+            handler.post { scheduleSync() }
+            return
+        }
         if (syncJob?.isActive == true) {
             syncPendingWhileRunning = true
             return
@@ -106,19 +115,27 @@ class MediaStoreLibraryObserver @Inject constructor(
             syncPendingWhileRunning = true
             return
         }
-        syncJob = applicationScope.launch(dispatchers.io) {
-            runCatching {
-                // Original v5.j: full MediaStore path-diff into local DB.
-                syncMediaStoreLibraryUseCase(incremental = false)
-            }.onFailure { error ->
+        // Leapy_tts modified begin: Keep scheduling state on the observer thread.
+        syncJob = applicationScope.launch(dispatchers.main) {
+            try {
+                val incremental = initialSyncComplete
+                withContext(dispatchers.io) {
+                    syncMediaStoreLibraryUseCase(incremental = incremental)
+                }
+                initialSyncComplete = true
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
                 Log.e(TAG, "MediaStore sync failed", error)
-            }.also {
+            } finally {
+                syncJob = null
                 if (syncPendingWhileRunning) {
                     syncPendingWhileRunning = false
-                    scheduleSync()
+                    if (registered) scheduleSync()
                 }
             }
         }
+        // Leapy_tts end
     }
 
     private fun hasAudioPermission(): Boolean {

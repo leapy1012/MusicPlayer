@@ -6,10 +6,8 @@ import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import gd.app.musicplayer.playback.state.PlaybackSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 
 /**
  * Owns widget snapshot mapping and push scheduling for playback service.
@@ -28,18 +26,14 @@ class PlaybackWidgetBridge(
     fun update(snapshot: WidgetPlaybackSnapshot) {
         updateJob?.cancel()
         updateJob = scope.launch {
-            withContext(NonCancellable) {
-                widgetUpdateCoordinator.updateAll(snapshot)
-            }
+            widgetUpdateCoordinator.updateAll(snapshot)
         }
     }
 
     fun updateBlocking(snapshot: WidgetPlaybackSnapshot) {
         updateJob?.cancel()
         runBlocking {
-            withContext(NonCancellable) {
-                widgetUpdateCoordinator.updateAll(snapshot)
-            }
+            widgetUpdateCoordinator.updateAll(snapshot)
         }
     }
 

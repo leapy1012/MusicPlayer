@@ -1,115 +1,9 @@
 ﻿package gd.app.musicplayer.playback.service
 
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.res.Configuration
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.os.Build
-import android.os.Bundle
-import android.os.Parcelable
-import android.os.SystemClock
-import android.view.KeyEvent
-import androidx.annotation.OptIn
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.CommandButton
-import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
-import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionResult
-import dagger.hilt.android.AndroidEntryPoint
-import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.AppForegroundTracker
-import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
-import gd.app.musicplayer.core.common.extension.resolveMediaUri
-import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
-import gd.app.musicplayer.core.database.dao.MusicDao
-import gd.app.musicplayer.core.datastore.DesktopLyricPreference
-import gd.app.musicplayer.core.datastore.DesktopLyricPreferenceStore
-import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
-import gd.app.musicplayer.core.datastore.SettingPreferences
-import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
-import gd.app.musicplayer.core.datastore.SoundEffectPreferences
-import gd.app.musicplayer.core.datastore.StatusBarLyricPreferenceStore
-import gd.app.musicplayer.core.datastore.TrackLyricPreferenceStore
 import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
-import gd.app.musicplayer.domain.repository.PlaylistRepo
-import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
-import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
-import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
-import gd.app.musicplayer.playback.artwork.ArtworkLoader
-import gd.app.musicplayer.playback.effects.AudioEffectsManager
-import gd.app.musicplayer.playback.AudioFocusController
-import gd.app.musicplayer.playback.headset.HeadsetMediaButtonHandler
-import gd.app.musicplayer.playback.player.PlaybackSessionMetadata
-import gd.app.musicplayer.playback.PlaybackModeResolver
-import gd.app.musicplayer.playback.notification.PlaybackNotificationController
-import gd.app.musicplayer.playback.command.PlaybackCommandPayloadStore
-import gd.app.musicplayer.playback.command.IndexActionData
-import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
-import gd.app.musicplayer.playback.command.PlaybackCommandHandler
-import gd.app.musicplayer.playback.state.PlaybackStatePublisher
-import gd.app.musicplayer.playback.PlaybackStatsTracker
-import gd.app.musicplayer.playback.effects.PlaybackTuningController
-import gd.app.musicplayer.playback.effects.StereoBalanceAudioProcessor
-import gd.app.musicplayer.playback.timer.SleepTimerManager
-import gd.app.musicplayer.playback.effects.VolumeFader
-import gd.app.musicplayer.ui.shell.MainActivity
-import javax.inject.Inject
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.SettableFuture
-import gd.app.musicplayer.playback.artwork.CurrentArtworkController
-import gd.app.musicplayer.playback.favorite.CurrentFavoriteController
-import gd.app.musicplayer.playback.notification.NotificationCloseCallbacks
-import gd.app.musicplayer.playback.notification.NotificationCloseController
-import gd.app.musicplayer.playback.player.MusicPlayerFactory
-import gd.app.musicplayer.playback.player.PlaybackEngine
-import gd.app.musicplayer.playback.player.PlayerEventHandler
-import gd.app.musicplayer.playback.progress.PlaybackProgressTicker
-import gd.app.musicplayer.playback.queue.PlaybackQueueManager
-import gd.app.musicplayer.playback.queue.PlayerQueueController
-import gd.app.musicplayer.playback.queue.QueueActionController
-import gd.app.musicplayer.playback.queue.QueueMutationCallbacks
-import gd.app.musicplayer.playback.state.PlaybackSnapshot
-import gd.app.musicplayer.playback.state.PlaybackSnapshotManager
-import gd.app.musicplayer.playback.restore.PlaybackRestoreManager
-import gd.app.musicplayer.playback.restore.RestoreStatus
-import gd.app.musicplayer.playback.shutdown.ShutdownCallbacks
-import gd.app.musicplayer.playback.shutdown.ShutdownController
 import gd.app.musicplayer.playback.shutdown.ShutdownOptions
-import gd.app.musicplayer.playback.shutdown.PlaybackShutdownCoordinator
-import gd.app.musicplayer.playback.state.PlaybackStateOrchestrator
-import gd.app.musicplayer.playback.state.PlaybackStateUpdateCoordinator
 import gd.app.musicplayer.playback.state.PublishReason
-import gd.app.musicplayer.playback.transition.TimedTransitionController
-import gd.app.musicplayer.playback.desktop.DesktopLyricsOverlayController
-import gd.app.musicplayer.playback.statusbar.StatusBarLyricsOverlayController
-import gd.app.musicplayer.feature.widget.provider.WidgetUpdateCoordinator
-import gd.app.musicplayer.feature.widget.provider.WidgetPlaybackSnapshot
-import kotlinx.coroutines.NonCancellable
-
 
 internal fun MusicPlaybackService.updateStopAfterCurrentTrackMode(enabled: Boolean) {
     stopAfterCurrentTrack = enabled
@@ -118,76 +12,13 @@ internal fun MusicPlaybackService.updateStopAfterCurrentTrackMode(enabled: Boole
     }
 }
 
-internal fun MusicPlaybackService.resumeWithDefaultQueue() {
-    if (defaultQueueRestoreJob?.isActive == true) return
-
-    defaultQueueRestoreJob = serviceScope.launch {
-        val playableTracks = cachedPlayableDefaultTracks.takeIf { it.isNotEmpty() }
-            ?: cachedDefaultTracks
-                .takeIf { it.isNotEmpty() }
-                ?.filter { music -> music.resolveMediaUri() != null }
-            ?: withContext(dispatchers.io) {
-                runCatching {
-                    musicDao.getVisibleTracksSnapshotForPlayback()
-                }.getOrDefault(emptyList())
-            }.filter { music ->
-                // Cheap URI check — do not allocate MediaItem per row (original cursor filter).
-                music.resolveMediaUri() != null
-            }
-
-        if (playableTracks.isEmpty()) {
-            pendingResumeAfterDefaultQueue = false
-            playbackRuntimeStateStore.initializeIfNeeded()
-            publishPlaybackState(
-                reason = PublishReason.Restore,
-                forceNotification = true
-            )
-            return@launch
-        }
-
-        setQueueState(
-            newQueue = playableTracks,
-            requestedIndex = 0
-        )
-
-        restoreManager.markRestored()
-
-        val shouldAutoResume = pendingResumeAfterDefaultQueue
-        pendingResumeAfterDefaultQueue = false
-
-        if (!audioFocusController.request()) {
-            return@launch
-        }
-
-        deferForcedStartupUiUpdates = true
-
-        // Obfuscated parity: start playback path immediately from in-memory queue,
-        // do not block play on upfront queue/progress persistence writes.
-        setPlayerQueue(
-            queue = queue,
-            startIndex = 0,
-            startPositionMs = 0L,
-            playWhenReady = shouldAutoResume
-        )
-
-        applyVolumeForPlaybackStart(playWhenReady = shouldAutoResume)
-        // Keep empty-queue play startup thin (obfuscated parity intent):
-        // player callbacks publish/update state right after actual transition.
-        publishPlaybackState(
-            reason = PublishReason.Restore,
-            forceNotification = false
-        )
-    }
-}
-
 internal fun MusicPlaybackService.handlePlayFromQueue(
     incomingQueue: List<Music>,
     incomingIndex: Int
 ) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
+    launchPlaybackRequest {
 
-        if (!isQueueActionControllerInitialized()) return@launch
+        if (!isQueueActionControllerInitialized()) return@launchPlaybackRequest
 
         queueActionController.playFromQueue(
             incomingQueue = incomingQueue,
@@ -197,8 +28,10 @@ internal fun MusicPlaybackService.handlePlayFromQueue(
 }
 
 internal fun MusicPlaybackService.handleEnqueue(incomingQueue: List<Music>) {
+    val request = playbackRequests.token()
     serviceScope.launch {
         ensurePlaybackRestored()
+        if (!playbackRequests.isUnchanged(request)) return@launch
 
         if (!isQueueActionControllerInitialized()) return@launch
 
@@ -207,8 +40,10 @@ internal fun MusicPlaybackService.handleEnqueue(incomingQueue: List<Music>) {
 }
 
 internal fun MusicPlaybackService.handlePlayNextQueue(incomingQueue: List<Music>) {
+    val request = playbackRequests.token()
     serviceScope.launch {
         ensurePlaybackRestored()
+        if (!playbackRequests.isUnchanged(request)) return@launch
 
         if (!isQueueActionControllerInitialized()) return@launch
 
@@ -217,8 +52,10 @@ internal fun MusicPlaybackService.handlePlayNextQueue(incomingQueue: List<Music>
 }
 
 internal fun MusicPlaybackService.removeQueueItem(index: Int) {
+    val request = playbackRequests.token()
     serviceScope.launch {
         ensurePlaybackRestored()
+        if (!playbackRequests.isUnchanged(request)) return@launch
 
         if (!isQueueActionControllerInitialized()) return@launch
 
@@ -230,8 +67,10 @@ internal fun MusicPlaybackService.moveQueueItem(
     fromIndex: Int,
     toIndex: Int
 ) {
+    val request = playbackRequests.token()
     serviceScope.launch {
         ensurePlaybackRestored()
+        if (!playbackRequests.isUnchanged(request)) return@launch
 
         if (!isQueueActionControllerInitialized()) return@launch
 
@@ -246,8 +85,10 @@ internal fun MusicPlaybackService.replaceQueue(
     newQueue: List<Music>,
     requestedIndex: Int
 ) {
+    val request = playbackRequests.token()
     serviceScope.launch {
         ensurePlaybackRestored()
+        if (!playbackRequests.isUnchanged(request)) return@launch
 
         if (!isQueueActionControllerInitialized()) return@launch
 
@@ -259,44 +100,28 @@ internal fun MusicPlaybackService.replaceQueue(
 }
 
 internal fun MusicPlaybackService.playIndexFromCommand(index: Int) {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        playIndex(
-            index = index,
-            playWhenReady = true
-        )
-    }
+    launchPlaybackRequest { playIndex(index, playWhenReady = true) }
 }
 
 internal fun MusicPlaybackService.togglePlayPause() {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (isEffectivelyPlaying()) {
-            pausePlaybackInternal()
-        } else {
-            resumePlaybackInternal()
-        }
-    }
+    if (resumeJob?.isActive == true || isEffectivelyPlaying()) pausePlayback() else resumePlayback()
 }
 
 internal fun MusicPlaybackService.resumePlayback() {
-    if (resumeJob?.isActive == true) return
-
-    resumeJob = serviceScope.launch {
-        ensurePlaybackRestored()
-        resumePlaybackInternal()
+    launchPlaybackRequest {
+        if (ensurePlaybackReady() && playbackRequests.wantsPlayback) resumePlaybackInternal()
     }
 }
 
 internal fun MusicPlaybackService.pausePlayback(
     withFade: Boolean = playbackFadeController.isPlayPauseFadeEnabled()
 ) {
+    cancelPendingPlayback()
     pausePlaybackInternal(withFade)
 }
 
 internal fun MusicPlaybackService.pauseAndPersistForNotificationClose() {
+    cancelPendingPlayback()
     if (!isNotificationCloseControllerInitialized()) return
 
     notificationCloseController.pauseAndCloseNotification()
@@ -315,8 +140,16 @@ internal fun MusicPlaybackService.clearQueueKeepingNotification() {
 }
 
 internal fun MusicPlaybackService.shutdownPlayback(options: ShutdownOptions) {
+    if (playbackShuttingDown) return
+    cancelPendingPlayback()
     if (isShutdownCoordinatorInitialized()) {
-        shutdownCoordinator.shutdown(options)
+        try { shutdownCoordinator.shutdown(options) }
+        finally {
+            if (!options.stopService) {
+                playbackShuttingDown = false
+                if (isProgressTickerInitialized()) progressTicker.start()
+            }
+        }
         return
     }
 

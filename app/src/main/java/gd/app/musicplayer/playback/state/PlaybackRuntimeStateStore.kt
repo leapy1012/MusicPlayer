@@ -1,44 +1,48 @@
 package gd.app.musicplayer.playback.state
+
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class PlaybackRuntimeStateStore @Inject constructor() {
+    private val lock = Any()
+    private var revision = 0L
+    private val mutableState = MutableStateFlow(MusicPlaybackState())
+    val state: StateFlow<MusicPlaybackState> = mutableState.asStateFlow()
 
-    private val _state = MutableStateFlow(MusicPlaybackState())
-    val state: StateFlow<MusicPlaybackState> = _state.asStateFlow()
+    fun initializationToken(): Long = synchronized(lock) { revision }
 
-    fun setState(state: MusicPlaybackState) {
-        _state.value = state
-    }
-
-    fun update(block: (MusicPlaybackState) -> MusicPlaybackState) {
-        _state.update(block)
-    }
-
-    fun reset() {
-        _state.value = MusicPlaybackState()
-    }
-
-    fun initializeIfNeeded() {
-        if (!_state.value.initialized) {
-            _state.value = MusicPlaybackState(initialized = true)
+    /** Even a reset to an equal value invalidates a storage read already in flight. */
+    fun initializeFrom(expectedRevision: Long, restored: MusicPlaybackState) = synchronized(lock) {
+        if (revision == expectedRevision) {
+            revision++
+            mutableState.value = restored
         }
     }
 
-    fun isInitialized(): Boolean {
-        return _state.value.initialized
+    fun setState(state: MusicPlaybackState) = synchronized(lock) {
+        revision++
+        mutableState.value = state
     }
 
-    fun hasActiveState(): Boolean {
-        val state = _state.value
-
-        return state.initialized &&
-                state.currentTrack != null
+    fun update(block: (MusicPlaybackState) -> MusicPlaybackState) = synchronized(lock) {
+        revision++
+        mutableState.value = block(mutableState.value)
     }
+
+    fun reset() = setState(MusicPlaybackState())
+
+    fun initializeIfNeeded() = synchronized(lock) {
+        if (!mutableState.value.initialized) {
+            revision++
+            mutableState.value = MusicPlaybackState(initialized = true)
+        }
+    }
+
+    fun isInitialized(): Boolean = state.value.initialized
+    fun hasActiveState(): Boolean = state.value.let { it.initialized && it.currentTrack != null }
 }

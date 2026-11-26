@@ -35,6 +35,7 @@ class PreferenceDeskLrcItemView @JvmOverloads constructor(
     private val lockButton: ImageView
     private val couiSwitch: COUISwitch
 
+    private var lockGesture = false
     private var state: DesktopLyricPreference = DesktopLyricPreference()
 
     var onVisibleChanged: ((Boolean) -> Unit)? = null
@@ -61,6 +62,10 @@ class PreferenceDeskLrcItemView @JvmOverloads constructor(
             setPadding(lockPad, lockPad, lockPad, lockPad)
             scaleType = ImageView.ScaleType.FIT_CENTER
             setImageResource(R.drawable.vector_desktop_lrc_lock_setting_selector)
+            isFocusable = true
+            val ripple = context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless))
+            background = ripple.getDrawable(0)
+            ripple.recycle()
             setOnClickListener(this@PreferenceDeskLrcItemView)
         }
 
@@ -85,6 +90,8 @@ class PreferenceDeskLrcItemView @JvmOverloads constructor(
      * [androidx.preference.Preference.isSelectable] is false. Call after bind.
      */
     fun ensureInteractive() {
+        // Preference hides widget_frame when no XML widgetLayoutResource is supplied.
+        widgetFrame.visibility = VISIBLE
         isClickable = true
         isFocusable = true
         isEnabled = true
@@ -131,6 +138,12 @@ class PreferenceDeskLrcItemView @JvmOverloads constructor(
         couiSwitch.isChecked = isVisible
         lockButton.visibility = if (isVisible) VISIBLE else GONE
         lockButton.isSelected = isLocked
+        lockButton.contentDescription = context.getString(
+            if (isLocked) R.string.music_unlock_lyrics else R.string.music_lock_lyrics
+        )
+        val tint = context.obtainStyledAttributes(intArrayOf(com.coui.appcompat.R.attr.couiColorLabelPrimary))
+        lockButton.imageTintList = tint.getColorStateList(0)
+        tint.recycle()
 
         if (isLocked) {
             summaryView.visibility = VISIBLE
@@ -183,10 +196,12 @@ class PreferenceDeskLrcItemView @JvmOverloads constructor(
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-        if (event.actionMasked == MotionEvent.ACTION_DOWN && isEventInside(lockButton, event)) {
-            return false
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) lockGesture = isEventInside(lockButton, event)
+        val intercept = !lockGesture
+        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            lockGesture = false
         }
-        return true
+        return intercept
     }
 
     override fun onClick(view: View) {
@@ -198,11 +213,9 @@ class PreferenceDeskLrcItemView @JvmOverloads constructor(
 
     private fun isEventInside(child: View, event: MotionEvent): Boolean {
         if (child.visibility != VISIBLE) return false
-        val loc = IntArray(2)
-        child.getLocationOnScreen(loc)
-        val x = event.rawX
-        val y = event.rawY
-        return x >= loc[0] && x < loc[0] + child.width && y >= loc[1] && y < loc[1] + child.height
+        val bounds = android.graphics.Rect(0, 0, child.width, child.height)
+        offsetDescendantRectToMyCoords(child, bounds)
+        return bounds.contains(event.x.toInt(), event.y.toInt())
     }
 
     private fun toggleDesktopLyrics() {

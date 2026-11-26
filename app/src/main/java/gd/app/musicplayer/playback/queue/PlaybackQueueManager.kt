@@ -238,6 +238,8 @@ class PlaybackQueueManager @Inject constructor(
         queuePersistence.save(_state.queue)
     }
 
+    suspend fun clearPersisted() { queuePersistence.clearAndFlush() }
+
     private fun normalizeQueueTokens(queue: List<Music>): List<Music> {
         return queue.map { music ->
             if (music.queueToken != 0) {

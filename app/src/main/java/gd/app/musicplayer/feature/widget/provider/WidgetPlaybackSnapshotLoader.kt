@@ -1,8 +1,6 @@
 package gd.app.musicplayer.feature.widget.provider
 
-import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
-import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.PlaybackMode
 import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.service.MusicPlaybackService
@@ -11,41 +9,27 @@ import javax.inject.Singleton
 
 @Singleton
 class WidgetPlaybackSnapshotLoader @Inject constructor(
-    private val playbackQueueRepo: PlaybackQueueRepo,
+    private val resumeLoader: gd.app.musicplayer.playback.restore.PlaybackResumeLoader,
     private val playbackRuntimeStateStore: PlaybackRuntimeStateStore,
-    private val playbackStatePreferenceStore: PlaybackStatePreferenceStore,
     private val settingPreferencesDataStore: SettingPreferencesDataStore
 ) {
 
     suspend fun load(): WidgetPlaybackSnapshot {
+        val initial = playbackRuntimeStateStore.state.value
+        val saved = if (initial.currentTrack == null) resumeLoader.load() else null
         val runtimeState = playbackRuntimeStateStore.state.value
         val serviceRunning = MusicPlaybackService.isRunning
-
-        val queue = if (serviceRunning) {
-            runtimeState.queue.ifEmpty {
-                playbackQueueRepo.getQueue()
-            }
-        } else {
-            playbackQueueRepo.getQueue()
-        }
-
-        val restoredProgress = if (!serviceRunning || runtimeState.currentTrack == null) {
-            playbackStatePreferenceStore.getMusicProgress()
-        } else {
-            null
-        }
+        val useRuntime = runtimeState.currentTrack != null && runtimeState.queue.isNotEmpty()
+        val queue = if (useRuntime) runtimeState.queue else saved?.queue.orEmpty()
         val playMode = settingPreferencesDataStore.getPlayMode()
 
         val runtimeIndex = runtimeState.currentIndex
             .takeIf { index ->
-                serviceRunning && index in queue.indices
+                useRuntime && index in queue.indices
             }
 
-        val restoredIndex = restoredProgress
-            ?.let { progress ->
-                queue.indexOfFirst { music -> music.id == progress.trackId }
-                    .takeIf { it >= 0 }
-            }
+        val restored = saved
+        val restoredIndex = restored?.index
 
         val currentIndex = when {
             runtimeIndex != null -> runtimeIndex
@@ -58,10 +42,10 @@ class WidgetPlaybackSnapshotLoader @Inject constructor(
             queue = queue,
             currentTrack = currentTrack,
             currentIndex = currentIndex,
-            positionMs = if (serviceRunning && runtimeIndex != null) {
+            positionMs = if (runtimeIndex != null) {
                 runtimeState.positionMs
             } else if (restoredIndex != null) {
-                restoredProgress?.progressMs?.toLong()?.coerceAtLeast(0L) ?: 0L
+                restored?.positionMs ?: 0L
             } else {
                 0L
             },

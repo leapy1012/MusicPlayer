@@ -7,8 +7,12 @@ import gd.app.musicplayer.domain.model.scan.ScanResultSummary
 import gd.app.musicplayer.domain.repository.ScanRepo
 import gd.app.musicplayer.domain.usecase.playback.PrunePlaybackQueueTracksUseCase
 import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.math.max
 
+@Singleton
 class SyncMediaStoreLibraryUseCase @Inject constructor(
     private val queryMediaStoreTracksUseCase: QueryMediaStoreTracksUseCase,
     private val importMediaStorePlaylistsUseCase: ImportMediaStorePlaylistsUseCase,
@@ -16,25 +20,26 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
     private val prunePlaybackQueueTracksUseCase: PrunePlaybackQueueTracksUseCase
 ) {
 
+    // Leapy_tts added begin: Serialize startup, observer and manual passes.
+    private val syncMutex = Mutex()
+    // Leapy_tts end
+
     suspend operator fun invoke(
         options: ScanOptions = ScanOptions(),
         markMissingTracks: Boolean = true,
-        // Original v5.j always full-diffs MediaStore; incremental DATE_MODIFIED is opt-in only.
+        // Incremental mode reuses file checks while still reconciling the full MediaStore snapshot.
         incremental: Boolean = false,
         onBeforeUpsert: suspend (List<MusicEntity>) -> Unit = {}
-    ): ScanResultSummary {
+    ): ScanResultSummary = syncMutex.withLock {
         val existingIds = scanRepo.getAllTrackIds()
         val mediaStoreIds = if (markMissingTracks) {
             queryMediaStoreTracksUseCase.queryIds()
         } else {
             emptySet()
         }
-        val modifiedSinceMs = if (incremental) {
-            (scanRepo.getMaxTrackDateModified() - MODIFIED_OVERLAP_MS).coerceAtLeast(0L)
-        } else {
-            null
-        }
-        val importedTracks = queryMediaStoreTracksUseCase(modifiedSinceMs = modifiedSinceMs)
+        // Leapy_tts modified begin: An imported file can have an old modification date.
+        val importedTracks = queryMediaStoreTracksUseCase()
+        // Leapy_tts end
         val selectedScanPaths = options.selectedScanPaths
             .map(String::normalizedScanPath)
             .filter(String::isNotBlank)
@@ -93,7 +98,7 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
         runCatching { importMediaStorePlaylistsUseCase() }
 
         val summary = scanRepo.librarySummary()
-        return ScanResultSummary(
+        ScanResultSummary(
             importedCount = pathMatchedTracks.size,
             // Leapy_tts modified begin
             // filteredOutCount = max(0, pathMatchedTracks.size - scannableTracks.size),
@@ -123,7 +128,6 @@ class SyncMediaStoreLibraryUseCase @Inject constructor(
         const val VISIBLE_STATE = 1
         const val ONE_SECOND_MS = 1_000L
         const val ONE_KB = 1_024L
-        const val MODIFIED_OVERLAP_MS = 2_000L
     }
 }
 

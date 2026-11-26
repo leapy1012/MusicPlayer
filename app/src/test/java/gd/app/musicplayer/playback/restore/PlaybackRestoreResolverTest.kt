@@ -45,7 +45,7 @@ class PlaybackRestoreResolverTest {
     }
 
     @Test
-    fun `resolve rejects a missing track instead of restoring an unrelated queue item`() {
+    fun `resolve starts first item at zero when saved track is missing`() {
         val queue = listOf(
             music(id = 1L),
             music(id = 7L),
@@ -61,7 +61,8 @@ class PlaybackRestoreResolverTest {
             )
         )
 
-        assertNull(restored)
+        assertEquals(0, restored?.index)
+        assertEquals(0L, restored?.positionMs)
     }
 
     @Test
@@ -77,6 +78,19 @@ class PlaybackRestoreResolverTest {
             )
         )
 
+        assertEquals(0L, restored?.positionMs)
+    }
+
+    @Test
+    fun `resolve clamps saved position to track duration`() {
+        val restored = PlaybackRestoreResolver.resolve(listOf(music(7)), PlaybackProgress(7, 999_999, -1))
+        assertEquals(180_000L, restored?.positionMs)
+    }
+
+    @Test
+    fun `uninitialized progress selects first item without autoplay position`() {
+        val restored = PlaybackRestoreResolver.resolve(listOf(music(7)), PlaybackProgress(-1, 90_000, -1))
+        assertEquals(0, restored?.index)
         assertEquals(0L, restored?.positionMs)
     }
 

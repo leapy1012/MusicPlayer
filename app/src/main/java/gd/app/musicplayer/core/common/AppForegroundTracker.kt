@@ -13,6 +13,16 @@ object AppForegroundTracker : Application.ActivityLifecycleCallbacks {
     val isForeground: StateFlow<Boolean> = mutableIsForeground.asStateFlow()
 
     private var startedActivityCount = 0
+    private val activities = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Activity, Boolean>())
+    private val mutableActivityCount = MutableStateFlow(0)
+    val activeActivityCount: StateFlow<Int> = mutableActivityCount.asStateFlow()
+
+    /** Explicit Quit only. Ordinary Back just finishes its own activity. */
+    fun finishAllActivitiesAndRemoveTasks() {
+        activities.toList().forEach { activity ->
+            if (!activity.isFinishing) activity.finishAndRemoveTask()
+        }
+    }
 
     fun register(application: Application) {
         application.registerActivityLifecycleCallbacks(this)
@@ -28,7 +38,10 @@ object AppForegroundTracker : Application.ActivityLifecycleCallbacks {
         mutableIsForeground.value = startedActivityCount > 0
     }
 
-    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+        activities.add(activity)
+        mutableActivityCount.value = activities.size
+    }
 
     override fun onActivityResumed(activity: Activity) = Unit
 
@@ -36,5 +49,8 @@ object AppForegroundTracker : Application.ActivityLifecycleCallbacks {
 
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
 
-    override fun onActivityDestroyed(activity: Activity) = Unit
+    override fun onActivityDestroyed(activity: Activity) {
+        activities.remove(activity)
+        mutableActivityCount.value = activities.size
+    }
 }

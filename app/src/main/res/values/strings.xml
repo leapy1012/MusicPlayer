@@ -513,4 +513,12 @@
     <string name="write_to_database">Saving data…</string>
     <string name="widget_size_format">Size: %1$s</string>
     <string name="feature_not_implemented">Feature not implemented</string>
+    <string name="music_follow_system">Follow system</string>
+    <string name="music_custom_color">Custom color</string>
+    <string name="music_lock_lyrics">Lock desktop lyrics</string>
+    <string name="music_unlock_lyrics">Unlock desktop lyrics</string>
+    <string name="playback_file_unavailable">File unavailable: %1$s</string>
+    <string name="playback_format_unsupported">Unsupported audio: %1$s</string>
+    <string name="playback_track_failed">Couldn\'t play: %1$s</string>
+    <string name="playback_no_playable_music">No playable music available</string>
 </resources>

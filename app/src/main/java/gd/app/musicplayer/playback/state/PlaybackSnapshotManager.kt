@@ -13,6 +13,9 @@ import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.queue.QueueState
 import gd.app.musicplayer.playback.queue.hasSameQueueIdentity
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicLong
 
 class PlaybackSnapshotManager(
     private val playbackQueueRepo: PlaybackQueueRepo,
@@ -20,6 +23,22 @@ class PlaybackSnapshotManager(
     private val runtimeStateStore: PlaybackRuntimeStateStore,
     private val dispatchers: AppDispatchers
 ) {
+
+    private val writeSequence = AtomicLong()
+    private val writeMutex = Mutex()
+    private var appliedSequence = 0L
+
+    /** Reserve order on the caller thread; older IO tasks cannot overwrite newer saves. */
+    private suspend fun orderedWrite(write: suspend () -> Unit) {
+        val sequence = writeSequence.incrementAndGet()
+        withContext(dispatchers.io) {
+            writeMutex.withLock {
+                if (sequence <= appliedSequence) return@withLock
+                write()
+                appliedSequence = sequence
+            }
+        }
+    }
 
     @OptIn(UnstableApi::class)
     fun capture(
@@ -75,42 +94,28 @@ class PlaybackSnapshotManager(
         snapshot: PlaybackSnapshot,
         persistQueue: Boolean
     ) {
-        withContext(dispatchers.io) {
-            if (persistQueue && snapshot.queue.isNotEmpty()) {
-                playbackQueueRepo.replaceQueue(snapshot.queue)
-            }
-
-            persistProgress(
-                track = snapshot.currentTrack,
-                positionMs = snapshot.positionMs,
-                currentIndex = snapshot.currentIndex
-            )
+        orderedWrite {
+            if (persistQueue && snapshot.queue.isNotEmpty()) playbackQueueRepo.replaceQueue(snapshot.queue)
+            writeProgress(snapshot.currentTrack, snapshot.positionMs, snapshot.currentIndex)
         }
     }
 
-    suspend fun persistProgress(
-        track: Music?,
-        positionMs: Long,
-        currentIndex: Int = QueueState.NO_INDEX
-    ) {
+    suspend fun persistProgress(track: Music?, positionMs: Long, currentIndex: Int = QueueState.NO_INDEX) {
         if (track == null) return
+        orderedWrite { writeProgress(track, positionMs, currentIndex) }
+    }
 
-        val safePositionMs = positionMs
-            .coerceAtLeast(0L)
-            .coerceAtMost(Int.MAX_VALUE.toLong())
-            .toInt()
-
+    private suspend fun writeProgress(track: Music?, positionMs: Long, currentIndex: Int) {
+        if (track == null) return
         playbackStatePreferenceStore.setMusicProgress(
             trackId = track.id,
-            progressMs = safePositionMs,
+            progressMs = positionMs.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
             currentIndex = currentIndex
         )
     }
 
     suspend fun clearProgress() {
-        withContext(dispatchers.io) {
-            playbackStatePreferenceStore.clearMusicProgress()
-        }
+        orderedWrite { playbackStatePreferenceStore.clearMusicProgress() }
     }
 
     fun resolveCurrentPositionMs(
@@ -119,7 +124,9 @@ class PlaybackSnapshotManager(
     ): Long {
         val fallbackPositionMs = runtimeStateStore.state.value.positionMs.coerceAtLeast(0L)
 
-        if (player == null || !queueState.hasCurrentTrack) {
+        val track = queueState.currentTrack
+        if (player == null || track == null || !isPlayerPositionForSnapshotTrack(
+                player, queueState.currentIndex, queueState.queue, track)) {
             return fallbackPositionMs
         }
 

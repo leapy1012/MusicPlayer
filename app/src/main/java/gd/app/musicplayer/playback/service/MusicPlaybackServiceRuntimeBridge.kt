@@ -36,8 +36,7 @@ internal fun MusicPlaybackService.handleAppTaskRemoved() {
         return
     }
 
-    setServiceRunning(false)
-    shutdownPlayback(ShutdownOptions.TaskRemovedWhenPaused)
+    handleTaskRemovedWhenPaused()
 }
 
 internal fun MusicPlaybackService.promoteToForegroundForPlaybackCommand() {
@@ -174,7 +173,16 @@ internal fun MusicPlaybackService.notifyOverlayConfigurationChanged() {
     }
 }
 
+internal fun MusicPlaybackService.handleTaskRemovedWhenPaused() {
+    if (playbackShuttingDown) return
+    persistSessionFromCurrentStateAsync()
+    notificationDismissedByUser = true
+    if (isNotificationControllerInitialized()) notificationController.stopForegroundAndRemove()
+}
+
 internal fun MusicPlaybackService.handleTaskRemovedWhilePlaying() {
+    if (playbackShuttingDown) return
+    persistSessionFromCurrentStateAsync()
     publishPlaybackState(
         reason = PublishReason.UserAction,
         forceNotification = true
@@ -182,6 +190,11 @@ internal fun MusicPlaybackService.handleTaskRemovedWhilePlaying() {
 }
 
 internal fun MusicPlaybackService.releasePlaybackResources() {
+    // Unexpected destruction must preserve the session too, before cleanup callbacks run.
+    if (!playbackShuttingDown && isSnapshotManagerInitialized() && queue.isNotEmpty()) {
+        persistPlaybackSnapshotBlocking(capturePlaybackSnapshot(), persistQueue = true)
+    }
+    playbackShuttingDown = true
     releaseTickersAndJobs()
     releaseObservers()
     releaseFaders()
@@ -204,18 +217,12 @@ private fun MusicPlaybackService.releaseTickersAndJobs() {
     resumeJob?.cancel()
     resumeJob = null
 
-    defaultQueueRestoreJob?.cancel()
-    defaultQueueRestoreJob = null
-    defaultTracksObserverJob?.cancel()
-    defaultTracksObserverJob = null
+    cancelPendingPlayback()
 
     if (isWidgetBridgeInitialized()) {
         widgetBridge.cancelPending()
     }
 
-    pendingResumeAfterDefaultQueue = false
-    cachedDefaultTracks = emptyList()
-    cachedPlayableDefaultTracks = emptyList()
     deferForcedStartupUiUpdates = false
 }
 

@@ -26,7 +26,8 @@ data class ThemeSettings(
     /** Last White/Picture choice — restored when Night mode is turned off. */
     val lastNonDarkThemeType: Int = ThemeSettingPreferenceStore.DEFAULT_THEME_TYPE,
     /** An explicit accent lasts until the user selects a different theme type. */
-    val hasCustomAccent: Boolean = false
+    val hasCustomAccent: Boolean = false,
+    val followSystemAccent: Boolean = true
 )
 
 @Singleton
@@ -50,6 +51,7 @@ class ThemeSettingPreferenceStore @Inject constructor(
 
     suspend fun setThemeType(themeType: Int, resetAccent: Boolean = true) {
         dataStore.edit { preferences ->
+            preserveLegacyAppearance(preferences)
             if (resetAccent) {
                 preferences.remove(KEY_THEME_COLOR)
             }
@@ -86,7 +88,28 @@ class ThemeSettingPreferenceStore @Inject constructor(
     }
 
     suspend fun setThemeColor(color: Int) {
-        set(KEY_THEME_COLOR, color)
+        dataStore.edit { preferences ->
+            preserveLegacyAppearance(preferences)
+            preferences[KEY_THEME_COLOR] = color
+            preferences[KEY_FOLLOW_SYSTEM_ACCENT] = false
+        }
+    }
+
+    suspend fun setFollowSystemAccent(follow: Boolean) {
+        dataStore.edit { preferences ->
+            preserveLegacyAppearance(preferences)
+            preferences[KEY_FOLLOW_SYSTEM_ACCENT] = follow
+        }
+    }
+
+    private fun preserveLegacyAppearance(preferences: androidx.datastore.preferences.core.MutablePreferences) {
+        val previous = preferences.toThemeSettings()
+        // Retire the intermediate Settings override. Theme cards now write theme_type.
+        if (preferences[KEY_APPEARANCE_MODE] != null) {
+            preferences[KEY_THEME_TYPE] = previous.themeType
+            preferences.remove(KEY_APPEARANCE_MODE)
+        }
+        if (preferences[KEY_FOLLOW_SYSTEM_ACCENT] == null) preferences[KEY_FOLLOW_SYSTEM_ACCENT] = previous.followSystemAccent
     }
 
     suspend fun isThemeDialogEnabled(): Boolean {
@@ -139,9 +162,12 @@ class ThemeSettingPreferenceStore @Inject constructor(
     }
 
     private fun Preferences.toThemeSettings(): ThemeSettings {
-        val themeType = this[KEY_THEME_TYPE] ?: DEFAULT_THEME_TYPE
+        val themeType = if (this[KEY_APPEARANCE_MODE] == 2) ThemeManager.THEME_TYPE_DARK
+            else this[KEY_THEME_TYPE] ?: DEFAULT_THEME_TYPE
         return ThemeSettings(
             themeType = themeType,
+            followSystemAccent = this[KEY_FOLLOW_SYSTEM_ACCENT]
+                ?: (this[KEY_THEME_TYPE] == null && this[KEY_THEME_COLOR] == null),
             overlayColor = this[KEY_THEME_OVERLAY_COLOR] ?: DEFAULT_THEME_OVERLAY_COLOR,
             blur = this[KEY_THEME_BLUR] ?: DEFAULT_THEME_BLUR,
             themeColor = this[KEY_THEME_COLOR] ?: ThemeAccentDefaults.forTheme(themeType),
@@ -221,6 +247,8 @@ class ThemeSettingPreferenceStore @Inject constructor(
 
         private val KEY_THEME_SKIN_URIS = stringPreferencesKey("skin_uris")
         private val KEY_THEME_OVERLAY_COLOR = intPreferencesKey("theme_overlay_color")
+        private val KEY_APPEARANCE_MODE = intPreferencesKey("appearance_mode")
+        private val KEY_FOLLOW_SYSTEM_ACCENT = booleanPreferencesKey("follow_system_accent")
         private val KEY_THEME_TYPE = intPreferencesKey("theme_type")
         private val KEY_LAST_NON_DARK_THEME_TYPE = intPreferencesKey("last_non_dark_theme_type")
         private val KEY_THEME_BLUR = intPreferencesKey("theme_blur")

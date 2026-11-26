@@ -116,4 +116,24 @@ class LiveThemeUpdaterTest {
         val expected = com.coui.appcompat.button.COUIButton(activity)
         assertEquals(expected.textColors, button.textColors)
     }
+    @Test fun couiSliderFallbackColorsRefreshLikeANewControlWithoutResettingProgress() {
+        val activity=Robolectric.buildActivity(Activity::class.java).setup().get()
+        activity.setTheme(CouiR.style.Theme_COUI_Main_Light)
+        val slider=com.coui.appcompat.seekbar.COUISeekBar(activity).apply { progress=37 }
+        val updater=LiveThemeUpdater {}
+        updater.rememberColors(activity.theme)
+        activity.theme.applyStyle(CouiR.style.Theme_COUI_Main_Dark,true)
+        updater.refresh(slider)
+        val fresh=com.coui.appcompat.seekbar.COUISeekBar(activity)
+        for (fieldName in listOf("mProgressColor","mBackgroundColor","mThumbColor")) {
+            val field=com.coui.appcompat.seekbar.COUISeekBar::class.java.getDeclaredField(fieldName).apply { isAccessible=true }
+            assertEquals(fieldName,field.getInt(fresh),field.getInt(slider))
+        }
+        assertEquals(37,slider.progress)
+        slider.isEnabled=false
+        fresh.isEnabled=false
+        val field=com.coui.appcompat.seekbar.COUISeekBar::class.java.getDeclaredField("mProgressColor").apply { isAccessible=true }
+        assertEquals(field.getInt(fresh),field.getInt(slider))
+    }
+
 }

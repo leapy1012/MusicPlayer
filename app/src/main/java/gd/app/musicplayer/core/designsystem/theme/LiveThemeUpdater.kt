@@ -9,6 +9,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.ImageView
 import androidx.appcompat.view.ContextThemeWrapper
+import androidx.appcompat.content.res.AppCompatResources
+import com.coui.appcompat.statelistutil.COUIStateListUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.coui.appcompat.R as CouiR
 import com.coui.appcompat.button.COUIButton
@@ -38,6 +40,7 @@ class LiveThemeUpdater(private val bind: (View) -> Unit) {
                 }
             }
         } finally { values.recycle() }
+        historicalColors[theme.resources.getColor(R.color.color_theme, theme)] = CouiR.attr.couiColorLabelTheme
         previousAccent?.let { historicalColors[it] = CouiR.attr.couiColorPrimary }
         val surfaces = theme.obtainStyledAttributes(SURFACE_ATTRIBUTES)
         try {
@@ -74,19 +77,36 @@ class LiveThemeUpdater(private val bind: (View) -> Unit) {
             is COUISwitch -> view.refresh()
             is COUIEditText -> view.refresh()
             is COUISearchBar -> view.refresh()
-            is COUITabLayout -> view.refresh()
+            is COUITabLayout -> {
+                view.refresh()
+                val normal = resolve(view.context, CouiR.attr.couiColorSecondNeutral)?.defaultColor
+                val selected = resolve(view.context, CouiR.attr.couiColorLabelTheme)?.defaultColor
+                if (normal != null && selected != null) {
+                    view.setTabTextColors(normal, selected)
+                    view.setSelectedTabIndicatorColor(selected)
+                }
+            }
             // Toolbar.refresh() replaces navigation icons and reinflates its menu.
             // ThemeRegistry's toolbar binder recolors the existing controls instead.
             is COUISeekBar -> {
                 val colors = view.context.obtainStyledAttributes(null, CouiR.styleable.COUISeekBar, CouiR.attr.couiSeekBarStyle, 0)
                 try {
-                    colors.getColorStateList(CouiR.styleable.COUISeekBar_couiSeekBarBackgroundColor)?.let(view::setSeekBarBackgroundColor)
-                    colors.getColorStateList(CouiR.styleable.COUISeekBar_couiSeekBarProgressColor)?.let(view::setProgressColor)
-                    colors.getColorStateList(CouiR.styleable.COUISeekBar_couiSeekBarThumbColor)?.let(view::setThumbColor)
+                    view.setSeekBarBackgroundColor(
+                        colors.getColorStateList(CouiR.styleable.COUISeekBar_couiSeekBarBackgroundColor)
+                            ?: AppCompatResources.getColorStateList(view.context, CouiR.color.coui_seekbar_background_selector))
+                    view.setProgressColor(
+                        colors.getColorStateList(CouiR.styleable.COUISeekBar_couiSeekBarProgressColor)
+                            ?: COUIStateListUtil.createColorStateList(
+                                resolve(view.context, CouiR.attr.couiColorContainerTheme)?.defaultColor ?: 0,
+                                resolve(view.context, CouiR.attr.couiColorDisable)?.defaultColor ?: 0))
+                    view.setThumbColor(
+                        colors.getColorStateList(CouiR.styleable.COUISeekBar_couiSeekBarThumbColor)
+                            ?: AppCompatResources.getColorStateList(view.context, CouiR.color.coui_seekbar_thumb_selector))
                 } finally { colors.recycle() }
             }
         }
-        if (view is TextView && view !is COUIButton) {
+        if (view is TextView && view !is COUIButton &&
+            view.parent !is com.coui.appcompat.tablayout.COUITabView) {
             view.setTextColor(remap(view, view.textColors, R.id.live_theme_text_attribute))
             view.setHintTextColor(remap(view, view.hintTextColors, R.id.live_theme_hint_attribute))
         }

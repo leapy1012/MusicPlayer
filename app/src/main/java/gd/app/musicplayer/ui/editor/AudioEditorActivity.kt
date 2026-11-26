@@ -539,11 +539,9 @@ class AudioEditorActivity : BaseActivity(),
             return
         }
 
-        val input = layoutInflater.inflate(
-            R.layout.layout_edittext,
-            null,
-            false
-        ) as com.coui.appcompat.edittext.COUIEditText
+        // Keep the edit field inside its XML parent so its COUI margins are retained.
+        val inputContent = layoutInflater.inflate(R.layout.dialog_audio_clip_name, null, false)
+        val input = inputContent.findViewById<com.coui.appcompat.edittext.COUIEditText>(R.id.edit)
 
         input.apply {
             val defaultName = (track?.title ?: "Clip") + getString(R.string.audio_editor_extension)
@@ -559,7 +557,7 @@ class AudioEditorActivity : BaseActivity(),
             .createMaterialMessageDialogConfig(this)
             .apply {
                 titleText = getString(R.string.save)
-                customView = input
+                customView = inputContent
                 positiveButtonText = getString(R.string.save).uppercase()
                 negativeButtonText = getString(R.string.cancel).uppercase()
                 positiveButtonClickListener = DialogInterface.OnClickListener { dialog, _ ->

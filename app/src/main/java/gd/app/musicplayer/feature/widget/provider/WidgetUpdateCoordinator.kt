@@ -13,6 +13,8 @@ import gd.app.musicplayer.feature.widget.WidgetConfig
 import gd.app.musicplayer.core.datastore.WidgetConfigStore
 import gd.app.musicplayer.playback.command.PlaybackServiceActions
 import gd.app.musicplayer.playback.command.PlaybackServiceStarter
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,12 +27,19 @@ class WidgetUpdateCoordinator @Inject constructor(
     private val toggleFavoriteTrackUseCase: ToggleFavoriteTrackUseCase
 ) {
 
-    suspend fun updateAll() {
-        val snapshot = snapshotLoader.load()
-        updateAll(snapshot)
+    private val renderMutex = Mutex()
+    private data class Rendered(val config: WidgetConfig, val snapshot: WidgetPlaybackSnapshot)
+    private val rendered = mutableMapOf<Int, Rendered>()
+
+    suspend fun updateAll() = renderMutex.withLock {
+        renderAll(snapshotLoader.load())
     }
 
-    suspend fun updateAll(snapshot: WidgetPlaybackSnapshot) {
+    suspend fun updateAll(snapshot: WidgetPlaybackSnapshot) = renderMutex.withLock {
+        renderAll(snapshot)
+    }
+
+    private suspend fun renderAll(snapshot: WidgetPlaybackSnapshot) {
         val manager = AppWidgetManager.getInstance(appContext)
         WidgetCatalog.items.forEach { spec ->
             val appWidgetIds = manager.getAppWidgetIds(
@@ -50,9 +59,11 @@ class WidgetUpdateCoordinator @Inject constructor(
 
     suspend fun updateWidgets(
         appWidgetIds: IntArray,
-        classify: String
-    ) {
-        if (appWidgetIds.isEmpty()) return
+        classify: String,
+        forceFull: Boolean = false
+    ) = renderMutex.withLock {
+        if (forceFull) appWidgetIds.forEach { rendered.remove(it) }
+        if (appWidgetIds.isEmpty()) return@withLock
 
         val manager = AppWidgetManager.getInstance(appContext)
         val snapshot = snapshotLoader.load()
@@ -128,13 +139,18 @@ class WidgetUpdateCoordinator @Inject constructor(
                 )
             }
 
-        WidgetRenderer.updateWidgets(
-            context = appContext,
-            manager = manager,
-            appWidgetIds = appWidgetIds,
-            classify = classify,
-            snapshot = snapshot,
-            configs = configs
-        )
+        appWidgetIds.forEach { id ->
+            val config = configs.getValue(id)
+            val previous = rendered[id]
+            val controlsOnly = previous != null && previous.config == config &&
+                previous.snapshot.copy(positionMs = snapshot.positionMs, isPlaying = snapshot.isPlaying) == snapshot
+            if (controlsOnly) {
+                if (previous!!.snapshot != snapshot) WidgetRenderer.updatePlaybackControls(
+                    appContext, manager, id, classify, config, snapshot)
+            } else {
+                WidgetRenderer.updateWidgets(appContext, manager, intArrayOf(id), classify, snapshot, configs)
+            }
+            rendered[id] = Rendered(config, snapshot)
+        }
     }
 }

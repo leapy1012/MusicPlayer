@@ -1,19 +1,25 @@
 package gd.app.musicplayer.ui.common.base
 
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.os.PersistableBundle
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import androidx.core.view.WindowCompat
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import gd.app.musicplayer.R
 import gd.app.musicplayer.core.designsystem.theme.CouiAccentOverlay
 import gd.app.musicplayer.core.designsystem.theme.ThemeObserver
@@ -35,9 +41,9 @@ import javax.inject.Inject
  */
 abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
-    private var isStateSaved = false
-    /** Accent ARGB last applied via [CouiAccentOverlay]; used to recreate when it changes. */
+    /** Accent ARGB last applied via [CouiAccentOverlay]; accent-only changes stay live. */
     private var appliedAccentColor: Int = 0
+    private var appliedNightMode = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
     /** Whether COUI Dark chrome overlay was applied for pictured/dark themes. */
     private var appliedDarkChrome: Boolean = false
     private lateinit var initialActivityTheme: android.content.res.Resources.Theme
@@ -47,9 +53,24 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
     @Inject lateinit var themeRegistry: ThemeRegistry
     @Inject lateinit var themeRepo: ThemeRepo
 
-    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
-        super.onSaveInstanceState(outState, outPersistentState)
-        isStateSaved = true
+    private var themeActivityResumed = false
+    private var themeRecreationPosted = false
+    protected val isThemeRecreationPending: Boolean
+        get() = themeRecreationPosted || appearanceNeedsRecreation()
+
+    private fun appearanceNeedsRecreation(): Boolean =
+        requestedNightMode(themeRepo) != appliedNightMode ||
+            !themeRepo.getCorePalette().isContentSurfaceLight() != appliedDarkChrome
+
+    private val recreateForTheme = Runnable {
+        themeRecreationPosted = false
+        if (!isFinishing && !isDestroyed &&
+            themeActivityResumed &&
+            !supportFragmentManager.isStateSaved &&
+            appearanceNeedsRecreation()
+        ) {
+            recreate()
+        }
     }
 
     companion object {
@@ -82,13 +103,30 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
             onNotificationPermissionResult()
         }
 
+    private fun requestedNightMode(repo: ThemeRepo): Int =
+        if (repo.getSelectedThemeType() == ThemeManager.THEME_TYPE_DARK)
+            AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+
+    override fun attachBaseContext(newBase: Context) {
+        val repo = EntryPointAccessors.fromApplication(
+            newBase.applicationContext, ActivityThemeEntryPoint::class.java
+        ).themeRepo()
+        appliedNightMode = requestedNightMode(repo)
+        delegate.localNightMode = appliedNightMode
+        super.attachBaseContext(newBase)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        // FragmentActivity restores fragments inside super.onCreate. COUI preferences
+        // cache title/summary colors in their constructors, so the theme must be ready
+        // before that restoration, not merely before the activity layout is inflated.
+        val startupRepo = EntryPointAccessors.fromApplication(
+            applicationContext, ActivityThemeEntryPoint::class.java
+        ).themeRepo()
         initialActivityTheme = resources.newTheme().apply { setTo(this@BaseActivity.theme) }
-        themeRepo.refreshTheme()
-        // Exact accent → ResourcesLoader + ThemeOverlay.App.Accent before inflate so
-        // COUI switches/tabs/prefs resolve couiColorPrimary* to the picker color.
-        applyCouiAccentOverlay()
+        startupRepo.refreshTheme()
+        applyCouiAccentOverlay(startupRepo)
+        super.onCreate(savedInstanceState)
         // Match icon contrast to header chrome (picture/dark → light icons).
         // SystemBarStyle.auto + AppTheme windowLightStatusBar=true left black icons
         // on teal pictured headers.
@@ -137,8 +175,19 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onResume() {
         super.onResume()
-        isStateSaved = false
+        themeActivityResumed = true
+        // Stopped activities defer recreation until they are visible again. Recheck
+        // the current palette so a dark/light round trip while stopped is a no-op.
+        val palette = themeRepo.getCorePalette()
+        if (isThemeRecreationPending || themeRepo.getAccentColor() != appliedAccentColor) {
+            onThemeChanged(palette)
+        }
         RingtoneActionHandler.handlePendingPermissionResult(this)
+    }
+
+    override fun onPause() {
+        themeActivityResumed = false
+        super.onPause()
     }
 
     fun applyThemeTo(root: View?) {
@@ -147,33 +196,38 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
 
     override fun onStart() {
         super.onStart()
-        isStateSaved = false
-        // Back-stack activities keep their view hierarchy and catch up in place.
+        // Accent updates catch up in place; neutral-theme changes rebuild on resume.
         val palette = themeRepo.getCorePalette()
         val darkChrome = !palette.isContentSurfaceLight()
-        if (themeRepo.getAccentColor() != appliedAccentColor || darkChrome != appliedDarkChrome) {
+        if (themeRepo.getAccentColor() != appliedAccentColor || darkChrome != appliedDarkChrome ||
+            requestedNightMode(themeRepo) != appliedNightMode) {
             onThemeChanged(palette)
         }
     }
 
-    override fun onRestoreInstanceState(
-        savedInstanceState: Bundle?,
-        persistentState: PersistableBundle?
-    ) {
-        super.onRestoreInstanceState(savedInstanceState, persistentState)
-        isStateSaved = false
-    }
-
     override fun onDestroy() {
         // Original BMusicActivity.onDestroy → y.Y().I0(this)
+        window.decorView.removeCallbacks(recreateForTheme)
         themeRegistry.unregisterObserver(this)
         super.onDestroy()
     }
 
     override fun onThemeChanged(palette: ThemePalette?) {
         val resolved = palette ?: themeRepo.getCorePalette()
-        val changed = !resolved.isContentSurfaceLight() != appliedDarkChrome ||
-            themeRepo.getAccentColor() != appliedAccentColor
+        if (appearanceNeedsRecreation()) {
+            // A color walk cannot reconstruct cached ColorStateLists, preference
+            // decorations and dialog styles. Reinflate them through normal saved-state
+            // restoration. Post outside the switch callback / fragment transaction.
+            if (!themeRecreationPosted && !isFinishing && !isDestroyed &&
+                themeActivityResumed &&
+                !supportFragmentManager.isStateSaved
+            ) {
+                themeRecreationPosted = true
+                window.decorView.post(recreateForTheme)
+            }
+            return
+        }
+        val changed = themeRepo.getAccentColor() != appliedAccentColor
         if (changed && ::initialActivityTheme.isInitialized) {
             liveThemeUpdater.rememberColors(theme, appliedAccentColor)
             theme.setTo(initialActivityTheme)
@@ -267,10 +321,10 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
         }
     }
 
-    private fun applyCouiAccentOverlay() {
-        val palette = themeRepo.getCorePalette()
+    private fun applyCouiAccentOverlay(repo: ThemeRepo = themeRepo) {
+        val palette = repo.getCorePalette()
         appliedDarkChrome = CouiAccentOverlay.applyDarkChromeIfNeeded(this, palette)
-        val accent = themeRepo.getAccentColor()
+        val accent = repo.getAccentColor()
         CouiAccentOverlay.apply(this, accent)
         appliedAccentColor = accent
     }
@@ -300,4 +354,11 @@ abstract class BaseActivity : AppCompatActivity(), ThemeObserver {
             onNotificationPermissionResult()
         }
     }
+}
+
+/** Available before Activity injection and FragmentActivity saved-state restoration. */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface ActivityThemeEntryPoint {
+    fun themeRepo(): ThemeRepo
 }

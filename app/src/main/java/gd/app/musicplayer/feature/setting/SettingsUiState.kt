@@ -9,7 +9,6 @@ data class SettingsUiState(
     val showHiddenFolders: Boolean = true,
     val showDirectory: Boolean = true,
     val showKeepAliveDot: Boolean = true,
-    val darkModeEnabled: Boolean = false,
     val showForwardBackward: Boolean = false,
     val forwardBackwardSeconds: Int = 15,
     val queueForSearchingMode: Int = 0,

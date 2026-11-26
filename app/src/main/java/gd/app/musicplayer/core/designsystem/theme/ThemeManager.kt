@@ -1,6 +1,8 @@
 package gd.app.musicplayer.core.designsystem.theme
 
 import android.content.Context
+import android.content.ComponentCallbacks
+import android.content.res.Configuration
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gd.app.musicplayer.core.common.extension.isDarkTheme
 import gd.app.musicplayer.core.datastore.ThemeSettings
@@ -28,6 +30,9 @@ class ThemeManager @Inject constructor(
 ) : BaseThemeProvider(themeBitmapLoader) {
 
     private val themeBinder = DefaultThemeBinder()
+    private var systemAccentConfiguration: Configuration? = null
+    private var systemAccentColor = ThemeAccentDefaults.BLUE
+    private var systemAccentDark: Boolean? = null
 
     @Volatile
     private var cachedSettings: ThemeSettings = runBlocking(Dispatchers.IO) {
@@ -38,6 +43,13 @@ class ThemeManager @Inject constructor(
     }
 
     init {
+        appContext.registerComponentCallbacks(object : ComponentCallbacks {
+            override fun onConfigurationChanged(newConfig: Configuration) {
+                systemAccentConfiguration = null
+                refreshTheme(appContext)
+            }
+            override fun onLowMemory() = Unit
+        })
         appScope.launch {
             themeSettingPreferenceStore.settings.collectLatest { settings ->
                 cachedSettings = settings
@@ -59,7 +71,7 @@ class ThemeManager @Inject constructor(
     }
 
     override fun createInitialTheme(): ThemePalette {
-        return createPalette(resolveThemeType(appContext, cachedSettings.themeType))
+        return createPalette(resolveThemeType(appContext))
     }
 
     override fun notifyThemeChanged(palette: ThemePalette) {
@@ -107,10 +119,16 @@ class ThemeManager @Inject constructor(
      */
     override fun refreshTheme(context: Context) {
         val safeContext = context.applicationContext
-        val resolvedType = resolveThemeType(safeContext, cachedSettings.themeType)
+        val resolvedType = resolveThemeType(safeContext)
         val current = getCurrentTheme()
 
-        if (needsSettingsReload || current.getThemeType() != resolvedType || current.getAccentColor() != resolvedAccent(cachedSettings, resolvedType)) {
+        val accent = resolvedAccent(cachedSettings)
+        if (!needsSettingsReload && current.getThemeType() == resolvedType && current.getAccentColor() != accent) {
+            current.setAccentColor(accent)
+            updateCurrentTheme(current, persist = false, notify = true)
+            return
+        }
+        if (needsSettingsReload || current.getThemeType() != resolvedType) {
             // Prefs reload → new palette (original g()). Type-only switch may reuse bitmaps (O).
             val rebuilt = if (needsSettingsReload) {
                 createPalette(resolvedType)
@@ -139,7 +157,7 @@ class ThemeManager @Inject constructor(
      */
     suspend fun applySettingsAndNotify(): ThemePalette = withContext(Dispatchers.Default) {
         cachedSettings = themeSettingPreferenceStore.getSettingsSnapshot()
-        val resolvedType = resolveThemeType(appContext, cachedSettings.themeType)
+        val resolvedType = resolveThemeType(appContext)
         val palette = createPalette(resolvedType)
         palette.ensureResourcesLoaded(appContext, themeBitmapLoader())
         withContext(Dispatchers.Main.immediate) {
@@ -152,103 +170,65 @@ class ThemeManager @Inject constructor(
         }
     }
 
-    /**
-     * Original [o7.f.u]: clone with shared bitmaps ([O] reuse), [H] on bg, notify on main.
-     * Night off restores the last non-dark type (White or Picture), defaulting to White.
-     */
-    fun toggleDarkMode(enabled: Boolean) {
-        val themeType = if (enabled) {
-            if (cachedSettings.themeType != THEME_TYPE_DARK) {
-                persistLastNonDarkType(cachedSettings.themeType)
-            }
-            THEME_TYPE_DARK
-        } else {
-            resolveLastNonDarkType()
+    fun getSelectedThemeType(): Int = cachedSettings.themeType
+
+    fun followsSystemAccent(): Boolean = cachedSettings.followSystemAccent
+    fun getCustomAccentColor(): Int = cachedSettings.themeColor
+    @Synchronized
+    fun getSystemAccentColor(): Int {
+        val configuration = appContext.resources.configuration
+        val dark = resolveThemeType(appContext) == THEME_TYPE_DARK
+        if (systemAccentConfiguration != configuration || systemAccentDark != dark) {
+            systemAccentColor = MusicAppearance.systemAccent(appContext, dark)
+            systemAccentConfiguration = Configuration(configuration)
+            systemAccentDark = dark
         }
+        return systemAccentColor
+    }
 
-        cachedSettings = cachedSettings.copy(themeType = themeType,
-            themeColor = ThemeAccentDefaults.forTheme(themeType), hasCustomAccent = false)
-
+    fun followSystemAccent() {
         appScope.launch {
-            themeSettingPreferenceStore.setThemeType(themeType)
-        }
-
-        val current = getCurrentTheme() as? PictureThemePalette
-        val resolvedType = resolveThemeType(appContext, themeType)
-        val cloned = if (current != null) {
-            current.copyAsThemeType(resolvedType, reuseBitmaps = true)
-        } else {
-            createPalette(resolvedType)
-        }
-        cloned.setAccentColor(resolvedAccent(cachedSettings, resolvedType))
-
-        appScope.launch(Dispatchers.Default) {
-            if (!cloned.ensureResourcesLoaded(appContext, themeBitmapLoader())) {
-                return@launch
-            }
-            withContext(Dispatchers.Main.immediate) {
-                updateCurrentTheme(
-                    palette = cloned,
-                    persist = false,
-                    notify = true
-                )
-            }
+            themeSettingPreferenceStore.setFollowSystemAccent(true)
+            reloadAppearance()
         }
     }
 
-    /**
-     * True only when the user explicitly enabled night mode in settings
-     * ([THEME_TYPE_DARK]), not when the UI is dark solely because of system night.
-     */
-    fun isUserDarkModePreferred(): Boolean {
-        return cachedSettings.themeType == THEME_TYPE_DARK
-    }
-
-    fun isUserLightModePreferred(): Boolean {
-        return cachedSettings.themeType == THEME_TYPE_LIGHT
-    }
-
-    /**
-     * Switch to solid White (COUI light). Clears user Night if it was on.
-     */
+    /** Background selection and appearance are independent of the accent choice. */
     fun applyLightTheme() {
-        persistLastNonDarkType(THEME_TYPE_LIGHT)
-        cachedSettings = cachedSettings.copy(themeType = THEME_TYPE_LIGHT,
-            themeColor = ThemeAccentDefaults.BLUE, hasCustomAccent = false)
         appScope.launch {
-            themeSettingPreferenceStore.setThemeType(THEME_TYPE_LIGHT)
-        }
-        val current = getCurrentTheme() as? PictureThemePalette
-        val resolvedType = resolveThemeType(appContext, THEME_TYPE_LIGHT)
-        val cloned = current?.copyAsThemeType(resolvedType, reuseBitmaps = true)
-            ?: createPalette(resolvedType)
-        cloned.setAccentColor(resolvedAccent(cachedSettings, resolvedType))
-        appScope.launch(Dispatchers.Default) {
-            if (!cloned.ensureResourcesLoaded(appContext, themeBitmapLoader())) return@launch
-            withContext(Dispatchers.Main.immediate) {
-                updateCurrentTheme(palette = cloned, persist = false, notify = true)
-            }
+            themeSettingPreferenceStore.setThemeType(THEME_TYPE_LIGHT, resetAccent = false)
+            reloadAppearance()
         }
     }
 
-    /**
-     * Original [o7.f.v]: mutate accent on current palette + notify (no full rebuild).
-     */
-    fun updateAccentColor(accentColor: Int) {
-        cachedSettings = cachedSettings.copy(themeColor = accentColor, hasCustomAccent = true)
+    fun applyDarkTheme() {
+        appScope.launch {
+            themeSettingPreferenceStore.setThemeType(THEME_TYPE_DARK, resetAccent = false)
+            reloadAppearance()
+        }
+    }
 
+    fun updateAccentColor(accentColor: Int) {
         appScope.launch {
             themeSettingPreferenceStore.setThemeColor(accentColor)
+            reloadAppearance()
         }
+    }
 
-        val current = getCurrentTheme()
-        current.setAccentColor(accentColor)
-
-        updateCurrentTheme(
-            palette = current,
-            persist = false,
-            notify = true
-        )
+    private suspend fun reloadAppearance() {
+        val settings = themeSettingPreferenceStore.getSettingsSnapshot()
+        withContext(Dispatchers.Main.immediate) {
+            val before = getCurrentTheme()
+            val oldType = before.getThemeType()
+            val oldAccent = before.getAccentColor()
+            cachedSettings = settings
+            refreshTheme(appContext)
+            val after = getCurrentTheme()
+            // Also refresh preference summaries for mode-only changes.
+            if (after.getThemeType() == oldType && after.getAccentColor() == oldAccent) {
+                notifyThemeChanged(after)
+            }
+        }
     }
 
     /**
@@ -270,7 +250,7 @@ class ThemeManager @Inject constructor(
                 // Keep settings metadata in sync with cache (accent/blur/image).
                 val settings = cachedSettings
                 copy.setImageName(settings.imageName)
-                copy.setAccentColor(resolvedAccent(settings, targetType))
+                copy.setAccentColor(resolvedAccent(settings))
                 copy.setBlurAmount(settings.blur)
                 copy.setBackgroundOverlayColor(settings.overlayColor)
             }
@@ -278,27 +258,9 @@ class ThemeManager @Inject constructor(
         return createPalette(targetType)
     }
 
-    /**
-     * User night (99) always wins. Otherwise follow system UI night mode so
-     * picture/white still paint dark when the device is in dark mode —
-     * without selecting the night switch in settings.
-     */
-    private fun resolveThemeType(
-        context: Context,
-        preferredType: Int
-    ): Int {
-        if (preferredType == THEME_TYPE_DARK) {
-            return THEME_TYPE_DARK
-        }
-        if (context.isDarkTheme()) {
-            return THEME_TYPE_DARK
-        }
-        return when (preferredType) {
-            THEME_TYPE_LIGHT -> THEME_TYPE_LIGHT
-            THEME_TYPE_PICTURE -> THEME_TYPE_PICTURE
-            else -> THEME_TYPE_LIGHT
-        }
-    }
+    /** System dark mode wins without overwriting the chosen theme card. */
+    private fun resolveThemeType(context: Context): Int =
+        MusicAppearance.themeType(cachedSettings, context.isDarkTheme())
 
     private fun createPalette(themeType: Int): PictureThemePalette {
         val settings = cachedSettings
@@ -309,30 +271,14 @@ class ThemeManager @Inject constructor(
             else -> PictureThemePalette()
         }.apply {
             setImageName(settings.imageName)
-            setAccentColor(resolvedAccent(settings, themeType))
+            setAccentColor(resolvedAccent(settings))
             setBlurAmount(settings.blur)
             setBackgroundOverlayColor(settings.overlayColor)
         }
     }
 
-    private fun resolvedAccent(settings: ThemeSettings, themeType: Int = settings.themeType): Int =
-        ThemeAccentDefaults.resolve(themeType, settings.hasCustomAccent, settings.themeColor)
-
-    private fun persistLastNonDarkType(themeType: Int) {
-        if (themeType == THEME_TYPE_DARK) return
-        cachedSettings = cachedSettings.copy(lastNonDarkThemeType = themeType)
-        appScope.launch {
-            themeSettingPreferenceStore.setLastNonDarkThemeType(themeType)
-        }
-    }
-
-    private fun resolveLastNonDarkType(): Int {
-        val stored = cachedSettings.lastNonDarkThemeType
-        return when (stored) {
-            THEME_TYPE_PICTURE, THEME_TYPE_LIGHT -> stored
-            else -> THEME_TYPE_LIGHT
-        }
-    }
+    private fun resolvedAccent(settings: ThemeSettings): Int =
+        MusicAppearance.accent(settings, if (settings.followSystemAccent) getSystemAccentColor() else settings.themeColor)
 
     companion object {
         /** Solid White / COUI light — default out-of-box theme. */

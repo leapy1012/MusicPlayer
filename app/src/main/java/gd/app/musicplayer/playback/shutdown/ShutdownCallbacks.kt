@@ -4,6 +4,8 @@ import gd.app.musicplayer.playback.state.PlaybackSnapshot
 
 interface ShutdownCallbacks {
 
+    fun beginShutdown()
+
     fun capturePlaybackSnapshot(): PlaybackSnapshot
 
     fun persistPlaybackSnapshotBlocking(

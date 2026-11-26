@@ -6,9 +6,6 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.Process
 import android.provider.MediaStore
 import android.view.KeyEvent
 import android.view.View
@@ -35,8 +32,6 @@ import gd.app.musicplayer.domain.usecase.library.GetTracksUseCase
 import gd.app.musicplayer.domain.usecase.scan.SyncMediaStoreLibraryUseCase
 import gd.app.musicplayer.feature.home.MainFragment
 import gd.app.musicplayer.playback.PlaybackController
-import gd.app.musicplayer.playback.command.PlaybackServiceActions
-import gd.app.musicplayer.playback.service.MusicPlaybackService
 import gd.app.musicplayer.ui.common.base.BasePlayerSheetActivity
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +63,7 @@ class MainActivity : BasePlayerSheetActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var navigationDrawer: DrawerLayout
 
+    @Inject lateinit var quitCoordinator: gd.app.musicplayer.playback.shutdown.PlaybackQuitCoordinator
     @Inject lateinit var playbackController: PlaybackController
     @Inject lateinit var getTracksUseCase: GetTracksUseCase
     @Inject lateinit var syncMediaStoreLibraryUseCase: SyncMediaStoreLibraryUseCase
@@ -158,7 +154,7 @@ class MainActivity : BasePlayerSheetActivity() {
 
     private fun installBackHandler() {
         // Original MainActivity.onBackPressed:
-        // drawer → fragment back stack → collapse player panel → quit confirm.
+        // drawer → fragment back stack → collapse player panel → finish this activity.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
@@ -174,26 +170,14 @@ class MainActivity : BasePlayerSheetActivity() {
 
                     collapsePlayerPanelIfExpanded() -> Unit
 
-                    else -> showQuitConfirmDialog()
+                    else -> finish()
                 }
             }
         })
     }
 
     private fun quitApplication() {
-        val serviceIntent = Intent(applicationContext, MusicPlaybackService::class.java).apply {
-            action = PlaybackServiceActions.ACTION_EXIT
-        }
-
-        applicationContext.startService(serviceIntent)
-        finishAffinity()
-
-        Handler(Looper.getMainLooper()).postDelayed(
-            {
-                Process.killProcess(Process.myPid())
-            },
-            150L
-        )
+        quitCoordinator.requestQuit()
     }
 
     private fun setupDrawerWidth() {
@@ -275,8 +259,8 @@ class MainActivity : BasePlayerSheetActivity() {
         lifecycleScope.launch {
             val queue = withContext(Dispatchers.IO) {
                 runCatching {
-                    // Keep local DB in sync so newly copied files are resolvable.
-                    syncMediaStoreLibraryUseCase(incremental = false)
+                    // Leapy_tts modified: Import new audio without rechecking known files.
+                    syncMediaStoreLibraryUseCase(incremental = true)
                 }
 
                 val allTracks = getTracksUseCase(MusicSet.Tracks)

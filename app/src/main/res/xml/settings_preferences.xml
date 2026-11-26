@@ -24,10 +24,7 @@
             android:persistent="false"
             android:title="@string/show_directory" />
 
-        <com.coui.appcompat.preference.COUISwitchPreference
-            android:key="preference_dark_mode"
-            android:persistent="false"
-            android:title="@string/night_mode" />
+
 
         <com.coui.appcompat.preference.COUISwitchPreference
             android:key="show_forward_backward"

@@ -1,10 +1,7 @@
 package gd.app.musicplayer.playback
 
 import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
-import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
 import gd.app.musicplayer.core.common.util.ShakeDetector
-import gd.app.musicplayer.domain.model.Music
-import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
 import gd.app.musicplayer.playback.queue.MusicPlaybackState
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -13,8 +10,7 @@ import javax.inject.Singleton
 
 @Singleton
 class PlaybackStartupInitializer @Inject constructor(
-    private val playbackQueueRepo: PlaybackQueueRepo,
-    private val playbackStatePreferenceStore: PlaybackStatePreferenceStore,
+    private val resumeLoader: gd.app.musicplayer.playback.restore.PlaybackResumeLoader,
     private val stateStore: PlaybackRuntimeStateStore,
     private val shakeDetector: ShakeDetector
 ) {
@@ -29,23 +25,23 @@ class PlaybackStartupInitializer @Inject constructor(
                 return
             }
 
-            val restoredState = buildRestoredState()
+            val beforeRead = stateStore.initializationToken()
+            val restoredState = try { buildRestoredState() }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { null }
 
             if (restoredState == null) {
                 stateStore.initializeIfNeeded()
             } else {
-                stateStore.setState(restoredState)
+                stateStore.initializeFrom(beforeRead, restoredState)
             }
         }
     }
 
     private suspend fun buildRestoredState(): MusicPlaybackState? {
-        val queue = playbackQueueRepo.getQueue()
-        if (queue.isEmpty()) return null
-
-        val restoredStart = resolveRestoredPlaybackStart(queue) ?: return null
-
-        val music = queue.getOrNull(restoredStart.index) ?: return null
+        val restoredStart = resumeLoader.load() ?: return null
+        val queue = restoredStart.queue
+        val music = queue[restoredStart.index]
 
         return MusicPlaybackState(
             initialized = true,
@@ -59,24 +55,4 @@ class PlaybackStartupInitializer @Inject constructor(
         )
     }
 
-    private suspend fun resolveRestoredPlaybackStart(
-        queue: List<Music>
-    ): RestoredPlaybackStart? {
-        val progress = playbackStatePreferenceStore.getMusicProgress()
-        val resolvedIndex = queue.indexOfFirst { music ->
-            music.id == progress.trackId
-        }
-            .takeIf { it >= 0 }
-            ?: return null
-
-        return RestoredPlaybackStart(
-            index = resolvedIndex,
-            positionMs = progress.progressMs.toLong().coerceAtLeast(0L)
-        )
-    }
-
-    private data class RestoredPlaybackStart(
-        val index: Int,
-        val positionMs: Long
-    )
 }

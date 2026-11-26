@@ -4,6 +4,10 @@ package gd.app.musicplayer.core.media
 import android.util.Log
 import com.Legal.Java.Interface
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.FileTime
 import javax.inject.Inject
 
 class LegalAudioFilePolicy internal constructor(private val api: Api) {
@@ -18,13 +22,30 @@ class LegalAudioFilePolicy internal constructor(private val api: Api) {
 
     enum class Decision { ALLOWED, REJECTED, MISSING }
 
-    fun inspect(path: String): Decision {
+    // Leapy_tts modified begin: Reuse successful checks only for the same on-disk file.
+    private val acceptedFiles = mutableMapOf<String, FileVersion>()
+
+    @Synchronized
+    fun inspect(path: String, reuseAccepted: Boolean = false): Decision {
         val file = File(path)
-        if (!file.isAbsolute || !file.isFile) return Decision.MISSING
+        if (!file.isAbsolute || !file.isFile) {
+            acceptedFiles.remove(path)
+            return Decision.MISSING
+        }
+        val version = file.version()
+        if (reuseAccepted && version != null && acceptedFiles[path] == version) {
+            return Decision.ALLOWED
+        }
+        acceptedFiles.remove(path)
         // This is a required platform API. A framework/ABI error must propagate,
         // not silently turn every library item into an unavailable/filtered result.
         val result = api.check(path)
-        if (result == api.nativeResult || result == api.selfResult) return Decision.ALLOWED
+        if (result == api.nativeResult || result == api.selfResult) {
+            if (version != null && file.version() == version) {
+                acceptedFiles[path] = version
+            }
+            return Decision.ALLOWED
+        }
         // A check error never authorizes deletion. Only an actual rejected verdict does.
         try {
             api.delete(path)
@@ -35,6 +56,21 @@ class LegalAudioFilePolicy internal constructor(private val api: Api) {
         }
         return Decision.REJECTED
     }
+
+    private data class FileVersion(
+        val key: Any?,
+        val size: Long,
+        val modified: FileTime,
+        val created: FileTime
+    )
+
+    private fun File.version(): FileVersion? = try {
+        val attrs = Files.readAttributes(toPath(), BasicFileAttributes::class.java)
+        FileVersion(attrs.fileKey(), attrs.size(), attrs.lastModifiedTime(), attrs.creationTime())
+    } catch (error: IOException) {
+        null
+    }
+    // Leapy_tts end
 
     private class FrameworkApi : Api {
         override val nativeResult get() = Interface.Legal_NAT

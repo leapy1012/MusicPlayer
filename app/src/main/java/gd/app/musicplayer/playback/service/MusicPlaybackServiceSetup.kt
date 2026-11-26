@@ -1,108 +1,41 @@
 ﻿package gd.app.musicplayer.playback.service
 
 import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
-import android.content.Intent
 import android.content.res.Configuration
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.os.Build
-import android.os.Bundle
-import android.os.Parcelable
-import android.os.SystemClock
-import android.view.KeyEvent
-import androidx.annotation.OptIn
-import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.CommandButton
-import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
-import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionError
-import androidx.media3.session.SessionResult
-import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.R
-import gd.app.musicplayer.core.common.AppForegroundTracker
-import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
-import gd.app.musicplayer.core.common.extension.resolveMediaUri
-import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
-import gd.app.musicplayer.core.database.dao.MusicDao
-import gd.app.musicplayer.core.datastore.DesktopLyricPreference
-import gd.app.musicplayer.core.datastore.DesktopLyricPreferenceStore
-import gd.app.musicplayer.core.datastore.PlaybackStatePreferenceStore
-import gd.app.musicplayer.core.datastore.SettingPreferences
-import gd.app.musicplayer.core.datastore.SettingPreferencesDataStore
-import gd.app.musicplayer.core.datastore.SoundEffectPreferences
-import gd.app.musicplayer.core.datastore.StatusBarLyricPreferenceStore
-import gd.app.musicplayer.core.datastore.TrackLyricPreferenceStore
 import gd.app.musicplayer.domain.model.Music
 import gd.app.musicplayer.domain.model.MusicSet
-import gd.app.musicplayer.domain.repository.PlaybackQueueRepo
-import gd.app.musicplayer.domain.repository.PlaylistRepo
-import gd.app.musicplayer.domain.usecase.library.ObserveAlbumPictureUseCase
-import gd.app.musicplayer.domain.usecase.library.ObserveTracksUseCase
-import gd.app.musicplayer.domain.usecase.playlist.ToggleFavoriteTrackUseCase
 import gd.app.musicplayer.playback.artwork.ArtworkLoader
-import gd.app.musicplayer.playback.effects.AudioEffectsManager
 import gd.app.musicplayer.playback.AudioFocusController
-import gd.app.musicplayer.playback.headset.HeadsetMediaButtonHandler
 import gd.app.musicplayer.playback.player.PlaybackSessionMetadata
 import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.notification.PlaybackNotificationController
-import gd.app.musicplayer.playback.command.PlaybackCommandPayloadStore
-import gd.app.musicplayer.playback.command.IndexActionData
-import gd.app.musicplayer.playback.state.PlaybackRuntimeStateStore
 import gd.app.musicplayer.playback.command.PlaybackCommandHandler
 import gd.app.musicplayer.playback.state.PlaybackStatePublisher
 import gd.app.musicplayer.playback.widget.PlaybackWidgetBridge
-import gd.app.musicplayer.playback.PlaybackStatsTracker
 import gd.app.musicplayer.playback.effects.PlaybackTuningController
-import gd.app.musicplayer.playback.effects.StereoBalanceAudioProcessor
-import gd.app.musicplayer.playback.timer.SleepTimerManager
-import gd.app.musicplayer.playback.effects.VolumeFader
-import gd.app.musicplayer.ui.shell.MainActivity
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.collectLatest
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.SettableFuture
 import gd.app.musicplayer.playback.artwork.CurrentArtworkController
 import gd.app.musicplayer.playback.favorite.CurrentFavoriteController
 import gd.app.musicplayer.playback.notification.NotificationCloseCallbacks
 import gd.app.musicplayer.playback.notification.NotificationCloseController
-import gd.app.musicplayer.playback.player.MusicPlayerFactory
-import gd.app.musicplayer.playback.player.PlaybackEngine
-import gd.app.musicplayer.playback.player.PlayerEventHandler
 import gd.app.musicplayer.playback.player.QueueAwareSessionPlayer
 import gd.app.musicplayer.playback.progress.PlaybackProgressTicker
-import gd.app.musicplayer.playback.queue.PlaybackQueueManager
 import gd.app.musicplayer.playback.queue.PlayerQueueController
 import gd.app.musicplayer.playback.queue.QueueActionController
 import gd.app.musicplayer.playback.queue.QueueMutationCallbacks
 import gd.app.musicplayer.playback.state.PlaybackSnapshot
 import gd.app.musicplayer.playback.state.PlaybackSnapshotManager
 import gd.app.musicplayer.playback.restore.PlaybackRestoreManager
-import gd.app.musicplayer.playback.restore.RestoreStatus
 import gd.app.musicplayer.playback.shutdown.ShutdownCallbacks
 import gd.app.musicplayer.playback.shutdown.ShutdownController
-import gd.app.musicplayer.playback.shutdown.ShutdownOptions
 import gd.app.musicplayer.playback.shutdown.PlaybackShutdownCoordinator
 import gd.app.musicplayer.playback.state.PlaybackStateOrchestrator
 import gd.app.musicplayer.playback.state.PlaybackStateUpdateCoordinator
@@ -110,10 +43,7 @@ import gd.app.musicplayer.playback.state.PublishReason
 import gd.app.musicplayer.playback.transition.TimedTransitionController
 import gd.app.musicplayer.playback.desktop.DesktopLyricsOverlayController
 import gd.app.musicplayer.playback.statusbar.StatusBarLyricsOverlayController
-import gd.app.musicplayer.feature.widget.provider.WidgetUpdateCoordinator
 import gd.app.musicplayer.feature.widget.provider.WidgetPlaybackSnapshot
-import kotlinx.coroutines.NonCancellable
-
 
 internal fun MusicPlaybackService.prepareServiceBaseState() {
     MusicPlaybackService.isRunning = true
@@ -128,16 +58,6 @@ internal fun MusicPlaybackService.prepareServiceBaseState() {
         R.drawable.notify_default_album
     )
 
-    // Obfuscated parity (y.n0 + y.S path intent): warm default track set ahead of play action
-    // so empty-queue "play" can resolve queue immediately without waiting for first DB/Flow roundtrip.
-    defaultTracksObserverJob = serviceScope.launch(dispatchers.io) {
-        observeTracksUseCase(MusicSet.Tracks).collectLatest { tracks ->
-            cachedDefaultTracks = tracks
-            cachedPlayableDefaultTracks = tracks.filter { music ->
-                music.resolveMediaUri() != null
-            }
-        }
-    }
 }
 
 internal fun MusicPlaybackService.createLifecycleController(): PlaybackLifecycleController {
@@ -170,20 +90,12 @@ internal fun MusicPlaybackService.createStateUpdateCoordinator(): PlaybackStateU
                 return if (isStateOrchestratorInitialized()) stateOrchestrator else null
             }
 
-            override fun runtimeWidgetSnapshot(): WidgetPlaybackSnapshot {
-                return widgetBridge.map(playbackRuntimeStateStore.state.value)
-            }
-
             override fun shutdownWidgetSnapshot(snapshot: PlaybackSnapshot?): WidgetPlaybackSnapshot {
                 return if (snapshot != null) {
                     widgetBridge.map(snapshot)
                 } else {
                     widgetBridge.map(playbackRuntimeStateStore.state.value)
                 }
-            }
-
-            override fun updateWidgets(snapshot: WidgetPlaybackSnapshot) {
-                widgetBridge.update(snapshot)
             }
 
             override fun updateWidgetsBlocking(snapshot: WidgetPlaybackSnapshot) {
@@ -218,10 +130,8 @@ internal fun MusicPlaybackService.createShutdownCoordinator(): PlaybackShutdownC
 internal fun MusicPlaybackService.configureControllers() {
 
     restoreManager = PlaybackRestoreManager(
-        playbackQueueRepo = playbackQueueRepo,
-        playbackStatePreferenceStore = playbackStatePreferenceStore,
-        playbackRuntimeStateStore = playbackRuntimeStateStore,
-        dispatchers = dispatchers
+        resumeLoader = resumeLoader,
+        playbackRuntimeStateStore = playbackRuntimeStateStore
     )
 
     playbackModeResolver = PlaybackModeResolver(
@@ -432,7 +342,6 @@ internal fun MusicPlaybackService.configureControllers() {
         }
     )
 
-
     val notificationManager =
         getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
@@ -624,7 +533,6 @@ internal fun MusicPlaybackService.configureControllers() {
                 return player.currentPosition.coerceAtLeast(0L)
             }
 
-
             override fun refreshArtworkAndSession(force: Boolean) {
                 this@configureControllers.refreshArtworkAndSession(force)
             }
@@ -674,6 +582,11 @@ internal fun MusicPlaybackService.configureControllers() {
 
     shutdownController = ShutdownController(
         callbacks = object : ShutdownCallbacks {
+
+            override fun beginShutdown() {
+                playbackShuttingDown = true
+                if (isProgressTickerInitialized()) progressTicker.stopTickerOnly()
+            }
 
             override fun capturePlaybackSnapshot(): PlaybackSnapshot {
                 return this@configureControllers.capturePlaybackSnapshot()
@@ -758,6 +671,9 @@ internal fun MusicPlaybackService.configureControllers() {
             }
 
             override fun onServiceShouldStop() {
+                // Disconnect browser controllers too, so bound clients cannot hold Quit open.
+                media3Session?.let { session -> removeSession(session); session.release() }
+                media3Session = null
                 MusicPlaybackService.isRunning = false
                 stopSelf()
             }
@@ -800,7 +716,6 @@ internal fun MusicPlaybackService.configureControllers() {
                 )
             }
 
-
             override fun publishPausedSnapshot(snapshot: PlaybackSnapshot) {
                 stateOrchestrator.publishSnapshot(
                     snapshot = snapshot,
@@ -815,49 +730,6 @@ internal fun MusicPlaybackService.configureControllers() {
     )
 
 }
-
-internal fun MusicPlaybackService.buildMedia3Session(): MediaSession {
-    val sessionActivity = PendingIntent.getActivity(
-        this,
-        MEDIA3_SESSION_ACTIVITY_REQUEST_CODE,
-        Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra(
-                MainActivity.EXTRA_EXPAND_PLAYER,
-                true
-            )
-        },
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-
-    return MediaSession.Builder(this, sessionPlayer)
-        .setSessionActivity(sessionActivity)
-        .setCallback(media3SessionCallback)
-        .build()
-}
-
-internal fun Int.isMedia3TransportNavigationCommand(): Boolean {
-    return this == Player.COMMAND_SEEK_TO_NEXT ||
-            this == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM ||
-            this == Player.COMMAND_SEEK_TO_PREVIOUS ||
-            this == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
-}
-
-@OptIn(UnstableApi::class)
-internal fun MusicPlaybackService.updateMedia3CommandButtons() {
-    val session = media3Session ?: return
-    val buttons = buildMedia3CommandButtons()
-
-    session.setCustomLayout(buttons)
-    session.setMediaButtonPreferences(buttons)
-}
-
-internal fun MusicPlaybackService.buildMedia3CommandButtons(): List<CommandButton> =
-    gd.app.musicplayer.playback.notification.musicSessionButtons(
-        this, queue.getOrNull(currentIndex)?.playlistId == MusicSet.FAVORITES
-    )
-
 
 internal fun MusicPlaybackService.registerScreenOffReceiver() {
     serviceScope.launch {

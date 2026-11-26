@@ -1,28 +1,14 @@
 package gd.app.musicplayer.playback.service
 
-import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
-import android.os.Build
-import android.os.Bundle
-import android.os.Parcelable
-import android.view.KeyEvent
-import androidx.annotation.OptIn
-import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
-import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionError
-import androidx.media3.session.SessionResult
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.SettableFuture
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.common.dispatcher.AppDispatchers
-import gd.app.musicplayer.core.common.extension.toMediaItemOrNull
 import gd.app.musicplayer.core.database.dao.MusicDao
 import gd.app.musicplayer.core.datastore.DesktopLyricPreference
 import gd.app.musicplayer.core.datastore.DesktopLyricPreferenceStore
@@ -45,12 +31,8 @@ import gd.app.musicplayer.playback.PlaybackModeResolver
 import gd.app.musicplayer.playback.PlaybackStatsTracker
 import gd.app.musicplayer.playback.artwork.ArtworkLoader
 import gd.app.musicplayer.playback.artwork.CurrentArtworkController
-import gd.app.musicplayer.playback.command.IndexActionData
 import gd.app.musicplayer.playback.command.PlaybackCommandHandler
 import gd.app.musicplayer.playback.command.PlaybackCommandPayloadStore
-import gd.app.musicplayer.playback.command.PlaybackServiceActions
-import gd.app.musicplayer.playback.command.PlaybackServiceExtras
-import gd.app.musicplayer.playback.command.PlaybackServiceStarter
 import gd.app.musicplayer.playback.desktop.DesktopLyricsOverlayController
 import gd.app.musicplayer.playback.effects.AudioEffectsManager
 import gd.app.musicplayer.playback.effects.PlaybackTuningController
@@ -84,19 +66,20 @@ import gd.app.musicplayer.playback.transition.TimedTransitionController
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class MusicPlaybackService : MediaSessionService() {
+class MusicPlaybackService : MediaLibraryService() {
 
     // ---------------------------------------------------------------------
     // Injected dependencies
     // ---------------------------------------------------------------------
 
+    @Inject lateinit var quitCoordinator: gd.app.musicplayer.playback.shutdown.PlaybackQuitCoordinator
     @Inject lateinit var musicPlayerFactory: MusicPlayerFactory
     @Inject lateinit var processPlayerHolder: gd.app.musicplayer.playback.ProcessPlayerHolder
     @Inject lateinit var queueManager: PlaybackQueueManager
     @Inject lateinit var playbackRuntimeStateStore: PlaybackRuntimeStateStore
+    @Inject lateinit var resumeLoader: gd.app.musicplayer.playback.restore.PlaybackResumeLoader
     @Inject lateinit var playbackQueueRepo: PlaybackQueueRepo
     @Inject lateinit var playlistRepo: PlaylistRepo
     @Inject lateinit var desktopLyricPreferenceStore: DesktopLyricPreferenceStore
@@ -163,22 +146,18 @@ class MusicPlaybackService : MediaSessionService() {
     internal lateinit var crossfadeVolumeFader: VolumeFader
     internal lateinit var progressTicker: PlaybackProgressTicker
 
-    internal var media3Session: MediaSession? = null
+    internal var media3Session: MediaLibrarySession? = null
+    internal val playbackRequests = PlaybackRequestGate()
+    internal var playbackErrorJob: Job? = null
+    internal val failedPlaybackIds = mutableSetOf<Long>()
 
     // ---------------------------------------------------------------------
     // Runtime state
     // ---------------------------------------------------------------------
 
     internal var resumeJob: Job? = null
-    internal var defaultQueueRestoreJob: Job? = null
-    internal var defaultTracksObserverJob: Job? = null
+    internal var playbackShuttingDown = false
 
-    @Volatile
-    internal var pendingResumeAfterDefaultQueue = false
-    @Volatile
-    internal var cachedDefaultTracks: List<Music> = emptyList()
-    @Volatile
-    internal var cachedPlayableDefaultTracks: List<Music> = emptyList()
     @Volatile
     internal var deferForcedStartupUiUpdates = false
     @Volatile
@@ -221,11 +200,12 @@ class MusicPlaybackService : MediaSessionService() {
 
         lifecycleController = createLifecycleController()
         lifecycleController.onCreate()
+        quitCoordinator.onServiceCreated(this) { exitService() }
     }
 
     override fun onGetSession(
         controllerInfo: MediaSession.ControllerInfo
-    ): MediaSession? {
+    ): MediaLibrarySession? {
         return media3Session
     }
 
@@ -284,246 +264,12 @@ class MusicPlaybackService : MediaSessionService() {
         }
 
         super.onDestroy()
+        quitCoordinator.onServiceDestroyed(this)
     }
 
     // ---------------------------------------------------------------------
     // Media3 session callback
     // ---------------------------------------------------------------------
-
-    @OptIn(UnstableApi::class)
-    internal val media3SessionCallback: MediaSession.Callback = @UnstableApi
-    object : MediaSession.Callback {
-
-        @OptIn(UnstableApi::class)
-        override fun onConnect(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo
-        ): MediaSession.ConnectionResult {
-            val sessionCommands = MediaSession.ConnectionResult
-                .DEFAULT_SESSION_COMMANDS
-                .buildUpon()
-                .add(SessionCommand(MEDIA3_COMMAND_TOGGLE_FAVORITE, Bundle.EMPTY))
-                .add(SessionCommand(MEDIA3_COMMAND_CYCLE_PLAYBACK_MODE, Bundle.EMPTY))
-                .add(SessionCommand(MEDIA3_COMMAND_STOP_AFTER_CURRENT, Bundle.EMPTY))
-                .add(SessionCommand(MEDIA3_COMMAND_CLOSE_NOTIFICATION, Bundle.EMPTY))
-                .add(SessionCommand(PlaybackServiceActions.ACTION_PREVIOUS, Bundle.EMPTY))
-                .add(SessionCommand(PlaybackServiceActions.ACTION_NEXT, Bundle.EMPTY))
-                .build()
-
-            val playerCommands = MediaSession.ConnectionResult
-                .DEFAULT_PLAYER_COMMANDS
-                .buildUpon()
-                .add(Player.COMMAND_SEEK_TO_NEXT)
-                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
-                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                .apply {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        session.isMediaNotificationController(controller)) {
-                        remove(Player.COMMAND_SEEK_TO_NEXT)
-                        remove(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                        remove(Player.COMMAND_SEEK_TO_PREVIOUS)
-                        remove(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                    }
-                }.build()
-
-            return MediaSession.ConnectionResult
-                .AcceptedResultBuilder(session)
-                .setAvailableSessionCommands(sessionCommands)
-                .setAvailablePlayerCommands(playerCommands)
-                .build()
-        }
-
-        @OptIn(UnstableApi::class)
-        override fun onSetMediaItems(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            mediaItems: MutableList<androidx.media3.common.MediaItem>,
-            startIndex: Int,
-            startPositionMs: Long
-        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            val safeIndex = startIndex.coerceIn(0, (mediaItems.size - 1).coerceAtLeast(0))
-            val current = mediaItems.getOrNull(safeIndex)
-                ?: return Futures.immediateFuture(
-                    MediaSession.MediaItemsWithStartPosition(
-                        emptyList(),
-                        0,
-                        startPositionMs
-                    )
-                )
-
-            // Keep ExoPlayer single-track; app queue remains source of truth.
-            return Futures.immediateFuture(
-                MediaSession.MediaItemsWithStartPosition(
-                    listOf(current),
-                    /* startIndex= */ 0,
-                    startPositionMs
-                )
-            )
-        }
-
-        override fun onCustomCommand(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            customCommand: SessionCommand,
-            args: Bundle
-        ): ListenableFuture<SessionResult> {
-            return when (customCommand.customAction) {
-                PlaybackServiceActions.ACTION_PREVIOUS -> {
-                    playPrevious()
-                    successSessionResult()
-                }
-                PlaybackServiceActions.ACTION_NEXT -> {
-                    playNext()
-                    successSessionResult()
-                }
-                MEDIA3_COMMAND_TOGGLE_FAVORITE -> {
-                    toggleCurrentFavorite()
-                    successSessionResult()
-                }
-
-                MEDIA3_COMMAND_CYCLE_PLAYBACK_MODE -> {
-                    playbackModeResolver.cyclePlaybackMode()
-                    successSessionResult()
-                }
-
-                MEDIA3_COMMAND_CLOSE_NOTIFICATION -> {
-                    exitService()
-                    successSessionResult()
-                }
-
-                MEDIA3_COMMAND_STOP_AFTER_CURRENT -> {
-                    updateStopAfterCurrentTrackMode(!stopAfterCurrentTrack)
-                    publishAllRuntimeState(forceNotification = true)
-                    successSessionResult()
-                }
-
-                else -> unsupportedSessionResult()
-            }
-        }
-
-        @Suppress("DEPRECATION")
-        override fun onPlayerCommandRequest(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            playerCommand: Int
-        ): Int {
-            // Single-track ExoPlayer has no timeline next/prev — route like original BassPlayer.
-            when (playerCommand) {
-                Player.COMMAND_SEEK_TO_NEXT,
-                Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> {
-                    playNext()
-                    return SessionResult.RESULT_INFO_SKIPPED
-                }
-
-                Player.COMMAND_SEEK_TO_PREVIOUS,
-                Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> {
-                    playPrevious()
-                    return SessionResult.RESULT_INFO_SKIPPED
-                }
-
-                Player.COMMAND_STOP -> {
-                    pendingMedia3StopSnapshot = capturePlaybackSnapshot()
-                }
-            }
-
-            return SessionResult.RESULT_SUCCESS
-        }
-
-        @OptIn(UnstableApi::class)
-        override fun onPlaybackResumption(
-            mediaSession: MediaSession,
-            controller: MediaSession.ControllerInfo
-        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
-
-            serviceScope.launch {
-                runCatching {
-                    resolvePlaybackResumption(isForPlayback = true)
-                }.onSuccess { result ->
-                    future.set(result)
-                }.onFailure { error ->
-                    future.setException(error)
-                }
-            }
-
-            return future
-        }
-
-        override fun onMediaButtonEvent(
-            session: MediaSession,
-            controllerInfo: MediaSession.ControllerInfo,
-            intent: Intent
-        ): Boolean {
-            val event = intent.mediaButtonKeyEventOrNull()
-
-            if (event?.action != KeyEvent.ACTION_DOWN) {
-                return false
-            }
-
-            headsetMediaButtonHandler.handle(event.keyCode)
-            return true
-        }
-
-        override fun onPlayerInteractionFinished(
-            session: MediaSession,
-            controllerInfo: MediaSession.ControllerInfo,
-            playerCommands: Player.Commands
-        ) {
-            handleMedia3PlayerInteractionFinished()
-        }
-    }
-
-    private fun successSessionResult(): ListenableFuture<SessionResult> {
-        return Futures.immediateFuture(
-            SessionResult(SessionResult.RESULT_SUCCESS)
-        )
-    }
-
-    @OptIn(UnstableApi::class)
-    private fun unsupportedSessionResult(): ListenableFuture<SessionResult> {
-        return Futures.immediateFuture(
-            SessionResult(SessionError.ERROR_NOT_SUPPORTED)
-        )
-    }
-
-    @OptIn(UnstableApi::class)
-    private suspend fun resolvePlaybackResumption(
-        isForPlayback: Boolean
-    ): MediaSession.MediaItemsWithStartPosition {
-        ensurePlaybackRestored()
-
-        if (isForPlayback && !audioFocusController.request()) {
-            throw IllegalStateException("Audio focus request was denied.")
-        }
-
-        val startIndex = currentIndex.coerceIn(
-            minimumValue = 0,
-            maximumValue = queue.lastIndex
-        )
-        val current = queue.getOrNull(startIndex)
-            ?.toMediaItemOrNull()
-            ?: throw UnsupportedOperationException("No restorable media items.")
-
-        // Single-track player parity: resume with the current item only (original one MediaPlayer).
-        return MediaSession.MediaItemsWithStartPosition(
-            listOf(current),
-            /* startIndex= */ 0,
-            resolveCurrentSnapshotPositionMs()
-        )
-    }
-
-    private fun Intent.mediaButtonKeyEventOrNull(): KeyEvent? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelableExtra(
-                Intent.EXTRA_KEY_EVENT,
-                KeyEvent::class.java
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            getParcelableExtra(Intent.EXTRA_KEY_EVENT)
-        }
-    }
 
     // ---------------------------------------------------------------------
     // Lateinit guards for extracted service extension files

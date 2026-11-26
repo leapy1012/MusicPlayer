@@ -9,6 +9,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
+import gd.app.musicplayer.core.designsystem.theme.MusicAppearance
+import gd.app.musicplayer.core.datastore.ThemeSettings
+import gd.app.musicplayer.core.common.extension.isDarkTheme
 import gd.app.musicplayer.databinding.FragmentThemePagerItemBinding
 import gd.app.musicplayer.ui.common.base.SpacingItemDecoration
 import gd.app.musicplayer.ui.common.base.ViewBindingFragment
@@ -63,19 +66,27 @@ class ThemePagerFragment : ViewBindingFragment<FragmentThemePagerItemBinding>() 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    val items = ThemeItemMapper.buildItems(
-                        themes = state.themes,
-                        selectedImageName = state.settings?.imageName.orEmpty(),
-                        customImageNames = state.settings?.imageUris.orEmpty(),
-                        selectedTabIndex = state.selectedTabIndex,
-                        tabIndex = tabIndex,
-                        themeType = state.settings?.themeType
-                            ?: ThemeManager.THEME_TYPE_LIGHT
-                    )
-                    adapter.submitList(items)
+                    renderThemeCards(state)
                 }
             }
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (view != null && ::adapter.isInitialized) renderThemeCards(viewModel.uiState.value)
+    }
+
+    private fun renderThemeCards(state: ThemeUiState) {
+        val settings = state.settings ?: ThemeSettings()
+        adapter.submitList(ThemeItemMapper.buildItems(
+            themes = state.themes,
+            selectedImageName = settings.imageName,
+            customImageNames = settings.imageUris,
+            selectedTabIndex = state.selectedTabIndex,
+            tabIndex = tabIndex,
+            themeType = MusicAppearance.themeType(settings, requireContext().isDarkTheme())
+        ))
     }
 
     companion object {

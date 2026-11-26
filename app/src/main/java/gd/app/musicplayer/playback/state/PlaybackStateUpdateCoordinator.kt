@@ -15,9 +15,7 @@ class PlaybackStateUpdateCoordinator(
 
     interface Callbacks {
         fun stateOrchestratorOrNull(): PlaybackStateOrchestrator?
-        fun runtimeWidgetSnapshot(): WidgetPlaybackSnapshot
         fun shutdownWidgetSnapshot(snapshot: PlaybackSnapshot?): WidgetPlaybackSnapshot
-        fun updateWidgets(snapshot: WidgetPlaybackSnapshot)
         fun updateWidgetsBlocking(snapshot: WidgetPlaybackSnapshot)
     }
 
@@ -25,8 +23,6 @@ class PlaybackStateUpdateCoordinator(
         callbacks.stateOrchestratorOrNull()?.publishAllRuntimeState(
             forceNotification = forceNotification
         )
-
-        callbacks.updateWidgets(callbacks.runtimeWidgetSnapshot())
     }
 
     fun publishPlaybackState(
@@ -39,10 +35,6 @@ class PlaybackStateUpdateCoordinator(
             forceNotification = forceNotification,
             forceWidgetUpdate = forceWidgetUpdate
         )
-
-        if (reason != PublishReason.ProgressTick) {
-            callbacks.updateWidgets(callbacks.runtimeWidgetSnapshot())
-        }
     }
 
     fun updateNotification(force: Boolean = false) {
