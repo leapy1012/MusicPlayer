@@ -1,4 +1,6 @@
 import java.util.Properties
+import org.gradle.api.tasks.compile.JavaCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,6 +10,15 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
 }
+
+// Local snapshots of Soong classes-header.jar outputs, not APK runtime libraries.
+// Source: out_sys/target/common/obj/JAVA_LIBRARIES/
+//   framework-minus-apex_intermediates/classes-header.jar -> framework.jar
+//   dream-framework_intermediates/classes-header.jar -> dream-framework.jar
+val platformFrameworkApis = files(
+    rootProject.file("prebuilts/platform/framework.jar"),
+    rootProject.file("prebuilts/platform/dream-framework.jar"),
+)
 
 val localSigningFile = rootProject.file("keystore.properties")
 val localSigning = Properties().apply {
@@ -115,11 +126,8 @@ dependencies {
     // Original: implementation(files("libs/dream-physicsengine-2.1.0.aar"))
     implementation(files("${rootDir}/libs/dream-physicsengine-2.1.0.aar"))
     // Leapy end
-    compileOnly(files("libs/dream-framework-stubs-2.1.0.jar"))
-    // Leapy_tts added begin: Real API class files exported from the matching AOSP build.
-    // Required at compile time; implementations remain in the device framework.
-    compileOnly(files("libs/dream-tts-framework-api.jar"))
-    // Leapy_tts end
+    // Implementations are supplied by the matching DreamOS boot classpath.
+    compileOnly(platformFrameworkApis)
     // COUI spring overscroll writes View.mScrollY via reflection; blocked on
     // targetSdk 28+ for user apps (DuraSpeed is platform-exempt).
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
@@ -168,3 +176,19 @@ tasks.withType<Test>().configureEach {
     jvmArgs("--add-opens=java.base/java.io=ALL-UNNAMED")
 }
 // Leapy_tts end
+
+// Match the platform-API precedence used by Launcher for javac, kotlinc and
+// kapt stub compilation. Snapshot each classpath before replacing it so the
+// configured collection never refers back to itself.
+tasks.withType<JavaCompile>().configureEach {
+    doFirst {
+        val dependencies = classpath.files.filterNot { it in platformFrameworkApis.files }
+        classpath = files(platformFrameworkApis, dependencies)
+    }
+}
+tasks.withType<KotlinCompile>().configureEach {
+    doFirst {
+        val dependencies = libraries.files.filterNot { it in platformFrameworkApis.files }
+        libraries.setFrom(platformFrameworkApis, dependencies)
+    }
+}
