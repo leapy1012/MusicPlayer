@@ -374,6 +374,7 @@ class SoundEffectFragment : ViewBindingFragment<ViewBinding>() {
         } else {
             latestSettings.copy(balanceRight = value)
         }
+        persistAndApplyBalance(isLeft, delayMs = 200L)
     }
 
     private fun setupReverb(binding: FragmentSoundEffectBinding) = with(binding) {
@@ -579,21 +580,18 @@ class SoundEffectFragment : ViewBindingFragment<ViewBinding>() {
     private var leftBalanceApplyJob: Job? = null
     private var rightBalanceApplyJob: Job? = null
 
-    private fun persistAndApplyBalance(isLeft: Boolean): Job {
-        val job = persistAndApply {
-            if (isLeft) {
-                soundEffectViewModel.persistBalanceLeft(latestSettings.balanceLeft)
-            } else {
-                soundEffectViewModel.persistBalanceRight(latestSettings.balanceRight)
-            }
+    private fun persistAndApplyBalance(isLeft: Boolean, delayMs: Long = 0L): Job {
+        // Capture the gesture value before an older DataStore emission can redraw the UI.
+        val value = if (isLeft) latestSettings.balanceLeft else latestSettings.balanceRight
+        if (isLeft) leftBalanceApplyJob?.cancel() else rightBalanceApplyJob?.cancel()
+        val job = viewLifecycleOwner.lifecycleScope.launch {
+            if (delayMs > 0) delay(delayMs)
+            if (isLeft) soundEffectViewModel.persistBalanceLeft(value)
+            else soundEffectViewModel.persistBalanceRight(value)
+            // PlaybackTuningController observes this preference and updates both channel
+            // processors. A balance change must not reopen the equalizer/reverb effects.
         }
-        if (isLeft) {
-            leftBalanceApplyJob?.cancel()
-            leftBalanceApplyJob = job
-        } else {
-            rightBalanceApplyJob?.cancel()
-            rightBalanceApplyJob = job
-        }
+        if (isLeft) leftBalanceApplyJob = job else rightBalanceApplyJob = job
         return job
     }
 

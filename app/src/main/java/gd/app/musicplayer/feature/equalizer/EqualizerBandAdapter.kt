@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.core.view.animation.PathInterpolatorCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
-import com.coui.appcompat.seekbar.COUIVerticalSeekBar
+import com.coui.appcompat.seekbar.COUISeekBar
 import gd.app.musicplayer.core.common.extension.isRtl
 import gd.app.musicplayer.core.designsystem.view.EqualizerItemLayout
 import gd.app.musicplayer.core.designsystem.view.SeekBar
@@ -115,7 +115,7 @@ internal class EqualizerBandAdapter(
         private val freqText =
             picturedBinding?.equalizerItemText ?: couiBinding!!.equalizerItemText
         private val picturedSeek = picturedBinding?.equalizerItemSeek
-        private val couiSeek = couiBinding?.equalizerItemSeek
+        private val couiSeek = couiBinding?.equalizerItemSeek?.seekBar
 
         init {
             picturedSeek?.let { seek ->
@@ -140,21 +140,22 @@ internal class EqualizerBandAdapter(
                 })
             }
             couiSeek?.let { seek ->
-                seek.claimSliderDrags(vertical = true)
-                seek.setOnSeekBarChangeListener(object : COUIVerticalSeekBar.OnSeekBarChangeListener {
+                // Child coordinates are horizontal after Android applies the rotation.
+                seek.claimSliderDrags(vertical = false)
+                seek.setOnSeekBarChangeListener(object : COUISeekBar.OnSeekBarChangeListener {
                     override fun onProgressChanged(
-                        seekBar: COUIVerticalSeekBar,
+                        seekBar: COUISeekBar,
                         progress: Int,
                         fromUser: Boolean
                     ) = dispatchProgress(progress, fromUser)
 
-                    override fun onStartTrackingTouch(seekBar: COUIVerticalSeekBar) {
+                    override fun onStartTrackingTouch(seekBar: COUISeekBar) {
                         levelAnimator?.cancel()
                         tracking = true
                         onTrackingChanged(true)
                     }
 
-                    override fun onStopTrackingTouch(seekBar: COUIVerticalSeekBar) {
+                    override fun onStopTrackingTouch(seekBar: COUISeekBar) {
                         tracking = false
                         onTrackingChanged(false)
                     }
@@ -189,7 +190,7 @@ internal class EqualizerBandAdapter(
             }
         }
 
-        private fun animateCouiProgressTo(seekBar: COUIVerticalSeekBar, target: Int) {
+        private fun animateCouiProgressTo(seekBar: COUISeekBar, target: Int) {
             levelAnimator?.cancel()
             if (seekBar.progress == target) return
             levelAnimator = ValueAnimator.ofInt(seekBar.progress, target).apply {

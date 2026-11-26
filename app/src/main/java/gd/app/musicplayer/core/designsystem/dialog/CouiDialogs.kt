@@ -71,17 +71,7 @@ internal object CouiDialogs {
             )
             builder.updateViewAfterShown()
             CouiAlertDialogSurface.apply(dialog, config.backgroundDrawable)
-            if (config.positiveButtonDestructive) {
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.let { button ->
-                    button.setTag(gd.app.musicplayer.R.id.live_theme_text_attribute, CouiR.attr.couiColorError)
-                    val colors = button.context.obtainStyledAttributes(intArrayOf(CouiR.attr.couiColorError))
-                    try {
-                        colors.getColorStateList(0)?.let(button::setTextColor)
-                    } finally {
-                        colors.recycle()
-                    }
-                }
-            }
+            if (config.positiveButtonDestructive) applyDestructivePositive(dialog)
             config.onShowListener?.onShow(dialog)
         }
         dialog.show()
@@ -159,6 +149,18 @@ internal object CouiDialogs {
             CouiAlertDialogSurface.apply(dialog, config.backgroundDrawable)
         }
         dialog.show()
+    }
+
+    internal fun applyDestructivePositive(dialog: AlertDialog) {
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.let { button ->
+            button.setTag(gd.app.musicplayer.R.id.live_theme_text_attribute, CouiR.attr.couiColorError)
+            val colors = button.context.obtainStyledAttributes(intArrayOf(CouiR.attr.couiColorError))
+            try {
+                colors.getColorStateList(0)?.let(button::setTextColor)
+            } finally {
+                colors.recycle()
+            }
+        }
     }
 
     private fun wireButton(

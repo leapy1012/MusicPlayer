@@ -27,6 +27,7 @@ import gd.app.musicplayer.core.designsystem.dialog.MaterialDialogConfigFactory
 import gd.app.musicplayer.core.designsystem.dialog.MessageDialog
 import gd.app.musicplayer.core.designsystem.dialog.createMessageDialogConfig
 import gd.app.musicplayer.core.designsystem.dialog.showMessageDialog
+import gd.app.musicplayer.core.designsystem.theme.ThemePalette
 import gd.app.musicplayer.core.designsystem.theme.ThemeManager
 import gd.app.musicplayer.core.designsystem.theme.itemPrimaryTextColor
 import gd.app.musicplayer.core.mediastore.MediaStoreMusicImporter
@@ -99,6 +100,11 @@ class AudioEditorActivity : BaseActivity(),
         if (savedInstanceState == null) {
             loadWaveform()
         }
+    }
+
+    override fun onThemeChanged(palette: ThemePalette?) {
+        super.onThemeChanged(palette)
+        if (::binding.isInitialized) applyReferenceControlRendering()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -209,7 +215,8 @@ class AudioEditorActivity : BaseActivity(),
             root = binding.root,
             statusBarView = binding.statusBarSpace,
             toolbar = binding.toolbar,
-            bottomPaddingView = binding.bottomControl
+            bottomPaddingView = binding.bottomControl,
+            withAppBarDivider = false,
         )
 
         binding.toolbar.title = track?.title ?: getString(R.string.audio_editor_title)
@@ -311,6 +318,11 @@ class AudioEditorActivity : BaseActivity(),
         } else {
             palette.itemPrimaryTextColor
         }
+
+        binding.audioEditorWave.setRulerColors(
+            palette.getHeaderTitleColor(),
+            palette.getHeaderOverlayColor(),
+        )
 
         val zoomTint = ColorStateList(
             arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),

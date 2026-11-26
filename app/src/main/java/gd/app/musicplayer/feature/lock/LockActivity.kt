@@ -123,9 +123,15 @@ class LockActivity : BaseActivity(),
         observePlayMode()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) LockPlayerWindow.apply(window)
+    }
+
     override fun onStart() {
         super.onStart()
         startClock()
+        LockPlayerWindow.apply(window)
     }
 
     override fun onStop() {
@@ -200,13 +206,7 @@ class LockActivity : BaseActivity(),
         window.navigationBarColor = Color.TRANSPARENT
         window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
 
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        LockPlayerWindow.apply(window)
 
         applyShowWhenLockedPolicy()
 

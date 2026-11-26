@@ -120,6 +120,8 @@ class DeleteConfirmDialogFragment : CouiConfirmDialogFragment() {
             )
         }
 
+    override fun isPositiveDestructive(): Boolean = true
+
     override fun provideTitle(): CharSequence = getString(spec.titleRes)
     override fun provideMessage(): CharSequence = spec.message
     override fun providePositiveText(): CharSequence = getString(spec.confirmTextRes)

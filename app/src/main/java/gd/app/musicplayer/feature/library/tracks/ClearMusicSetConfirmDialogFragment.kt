@@ -19,6 +19,8 @@ class ClearMusicSetConfirmDialogFragment : CouiConfirmDialogFragment() {
     private val resultKey: String
         get() = requireArguments().getString(ARG_RESULT_KEY).orEmpty()
 
+    override fun isPositiveDestructive(): Boolean = true
+
     override fun provideTitle(): CharSequence = getString(titleRes)
     override fun provideMessage(): CharSequence = messageText
     override fun providePositiveText(): CharSequence = getString(R.string.clear)

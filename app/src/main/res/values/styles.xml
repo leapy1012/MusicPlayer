@@ -889,4 +889,6 @@
         <item name="android:tag">bottomMenuText</item>
     </style>
 
+    <!-- Band tracks stay visible at rest; retain COUI's own touch/release animation. -->
+
 </resources>

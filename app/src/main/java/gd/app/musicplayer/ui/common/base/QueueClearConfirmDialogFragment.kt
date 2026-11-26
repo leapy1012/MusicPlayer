@@ -13,6 +13,8 @@ class QueueClearConfirmDialogFragment : CouiConfirmDialogFragment() {
     @Inject
     lateinit var clearQueueUseCase: ClearQueueUseCase
 
+    override fun isPositiveDestructive(): Boolean = true
+
     override fun provideTitle(): CharSequence = getString(R.string.clear)
     override fun provideMessage(): CharSequence = getString(R.string.clear_message)
     override fun providePositiveText(): CharSequence = getString(R.string.clear)

@@ -26,6 +26,7 @@ open class CouiConfirmDialogFragment : DialogFragment() {
     protected open fun provideMessage(): CharSequence = ""
     protected open fun providePositiveText(): CharSequence = getString(R.string.ok)
     protected open fun provideNegativeText(): CharSequence = getString(R.string.cancel)
+    protected open fun isPositiveDestructive(): Boolean = false
     protected open fun showExtraCheckbox(): Boolean = false
     protected open fun extraCheckboxCheckedByDefault(): Boolean = false
     protected open fun onPositiveClicked(extraChecked: Boolean) = Unit
@@ -65,6 +66,7 @@ open class CouiConfirmDialogFragment : DialogFragment() {
                 dialog,
                 themeEngine.currentTheme().getDialogSurfaceDrawable(requireContext())
             )
+            if (isPositiveDestructive()) CouiDialogs.applyDestructivePositive(dialog)
         }
         return dialog
     }

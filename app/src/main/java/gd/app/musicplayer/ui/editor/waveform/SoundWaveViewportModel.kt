@@ -1,6 +1,8 @@
 package gd.app.musicplayer.ui.editor.waveform
 
 import gd.app.musicplayer.ui.editor.model.WaveformData
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -49,20 +51,28 @@ internal class SoundWaveViewportModel(
 
     fun pxPerMs(): Float = contentWidth() / durationMs()
 
-    fun rulerPoints(): List<Pair<String, Float>> {
+    /** Match tick density to the rendered label width, not just the audio format. */
+    fun rulerPoints(minSpacingPx: Float = 0f, startPx: Float = 0f,
+                    endPx: Float = Float.MAX_VALUE): List<Pair<String, Float>> {
         val d = data ?: return emptyList()
-        val intervalSec = if (mimeAac) {
+        val pixelsPerSecond = pxPerMs() * 1000f
+        if (pixelsPerSecond <= 0f || endPx < startPx) return emptyList()
+        val originalInterval = if (mimeAac) {
             if (zoomLevel == 0) 4 else step() * 5
         } else {
             if (zoomLevel == 0) 2 else (step() * 5) / 2
         }
-        val totalSec = (d.durationMs / 1000f).toInt()
-        val count = if (intervalSec <= 0) 0 else totalSec / intervalSec
-        return (0..count).map { i ->
-            val sec = i * intervalSec
-            val label = "%d:%02d".format(sec / 60, sec % 60)
-            val x = leftInset + ((sec * 1000f) * pxPerMs())
-            label to x
+        val needed = max(originalInterval, ceil(minSpacingPx / pixelsPerSecond).toInt())
+        var interval = NICE_INTERVALS.firstOrNull { it >= needed } ?: 3600
+        while (interval < needed && interval <= Int.MAX_VALUE / 2) interval *= 2
+        val totalSec = (d.durationMs / 1000).coerceAtLeast(0)
+        val spacing = interval * pixelsPerSecond
+        val first = max(0, floor((startPx - leftInset) / spacing).toInt() - 1)
+        val last = min(totalSec / interval, ceil((endPx - leftInset) / spacing).toInt())
+        if (first > last) return emptyList()
+        return (first..last).map { i ->
+            val sec = i * interval
+            "%d:%02d".format(sec / 60, sec % 60) to (leftInset + sec * pixelsPerSecond)
         }
     }
 
@@ -185,4 +195,8 @@ internal class SoundWaveViewportModel(
         }
         return out
     }
+    private companion object {
+        val NICE_INTERVALS = intArrayOf(1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600)
+    }
+
 }

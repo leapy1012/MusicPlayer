@@ -37,9 +37,10 @@ class SoundWaveView @JvmOverloads constructor(
 
     private val baselinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         strokeWidth = 1f
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = 12f * resources.displayMetrics.scaledDensity
         textAlign = Paint.Align.CENTER
     }
+    private val rulerSurfacePaint = Paint()
     private val wavePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = 1f }
     private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = resources.displayMetrics.density }
     private val gestureDetector = GestureDetector(context, this)
@@ -63,7 +64,8 @@ class SoundWaveView @JvmOverloads constructor(
     private var clipRightX = 0f
     private var progressX = 0f
 
-    private var baseLineColor = -553648129
+    private var baseLineColor = themeColor(com.coui.appcompat.R.attr.couiColorLabelPrimary, android.graphics.Color.BLACK)
+    private var rulerSurfaceColor = themeColor(com.coui.appcompat.R.attr.couiColorBackground, android.graphics.Color.WHITE)
     private var clipLineColor = -855638017
     private var activeClipLineColor = -16711681
     private var progressLineColor = -65536
@@ -95,42 +97,50 @@ class SoundWaveView @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
-        baselinePaint.color = baseLineColor
         val start = max(0, scrollX - paddingLeft)
         val lines = model.visibleLines(start, start + width)
-        if (lines.isEmpty()) {
-            canvas.drawLine(0f, height / 2f, width.toFloat(), height / 2f, baselinePaint)
-            canvas.drawColor(overlayColor)
-            return
+        val rulerBottom = getRulerTextHeight() + getRulerGraduationHeight()
+        if (lines.isNotEmpty()) {
+            canvas.drawLines(lines, wavePaint)
+            baselinePaint.color = overlayColor
+            canvas.drawRect(leftMaskRect, baselinePaint)
+            canvas.drawRect(rightMaskRect, baselinePaint)
+            baselinePaint.color = overlaySelectedColor
+            canvas.drawRect(selectedRect, baselinePaint)
+            markerPaint.color = if (dragMode == DragMode.LEFT) activeClipLineColor else clipLineColor
+            canvas.drawLine(clipLeftX, rulerBottom, clipLeftX, height.toFloat(), markerPaint)
+            markerPaint.color = if (dragMode == DragMode.RIGHT) activeClipLineColor else clipLineColor
+            canvas.drawLine(clipRightX, rulerBottom, clipRightX, height.toFloat(), markerPaint)
+            if (showSeek) {
+                markerPaint.color = progressLineColor
+                canvas.drawLine(progressX, rulerBottom, progressX, height.toFloat(), markerPaint)
+            }
+            drawHandles(canvas)
         }
-        canvas.drawLines(lines, wavePaint)
-
-        val rulerTop = getRulerTextHeight()
-        val rulerBottom = rulerTop + getRulerGraduationHeight()
-        model.rulerPoints().forEach { (label, x) ->
-            canvas.drawText(label, x, rulerTextBaseline(rulerTop / 2f), baselinePaint)
-            canvas.drawLine(x, rulerTop, x, rulerBottom, baselinePaint)
+        // Paint the ruler separately, after selection shading. Its text is never dimmed by masks.
+        rulerSurfacePaint.color = rulerSurfaceColor
+        canvas.drawRect(scrollX.toFloat(), 0f, (scrollX + width).toFloat(), rulerBottom, rulerSurfacePaint)
+        baselinePaint.color = baseLineColor
+        val gap = 12f * resources.displayMetrics.density
+        val widestLabel = "%d:59".format(getDuration() / 60000)
+        val spacing = baselinePaint.measureText(widestLabel) + gap
+        model.rulerPoints(spacing, scrollX.toFloat(), (scrollX + width).toFloat()).forEach { (label, x) ->
+            canvas.drawText(label, x, rulerTextBaseline(getRulerTextHeight() / 2f), baselinePaint)
+            canvas.drawLine(x, getRulerTextHeight(), x, rulerBottom, baselinePaint)
         }
-        canvas.drawLine(paddingLeft.toFloat(), rulerBottom, (paddingLeft + model.contentWidth()).toFloat(), rulerBottom, baselinePaint)
-
-        baselinePaint.color = overlayColor
-        canvas.drawRect(leftMaskRect, baselinePaint)
-        canvas.drawRect(rightMaskRect, baselinePaint)
-        baselinePaint.color = overlaySelectedColor
-        canvas.drawRect(selectedRect, baselinePaint)
-
-        markerPaint.color = if (dragMode == DragMode.LEFT) activeClipLineColor else clipLineColor
-        canvas.drawLine(clipLeftX, 0f, clipLeftX, height.toFloat(), markerPaint)
-        markerPaint.color = if (dragMode == DragMode.RIGHT) activeClipLineColor else clipLineColor
-        canvas.drawLine(clipRightX, 0f, clipRightX, height.toFloat(), markerPaint)
-
-        if (showSeek) {
-            markerPaint.color = progressLineColor
-            canvas.drawLine(progressX, 0f, progressX, height.toFloat(), markerPaint)
-        }
-
-        drawHandles(canvas)
+        canvas.drawLine(scrollX.toFloat(), rulerBottom, (scrollX + width).toFloat(), rulerBottom, baselinePaint)
     }
+
+    fun setRulerColors(foreground: Int, surface: Int) {
+        baseLineColor = foreground
+        rulerSurfaceColor = surface
+        invalidate()
+    }
+
+    private fun themeColor(attr: Int, fallback: Int): Int =
+        context.obtainStyledAttributes(intArrayOf(attr)).let { colors ->
+            try { colors.getColor(0, fallback) } finally { colors.recycle() }
+        }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (soundFile == null) return false
@@ -326,9 +336,10 @@ class SoundWaveView @JvmOverloads constructor(
     }
 
     private fun layoutRects() {
-        leftMaskRect.set(0, 0, clipLeftX.toInt(), height)
-        rightMaskRect.set(clipRightX.toInt(), 0, paddingLeft + paddingRight + model.contentWidth(), height)
-        selectedRect.set(leftMaskRect.right, 0, rightMaskRect.left, height)
+        val rulerBottom = ceil(getRulerTextHeight() + getRulerGraduationHeight()).toInt()
+        leftMaskRect.set(0, rulerBottom, clipLeftX.toInt(), height)
+        rightMaskRect.set(clipRightX.toInt(), rulerBottom, paddingLeft + paddingRight + model.contentWidth(), height)
+        selectedRect.set(leftMaskRect.right, rulerBottom, rightMaskRect.left, height)
         postInvalidate()
     }
 
@@ -445,9 +456,9 @@ class SoundWaveView @JvmOverloads constructor(
         return (centerY - metrics.descent) + ((metrics.bottom - metrics.top) / 2f)
     }
 
-    private fun getRulerGraduationHeight(): Float = 16f
+    private fun getRulerGraduationHeight(): Float = 6f * resources.displayMetrics.density
 
-    private fun getRulerTextHeight(): Float = baselinePaint.textSize + 4f
+    private fun getRulerTextHeight(): Float = baselinePaint.fontMetrics.run { bottom - top } + 8f * resources.displayMetrics.density
 
     fun setWaveformData(data: WaveformData?) {
         soundFile = data

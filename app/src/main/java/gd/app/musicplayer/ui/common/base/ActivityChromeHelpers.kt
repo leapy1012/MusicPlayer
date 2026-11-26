@@ -2,6 +2,8 @@ package gd.app.musicplayer.ui.common.base
 
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.view.Gravity
 import android.widget.LinearLayout
 import androidx.annotation.DrawableRes
 import androidx.annotation.MenuRes
@@ -19,6 +21,7 @@ fun BaseActivity.setupEdgeToEdgeToolbar(
     bottomPaddingView: View = root,
     @StringRes titleRes: Int? = null,
     @DrawableRes navigationIconRes: Int = com.coui.appcompat.R.drawable.coui_back_arrow,
+    withAppBarDivider: Boolean = true,
 ) {
     // Cache the status spacer immediately, but always listen for navigation
     // insets, including when the activity's root is the padding target.
@@ -30,7 +33,7 @@ fun BaseActivity.setupEdgeToEdgeToolbar(
     titleRes?.let(toolbar::setTitle)
     toolbar.navigateBack(this)
     toolbar.applyCouiLeftTitle()
-    toolbar.ensureAppBarDivider()
+    if (withAppBarDivider) toolbar.ensureAppBarDivider()
 }
 
 /**
@@ -89,10 +92,11 @@ private fun Toolbar.insertAppBarDivider(): View? {
 
     val divider = View(context).apply {
         id = R.id.app_bar_divider
-        layoutParams = ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            heightPx
-        )
+        layoutParams = if (chrome is FrameLayout) {
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx, Gravity.BOTTOM)
+        } else {
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx)
+        }
         val typed = context.obtainStyledAttributes(
             intArrayOf(com.coui.appcompat.R.attr.couiColorDivider)
         )

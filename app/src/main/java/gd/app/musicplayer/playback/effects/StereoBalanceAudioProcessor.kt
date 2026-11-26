@@ -9,13 +9,18 @@ import java.nio.ByteOrder
 import kotlin.math.roundToInt
 
 @OptIn(UnstableApi::class)
-class StereoBalanceAudioProcessor : BaseAudioProcessor() {
+class StereoBalanceAudioProcessor private constructor(
+    private val gains: ChannelGains
+) : BaseAudioProcessor() {
+    constructor() : this(ChannelGains())
 
-    @Volatile
-    private var leftGain: Float = 1f
+    private class ChannelGains {
+        @Volatile var left: Float = 1f
+        @Volatile var right: Float = 1f
+    }
 
-    @Volatile
-    private var rightGain: Float = 1f
+    // Each player owns its format/buffers, while new crossfade streams inherit live gains.
+    fun forNewStream(): StereoBalanceAudioProcessor = StereoBalanceAudioProcessor(gains)
 
     fun setChannelBalance(
         enabled: Boolean,
@@ -23,11 +28,11 @@ class StereoBalanceAudioProcessor : BaseAudioProcessor() {
         right: Float
     ) {
         if (enabled) {
-            leftGain = left.coerceIn(0f, 1f)
-            rightGain = right.coerceIn(0f, 1f)
+            gains.left = left.coerceIn(0f, 1f)
+            gains.right = right.coerceIn(0f, 1f)
         } else {
-            leftGain = 1f
-            rightGain = 1f
+            gains.left = 1f
+            gains.right = 1f
         }
     }
 
@@ -36,9 +41,10 @@ class StereoBalanceAudioProcessor : BaseAudioProcessor() {
     ): AudioProcessor.AudioFormat {
         return if (
             inputAudioFormat.encoding == C.ENCODING_PCM_16BIT &&
-            inputAudioFormat.channelCount == CHANNEL_COUNT_STEREO
+            inputAudioFormat.channelCount in 1..CHANNEL_COUNT_STEREO
         ) {
-            inputAudioFormat
+            AudioProcessor.AudioFormat(inputAudioFormat.sampleRate, CHANNEL_COUNT_STEREO,
+                inputAudioFormat.encoding)
         } else {
             AudioProcessor.AudioFormat.NOT_SET
         }
@@ -51,15 +57,22 @@ class StereoBalanceAudioProcessor : BaseAudioProcessor() {
             return
         }
 
-        val outputBuffer = replaceOutputBuffer(inputSize)
+        val mono = inputAudioFormat.channelCount == 1
+        val outputBuffer = replaceOutputBuffer(if (mono) inputSize * 2 else inputSize)
         outputBuffer.order(ByteOrder.nativeOrder())
 
-        val left = leftGain
-        val right = rightGain
+        val left = gains.left
+        val right = gains.right
 
-        while (inputBuffer.remaining() >= BYTES_PER_STEREO_FRAME) {
+        if (!mono && left == 1f && right == 1f) {
+            outputBuffer.put(inputBuffer)
+            outputBuffer.flip()
+            return
+        }
+
+        while (inputBuffer.remaining() >= if (mono) 2 else BYTES_PER_STEREO_FRAME) {
             val inputLeft = inputBuffer.short.toInt()
-            val inputRight = inputBuffer.short.toInt()
+            val inputRight = if (mono) inputLeft else inputBuffer.short.toInt()
 
             outputBuffer.putShort(scaleSample(inputLeft, left))
             outputBuffer.putShort(scaleSample(inputRight, right))

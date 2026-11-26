@@ -310,7 +310,7 @@ internal fun MusicPlaybackService.configureControllers() {
         settingPreferencesDataStore = settingPreferencesDataStore,
         soundEffectPreferences = soundEffectPreferences,
         stereoBalanceAudioProcessor = stereoBalanceAudioProcessor,
-        extraStereoBalanceAudioProcessors = emptyList(),
+        extraStereoBalanceAudioProcessors = listOf(crossfadeStereoBalanceAudioProcessor),
         currentMusicProvider = {
             queue.getOrNull(currentIndex)
         },

@@ -9,6 +9,8 @@ import gd.app.musicplayer.core.designsystem.dialog.CouiConfirmDialogFragment
 @AndroidEntryPoint
 class DeletedMusicDeleteConfirmDialogFragment : CouiConfirmDialogFragment() {
 
+    override fun isPositiveDestructive(): Boolean = true
+
     override fun provideTitle(): CharSequence = getString(R.string.delete)
     override fun provideMessage(): CharSequence = getString(R.string.delete_musics)
     override fun providePositiveText(): CharSequence = getString(R.string.delete)

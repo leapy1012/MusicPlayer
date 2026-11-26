@@ -74,6 +74,7 @@ fun Context.resolveStatusBarHeightPx(): Int {
 fun View.applySystemBarInsets(
     statusBarView: View? = null,
     bottomPaddingView: View? = null,
+    reserveBottomNavigation: Boolean = true,
 ) {
     // Match original Settings/Theme open: status bar spacer from cache; do not wait for
     // async insets to remasure the whole tree during music_activity_in.
@@ -108,7 +109,7 @@ fun View.applySystemBarInsets(
             right = initialRight + if (tappable.right > 0) maxOf(navigation.right, tappable.right) else 0,
         )
         bottomPaddingView.updatePadding(
-            bottom = initialBottom + if (tappable.bottom > 0) maxOf(navigation.bottom, tappable.bottom) else 0,
+            bottom = initialBottom + if (reserveBottomNavigation && tappable.bottom > 0) maxOf(navigation.bottom, tappable.bottom) else 0,
         )
 
         insets

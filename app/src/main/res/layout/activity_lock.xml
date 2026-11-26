@@ -19,6 +19,7 @@
             android:scaleType="centerCrop" />
 
         <LinearLayout
+            android:id="@+id/lock_foreground"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="#33000000"
@@ -183,6 +184,7 @@
                 android:layout_marginTop="@dimen/h_dp_32" />
 
             <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/lock_unlock_hint"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"

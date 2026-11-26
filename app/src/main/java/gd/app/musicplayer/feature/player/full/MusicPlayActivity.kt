@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.ViewTreeObserver
 import android.view.View
 import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,8 +44,17 @@ class MusicPlayActivity : BaseActivity() {
     private var isRecordAudioGranted = false
     private var lastArtworkPath: String? = null
     private var dragDismissInProgress = false
+    private val backdropLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+        val footer = binding.root.findViewById<View>(R.id.fragment_play_bottom_party)
+        if (footer != null && footer.height > 0) {
+            val height = footer.height + binding.musicPlayForeground.paddingBottom
+            val scrim = binding.musicPlayBottomScrim
+            if (scrim.layoutParams.height != height) {
+                scrim.layoutParams = scrim.layoutParams.apply { this.height = height }
+            }
+        }
+    }
     private var pendingArtworkPath: String? = null
-    private var dismissInterceptionBlocked = false
 
     private val audioPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -76,9 +86,13 @@ class MusicPlayActivity : BaseActivity() {
     }
 
     private fun setupViews() {
-        // Both player pages share this container. Reserve button navigation once
-        // here; the translucent content view intentionally ignores inset listeners.
-        binding.root.applySystemBarInsets(bottomPaddingView = binding.musicPlayContent.parent as View)
+        // Inset only the two foreground pages. The artwork and fallback plate must
+        // fill the window, including bottom/side button-navigation regions.
+        binding.musicPlayForeground.applySystemBarInsets(
+            bottomPaddingView = binding.musicPlayForeground,
+            reserveBottomNavigation = false
+        )
+        binding.root.viewTreeObserver.addOnGlobalLayoutListener(backdropLayoutListener)
         backgroundImage = binding.musicPlaySkin
         // Full-player chrome is always a dark plate (white icons). Don't let the light
         // window background show through before / without artwork.
@@ -103,7 +117,7 @@ class MusicPlayActivity : BaseActivity() {
 
                     override fun onDragFinished(dismissed: Boolean) {
                         dragDismissInProgress = false
-                        setDisallowDragIntercept(dismissInterceptionBlocked)
+                        setDisallowDragIntercept(false)
                         if (!dismissed) {
                             pendingArtworkPath?.let(::applyArtworkIfChanged)
                             pendingArtworkPath = null
@@ -194,10 +208,6 @@ class MusicPlayActivity : BaseActivity() {
         return dragDismissInProgress
     }
 
-    fun setDismissInterceptionBlocked(blocked: Boolean) {
-        dismissInterceptionBlocked = blocked
-        binding.dragDismissLayout.setDisallowDragIntercept(blocked)
-    }
 
     fun ensureRecordAudioPermission(): Boolean {
         if (hasRecordAudioPermission()) {
@@ -238,6 +248,7 @@ class MusicPlayActivity : BaseActivity() {
         artworkJob?.cancel()
         artworkJob = null
 
+        binding.root.viewTreeObserver.removeOnGlobalLayoutListener(backdropLayoutListener)
         viewFlipper.release()
 
         super.onDestroy()

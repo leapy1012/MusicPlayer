@@ -17,31 +17,14 @@ import javax.inject.Singleton
 @Singleton
 class MusicPlayerFactory @Inject constructor() {
 
-    /**
-     * Builds an ExoPlayer. Prefer [createLightweight] for first play to match original
-     * [MediaPlayer] cost; use [create] when stereo-balance PCM processing is required.
-     */
+    /** Both normal and crossfade playback support independent channel gains from first play. */
     @OptIn(UnstableApi::class)
     fun create(
         context: Context,
         stereoBalanceAudioProcessor: StereoBalanceAudioProcessor
     ): ExoPlayer {
-        // First play path: plain ExoPlayer like original MediaPlayer (no custom sink).
-        // Balance processor is kept for API wiring; PCM path activates when effects rebuild.
-        return createLightweight(context)
-    }
-
-    fun createLightweight(context: Context): ExoPlayer {
-        return ExoPlayer.Builder(context)
-            .setHandleAudioBecomingNoisy(true)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .build(),
-                false
-            )
-            .build()
+        // ExoPlayer has only a master gain; independent channels require the PCM processor.
+        return createWithBalanceProcessor(context, stereoBalanceAudioProcessor)
     }
 
     @OptIn(UnstableApi::class)
@@ -60,7 +43,7 @@ class MusicPlayerFactory @Inject constructor() {
                     .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(
                         arrayOf<AudioProcessor>(
-                            stereoBalanceAudioProcessor
+                            stereoBalanceAudioProcessor.forNewStream()
                         )
                     )
                     .build()

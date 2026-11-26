@@ -62,6 +62,7 @@ class DragDismissLayout @JvmOverloads constructor(
         runCatching {
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                 sentCancelToChild = false
+                disallowDragIntercept = false
             }
 
             if (!disallowDragIntercept) {
@@ -69,6 +70,10 @@ class DragDismissLayout @JvmOverloads constructor(
             }
 
             dispatchTouchToChildIfNeeded(event)
+            if (event.actionMasked == MotionEvent.ACTION_UP ||
+                event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                disallowDragIntercept = false
+            }
         }.onFailure { throwable ->
             throwable.printStackTrace()
         }
