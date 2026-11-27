@@ -494,17 +494,15 @@ internal fun MusicPlaybackService.pausePlaybackInternal(
 }
 
 internal fun MusicPlaybackService.restartCurrentTrack() {
-    serviceScope.launch {
-        ensurePlaybackRestored()
-
-        if (!isQueueActionControllerInitialized()) return@launch
-
-        queueActionController.restartCurrentTrack()
+    launchPlaybackRequest {
+        if (ensurePlaybackReady() && playbackRequests.wantsPlayback) queueActionController.restartCurrentTrack()
     }
 }
 
 internal fun MusicPlaybackService.playNext(fromAutoTransition: Boolean = false) {
-    launchPlaybackRequest { playNextInternal(fromAutoTransition) }
+    launchPlaybackRequest {
+        if (ensurePlaybackReady() && playbackRequests.wantsPlayback) playNextInternal(fromAutoTransition)
+    }
 }
 
 internal fun MusicPlaybackService.playNextInternal(fromAutoTransition: Boolean = false) {
@@ -516,7 +514,9 @@ internal fun MusicPlaybackService.playNextInternal(fromAutoTransition: Boolean =
 }
 
 internal fun MusicPlaybackService.playPrevious() {
-    launchPlaybackRequest { playPreviousInternal() }
+    launchPlaybackRequest {
+        if (ensurePlaybackReady() && playbackRequests.wantsPlayback) playPreviousInternal()
+    }
 }
 
 internal fun MusicPlaybackService.playPreviousInternal() {

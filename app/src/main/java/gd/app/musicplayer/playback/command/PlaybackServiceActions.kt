@@ -33,4 +33,11 @@ object PlaybackServiceActions {
     const val ACTION_CUSTOM_FAVORITE = "gd.app.musicplayer.action.FAVORITE"
     const val ACTION_CUSTOM_UNFAVORITE = "gd.app.musicplayer.action.UNFAVORITE"
     const val ACTION_CUSTOM_STOP = "gd.app.musicplayer.action.STOP_CUSTOM"
+
+    fun requiresForegroundStart(action: String?): Boolean = when (action) {
+        ACTION_PLAY_FROM_QUEUE, ACTION_PLAY, ACTION_PLAY_NEXT, ACTION_REPLACE_QUEUE,
+        ACTION_TOGGLE_PLAY_PAUSE, ACTION_NEXT, ACTION_PREVIOUS,
+        ACTION_CHANGE_MUSIC_BY_INDEX, ACTION_RESTART_CURRENT -> true
+        else -> false
+    }
 }

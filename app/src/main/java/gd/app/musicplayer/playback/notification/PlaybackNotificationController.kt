@@ -264,12 +264,13 @@ class PlaybackNotificationController(
         val intent = Intent(service, MusicPlaybackService::class.java)
             .setAction(action)
 
-        return PendingIntent.getService(
-            service,
-            requestCode,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            gd.app.musicplayer.playback.command.PlaybackServiceActions.requiresForegroundStart(action)) {
+            PendingIntent.getForegroundService(service, requestCode, intent, flags)
+        } else {
+            PendingIntent.getService(service, requestCode, intent, flags)
+        }
     }
 
     private fun createRenderState(): NotificationRenderState {

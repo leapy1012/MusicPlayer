@@ -35,7 +35,7 @@ class PlaybackServiceRuntime(
             return callbacks.handleEmptyStartCommand(startId)
         }
 
-        if (action.requiresForegroundPromotion()) {
+        if (PlaybackServiceActions.requiresForegroundStart(action)) {
             callbacks.promoteToForegroundForPlaybackCommand()
         }
 
@@ -51,18 +51,4 @@ class PlaybackServiceRuntime(
         }
     }
 
-    private fun String.requiresForegroundPromotion(): Boolean {
-        return when (this) {
-            PlaybackServiceActions.ACTION_PLAY_FROM_QUEUE,
-            PlaybackServiceActions.ACTION_PLAY,
-            PlaybackServiceActions.ACTION_PLAY_NEXT,
-            PlaybackServiceActions.ACTION_REPLACE_QUEUE,
-            PlaybackServiceActions.ACTION_TOGGLE_PLAY_PAUSE,
-            PlaybackServiceActions.ACTION_NEXT,
-            PlaybackServiceActions.ACTION_PREVIOUS,
-            PlaybackServiceActions.ACTION_CHANGE_MUSIC_BY_INDEX -> true
-            else -> false
-        }
-    }
 }
-

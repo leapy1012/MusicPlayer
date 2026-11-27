@@ -517,4 +517,5 @@
     <string name="playback_format_unsupported">지원하지 않는 오디오: %1$s</string>
     <string name="playback_track_failed">재생할 수 없습니다: %1$s</string>
     <string name="playback_no_playable_music">재생할 수 있는 음악이 없습니다</string>
+    <string name="playback_service_start_failed">음악 재생을 시작할 수 없습니다</string>
 </resources>

@@ -1,7 +1,6 @@
 package gd.app.musicplayer.playback.command
 import android.content.Context
 import android.content.Intent
-import androidx.core.content.ContextCompat
 import gd.app.musicplayer.playback.service.MusicPlaybackService
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,10 +14,9 @@ class PlaybackCommandDispatcher @Inject constructor(
         val appContext = context.applicationContext
         val intent = command.toIntent(appContext)
 
-        if (command.requiresForegroundStart()) {
-            ContextCompat.startForegroundService(appContext, intent)
-        } else {
-            appContext.startService(intent)
+        if (!PlaybackServiceStarter.startIntent(appContext, intent)) {
+            gd.app.musicplayer.core.common.util.ToastUtil.show(appContext,
+                gd.app.musicplayer.R.string.playback_service_start_failed)
         }
     }
 
@@ -163,34 +161,4 @@ class PlaybackCommandDispatcher @Inject constructor(
         }
     }
 
-    private fun PlaybackCommand.requiresForegroundStart(): Boolean {
-        return when (this) {
-            is PlaybackCommand.PlayFromQueue,
-            is PlaybackCommand.PlayNextItems,
-            is PlaybackCommand.ReplaceQueue,
-            PlaybackCommand.Play,
-            is PlaybackCommand.PlayIndex,
-            PlaybackCommand.TogglePlayPause,
-            PlaybackCommand.Next,
-            PlaybackCommand.Previous -> true
-
-            is PlaybackCommand.Enqueue,
-            is PlaybackCommand.SeekTo,
-            is PlaybackCommand.SetStopAfterCurrentTrack,
-            is PlaybackCommand.RemoveQueueItem,
-            is PlaybackCommand.MoveQueueItem,
-            is PlaybackCommand.RefreshEditedTrack,
-            is PlaybackCommand.RefreshEditedTracks,
-            PlaybackCommand.Pause,
-            PlaybackCommand.ClearQueue,
-            PlaybackCommand.Stop,
-            PlaybackCommand.ApplyAudioEffects,
-            PlaybackCommand.ApplyPlaybackTuning,
-            PlaybackCommand.RefreshNotificationStyle,
-            PlaybackCommand.RestartCurrentTrack,
-            PlaybackCommand.ChangeMode,
-            PlaybackCommand.SetShuffleAllMode,
-            PlaybackCommand.ToggleFavorite -> false
-        }
-    }
 }

@@ -521,4 +521,5 @@
     <string name="playback_format_unsupported">Unsupported audio: %1$s</string>
     <string name="playback_track_failed">Couldn\'t play: %1$s</string>
     <string name="playback_no_playable_music">No playable music available</string>
+    <string name="playback_service_start_failed">Couldn\'t start music playback</string>
 </resources>

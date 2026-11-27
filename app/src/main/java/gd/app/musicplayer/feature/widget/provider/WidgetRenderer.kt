@@ -33,7 +33,7 @@ import gd.app.musicplayer.feature.widget.WidgetConfig
 import gd.app.musicplayer.feature.widget.WidgetConfigActivity
 import gd.app.musicplayer.feature.widget.shouldUseDarkForeground
 import gd.app.musicplayer.feature.widget.WidgetQueueService
-import gd.app.musicplayer.ui.shell.MainActivity
+import gd.app.musicplayer.ui.WelcomeActivity
 import java.io.File
 import java.io.InputStream
 import kotlin.math.roundToInt
@@ -362,9 +362,12 @@ internal object WidgetRenderer {
         snapshot: WidgetPlaybackSnapshot,
         providerClass: Class<*>
     ) {
-        val mainIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(MainActivity.EXTRA_EXPAND_PLAYER, true)
+        // Original e7.g.t -> w7.i0.c: use the launcher entry without forcing the player open.
+        val mainIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            setClass(context, WelcomeActivity::class.java)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED or
+                Intent.FLAG_INCLUDE_STOPPED_PACKAGES
         }
 
         remoteViews.setOnClickPendingIntent(

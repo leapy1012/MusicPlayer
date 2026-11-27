@@ -19,12 +19,12 @@ class QueueActionController(
             queue = currentState.queue,
             currentIndex = currentState.currentIndex,
             fromAutoTransition = fromAutoTransition
-        ) ?: run {
-            if (fromAutoTransition) {
-                callbacks.onAutoTransitionReachedQueueEnd()
-            }
-
+        ) ?: if (fromAutoTransition) {
+            callbacks.onAutoTransitionReachedQueueEnd()
             return
+        } else {
+            // Manual Next must still start/restart the current item at the end of ORDER.
+            currentState.currentIndex.takeIf { it in currentState.queue.indices } ?: 0
         }
 
         if (!callbacks.requestAudioFocus()) return
