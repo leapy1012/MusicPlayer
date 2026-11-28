@@ -65,7 +65,9 @@ android {
         }
         release {
             // Leapy modified begin: Original isMinifyEnabled = false.
-            isMinifyEnabled = true
+            // Temporary plain release: restore the R8 setting below when required.
+            // isMinifyEnabled = true
+            isMinifyEnabled = false
             // Leapy end
 
             proguardFiles(
